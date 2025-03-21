@@ -14,7 +14,6 @@ click==8.0.4
 constantly==15.1.0
 cryptography==40.0.2
 daphne==3.0.2
-dataclasses==0.8
 Deprecated==1.2.14
 distlib==0.3.8
 Django==3.2.25
