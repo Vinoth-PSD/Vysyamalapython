@@ -1,0 +1,11 @@
+nohup: ignoring input
+/usr/local/lib/python3.6/site-packages/OpenSSL/_util.py:6: CryptographyDeprecationWarning: Python 3.6 is no longer supported by the Python core team. Therefore, support for it is deprecated in cryptography. The next release of cryptography will remove support for Python 3.6.
+  from cryptography.hazmat.bindings.openssl.binding import Binding
+Using selector: EpollSelector
+/usr/local/lib/python3.6/site-packages/django/db/models/base.py:321: RuntimeWarning: Model 'authentication.profilecomplexion' was already registered. Reloading models is not advised as it can lead to inconsistencies, most notably with related models.
+  new_class._meta.apps.register_model(new_class._meta.app_label, new_class)
+Starting server at unix:/tmp/daphne.sock
+HTTP/2 support enabled
+Configuring endpoint unix:/tmp/daphne.sock
+Killed 0 pending application instances
+b'/tmp/daphne.sock': Cannot acquire lock.

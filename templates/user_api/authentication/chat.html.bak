@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat</title>
+</head>
+<body>
+    <div id="chat-log"></div>
+    <input id="chat-message-input" type="text" size="100">
+    <button id="chat-message-submit">Send</button>
+
+    <script>
+        // Replace with a valid conversation ID
+        const conversationId = 1; 
+        const chatSocket = new WebSocket(`ws://${window.location.host}/ws/chat/${conversationId}/`);
+
+        chatSocket.onopen = function(e) {
+            console.log('WebSocket connection opened.');
+        };
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'chat_history') {
+                data.messages.forEach(function(message) {
+                    document.querySelector('#chat-log').innerHTML += `<div>${message.sender}: ${message.message}</div>`;
+                });
+            } else if (data.type === 'chat_message') {
+                document.querySelector('#chat-log').innerHTML += `<div>${data.sender}: ${data.message}</div>`;
+            }
+        };
+
+        chatSocket.onclose = function(e) {
+            console.log('WebSocket connection closed.');
+            // Optionally, attempt to reconnect here
+        };
+
+        chatSocket.onerror = function(e) {
+            console.error('WebSocket error:', e);
+        };
+
+        document.querySelector('#chat-message-submit').onclick = function(e) {
+            const messageInput = document.querySelector('#chat-message-input');
+            const message = messageInput.value;
+            if (chatSocket.readyState === WebSocket.OPEN) {
+                chatSocket.send(JSON.stringify({
+                    'message': message
+                }));
+                messageInput.value = '';
+            } else {
+                console.error('WebSocket is not open. Ready state:', chatSocket.readyState);
+            }
+        };
+    </script>
+</body>
+</html>

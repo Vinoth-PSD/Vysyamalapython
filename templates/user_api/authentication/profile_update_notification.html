@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Update Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background-color: #ffffff;
+            margin: 20px auto;
+            padding: 20px;
+            max-width: 600px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background-color: #4CAF50;
+            color: #ffffff;
+            padding: 10px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .content {
+            padding: 20px;
+            text-align: left;
+            color: #333333;
+        }
+        .content p {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .content a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #888888;
+        }
+        .button {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Profile Update Notification</h2>
+        </div>
+        <div class="content">
+            <p>Hi <strong>{{ recipient_name }}</strong>,</p>
+            <p>We wanted to let you know that <strong>{{ profile_name }}</strong> has made updates to their profile!</p>
+            
+            <p><strong>What's New?</strong></p>
+            <p>{{ profile_name }} has updated the following information:</p>
+            <ul>
+                <li>{{ updated_details }}</li>
+            </ul>
+
+            <p>You can view the updated profile by clicking the button below:</p>
+
+            <p><a href="{{ profile_link }}" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-align: center; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">View Updated Profile</a></p>
+            
+            <p>We hope this keeps you updated with profiles that matter to you!</p>
+
+            <p>Best regards,<br>The Vysyamala Team</p>
+        </div>
+        <div class="footer">
+            <p>Disclaimer: You are receiving this email because you are a registered member of Vysyamala. Your User ID is {{ profile_id }}. If you do not want to get mails from Vysyamala, <a href="#">click here to unsubscribe</p>
+        </div>
+    </div>
+</body>
+</html>

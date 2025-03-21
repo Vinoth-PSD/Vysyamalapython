@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+
+        #display {
+            background-color: white;
+            padding: 20px;
+            height: 70vh;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            max-width: 60%;
+            margin: 10px 0;
+            padding: 10px 20px;
+            border-radius: 20px;
+            position: relative;
+            word-wrap: break-word;
+            display: inline-block;
+        }
+
+        .message.left {
+            background-color: #4b4b4b;
+            text-align: left;
+            align-self: flex-start;
+            color: #ffffff;
+        }
+
+        .message.right {
+            background-color: #dcf8c6;
+            text-align: right;
+            align-self: flex-end;
+            color: #000000;
+        }
+
+        .message b {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .message .time {
+            display: block;
+            font-size: 0.8em;
+            color: gray;
+            margin-top: 5px;
+        }
+
+        .container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        input[type=text] {
+            flex: 1;
+            padding: 12px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            box-sizing: border-box;
+        }
+
+        input[type=submit] {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 20px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        input[type=submit]:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h6> Room ID - {{ room }} - User - {{ username }}</h6>
+
+    <div id="display">
+        {% for message in messages %}
+        <div class='message {% if message.user == username %}right{% else %}left{% endif %}'>
+            <b>{{ message.user }}</b>
+            <p>{{ message.value }}</p>
+            <span class="time">{{ message.date|date:"H:i:s d/m/Y" }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="container">
+        <form id="post-form">
+            <input type="hidden" name="username" id="username" value="{{ username }}" />
+            <input type="text" name="message" id="message" />
+            <input type="submit" value="Send">
+        </form>
+    </div>
+
+    <script>
+        const roomName = "{{ room }}";
+        const username = "{{ username }}";
+        const display = document.querySelector('#display');
+
+        const chatSocket = new WebSocket(
+            'ws://103.214.132.20:8000/ws/chat/' + roomName + '/'
+        );
+
+        chatSocket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+            const messageClass = data.username === username ? 'right' : 'left';
+            const message = `
+                <div class='message ${messageClass}'>
+                    <b>${data.username}</b>
+                    <p>${data.message}</p>
+                    <span class="time">${new Date().toLocaleTimeString()}</span>
+                </div>`;
+            display.innerHTML += message;
+            display.scrollTop = display.scrollHeight;
+        };
+
+        chatSocket.onclose = function (e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+
+        document.querySelector('#post-form').onsubmit = function (e) {
+            e.preventDefault();
+            const messageInput = document.querySelector('#message');
+            const message = messageInput.value;
+
+            chatSocket.send(JSON.stringify({
+                'message': message,
+                'username': username
+            }));
+
+
+
+            messageInput.value = '';
+        };
+
+        setInterval(() => {
+            fetch(`/auth/get_messages?room_id=${roomName}`)
+                .then(response => response.json())
+                .then(data => {
+                    display.innerHTML = '';
+                    data.messages.forEach(msg => {
+                        const messageClass = msg.user === username ? 'right' : 'left';
+                        const message = `
+                            <div class='message ${messageClass}'>
+                                <b>${msg.user}</b>
+                                <p>${msg.value}</p>
+                                <span class="time">${new Date(msg.date).toLocaleTimeString()}</span>
+                            </div>`;
+                        display.innerHTML += message;
+                    });
+                    display.scrollTop = display.scrollHeight;
+                });
+        }, 50000);
+    </script>
+
+</body>
+
+</html>

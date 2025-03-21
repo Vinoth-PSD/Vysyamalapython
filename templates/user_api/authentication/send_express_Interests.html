@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Express Interest Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background-color: #4CAF50;
+            padding: 10px 0;
+            text-align: center;
+            color: white;
+        }
+        .content {
+            padding: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #333;
+        }
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>You’ve Received an Express Interest</h1>
+        </div>
+        <div class="content">
+            <p>Dear {{ recipient_name }},</p>
+            <p>We are excited to inform you that profile ID <strong>{{ from_profile_id }}</strong> has shown interest in connecting with you!</p>
+            <p>To view this profile and respond, simply click the button below:</p>
+            <p><a href="{{ profile_link }}" class="button">View Profile</a></p>
+            <p>We recommend reviewing the profile and expressing your interest back if you find it suitable. Don’t miss out on this opportunity to connect!</p>
+            <p>Best regards,<br>The Matrimony Team</p>
+        </div>
+        <div class="footer">
+            <p>If you wish to stop receiving these notifications, please update your alert settings in your profile.</p>
+        </div>
+    </div>
+</body>
+</html>

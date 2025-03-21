@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Vysyamala</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border: 1px solid #dddddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .header {
+            background-color: #4CAF50;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 20px;
+        }
+        .content p {
+            line-height: 1.6;
+            margin: 10px 0;
+        }
+        .footer {
+            background-color: #f1f1f1;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+        }
+        .footer a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome to Vysyamala</h1>
+        </div>
+        <div class="content">
+            <p>Dear {{ Profile_name }},</p>
+
+            <p>Greetings from Vysyamala!</p>
+
+            <p>Thank you for registering your profile in Vysyamala - online matrimonial exclusive for Arya Vysya Community Since 2008.</p>
+
+            <p>We will get back to you shortly.</p>
+
+            <p>If you would like to contact us, you can call us at +91 9944851550.</p>
+
+            <p>Have a nice day!</p>
+
+            <p>Warm Regards,</p>
+            <p>Team Vysyamala</p>
+            <p>Helpline: +91 9944851550</p>
+            <p>Email Support: <a href="mailto:info@vysyamala.com">info@vysyamala.com</a></p>
+            <p>Website: <a href="http://www.vysyamala.com">www.vysyamala.com</a></p>
+        </div>
+        <div class="footer">
+            <p>Disclaimer: You are receiving this email because you are a registered member of Vysyamala. Your User ID is {{ new_profile_id }}. If you do not want to get mails from Vysyamala, <a href="#">click here to unsubscribe</a>.</p>
+        </div>
+    </div>
+</body>
+</html>
