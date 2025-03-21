@@ -74,3 +74,4 @@ wrapt==1.16.0
 xlrd==2.0.1
 zipp==3.17.0
 zope.interface==6.3
+twisted>=23.10.0; platform_system != "Windows"
