@@ -6,7 +6,6 @@ import os
 from django.utils import timezone
 from datetime import datetime
 from ckeditor.fields import RichTextField
-from collections import defaultdict
 
 class AuthUser(models.Model):
     username = models.CharField(max_length=255)
@@ -633,62 +632,6 @@ class MatchingStarPartner(models.Model):
             ]
         #print("Query result:", result)
         return result
-    
-
-    @staticmethod
-    def get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender):
-        query = '''
-            SELECT 
-                sp.id,
-                sp.source_star_id,
-                sp.matching_porutham,
-                sp.dest_rasi_id,
-                sp.dest_star_id,
-                sp.match_count,
-                sd.star as matching_starname, 
-                rd.name as matching_rasiname,  
-                GROUP_CONCAT(pn.protham_name) AS protham_names 
-            FROM 
-                matching_stars_partner sp 
-                LEFT JOIN masterbirthstar sd ON sd.id = sp.dest_star_id 
-                LEFT JOIN masterrasi rd ON rd.id = sp.dest_rasi_id
-                LEFT JOIN matching_porutham_names pn ON FIND_IN_SET(pn.id, sp.matching_porutham) 
-            WHERE 
-                sp.gender = %s 
-                AND sp.source_star_id = %s 
-                AND sp.source_rasi_id = %s 
-            GROUP BY 
-                sp.id, sp.gender, sp.source_star_id, 
-                sp.matching_porutham, sp.dest_rasi_id, 
-                sp.dest_star_id, sp.match_count, 
-                sd.star, rd.name
-            '''
-
-        with connection.cursor() as cursor:
-            cursor.execute(query, [gender, birth_star_id , birth_rasi_id])
-            columns = [col[0] for col in cursor.description]
-            rows = cursor.fetchall()
-            result = [
-                dict(zip(columns, row))
-                for row in rows
-            ]
-        
-        # Group the results by Porutham count
-        grouped_data = defaultdict(list)
-        for item in result:
-            match_count = item['match_count']
-            grouped_data[match_count].append(item)
-
-        # Separate by Porutham counts 9, 8, 7, 6, 5
-        porutham_data = {
-            "9 Poruthams": grouped_data.get(9, []),
-            "8 Poruthams": grouped_data.get(8, []),
-            "7 Poruthams": grouped_data.get(7, []),
-            "6 Poruthams": grouped_data.get(6, []),
-            "5 Poruthams": grouped_data.get(5, [])
-        }
-        
-        return porutham_data
     
     
 
