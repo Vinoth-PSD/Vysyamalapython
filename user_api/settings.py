@@ -125,7 +125,7 @@ WSGI_APPLICATION = 'user_api.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'vysyamala',
+        'NAME': 'vysyamaladev',
         'USER': 'vysyadev2025',
         'PASSWORD': 'DevVy@2025',
         'HOST': 'vysyadev.mysql.database.azure.com',  # e.g., 'localhost' or an IP address
