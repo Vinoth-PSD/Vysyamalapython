@@ -35,6 +35,19 @@ CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
 
 
 
+AZURE_ACCOUNT_NAME = "vysyamaladev2025"  # Your Azure storage account name
+AZURE_ACCOUNT_KEY = "1mdfx0CBr1DTTNuVVK0qL5JXEpRNQnyWVEbIzndIPPlHXNERQIYGjsGWf3zXcX1EpRyCSu/hegkp+AStd8nkfQ=="  # Get this from Azure Portal
+AZURE_CONTAINER_NAME = "vysyamala"  # Name of your blob container
+AZURE_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=vysyamaladev2025;AccountKey=1mdfx0CBr1DTTNuVVK0qL5JXEpRNQnyWVEbIzndIPPlHXNERQIYGjsGWf3zXcX1EpRyCSu/hegkp+AStd8nkfQ==;EndpointSuffix=core.windows.net"  # Get from Azure Portal
+AZURE_BLOB_BASE_URL = f"https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/{AZURE_CONTAINER_NAME}"
+
+
+DEFAULT_FILE_STORAGE = 'storages.backends.azure_storage.AzureStorage'
+
+MEDIA_URL = AZURE_BLOB_BASE_URL + "/"
+MEDIA_ROOT = None  # Azure handles file storage
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -52,6 +65,7 @@ INSTALLED_APPS = [
     'ckeditor',
     'ckeditor_uploader',
     'channels',
+    'storages', 
     # 'oauth2_provider',
     
 ]
@@ -228,8 +242,8 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# MEDIA_URL = '/media/'
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 
