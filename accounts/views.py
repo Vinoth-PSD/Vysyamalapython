@@ -3681,9 +3681,9 @@ def Get_matching_score(source_star_id, source_rasi_id,dest_star_id,dest_rasi_id,
 #         return []
 
 def Get_profile_image(user_profile_id, gender, no_of_image, photo_protection, is_admin=False):
-    base_url = settings.IMAGE_BASEURL
-    default_img_bride = '/media/default_bride.png'
-    default_img_groom = '/media/default_groom.png'
+    base_url = settings.MEDIA_URL
+    default_img_bride = 'default_bride.png'
+    default_img_groom = 'default_groom.png'
 
     # Admin bypasses photo protection logic
     if is_admin:
@@ -3693,7 +3693,7 @@ def Get_profile_image(user_profile_id, gender, no_of_image, photo_protection, is
                 if get_entry:
                     # Admin gets unblurred image
                     serializer = ImageGetSerializer(get_entry)
-                    return base_url + serializer.data['image']
+                    return serializer.data['image']
                 else:
                     # Return default image based on gender if no image is found
                     return base_url + (default_img_groom if gender.lower() == 'male' else default_img_bride)
@@ -3704,7 +3704,7 @@ def Get_profile_image(user_profile_id, gender, no_of_image, photo_protection, is
                     serializer = ImageGetSerializer(get_entry, many=True)
                     # Return a dictionary of images
                     images_dict = {
-                        str(index + 1): base_url + entry['image']
+                        str(index + 1):  entry['image']
                         for index, entry in enumerate(serializer.data)
                     }
                     return images_dict
@@ -3720,7 +3720,7 @@ def Get_profile_image(user_profile_id, gender, no_of_image, photo_protection, is
                 get_entry = Image_Upload.objects.filter(profile_id=user_profile_id).first()
                 if get_entry:
                     serializer = ImageGetSerializer(get_entry)
-                    return base_url + serializer.data['image']
+                    return serializer.data['image']
                 else:
                     return base_url + (default_img_groom if gender.lower() == 'male' else default_img_bride)
             else:
@@ -3728,7 +3728,7 @@ def Get_profile_image(user_profile_id, gender, no_of_image, photo_protection, is
                 if get_entry.exists():
                     serializer = ImageGetSerializer(get_entry, many=True)
                     images_dict = {
-                        str(index + 1): base_url + entry['image']
+                        str(index + 1): entry['image']
                         for index, entry in enumerate(serializer.data)
                     }
                     return images_dict
@@ -3754,9 +3754,9 @@ def Get_profile_image(user_profile_id, gender, no_of_image, photo_protection, is
 
              
 def Get_image_profile(user_profile_id):
-    base_url = settings.IMAGE_BASEURL
-    default_img_bride = '/media/default_bride.png'
-    default_img_groom = '/media/default_groom.png'
+    base_url = settings.MEDIA_URL
+    default_img_bride = 'default_bride.png'
+    default_img_groom = 'default_groom.png'
     user_profile = Registration1.objects.get(ProfileId=user_profile_id)
     
     gender = user_profile.Gender
@@ -3778,13 +3778,13 @@ def Get_image_profile(user_profile_id):
         return img_base64  # Ensure this returns a string
     
     # Fallback to a default blurred image in case of no entry found
-    return settings.IMAGE_BASEURL + '/media/default_img.png'
+    return settings.MEDIA_URL + 'default_img.png'
 
 def get_blurred_image(image_name):
     # Construct the image path
     #print('image_name',image_name)
 
-    image_name = image_name[len('/media/'):]
+    image_name = image_name[len(''):]
     
     image_path = os.path.join(settings.MEDIA_ROOT,image_name)
 
@@ -3792,7 +3792,7 @@ def get_blurred_image(image_name):
     
     # Check if the file exists
     if not os.path.isfile(image_path):
-        return settings.IMAGE_BASEURL+'/media/default_img.png'
+        return settings.MEDIA_URL+'default_img.png'
     
     try:
         # Open the image using Pillow
@@ -3811,7 +3811,7 @@ def get_blurred_image(image_name):
             return 'data:image/jpeg;base64,'+img_base64
     
     except Exception as e:
-        return settings.IMAGE_BASEURL+'/media/default_img.png'
+        return settings.MEDIA_URL+'default_img.png'
 
 def get_profile_details(profile_ids):
     print('profile_details')

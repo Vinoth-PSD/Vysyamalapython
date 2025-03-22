@@ -5,7 +5,8 @@ from django.utils import timezone
 from datetime import datetime
 from django.http import JsonResponse
 from rest_framework.views import status
-
+from django.conf import settings
+from .storages import AzureMediaStorage
 
 
 class ProfileStatus(models.Model):
@@ -498,8 +499,8 @@ class LoginDetails(models.Model):
     Last_login_date= models.CharField(max_length=100)  
     # Profile_idproof = models.CharField(max_length=255,null=True,blank=True)
     # Profile_divorceproof = models.CharField(max_length=255,null=True,blank=True)  # Add this field for file upload
-    Profile_idproof = models.FileField(upload_to=upload_to_profile_basic)
-    Profile_divorceproof = models.FileField(upload_to=upload_to_profile_basic)
+    Profile_idproof = models.FileField(upload_to=upload_to_profile_basic,storage=AzureMediaStorage())
+    Profile_divorceproof = models.FileField(upload_to=upload_to_profile_basic,storage=AzureMediaStorage())
     quick_registration=models.CharField(max_length=6, blank=True, null=True)
     Plan_id= models.CharField(max_length=100 , blank=True, null=True)
     status= models.CharField(max_length=100 , blank=True, null=True)
@@ -565,7 +566,7 @@ def upload_to_profile(instance, filename):
 class Image_Upload(models.Model):
     id = models.AutoField(primary_key=True)
     profile_id = models.CharField(max_length=50)
-    image = models.ImageField(upload_to=upload_to_profile)
+    image = models.ImageField(upload_to=upload_to_profile,storage=AzureMediaStorage())
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -826,7 +827,7 @@ class AdminUser(models.Model):
 
 class Award(models.Model):
     name = models.CharField(max_length=255)
-    image = models.ImageField(upload_to='awards/images/')
+    image = models.ImageField(upload_to='awards/images/',storage=AzureMediaStorage())
     description = models.TextField()
     status = models.IntegerField(default=1)
     deleted = models.BooleanField(default=False)
@@ -842,7 +843,7 @@ class Award(models.Model):
 
 class SuccessStory(models.Model):
     couple_name = models.CharField(max_length=255)
-    photo = models.ImageField(upload_to='success_stories/photos/')
+    photo = models.ImageField(upload_to='success_stories/photos/',storage=AzureMediaStorage())
     date_of_marriage = models.DateField()
     details = models.TextField()
     status = models.IntegerField(default=1)  
@@ -861,7 +862,7 @@ class Testimonial(models.Model):
     profile_id = models.CharField(max_length=50)
     rating = models.IntegerField()
     review_content = models.TextField()
-    user_image = models.ImageField(upload_to='testimonials/images/')
+    user_image = models.ImageField(upload_to='testimonials/',storage=AzureMediaStorage())
     status = models.IntegerField(default=1)
     date = models.DateTimeField(auto_now_add=True)
     deleted = models.BooleanField(default=False)
@@ -892,7 +893,7 @@ class ProfileHoroscope(models.Model):
     amsa_kattam = models.CharField(max_length=1000, null=True, blank=True)  # Existing field
     # horoscope_file = models.TextField(null=True, blank=True)  # Added missing field
     #horo_file_updated = models.DateTimeField(null=True, blank=True)  # Added missing field
-    horoscope_file = models.FileField(upload_to=upload_to_profile)
+    horoscope_file = models.FileField(upload_to=upload_to_profile,storage=AzureMediaStorage())
     horo_file_updated = models.CharField(max_length=100 , null=True, blank=True)    
     calc_chevvai_dhosham = models.CharField(max_length=100, null=True, blank=True)  # Added missing field
     calc_raguketu_dhosham = models.CharField(max_length=100, null=True, blank=True)  # Added missing field
