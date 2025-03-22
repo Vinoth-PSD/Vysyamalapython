@@ -6,6 +6,7 @@ import os
 from django.utils import timezone
 from datetime import datetime
 from ckeditor.fields import RichTextField
+from .storages import AzureMediaStorage
 
 class AuthUser(models.Model):
     username = models.CharField(max_length=255)
@@ -88,8 +89,8 @@ class Registration1(models.Model):
     Profile_whatsapp= models.CharField(max_length=20)
     Profile_mobile_no= models.CharField(max_length=20)
     Profile_emailid= models.CharField(max_length=20)
-    Profile_idproof = models.FileField(upload_to=upload_to_profile_basic)
-    Profile_divorceproof = models.FileField(upload_to=upload_to_profile_basic)
+    Profile_idproof = models.FileField(upload_to=upload_to_profile_basic,storage=AzureMediaStorage())
+    Profile_divorceproof = models.FileField(upload_to=upload_to_profile_basic,storage=AzureMediaStorage())
     Profile_gothras = models.CharField(max_length=255)
     Photo_password = models.CharField(max_length=255)
     Photo_protection = models.SmallIntegerField(default=0)
@@ -510,7 +511,8 @@ class Rasi(models.Model):
 class Image_Upload(models.Model):
     id = models.AutoField(primary_key=True)
     profile_id = models.CharField(max_length=50)
-    image = models.ImageField(upload_to=upload_to_profile)
+    # image = models.ImageField(upload_to=upload_to_profile)
+    image = models.ImageField(upload_to=upload_to_profile, storage=AzureMediaStorage())
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -695,7 +697,7 @@ class Horoscope(models.Model):
     rasi_kattam = models.CharField(max_length=1000)  # Changed from CharField to TextField
     amsa_kattam = models.CharField(max_length=1000)  # Changed from CharField to TextField
    # horoscope_file = models.TextField()
-    horoscope_file = models.FileField(upload_to=upload_to_profile)
+    horoscope_file = models.FileField(upload_to=upload_to_profile,storage=AzureMediaStorage())
     horo_file_updated = models.CharField(max_length=100)
 
     calc_chevvai_dhosham = models.CharField(max_length=100)
@@ -1681,7 +1683,7 @@ class MasterProfession(models.Model):
 
 class SuccessStory(models.Model):
     couple_name = models.CharField(max_length=255)
-    photo = models.ImageField(upload_to='success_stories/photos/')
+    photo = models.ImageField(upload_to='success_stories/photos/',storage=AzureMediaStorage())
     date_of_marriage = models.DateField()
     details = models.TextField()
     status = models.IntegerField(default=1)  
@@ -1698,7 +1700,7 @@ class SuccessStory(models.Model):
 
 class Award(models.Model):
     name = models.CharField(max_length=255)
-    image = models.ImageField(upload_to='awards/images/')
+    image = models.ImageField(upload_to='awards/images/',storage=AzureMediaStorage())
     description = models.TextField()
     status = models.IntegerField(default=1)
     deleted = models.BooleanField(default=False)
@@ -1716,7 +1718,7 @@ class Testimonial(models.Model):
     profile_id = models.CharField(max_length=50)
     rating = models.IntegerField()
     review_content = models.TextField()
-    user_image = models.ImageField(upload_to='testimonials/images/')
+    user_image = models.ImageField(upload_to='testimonials/',storage=AzureMediaStorage())
     status = models.IntegerField(default=1)
     date = models.DateField(auto_now_add=True)
     deleted = models.BooleanField(default=False)
