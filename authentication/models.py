@@ -6,6 +6,7 @@ import os
 from django.utils import timezone
 from datetime import datetime
 from ckeditor.fields import RichTextField
+from django.conf import settings
 from .storages import AzureMediaStorage
 
 class AuthUser(models.Model):

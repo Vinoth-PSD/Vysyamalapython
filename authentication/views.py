@@ -174,10 +174,10 @@ class LoginView(APIView):
                 #default image icon
                 else:
                     
-                    profile_icon = '/media/men.jpg' if gender == 'male' else '/media/women.jpg'
+                    profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
                     
                     
-                profile_image = 'http://103.214.132.20:8000'+profile_icon
+                profile_image = settings.MEDIA_URL+profile_icon
 
 
                 #logindetails_exists = models.Registration1.objects.filter(ProfileId=username).filter(Profile_address__isnull=False).exclude(Profile_address__exact='').first()
@@ -1909,10 +1909,10 @@ class Login_verifyotp(APIView):
                 #default image icon
                 else:
                     
-                    profile_icon = '/media/men.jpg' if gender == 'male' else 'media/women.jpg'
+                    profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
                     
                     
-                profile_image = 'http://103.214.132.20:8000'+profile_icon
+                profile_image = settings.MEDIA_URL+profile_icon
 
 
                 logindetails_exists = models.Registration1.objects.filter(ProfileId=profile_id).filter(Profile_address__isnull=False).exclude(Profile_address__exact='').first()
@@ -2205,13 +2205,13 @@ class Get_dashboard_details(APIView):
             my_oposit_gender=''
             if gender.lower()=='male':
                 
-                default_img='/default_bride.png'
+                default_img='default_bride.png'
                 my_oposit_gender='female'
 
 
             if gender.lower()=='female':
                 
-                default_img='/default_groom.png'
+                default_img='default_groom.png'
                 my_oposit_gender='male'
                                 
 
@@ -2233,7 +2233,7 @@ class Get_dashboard_details(APIView):
 
             def get_filtered_images(profile_ids):
                # base_url = "http://103.214.132.20:8000/media/"
-                base_url =settings.IMAGE_BASEURL+'/media/'
+                base_url =settings.MEDIA_URL
                 # Return empty list if no profile_ids provided
                 if not profile_ids:
                      return [
@@ -2413,7 +2413,7 @@ def matching_gallery(profile_id):
                 placeholders = ', '.join(['%s'] * len(profile_ids))
 
                 # base_url = 'http://103.214.132.20:8000/'
-                base_url = settings.IMAGE_BASEURL +'/'
+                base_url = settings.MEDIA_URL
 
                                 # Define the SQL query to fetch total images count
                 sql_query_count = f"""SELECT COUNT(DISTINCT pi.profile_id)
@@ -2464,7 +2464,7 @@ class Get_Gallery_lists(APIView):
                 placeholders = ', '.join(['%s'] * len(profile_ids))
 
                 # base_url = 'http://103.214.132.20:8000/media/'
-                base_url = settings.IMAGE_BASEURL + '/media/'
+                base_url = settings.MEDIA_URL
 
                 # Define the SQL query to fetch total images count
                 sql_query_count = f"""
@@ -3411,13 +3411,13 @@ def get_permission_limits(profile_id, column_name):
 def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
     #base_url='http://103.214.132.20:8000'
-    base_url=settings.IMAGE_BASEURL
+    base_url=settings.MEDIA_URL
     #base_url='http://127.0.0.1:8000/'
     
     #default_img_grrom='media/default_groom.png'
-    default_img_bride='/media/default_bride.png'
-    default_img_groom='/media/default_groom.png'
-    default_lock='/media/default_photo_protect.png'
+    default_img_bride='default_bride.png'
+    default_img_groom='default_groom.png'
+    default_lock='default_photo_protect.png'
     
 
     if photo_protection !=1:        
@@ -3432,7 +3432,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                         # Serialize the single instance
                         serializer = serializers.ImageGetSerializer(get_entry)
                         # Return only the status
-                        return base_url+serializer.data['image']
+                        return serializer.data['image']
                 else:
                         
                         
@@ -3452,7 +3452,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                     serializer = serializers.ImageGetSerializer(get_entry,many=True)
                     # Return only the status
                     images_dict = {
-                        str(index + 1): base_url + entry['image']
+                        str(index + 1): entry['image']
                         for index, entry in enumerate(serializer.data)
                     }
                     #print(images_dict)
@@ -3514,9 +3514,9 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                         return {"1": base_url+default_img_groom }
              
 def Get_image_profile(user_profile_id):
-    base_url = settings.IMAGE_BASEURL
-    default_img_bride = '/media/default_bride.png'
-    default_img_groom = '/media/default_groom.png'
+    base_url = settings.MEDIA_URL
+    default_img_bride = 'default_bride.png'
+    default_img_groom = 'default_groom.png'
     user_profile = models.Registration1.objects.get(ProfileId=user_profile_id)
     
     gender = user_profile.Gender
@@ -3527,7 +3527,7 @@ def Get_image_profile(user_profile_id):
         get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id).first()
         if get_entry:
             serializer = serializers.ImageGetSerializer(get_entry)
-            return base_url + serializer.data['image']
+            return serializer.data['image']
         
         return base_url + (default_img_groom if gender.lower() == 'male' else default_img_bride)
     
@@ -3538,7 +3538,7 @@ def Get_image_profile(user_profile_id):
         return img_base64  # Ensure this returns a string
     
     # Fallback to a default blurred image in case of no entry found
-    return settings.IMAGE_BASEURL + '/media/default_img.png'
+    return settings.MEDIA_URL + 'default_img.png'
 
 
 
@@ -3881,7 +3881,7 @@ class Get_profile_det_match(APIView):
                         Profile_horoscope=1
                         Profile_horoscope_txt="Horoscope Available"
                         
-                        Profile_horoscope_file_link='http://103.214.132.20:8000/media/'+Profile_horoscope_file 
+                        Profile_horoscope_file_link=settings.MEDIA_URL+Profile_horoscope_file 
 
                 
                 vysy_assist_enable=get_permission_limits(profile_id,'vys_assist')
@@ -4169,7 +4169,7 @@ class ListProfileImagesView(APIView):
         media_root_len = len(settings.MEDIA_ROOT)
         
         # Define the URL prefix
-        url_prefix = "http://103.214.132.20:8000/images/"
+        url_prefix = settings.MEDIA_URL
         
         # Update the list comprehension to include the URL prefix
         image_urls = [url_prefix + image.image.path[media_root_len:].lstrip('/') for image in profile_images]
@@ -4717,7 +4717,7 @@ class Get_photo_bypassword(APIView):
 
         serializer = serializers.PhotobypasswordSerializer(data=request.data)
         #base_url='http://103.214.132.20:8000'
-        base_url = settings.IMAGE_BASEURL
+        base_url = settings.MEDIA_URL
         
         
         if serializer.is_valid():
@@ -4729,7 +4729,8 @@ class Get_photo_bypassword(APIView):
                 serializer = serializers.ImageGetSerializer(get_entry,many=True)
                 # Return only the status
                 images_dict = {
-                    str(index + 1): base_url + entry['image']
+                    # str(index + 1): base_url + entry['image']
+                    str(index + 1): entry['image']
                     for index, entry in enumerate(serializer.data)
                 }
                 image_data={"user_images":images_dict}
@@ -7897,9 +7898,9 @@ def profile_preview_withouphoto(request: HttpRequest, profile_id):
 
     # print(f"Profile details: {profile_details}")
     my_gender=profile_details[0]['Gender']
-    base_url = settings.IMAGE_BASEURL
-    default_img_bride='/media/default_bride.png'
-    default_img_groom='/media/default_groom.png'
+    base_url = settings.MEDIA_URL
+    default_img_bride='default_bride.png'
+    default_img_groom='default_groom.png'
     if my_gender=="male":
         my_gender="female"
         looking_for="Bride"
@@ -9132,7 +9133,7 @@ class SuccessStoryListView(APIView):
         serializer = serializers.SuccessStoryListSerializer(queryset, many=True)
 
         #base_url = 'http://103.214.132.20:8000'
-        base_url = settings.IMAGE_BASEURL
+        base_url = settings.MEDIA_URL
 
         # Modify the serialized data to include the full image URL
         serialized_data = serializer.data
@@ -9167,7 +9168,7 @@ class AwardListView(APIView):
         serializer = serializers.AwardListSerializer(queryset, many=True)
 
         #base_url = 'http://103.214.132.20:8000'
-        base_url = settings.IMAGE_BASEURL
+        base_url = settings.MEDIA_URL
 
         serialized_data = serializer.data
         for item in serialized_data:
@@ -9200,7 +9201,7 @@ class TestimonialListView(APIView):
         serializer = serializers.TestimonialListSerializer(queryset, many=True)
 
         #base_url = 'http://103.214.132.20:8000'
-        base_url = settings.IMAGE_BASEURL
+        base_url = settings.MEDIA_URL
 
         serialized_data = serializer.data
         for item in serialized_data:
@@ -9582,15 +9583,15 @@ def get_blurred_image(image_name):
     # Construct the image path
     #print('image_name',image_name)
 
-    image_name = image_name[len('/media/'):]
+    image_name = image_name[len('/'):]
     
-    image_path = os.path.join(settings.MEDIA_ROOT,image_name)
+    image_path = os.path.join(settings.MEDIA_URL,image_name)
 
     # print('image_path',image_path)
     
     # Check if the file exists
     if not os.path.isfile(image_path):
-        return settings.IMAGE_BASEURL+'/media/default_img.png'
+        return settings.MEDIA_URL+'default_img.png'
     
     try:
         # Open the image using Pillow
@@ -9609,7 +9610,7 @@ def get_blurred_image(image_name):
             return 'data:image/jpeg;base64,'+img_base64
     
     except Exception as e:
-        return settings.IMAGE_BASEURL+'/media/default_img.png'
+        return settings.MEDIA_URL+'default_img.png'
 
 def can_send_express_interest(profile_id):
 
