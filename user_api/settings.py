@@ -218,6 +218,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://apiupg.rainyseasun.com",
     "https://apiupg.rainyseasun.com",
     "http://matrimonyapi.rainyseasun.com",
+    "https://white-pebble-02665321e.6.azurestaticapps.net/",
+    "https://polite-sea-09bf2e91e.6.azurestaticapps.net/",
 ]
 
 
