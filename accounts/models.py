@@ -1382,7 +1382,7 @@ class Get_profiledata_Matching(models.Model):
                     
                     with connection.cursor() as cursor1:
                         cursor1.execute(query, query_params)
-                        all_profile_ids = [row1[1] for row1 in cursor1.fetchall()]
+                        all_profile_ids = [row1[0] for row1 in cursor1.fetchall()]
 
                         total_count = len(all_profile_ids)
 
