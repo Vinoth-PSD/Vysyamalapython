@@ -970,14 +970,14 @@ class ImageSetUpload(APIView):
             img_width, img_height = img.size
             if img_width > target_width or img_height > target_height:
                 # Resize the image to fit within the target size, maintaining aspect ratio
-                img.thumbnail((target_width, target_height), PILImage.ANTIALIAS)
+                img.thumbnail((target_width, target_height), PILImage.LANCZOS)
 
             # Add the logo watermark
             try:
                 with PILImage.open(logo_path) as logo:
                     # Resize the logo
                     logo_width, logo_height = 68, 18  # Adjust size as needed
-                    logo.thumbnail((logo_width, logo_height), PILImage.ANTIALIAS)
+                    logo.thumbnail((logo_width, logo_height), PILImage.LANCZOS)
 
                     # Ensure the logo has transparency
                     logo = logo.convert("RGBA")
@@ -2197,7 +2197,7 @@ class Get_dashboard_details(APIView):
             #mutual_condition = {'status': 2,'profile_from':profile_id,'profile_to':profile_id}
             # matching_profile_counts = Q(status=2) & (Q(profile_from=profile_id) | Q(profile_to=profile_id))
 
-            profile_details = models.Get_profiledata.get_profile_match_count(gender,profile_id)
+            profile_details = models.Get_profiledata.get_profile_match_count(profile_id)
             
             default_img=''
 
@@ -2404,7 +2404,7 @@ def matching_gallery(profile_id):
         user = models.Registration1.objects.get(ProfileId=profile_id)
         gender = user.Gender.lower()
 
-        profile_details = models.Get_profiledata.get_profile_match_count(gender, profile_id)
+        profile_details = models.Get_profiledata.get_profile_match_count(profile_id)
             
         if profile_details is not None and getattr(profile_details, 'status_code', None) != 400:
         #if profile_details is not None and profile_details.status_code != 400 :
@@ -2434,92 +2434,187 @@ def matching_gallery(profile_id):
 
 
 
+# class Get_Gallery_lists(APIView):    
+#     def post(self, request):
+
+#         profile_id = request.data.get('profile_id')
+
+#         # print(settings.IMAGE_BASEURL) 
+
+#         if not profile_id:
+#             return JsonResponse({"Status": 0, "message": "Profile_id is required"}, status=status.HTTP_200_OK)
+                
+#         serializer = serializers.Profile_idValidationSerializer(data=request.data)
+
+#         if serializer.is_valid():
+#             profile_id = serializer.validated_data.get('profile_id')
+
+#             page = int(request.data.get('page_number', 1))
+#             per_page = int(request.data.get('per_page', 10))  
+
+#             user = models.Registration1.objects.get(ProfileId=profile_id)
+#             gender = user.Gender
+
+#             profile_details = models.Get_profiledata.get_profile_match_count(profile_id)
+
+#             if profile_details is None:
+#                 return JsonResponse({"Status": 0, "message": "No matching Records for the profiles"}, status=status.HTTP_200_OK)
+#             else:
+#                 profile_ids = [profile['ProfileId'] for profile in profile_details]
+#                 placeholders = ', '.join(['%s'] * len(profile_ids))
+
+#                 # base_url = 'http://103.214.132.20:8000/media/'
+#                 base_url = settings.MEDIA_URL
+
+#                 # Define the SQL query to fetch total images count
+#                 sql_query_count = f"""
+#                 SELECT COUNT(DISTINCT pi.profile_id)
+#                 FROM profile_images pi
+#                 JOIN logindetails ld ON pi.profile_id = ld.ProfileId
+#                 WHERE ld.Photo_protection != 1
+#                 AND ld.ProfileId IN ({placeholders})
+#                 """
+
+#                 # Execute the count query
+#                 with connection.cursor() as cursor:
+#                     cursor.execute(sql_query_count, profile_ids)
+#                     total_records = cursor.fetchone()[0]  # Get total count
+
+#                 # Now define the SQL query to fetch paginated images
+#                 sql_query_paginated = f"""
+#                 SELECT pi.id, pi.profile_id, pi.image
+#                 FROM profile_images pi
+#                 JOIN logindetails ld ON pi.profile_id = ld.ProfileId
+#                 WHERE ld.Photo_protection != 1
+#                 AND ld.ProfileId IN ({placeholders})
+#                 GROUP BY pi.profile_id
+#                 LIMIT {per_page} OFFSET {(page - 1) * per_page};
+#                 """
+
+#                 # Execute the paginated query
+#                 with connection.cursor() as cursor:
+#                     cursor.execute(sql_query_paginated, profile_ids)
+#                     paginated_images = cursor.fetchall()
+
+#                 if not paginated_images:
+#                     return JsonResponse({"Status": 0, "message": "No matching image Fetched"}, status=status.HTTP_200_OK)
+#                 else:
+#                     image_data = [
+#                         {
+#                             "profile_id": image[1],  # Assuming image[1] contains the profile ID
+#                             "img_url": f"{base_url}{image[2]}"  # Append base URL to image path
+#                         }
+#                         for image in paginated_images
+#                     ]
+
+#                     # Create dictionary for all profile IDs
+#                     all_profile_ids = {str(index + 1): image[1] for index, image in enumerate(paginated_images)}
+
+#                     combined_data = {
+#                         "image_data": image_data,
+#                         "page": page,
+#                         "per_page": per_page,
+#                         "total_pages": (total_records + per_page - 1) // per_page,  # Calculate total pages
+#                         "total_records": total_records,
+#                         "all_profile_ids": all_profile_ids
+#                     }
+
+#                     return JsonResponse({"Status": 1, "message": "Image Fetched successfully", "data": combined_data}, status=status.HTTP_200_OK)
+
 class Get_Gallery_lists(APIView):    
     def post(self, request):
-
         profile_id = request.data.get('profile_id')
-
-        # print(settings.IMAGE_BASEURL) 
 
         if not profile_id:
             return JsonResponse({"Status": 0, "message": "Profile_id is required"}, status=status.HTTP_200_OK)
-                
+
         serializer = serializers.Profile_idValidationSerializer(data=request.data)
 
         if serializer.is_valid():
             profile_id = serializer.validated_data.get('profile_id')
-
             page = int(request.data.get('page_number', 1))
             per_page = int(request.data.get('per_page', 10))  
 
-            user = models.Registration1.objects.get(ProfileId=profile_id)
-            gender = user.Gender
+            # Get gender
+            try:
+                user = models.Registration1.objects.get(ProfileId=profile_id)
+                gender = user.Gender
+            except models.Registration1.DoesNotExist:
+                return JsonResponse({"Status": 0, "message": "Profile not found"}, status=status.HTTP_200_OK)
 
-            profile_details = models.Get_profiledata.get_profile_match_count(gender, profile_id)
+            # Get matching profile details
+            profile_details = models.Get_profiledata.get_profile_match_count(profile_id)
+            if not profile_details:
+                return JsonResponse({"Status": 0, "message": "No matching records for the profiles"}, status=status.HTTP_200_OK)
 
-            if profile_details is None:
-                return JsonResponse({"Status": 0, "message": "No matching Records for the profiles"}, status=status.HTTP_200_OK)
-            else:
-                profile_ids = [profile['ProfileId'] for profile in profile_details]
-                placeholders = ', '.join(['%s'] * len(profile_ids))
+            profile_ids = [profile['ProfileId'] for profile in profile_details]
+            if not profile_ids:
+                return JsonResponse({"Status": 0, "message": "No profiles found"}, status=status.HTTP_200_OK)
 
-                # base_url = 'http://103.214.132.20:8000/media/'
-                base_url = settings.MEDIA_URL
+            placeholders = ', '.join(['%s'] * len(profile_ids))
+            base_url = settings.MEDIA_URL
 
-                # Define the SQL query to fetch total images count
-                sql_query_count = f"""
-                SELECT COUNT(DISTINCT pi.profile_id)
+            # Optimized Query to Get Total Records & Paginated Images
+            sql_query = f"""
+            WITH RankedImages AS (
+                SELECT pi.id, pi.profile_id, pi.image,
+                       ROW_NUMBER() OVER (PARTITION BY pi.profile_id ORDER BY pi.id ASC) AS rn
                 FROM profile_images pi
                 JOIN logindetails ld ON pi.profile_id = ld.ProfileId
                 WHERE ld.Photo_protection != 1
                 AND ld.ProfileId IN ({placeholders})
-                """
+            )
+            SELECT id, profile_id, image
+            FROM RankedImages
+            WHERE rn = 1
+            LIMIT {per_page} OFFSET {(page - 1) * per_page};
+            """
 
-                # Execute the count query
-                with connection.cursor() as cursor:
-                    cursor.execute(sql_query_count, profile_ids)
-                    total_records = cursor.fetchone()[0]  # Get total count
-
-                # Now define the SQL query to fetch paginated images
-                sql_query_paginated = f"""
-                SELECT pi.id, pi.profile_id, pi.image
+            total_records_query = f"""
+            SELECT COUNT(*)
+            FROM (
+                SELECT DISTINCT pi.profile_id
                 FROM profile_images pi
                 JOIN logindetails ld ON pi.profile_id = ld.ProfileId
                 WHERE ld.Photo_protection != 1
                 AND ld.ProfileId IN ({placeholders})
-                GROUP BY pi.profile_id
-                LIMIT {per_page} OFFSET {(page - 1) * per_page};
-                """
+            ) AS subquery;
+            """
 
-                # Execute the paginated query
-                with connection.cursor() as cursor:
-                    cursor.execute(sql_query_paginated, profile_ids)
-                    paginated_images = cursor.fetchall()
+            with connection.cursor() as cursor:
+                # Fetch total count
+                cursor.execute(total_records_query, profile_ids)
+                total_records = cursor.fetchone()[0]
 
-                if not paginated_images:
-                    return JsonResponse({"Status": 0, "message": "No matching image Fetched"}, status=status.HTTP_200_OK)
-                else:
-                    image_data = [
-                        {
-                            "profile_id": image[1],  # Assuming image[1] contains the profile ID
-                            "img_url": f"{base_url}{image[2]}"  # Append base URL to image path
-                        }
-                        for image in paginated_images
-                    ]
+                # Fetch paginated images
+                cursor.execute(sql_query, profile_ids)
+                paginated_images = cursor.fetchall()
 
-                    # Create dictionary for all profile IDs
-                    all_profile_ids = {str(index + 1): image[1] for index, image in enumerate(paginated_images)}
+            if not paginated_images:
+                return JsonResponse({"Status": 0, "message": "No matching image fetched"}, status=status.HTTP_200_OK)
 
-                    combined_data = {
-                        "image_data": image_data,
-                        "page": page,
-                        "per_page": per_page,
-                        "total_pages": (total_records + per_page - 1) // per_page,  # Calculate total pages
-                        "total_records": total_records,
-                        "all_profile_ids": all_profile_ids
-                    }
+            image_data = [
+                {
+                    "profile_id": image[1],
+                    "img_url": f"{base_url}{image[2]}"
+                }
+                for image in paginated_images
+            ]
 
-                    return JsonResponse({"Status": 1, "message": "Image Fetched successfully", "data": combined_data}, status=status.HTTP_200_OK)
+            all_profile_ids = {str(index + 1): image[1] for index, image in enumerate(paginated_images)}
+
+            combined_data = {
+                "image_data": image_data,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": (total_records + per_page - 1) // per_page,
+                "total_records": total_records,
+                "all_profile_ids": all_profile_ids
+            }
+
+            return JsonResponse({"Status": 1, "message": "Image fetched successfully", "data": combined_data}, status=status.HTTP_200_OK)
+        else:
+            return JsonResponse({"Status": 0, "message": "Invalid input data"}, status=status.HTTP_200_OK)
 
     #return 
 
@@ -3688,9 +3783,10 @@ class Get_profile_det_match(APIView):
       if serializer.is_valid():   
 
        getviewlimits=can_get_viewd_profile_count(profile_id,user_profile_id) #Check Limits for the profile id based on their plan
-    #    print('getviewlimits',getviewlimits)
-       if getviewlimits is True or int(page_id)!=1 :   #if page id is not 1 than it is not a new profile details view 
+       print('getviewlimits',getviewlimits)
+    #    if getviewlimits is True or int(page_id)!=1 :   #if page id is not 1 than it is not a new profile details view 
 
+       if getviewlimits is True or (page_id is not None and int(page_id) != 1):
 
                 #profile_ids = profile_id
                 #   print('match_profile_id',user_profile_id)
@@ -6229,11 +6325,17 @@ class GetMyProfileEducation(APIView):
                 work_country_name = None
 
             work_state_id = education_serializer.data.get("work_state")
-            try:
-                work_state = models.Profilestate.objects.get(id=work_state_id) if work_state_id else None
-                work_state_name = work_state.name if work_state else None
-            except models.Profilestate.DoesNotExist:
-                work_state_name = None
+
+            if isinstance(work_state_id, str) and not work_state_id.isdigit():
+                # If it's a string and not a number, assign it directly
+                work_state_name = work_state_id.strip()  # Remove accidental spaces
+            else:
+                # Convert ID to integer (if valid) and fetch from database
+                try:
+                    work_state = models.Profilestate.objects.filter(id=int(work_state_id)).first()
+                    work_state_name = work_state.name if work_state else None
+                except ValueError:
+                    work_state_name = None  # Handle case where ID is invalid (not convertible to int)
 
             # work_city_id = education_serializer.data.get("work_city")
             # try:

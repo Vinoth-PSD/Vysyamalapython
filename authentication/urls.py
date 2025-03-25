@@ -63,7 +63,7 @@ urlpatterns = [
     path('Get_save_details/', views.Get_save_details.as_view(), name='Get_save_details'),
     path('Get_resend_otp/', views.Get_resend_otp.as_view(), name='Get_resend_otp'),
     path('Get_palns/', views.Get_palns.as_view(), name='Get_palns'),
-
+    
     path('Login_with_mobileno/', views.Login_with_mobileno.as_view(), name='Login_with_mobileno'),
     path('Login_verifyotp/', views.Login_verifyotp.as_view(), name='Login_verifyotp'),
     path('Get_prof_list_match/', views.Get_prof_list_match.as_view(), name='Get_prof_list_match'),
@@ -216,6 +216,20 @@ urlpatterns = [
      path("update-payment-status/", views.UpdatePaymentStatusView.as_view(), name="update-payment-status"),
      path("profile/<str:profile_id>/", views.profile_preview, name="profile_preview"),
      path("profile_view/<str:profile_id>/", views.profile_preview_withouphoto, name="profile_preview"),
+
+    # path('generate-porutham-pdf/', views.generate_porutham_pdf, name='generate_porutham_pdf'),
+    
+    # path('My_horoscope_pdf_color/<str:user_profile_id>/',  views.My_horoscope_generate, name='horoscope_pdf'),
+
+    # path('My_horoscope_black/<str:user_profile_id>/',  views.My_horoscope, name='horoscope_pdf'),
+    
+    # path('generate_pdf_tamil_new/',  views.generate_pdf_tamil_new, name='generate_pdf_tamil_new'),
+
+
+
+
+
+
       #  path('get_blurred_image/', views.get_blurred_image.as_view(), name='get_blurred_image'),
      path('', views.home, name='home'),
      path('<str:room>/', views.room, name='room'),
