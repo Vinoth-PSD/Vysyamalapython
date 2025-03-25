@@ -148,7 +148,7 @@ WSGI_APPLICATION = 'user_api.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'vysyamaladev',
+        'NAME': 'vysamala_livedata',
         'USER': 'vysyadev2025',
         'PASSWORD': 'DevVy@2025',
         'HOST': 'vysyadev.mysql.database.azure.com',  # e.g., 'localhost' or an IP address
@@ -218,8 +218,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://apiupg.rainyseasun.com",
     "https://apiupg.rainyseasun.com",
     "http://matrimonyapi.rainyseasun.com",
-    "https://white-pebble-02665321e.6.azurestaticapps.net/",
-    "https://polite-sea-09bf2e91e.6.azurestaticapps.net/",
+    "https://white-pebble-02665321e.6.azurestaticapps.net",
+    "https://polite-sea-09bf2e91e.6.azurestaticapps.net",
 ]
 
 
