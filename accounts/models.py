@@ -1176,7 +1176,13 @@ class Get_profiledata_Matching(models.Model):
     @staticmethod
     def get_profile_list(gender,profile_id,start, per_page , search_profile_id , order_by,search_profession,search_age,search_location):
 
+        # print
+
+        #return [], 0, {}
+        print('inside count')
         try:
+            print('inside count2')
+
             profile = get_object_or_404(Registration1, ProfileId=profile_id)
             gender = profile.Gender
             current_age = calculate_age(profile.Profile_dob)
@@ -1184,13 +1190,22 @@ class Get_profiledata_Matching(models.Model):
             partner_pref = get_object_or_404(Partnerpref, profile_id=profile_id)
             age_difference_str = partner_pref.pref_age_differences
             pref_annual_income = partner_pref.pref_anual_income
+
+            # print('pref_anual_income',pref_annual_income)
+            
+            
+            
             pref_marital_status = partner_pref.pref_marital_status
 
            
             partner_pref_education = partner_pref.pref_education
+            # print('pref_annual_income',pref_annual_income)
+            # print('partner_pref_education',partner_pref_education)
+
             partner_pref_height_from = partner_pref.pref_height_from
             partner_pref_height_to = partner_pref.pref_height_to
             partner_pref_porutham_star_rasi= partner_pref.pref_porutham_star_rasi
+
 
 
             partner_pref_porutham_star_rasi= partner_pref.pref_porutham_star_rasi
@@ -1210,13 +1225,23 @@ class Get_profiledata_Matching(models.Model):
             
             if min_max_income:
                 min_income, max_income = min_max_income
+                # print('min_income', min_income)
+                # print('max_income', max_income)
+            #else:
+                # print('No income data found for the provided IDs.')
+
+
+            print('partner_pref_porutham_star_rasi',partner_pref_porutham_star_rasi)
 
             try:
                 age_difference = int(age_difference_str)
             except ValueError:
-                return JsonResponse({'status': 'failure', 'message': 'Invalid age difference value.'}, status=status.HTTP_400_BAD_REQUEST)
-
-           
+                
+                #return JsonResponse({'status': 'failure', 'message': 'Invalid age difference value.'}, status=status.HTTP_400_BAD_REQUEST)
+                return [], 0, {}           
+            
+                #exit
+            print('inside count3')
             if search_age:
                 age_difference=int(search_age)
 
@@ -1229,9 +1254,26 @@ class Get_profiledata_Matching(models.Model):
                 age_condition_operator = ">"
 
             try:
-
+                    
+                    # print('34i7678sdd')
+                    # base_query = """
+                    # SELECT a.*,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
+                    # f.highest_education, g.EducationLevel, d.star, h.income
+                    # FROM logindetails a 
+                    # JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
+                    # JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
+                    # JOIN masterbirthstar d ON d.id = e.birthstar_name 
+                    # JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
+                    # JOIN mastereducation g ON f.highest_education = g.RowId 
+                    # JOIN masterannualincome h ON h.id = f.anual_income
+                    # WHERE a.gender != %s AND a.ProfileId != %s
+                    # AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {operator} %s
+                    # AND h.income_amount BETWEEN %s AND %s
+                    # AND FIND_IN_SET(g.RowId,  %s) > 0
+                    # AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0
+                    # """
                     base_query = """
-                    SELECT a.*,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
+                    SELECT DISTINCT a.ProfileId,a.*,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
                     f.highest_education, g.EducationLevel, d.star, h.income
                     FROM logindetails a 
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
@@ -1240,9 +1282,13 @@ class Get_profiledata_Matching(models.Model):
                     JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
                     JOIN mastereducation g ON f.highest_education = g.RowId 
                     JOIN masterannualincome h ON h.id = f.anual_income
-                    WHERE a.gender != %s AND a.ProfileId != %s
+                    WHERE a.status=1 AND a.gender != %s AND a.ProfileId != %s 
                     AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {operator} %s
                     """
+
+                   
+
+                    # query_params = [gender, profile_id, matching_age, min_income,max_income, partner_pref_education,partner_pref_porutham_star_rasi]
                     query_params = [gender, profile_id, matching_age]
 
                     if min_income and max_income:
@@ -1260,27 +1306,33 @@ class Get_profiledata_Matching(models.Model):
 
                     # Append marital status condition only if pref_marital_status exists
                     if pref_marital_status:
-                        base_query += " AND a.Profile_marital_status = %s"
+                        base_query += " AND FIND_IN_SET(a.Profile_marital_status, %s) > 0"
                         query_params.append(pref_marital_status)
 
                     height_conditions = ""
 
                     if partner_pref_height_from and partner_pref_height_to:
-                        height_conditions = "AND a.Profile_height BETWEEN %s AND %s"
+                        height_conditions = " AND a.Profile_height BETWEEN  %s AND  %s "
                         query_params.extend([partner_pref_height_from, partner_pref_height_to])
                     elif partner_pref_height_from:
-                        height_conditions = "AND a.Profile_height >= %s"
+                        height_conditions = " AND a.Profile_height >= %s"
                         query_params.append(partner_pref_height_from)
                     elif partner_pref_height_to:
-                        height_conditions = "AND a.Profile_height <= %s"
+                        height_conditions = " AND a.Profile_height <= %s"
                         query_params.append(partner_pref_height_to)
 
                     
-                    search_profile_id_cond=''
+                    search_profile_id_cond = ''
                     if search_profile_id:
-                        search_profile_id_cond = "AND a.ProfileId = %s "
+                        # Condition to check both ProfileId and Profile_name fields
+                        search_profile_id_cond = " AND (a.ProfileId = %s OR a.Profile_name LIKE %s)"
+                        # Append search_profile_id twice as individual entries for both placeholders
                         query_params.append(search_profile_id)
+                        query_params.append(f"%{search_profile_id}%")
+                        # query_params.append(search_profile_id)
 
+
+                        # Add profession filter
                     search_profession_cond=''
                     if search_profession:
                         search_profession_cond = " AND f.profession = %s"
@@ -1290,7 +1342,13 @@ class Get_profiledata_Matching(models.Model):
                     if search_location:
                         search_location_cond = " AND a.Profile_state = %s"
                         query_params.append(search_location)
+                        #print('search_location',search_location)
 
+
+                    # orderby_cond ='ORDER BY a.DateOfJoin DESC'
+                    # if order_by:
+                    #     orderby_cond = "ORDER BY a.DateOfJoin " + order_by
+                    # print('order_by',order_by)
                     try:
                         order_by = int(order_by)  # Convert order_by to integer
                     except (ValueError, TypeError):
@@ -1307,12 +1365,21 @@ class Get_profiledata_Matching(models.Model):
                             # print('esg')
                             orderby_cond = ""  # Default case if no valid order_by is provided
 
-                        
+                       
                     # query = base_query.format(operator=age_condition_operator) + height_conditions
                     query = base_query.format(operator=age_condition_operator) + height_conditions + search_profile_id_cond + search_profession_cond+search_location_cond+orderby_cond
                     count_query_params = query_params.copy()
+
+                  
+                    
+                    #count_query = f"SELECT COUNT(*) FROM ({query}) AS count_query"
+
+                   
+                    # Execute the COUNT query to get the total number of records
                     
                     #try:
+                    # print('query',query)
+                    
                     with connection.cursor() as cursor1:
                         cursor1.execute(query, query_params)
                         all_profile_ids = [row1[1] for row1 in cursor1.fetchall()]
@@ -1322,14 +1389,23 @@ class Get_profiledata_Matching(models.Model):
                         profile_with_indices={str(i + 1): profile_id for i, profile_id in enumerate(all_profile_ids)}
 
                     # Format the query for logging/debugging
+
+                    # print('all_profile_ids',all_profile_ids)
                     
                     query += " LIMIT %s, %s"
+
+                    #print(query)
+
+                   
+                    
                     query_params.extend([start, per_page])     
 
                     cleaned_query = query.replace('\n', ' ').replace('  ', ' ').strip()
                     formatted_query = query % tuple(query_params)
                     
-                    # print('formatted_query',formatted_query)
+                    print('formatted_query')
+
+                    print('formatted_query',formatted_query)
 
                     cleaned_query1 = formatted_query.replace('\n', ' ').replace('  ', ' ').strip()
 
@@ -1341,18 +1417,39 @@ class Get_profiledata_Matching(models.Model):
                             columns = [col[0] for col in cursor.description]
                             results = [dict(zip(columns, row)) for row in rows]
 
-                            return results , total_count , profile_with_indices
-                        else:
+                            # print('results',results)
+                            # print('total_count',total_count)
+                            # print('profile_with_indices',profile_with_indices)
 
-                            return None , 0 , None
+                            return results , total_count , profile_with_indices
+                            #return [], 0, {}
+                        else:
+                            print('123')
+                            # return JsonResponse({'status': 'failure', 'message': 'No records found.', 'query': cleaned_query}, status=status.HTTP_404_NOT_FOUND)
+                            # return None , 0 , None
+                            return [], 0, {}
+
+                    # except Exception as e:
+                    #     # Log the exception
+                    #     #print(f"An error occurred: {str(e)}")
+                    #     return None ,0 ,None # Return 0 as the total count in case of an error
 
             except Exception as e:
-
-                return None , 0 , None
+                print(str(e),'weegger')
+                print('5678900')
+                # return JsonResponse({'status': 'failure1', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                # return None , 0 , None
+                return [], 0, {}
 
         except Exception as e:
+                print('12357576')
 
-                return None , 0 , None
+                # print(str(e))
+
+                # return JsonResponse({'status': 'failure2', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                # return None , 0 , None
+                return [], 0, {}
+        
     @staticmethod
     def get_suggest_profile_list(gender,profile_id,start, per_page , search_profile_id , order_by,search_profession,search_age,search_location):
         

@@ -152,6 +152,9 @@ urlpatterns = [
     #matching profilesaction
     path('partnersettings/', Partnersettings.as_view(), name='vysfollowups'),
     path('suggestsettings/', Suggestsettings.as_view(), name='suggestsettings'),
+
+
+    
     path('Matching_print_profiles/', Matchingprintprofile.as_view(), name='Matching_print_profiles'),
     path('Matching_whatsapp/', Matchingwhatsapp.as_view(), name='Matching_whatsapp'),
     path('Matching_sendemail/', Matchingsendemail.as_view(), name='Matching_sendemail'),

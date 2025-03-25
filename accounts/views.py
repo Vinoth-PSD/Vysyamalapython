@@ -3578,18 +3578,33 @@ def Get_personalnotes_value(profile_id, user_profile_id):
 
 
 
+# def get_degree(degeree):
+
+#     # print('degeree',degeree)
+
+#     try:
+        
+#         Profile_ug_degree = UgDegree.objects.get(id=degeree).degree
+    
+#     except UgDegree.DoesNotExist:
+#                 Profile_ug_degree = None 
+    
+#     return Profile_ug_degree
 def get_degree(degeree):
 
     # print('degeree',degeree)
-
+    if isinstance(degeree, str):
+        return degeree
+    
     try:
         
-        Profile_ug_degree = UgDegree.objects.get(id=degeree).degree
+        Profile_ug_degree = models.Ugdegree.objects.get(id=degeree).degree
     
-    except UgDegree.DoesNotExist:
-                Profile_ug_degree = None 
+    except models.Ugdegree.DoesNotExist:
+        Profile_ug_degree = None 
     
     return Profile_ug_degree
+
 
 
 def getprofession(profession):
