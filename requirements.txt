@@ -81,5 +81,5 @@ xhtml2pdf==0.2.16
 pypdf==4.3.1
 PyPDF2==3.0.1
 pypng==0.20220715.0
-svglib>=1.2.1
+svglib==1.5.1
 reportlab==4.2.2
