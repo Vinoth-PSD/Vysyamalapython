@@ -63,7 +63,7 @@ setuptools==77.0.3
 simplejson==3.19.2
 six==1.16.0
 sqlparse==0.4.4
-twisted>=23.10.0
+twisted>=23.10.0; platform_system != "Windows"
 txaio==23.1.1
 typing_extensions==4.10.0
 tzdata==2025.1
@@ -75,11 +75,6 @@ wrapt==1.16.0
 xlrd==2.0.1
 zipp==3.17.0
 zope.interface==6.3
+gunicorn==21.2.0
 django-storages[azure]
 azure-storage-blob
-xhtml2pdf==0.2.16
-pypdf==4.3.1
-PyPDF2==3.0.1
-pypng==0.20220715.0
-svglib==1.5.1
-reportlab==4.2.2
