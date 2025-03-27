@@ -72,7 +72,7 @@ class Registration1(models.Model):
     PaymentType = models.CharField(max_length=255)  # Changed from CharField to TextField
 
 
-    Profile_name = models.CharField(max_length=255) 
+    Profile_name = models.CharField(max_length=255,null=True, blank=True) 
     Profile_marital_status = models.CharField(max_length=255) 
     Profile_dob = models.CharField(max_length=255) 
     Profile_height = models.CharField(max_length=255) 
@@ -1304,7 +1304,7 @@ class Get_profiledata(models.Model):
 
 
     @staticmethod
-    def get_profile_details(profile_ids):
+    def get_profile_details(profile_ids);
         # query = '''SELECT l.*, pi.*, pp.*, pf.*, ph.*, pe.*
         #     FROM logindetails l 
         #     LEFT JOIN profile_edudetails pe ON pe.profile_id = l.ProfileId 
