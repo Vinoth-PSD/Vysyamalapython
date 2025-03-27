@@ -217,11 +217,11 @@ urlpatterns = [
      path("profile/<str:profile_id>/", views.profile_preview, name="profile_preview"),
      path("profile_view/<str:profile_id>/", views.profile_preview_withouphoto, name="profile_preview"),
 
-     path('generate-porutham-pdf/', views.generate_porutham_pdf, name='generate_porutham_pdf'),
-      
-     path('My_horoscope_pdf_color/<str:user_profile_id>/',  views.My_horoscope_generate, name='horoscope_pdf'),
+    # path('generate-porutham-pdf/', views.generate_porutham_pdf, name='generate_porutham_pdf'),
+    
+    # path('My_horoscope_pdf_color/<str:user_profile_id>/',  views.My_horoscope_generate, name='horoscope_pdf'),
 
-     path('My_horoscope_black/<str:user_profile_id>/',  views.My_horoscope, name='horoscope_pdf'),
+    # path('My_horoscope_black/<str:user_profile_id>/',  views.My_horoscope, name='horoscope_pdf'),
     
     # path('generate_pdf_tamil_new/',  views.generate_pdf_tamil_new, name='generate_pdf_tamil_new'),
 
