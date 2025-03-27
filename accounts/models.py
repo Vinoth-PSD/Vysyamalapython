@@ -473,7 +473,7 @@ def upload_to_profile(instance, filename):
 class LoginDetails(models.Model):
     ContentId = models.AutoField(primary_key=True)
     ProfileId = models.CharField(max_length=50, unique=True,null=True,blank=True)
-    LoginId = models.CharField(max_length=50, null=True)
+    LoginId = models.CharField(max_length=50,  null=True,blank=True)
     Profile_for = models.CharField(max_length=50, null=True)
     Gender = models.CharField(max_length=100, null=True,blank=True)
     Mobile_no = models.CharField(max_length=50, null=True)
@@ -499,8 +499,8 @@ class LoginDetails(models.Model):
     Last_login_date= models.CharField(max_length=100)  
     # Profile_idproof = models.CharField(max_length=255,null=True,blank=True)
     # Profile_divorceproof = models.CharField(max_length=255,null=True,blank=True)  # Add this field for file upload
-    Profile_idproof = models.FileField(upload_to=upload_to_profile_basic,storage=AzureMediaStorage())
-    Profile_divorceproof = models.FileField(upload_to=upload_to_profile_basic,storage=AzureMediaStorage())
+    Profile_idproof = models.FileField(upload_to=upload_to_profile_basic,storage=AzureMediaStorage(),blank=True,null=True)
+    Profile_divorceproof = models.FileField(upload_to=upload_to_profile_basic,storage=AzureMediaStorage(),blank=True,null=True)
     quick_registration=models.CharField(max_length=6, blank=True, null=True)
     Plan_id= models.CharField(max_length=100 , blank=True, null=True)
     status= models.CharField(max_length=100 , blank=True, null=True)
@@ -988,6 +988,7 @@ class Profile_PlanFeatureLimit(models.Model):
     astro_service = models.IntegerField(null=True, blank=True)
     vys_assist = models.IntegerField(null=True, blank=True)
     exp_int_lock = models.IntegerField(null=True, blank=True)
+    status = models.IntegerField(null=True, blank=True)
     
     membership_fromdate = models.DateTimeField(null=True, blank=True)
     membership_todate = models.DateTimeField(null=True, blank=True)

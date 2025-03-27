@@ -3115,6 +3115,10 @@ class Get_prof_list_match(APIView):
             search_profession= request.data.get('search_profession')
             search_age= request.data.get('search_age')
             search_location= request.data.get('search_location')
+            father_live= request.data.get('father_live')
+            mother_live= request.data.get('mother_live')
+            complexion= request.data.get('complexion')
+            family_status= request.data.get('family_status')
             education= request.data.get('education')
             height_from= request.data.get('height_from')
             height_to= request.data.get('height_to')
@@ -3164,7 +3168,7 @@ class Get_prof_list_match(APIView):
             # print('params names567',gender,'  ',profile_id,'  ',start,'  ',per_page,'  ',search_profile_id,'  ',order_by,'  ',search_profession,'  ',search_age,'  ',search_location,'  ')
 
 
-            profile_details , total_count ,profile_with_indices = Get_profiledata_Matching.get_profile_list(gender,profile_id,start,per_page,search_profile_id,order_by,search_profession,search_age,search_location)
+            profile_details , total_count ,profile_with_indices = Get_profiledata_Matching.get_profile_list(gender,profile_id,start,per_page,search_profile_id,order_by,search_profession,search_age,search_location,complexion)
 
             my_profile_id = [profile_id]   
 

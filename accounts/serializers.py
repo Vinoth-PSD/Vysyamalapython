@@ -203,6 +203,7 @@ class UpdateAdminComments_Serializer(serializers.ModelSerializer):
 
 
 class LoginDetailsSerializer(serializers.ModelSerializer):
+    LoginId = serializers.CharField(required=False, allow_null=True)
     ProfileId = serializers.CharField(required=False, allow_null=True)
     EmailId = serializers.EmailField(required=True)
     Password = serializers.CharField(required=True)
