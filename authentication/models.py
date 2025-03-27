@@ -1304,7 +1304,7 @@ class Get_profiledata(models.Model):
 
 
     @staticmethod
-    def get_profile_details(profile_ids);
+    def get_profile_details(profile_ids):
         # query = '''SELECT l.*, pi.*, pp.*, pf.*, ph.*, pe.*
         #     FROM logindetails l 
         #     LEFT JOIN profile_edudetails pe ON pe.profile_id = l.ProfileId 
