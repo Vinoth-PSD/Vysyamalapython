@@ -2219,23 +2219,15 @@ class GetProfEditDetailsAPIView(APIView):
         match_profile_details = Get_profiledata_Matching.get_profile_match_count(gender,profile_id)
         suggest_profile_details=Get_profiledata_Matching.get_suggest_match_count(gender,profile_id)
             
-        if match_profile_details is None:
-                matching_profile_count = 0
-                # profile_ids=[]
-        else:
-                matching_profile_count = len(match_profile_details)
-                profile_ids = [profile['ProfileId'] for profile in match_profile_details] 
+        if not isinstance(match_profile_details, list):  # Ensure it is a list
+            match_profile_details = []
 
-        if suggest_profile_details is None:
-                suggest_profile_count = 0
-                # profile_ids=[]
-        else:
-                # suggest_profile_count = len(suggest_profile_details)
-                # profile_ids = [profile['ProfileId'] for profile in suggest_profile_details] 
-            try:
-                suggest_profile_count = len(suggest_profile_details)
-            except TypeError:  # Handle cases where object has no length
-                suggest_profile_count = 1  # Assuming a single object, update accordingly
+        matching_profile_count = len(match_profile_details)  # This will not cause an error
+
+        if not isinstance(suggest_profile_details, list):  # Ensure it is a list
+            suggest_profile_details = []
+
+        suggest_profile_count = len(suggest_profile_details)  # This will not cause an error
 
 
         mutual_condition = Q(status=2) & (Q(profile_from=profile_id) | Q(profile_to=profile_id))

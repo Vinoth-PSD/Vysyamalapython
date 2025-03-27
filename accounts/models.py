@@ -1756,10 +1756,10 @@ class Get_profiledata_Matching(models.Model):
 
                             return results
                         else:
-                            return None
+                              return [] 
 
             except Exception as e:
-                return None
+                  return [] 
 
         except Exception as e:
                 # print('12357576')
@@ -1767,7 +1767,7 @@ class Get_profiledata_Matching(models.Model):
                 # print(str(e))
 
                 # return JsonResponse({'status': 'failure2', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                 return None
+                return [] 
         
     @staticmethod
     def get_suggest_match_count(gender,profile_id):
