@@ -1333,10 +1333,13 @@ class PersonalEdudetailsSerializer(serializers.ModelSerializer):
     business_name = serializers.CharField(required=False, allow_blank=True)
     business_address = serializers.CharField(required=False, allow_blank=True)
     nature_of_business = serializers.CharField(required=False, allow_blank=True)
+    other_degree = serializers.CharField(required=False, allow_blank=True)
+    field_ofstudy = serializers.CharField(required=False, allow_blank=True)
+    degree = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = models.Edudetails
-        fields = ['highest_education', 'about_edu', 'profession', 'anual_income', 'actual_income', 'work_country', 'work_state', 'work_district','work_city', 'work_pincode', 'career_plans','work_place','currency','company_name','designation','profession_details','business_name','business_address','nature_of_business']
+        fields = ['highest_education', 'about_edu', 'profession', 'anual_income', 'actual_income', 'work_country', 'work_state', 'work_district','work_city', 'work_pincode', 'career_plans','work_place','currency','company_name','designation','profession_details','business_name','business_address','nature_of_business','other_degree','field_ofstudy','degree']
 
 class Registration1ContactSerializer(serializers.ModelSerializer):
     class Meta:

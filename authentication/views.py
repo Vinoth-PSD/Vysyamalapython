@@ -6348,6 +6348,9 @@ class GetMyProfileEducation(APIView):
                 "personal_edu_id": highest_education_id,
                 "personal_edu_name": education_level_name,
                 "persoanl_edu_details": education_serializer.data.get("education_details"),
+                "persoanl_field_ofstudy": education_serializer.data.get("field_ofstudy"),
+                 "persoanl_degree": education_serializer.data.get("degree"),
+                "persoanl_edu_other": education_serializer.data.get("other_degree"),
                 "personal_about_edu": education_serializer.data.get("about_edu"),
                 "personal_profession": education_serializer.data.get("profession"),
                 "personal_profession_name": getprofession(education_serializer.data.get("profession")),
@@ -9036,8 +9039,9 @@ class Click_call_request(APIView):
                     existing_entry.status = int_status
                     existing_entry.req_datetime = timezone.now()
                     existing_entry.save() 
-
-                    return JsonResponse({"Status": 1, "message": "Call action updated successfully"}, status=status.HTTP_200_OK)
+                    toprofile_details = models.Registration1.objects.filter(ProfileId=profile_to).first()
+                    toprofile_mobile_no = toprofile_details.Mobile_no
+                    return JsonResponse({"Status": 1, "message": "Call action updated successfully","toprofile_mobile_no": toprofile_mobile_no}, status=status.HTTP_200_OK)
                 
                 
                 else:
@@ -9796,7 +9800,7 @@ def can_save_bookmark(profile_id):
     registration=models.Registration1.objects.filter(ProfileId=profile_id).first()
     plan_id = registration.Plan_id    
     
-    plan = models.PlanFeatureLimit.objects.filter(profile_id=profile_id,plan_id=plan_id).first()
+    plan = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,plan_id=plan_id).first()
 
     # current_date = now().date()
     current_time = timezone.now()
