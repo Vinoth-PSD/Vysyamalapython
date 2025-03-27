@@ -887,7 +887,7 @@ class Get_Parent_Occupation(APIView):
 #                     # Resize the logo
 #                     logo_width, logo_height = 50, 50  # Adjust size as needed
 #                     # Use ANTIALIAS instead of Resampling for older Pillow versions
-#                     logo.thumbnail((logo_width, logo_height), PILImage.ANTIALIAS)
+#                     logo.thumbnail((logo_width, logo_height), PILImage.LANCZOS)
 
 #                     # Ensure the logo has transparency
 #                     logo = logo.convert("RGBA")
@@ -4648,7 +4648,7 @@ class ImageSetEdit(APIView):
             # Resize watermark logo proportionally (e.g., 1/4 of the main image size)
             #logo_size = (img.width // 4, img.height // 4)
             logo_size = (68, 18)
-            watermark_logo = watermark_logo.resize(logo_size, PILImage.ANTIALIAS)
+            watermark_logo = watermark_logo.resize(logo_size, PILImage.LANCZOS)
 
             # Position the logo (e.g., bottom-right corner)
             #position = (img.width - logo_size[0] - 10, img.height - logo_size[1] - 10)  # 10px padding
