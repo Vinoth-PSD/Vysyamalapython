@@ -119,7 +119,7 @@
         const display = document.querySelector('#display');
 
         const chatSocket = new WebSocket(
-'ws://vysyamaladev-afcbe2fdb9c7ckdv.westus2-01.azurewebsites.net/ws/chat/' + roomName + '/'
+'wss://vysyamaladev-afcbe2fdb9c7ckdv.westus2-01.azurewebsites.net/ws/chat/' + roomName + '/'
         );
 
         chatSocket.onmessage = function (e) {
