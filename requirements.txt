@@ -44,7 +44,6 @@ oauthlib==3.2.2
 openpyxl==3.1.2
 packaging==24.0
 pandas==2.2.1
-pillow==10.2.0
 platformdirs==4.2.0
 priority==2.0.0
 pyasn1==0.6.0
@@ -78,7 +77,8 @@ zope.interface==6.3
 gunicorn==21.2.0
 django-storages[azure]
 azure-storage-blob
+git+https://github.com/deeplook/svglib.git@v1.6.0b0#egg=svglib
 xhtml2pdf==0.2.17
-svglib==1.6.0b1
-reportlab==4.0.4
-html5lib==1.1
+reportlab>=4.0.0
+html5lib>=1.1
+Pillow>=10.0.0
