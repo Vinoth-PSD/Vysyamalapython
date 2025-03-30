@@ -79,6 +79,6 @@ gunicorn==21.2.0
 django-storages[azure]
 azure-storage-blob
 xhtml2pdf==0.2.17
-svglib==1.5.1
+svglib==1.6.0b1
 reportlab==4.0.4
 html5lib==1.1
