@@ -77,7 +77,7 @@ zope.interface==6.3
 gunicorn==21.2.0
 django-storages[azure]
 azure-storage-blob
-git+https://github.com/deeplook/svglib.git@v1.6.0b0#egg=svglib
+git+https://github.com/deeplook/svglib.git@d42bd2f9a3#egg=svglib
 xhtml2pdf==0.2.17
 reportlab>=4.0.0
 html5lib>=1.1
