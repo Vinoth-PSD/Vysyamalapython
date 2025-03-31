@@ -4888,10 +4888,10 @@ class Get_common_details(APIView):
                 #default image icon
                 else:
                     
-                    profile_icon = '/media/men.jpg' if gender == 'male' else 'media/women.jpg'
+                    profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
                     
-                    
-                profile_image = 'http://103.214.132.20:8000/'+profile_icon
+                base_url = settings.MEDIA_URL
+                profile_image = base_url+profile_icon
 
 
                 # logindetails_exists=models.Registration1.objects.filter(ProfileId=username,Profile_address !='').first()
@@ -5760,10 +5760,11 @@ class Save_plan_package(APIView):
             #default image icon
             else:
                 
-                profile_icon = '/media/men.jpg' if gender == 'male' else 'media/women.jpg'
+                profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
                 
                 
-            profile_image = 'http://103.214.132.20:8000'+profile_icon
+            base_url = settings.MEDIA_URL
+            profile_image = base_url+profile_icon
 
 
             logindetails_exists = models.Registration1.objects.filter(ProfileId=profile_id).filter(Profile_address__isnull=False).exclude(Profile_address__exact='').first()
