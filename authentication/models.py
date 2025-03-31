@@ -8,6 +8,7 @@ from datetime import datetime
 from ckeditor.fields import RichTextField
 from django.conf import settings
 from .storages import AzureMediaStorage
+from collections import defaultdict
 
 class AuthUser(models.Model):
     username = models.CharField(max_length=255)
