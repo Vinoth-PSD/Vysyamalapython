@@ -648,6 +648,21 @@ class MatchingStarPartner(models.Model):
         
         return porutham_data
 
+
+class Matchingporutham(models.Model):
+    id = models.IntegerField(primary_key=True)
+    protham_name = models.CharField(max_length=200)
+    status =models.CharField(max_length=10)
+
+    class Meta:
+        managed = False
+        db_table = 'matching_porutham_names'
+
+    def __str__(self):
+        return self.id
+
+
+
 class Statepref(models.Model):
 
     id    = models.SmallIntegerField(primary_key=True)

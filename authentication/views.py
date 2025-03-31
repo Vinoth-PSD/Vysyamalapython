@@ -11299,21 +11299,81 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
 
 
 # Function to fetch porutham details
+# def fetch_porutham_details(profile_from, profile_to):
+#     try:
+#         # Fetch horoscope details for both profiles
+#         horoscope_from = models.Horoscope.objects.get(profile_id=profile_from)
+#         horoscope_to = models.Horoscope.objects.get(profile_id=profile_to)
+
+#         # Fetch star and rasi ids
+#         source_star_id = horoscope_from.birthstar_name
+#         source_rasi_id = horoscope_from.birth_rasi_name
+#         dest_star_id = horoscope_to.birthstar_name
+#         dest_rasi_id = horoscope_to.birth_rasi_name
+
+#         # Fetch the gender from the Registration1 model
+#         profile_to_details = models.Registration1.objects.get(ProfileId=profile_to)
+#         gender_to = profile_to_details.Gender.lower()
+
+#         # Check porutham match from MatchingStarPartner
+#         matching_star_partner = models.MatchingStarPartner.objects.filter(
+#             source_star_id=source_star_id,
+#             source_rasi_id=source_rasi_id,
+#             dest_star_id=dest_star_id,
+#             dest_rasi_id=dest_rasi_id,
+#             gender=gender_to
+#         ).first()
+
+#         if not matching_star_partner:
+#             porutham_names = models.Matchingporutham.objects.all()
+#             porutham_results = [{'porutham_name': porutham.protham_name, 'status': 'NO'} for porutham in porutham_names]
+#             return {'porutham_results': porutham_results, 'matching_score': '0/10'}
+
+#         # Parse the matching porutham IDs
+#         try:
+#             matching_porutham_ids = set(
+#                 int(porutham_id) for porutham_id in matching_star_partner.matching_porutham.split(',') if porutham_id.strip().isdigit()
+#             )
+#         except ValueError:
+#             matching_porutham_ids = set()
+
+#         porutham_names = models.Matchingporutham.objects.all()
+#         porutham_results = [
+#             {'porutham_name': porutham.protham_name, 'status': 'YES ✔' if porutham.id in matching_porutham_ids else 'NO ✖'}
+#             for porutham in porutham_names
+#         ]
+
+#         # Calculate matching score as a fraction out of 10
+#         max_score = 10
+#         matching_score = matching_star_partner.match_count
+#         if matching_score == 0:
+#             porutham_results = [{'porutham_name': porutham.protham_name, 'status': 'NO'} for porutham in porutham_names]
+#             matching_score_fraction = '0/10'
+#         else:
+#             matching_score_fraction = f'{min(matching_score, max_score)}/10'
+
+#         return {'porutham_results': porutham_results, 'matching_score': matching_score_fraction}
+
+#     except models.Horoscope.DoesNotExist:
+#         porutham_names = models.Matchingporutham.objects.all()
+#         porutham_results = [{'porutham_name': porutham.protham_name, 'status': 'NO'} for porutham in porutham_names]
+#         return {'porutham_results': porutham_results, 'matching_score': '0/10'}
+
 def fetch_porutham_details(profile_from, profile_to):
     try:
         # Fetch horoscope details for both profiles
         horoscope_from = models.Horoscope.objects.get(profile_id=profile_from)
         horoscope_to = models.Horoscope.objects.get(profile_id=profile_to)
 
-        # Fetch star and rasi ids
-        source_star_id = horoscope_from.birthstar_name
-        source_rasi_id = horoscope_from.birth_rasi_name
-        dest_star_id = horoscope_to.birthstar_name
-        dest_rasi_id = horoscope_to.birth_rasi_name
+        # Fetch star and rasi ids, ensuring they are not None
+        source_star_id = horoscope_from.birthstar_name or ''
+        source_rasi_id = horoscope_from.birth_rasi_name or ''
+        dest_star_id = horoscope_to.birthstar_name or ''
+        dest_rasi_id = horoscope_to.birth_rasi_name or ''
 
         # Fetch the gender from the Registration1 model
         profile_to_details = models.Registration1.objects.get(ProfileId=profile_to)
-        gender_to = profile_to_details.Gender.lower()
+        gender_to = profile_to_details.Gender.lower() if profile_to_details.Gender else 'unknown'
 
         # Check porutham match from MatchingStarPartner
         matching_star_partner = models.MatchingStarPartner.objects.filter(
@@ -11323,21 +11383,22 @@ def fetch_porutham_details(profile_from, profile_to):
             dest_rasi_id=dest_rasi_id,
             gender=gender_to
         ).first()
+        
+        porutham_names = models.Matchingporutham.objects.all()
 
         if not matching_star_partner:
-            porutham_names = models.Matchingporutham.objects.all()
-            porutham_results = [{'porutham_name': porutham.protham_name, 'status': 'NO'} for porutham in porutham_names]
+            porutham_results = [{'porutham_name': porutham.protham_name, 'status': 'NO ✖'} for porutham in porutham_names]
             return {'porutham_results': porutham_results, 'matching_score': '0/10'}
 
-        # Parse the matching porutham IDs
+        # Parse the matching porutham IDs, ensuring the string is not None
+        matching_porutham_str = matching_star_partner.matching_porutham or ''
         try:
             matching_porutham_ids = set(
-                int(porutham_id) for porutham_id in matching_star_partner.matching_porutham.split(',') if porutham_id.strip().isdigit()
+                int(porutham_id.strip()) for porutham_id in matching_porutham_str.split(',') if porutham_id.strip().isdigit()
             )
         except ValueError:
             matching_porutham_ids = set()
 
-        porutham_names = models.Matchingporutham.objects.all()
         porutham_results = [
             {'porutham_name': porutham.protham_name, 'status': 'YES ✔' if porutham.id in matching_porutham_ids else 'NO ✖'}
             for porutham in porutham_names
@@ -11345,9 +11406,9 @@ def fetch_porutham_details(profile_from, profile_to):
 
         # Calculate matching score as a fraction out of 10
         max_score = 10
-        matching_score = matching_star_partner.match_count
+        matching_score = matching_star_partner.match_count or 0
         if matching_score == 0:
-            porutham_results = [{'porutham_name': porutham.protham_name, 'status': 'NO'} for porutham in porutham_names]
+            porutham_results = [{'porutham_name': porutham.protham_name, 'status': 'NO ✖'} for porutham in porutham_names]
             matching_score_fraction = '0/10'
         else:
             matching_score_fraction = f'{min(matching_score, max_score)}/10'
@@ -11356,9 +11417,9 @@ def fetch_porutham_details(profile_from, profile_to):
 
     except models.Horoscope.DoesNotExist:
         porutham_names = models.Matchingporutham.objects.all()
-        porutham_results = [{'porutham_name': porutham.protham_name, 'status': 'NO'} for porutham in porutham_names]
+        porutham_results = [{'porutham_name': porutham.protham_name, 'status': 'NO ✖'} for porutham in porutham_names]
         return {'porutham_results': porutham_results, 'matching_score': '0/10'}
-
+    
 
 
 def parse_data(data):
