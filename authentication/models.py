@@ -578,10 +578,6 @@ class Familyvalue(models.Model):
         
 
 
- 
-    
-
-
 class MatchingStarPartner(models.Model):
     # Define your model fields here
     id = models.IntegerField(primary_key=True)
@@ -599,7 +595,7 @@ class MatchingStarPartner(models.Model):
         db_table = 'matching_stars_partner'  # Name of the table in your database
 
     @staticmethod
-    def get_matching_stars(birth_rasi_id,birth_star_id,gender):
+    def get_matching_stars(birth_rasi_id, birth_star_id, gender):
         query = '''
         SELECT 
             sp.id,
@@ -617,7 +613,7 @@ class MatchingStarPartner(models.Model):
             masterbirthstar sd ON sd.id = sp.dest_star_id 
             LEFT JOIN 
             masterrasi rd ON rd.id = sp.dest_rasi_id
-        LEFT JOIN 
+            LEFT JOIN 
             matching_porutham_names pn ON FIND_IN_SET(pn.id, sp.matching_porutham) 
         WHERE 
             sp.gender = %s 
@@ -633,11 +629,23 @@ class MatchingStarPartner(models.Model):
                 dict(zip(columns, row))
                 for row in rows
             ]
-        #print("Query result:", result)
-        return result
-    
-    
+        
+        # Group the results by Porutham count
+        grouped_data = defaultdict(list)
+        for item in result:
+            match_count = item['match_count']
+            grouped_data[match_count].append(item)
 
+        # Separate by Porutham counts 9, 8, 7, 6, 5
+        porutham_data = {
+            "9 Poruthams": grouped_data.get(9, []),
+            "8 Poruthams": grouped_data.get(8, []),
+            "7 Poruthams": grouped_data.get(7, []),
+            "6 Poruthams": grouped_data.get(6, []),
+            "5 Poruthams": grouped_data.get(5, [])
+        }
+        
+        return porutham_data
 
 class Statepref(models.Model):
 
