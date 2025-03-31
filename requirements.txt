@@ -81,4 +81,4 @@ xhtml2pdf==0.2.17
 reportlab
 html5lib>=1.1
 Pillow>=10.0.0
-svglib>=1.2.1
+svglib==1.4.0
