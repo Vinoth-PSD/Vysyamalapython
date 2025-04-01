@@ -4746,22 +4746,70 @@ class ImageSetEdit(APIView):
     
 
 
+# class Remove_profile_img(APIView):
+#     def delete_image(self, instance):
+#         if instance.image:
+#             image_path = instance.image.path
+#             if os.path.exists(image_path):
+#                 os.remove(image_path)
+#             instance.image = None
+#             instance.save()
+
+#     def post(self, request, *args, **kwargs):
+#         try:
+#             # Get the profile_id from the POST data
+#             profile_id = request.POST.get('profile_id')
+#             image_id = request.POST.get('image_id')
+
+#             # Ensure profile_id is provided
+#             if not profile_id:
+#                 return JsonResponse({
+#                     'success': False,
+#                     'message': 'profile_id is required.'
+#                 }, status=400)
+            
+#             if not image_id:
+#                 return JsonResponse({
+#                     'success': False,
+#                     'message': 'image_id is required.'
+#                 }, status=400)
+
+#             # Get the object by profile_id
+#             instance = get_object_or_404(models.Image_Upload, profile_id=profile_id,id=image_id)
+
+#             # Delete the image file and clear the database field
+#             self.delete_image(instance)
+#             instance.delete()
+            
+#             return JsonResponse({
+#                 'success': 1,
+#                 'message': 'Image deleted successfully.'                
+#             },status=status.HTTP_200_OK)
+#         except Exception as e:
+#             return JsonResponse({
+#                 'success': 0,
+#                 'message': str(e)
+#             }, status=status.HTTP_200_OK)
+
 class Remove_profile_img(APIView):
     def delete_image(self, instance):
         if instance.image:
-            image_path = instance.image.path
-            if os.path.exists(image_path):
-                os.remove(image_path)
-            instance.image = None
-            instance.save()
+            try:
+                # Delete the file from Azure Storage
+                instance.image.delete(save=False)
+            except Exception as e:
+                raise Exception(f"Failed to delete image from Azure Storage: {str(e)}")
+
+        # Remove the reference from the database
+        instance.image = None
+        instance.save()
 
     def post(self, request, *args, **kwargs):
         try:
-            # Get the profile_id from the POST data
+            # Get the profile_id and image_id from the POST data
             profile_id = request.POST.get('profile_id')
             image_id = request.POST.get('image_id')
 
-            # Ensure profile_id is provided
             if not profile_id:
                 return JsonResponse({
                     'success': False,
@@ -4774,24 +4822,27 @@ class Remove_profile_img(APIView):
                     'message': 'image_id is required.'
                 }, status=400)
 
-            # Get the object by profile_id
-            instance = get_object_or_404(models.Image_Upload, profile_id=profile_id,id=image_id)
+            # Fetch the image instance by profile_id and image_id
+            instance = get_object_or_404(models.Image_Upload, profile_id=profile_id, id=image_id)
 
-            # Delete the image file and clear the database field
+            # Delete the image from Azure Storage and clear the field in the database
             self.delete_image(instance)
+            
+            # Delete the instance from the database
             instance.delete()
             
             return JsonResponse({
                 'success': 1,
                 'message': 'Image deleted successfully.'                
-            },status=status.HTTP_200_OK)
+            }, status=status.HTTP_200_OK)
+            
         except Exception as e:
             return JsonResponse({
                 'success': 0,
                 'message': str(e)
-            }, status=status.HTTP_200_OK)
-
-
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
 class Get_profile_images(APIView):
     def post(self, request, *args, **kwargs):
         
