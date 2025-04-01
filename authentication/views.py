@@ -4628,55 +4628,98 @@ class ImageSetEdit(APIView):
         if current_image_count - len(replace_image_ids) + len(new_files) > 10:
             return JsonResponse({"error": "Upload limit exceeded. You can only have a maximum of 10 images."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # def process_and_save_image(file, image_instance=None):
+        #     valid_extensions = ['png', 'jpeg', 'jpg']
+        #     file_extension = os.path.splitext(file.name)[1][1:].lower()
+        #     if file_extension not in valid_extensions:
+        #         return JsonResponse({"error": "Invalid file type. Accepted formats are: png, jpeg, jpg"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        #     # Image processing (resize, watermark, etc.)
+        #     img = PILImage.open(file)
+        #     img = img.resize((201, 200))  # Resize the main image
+
+        #     # Load watermark logo
+        #     logo_path = os.path.join('vysya_color_logo.png')  # Path to your watermark logo
+        #     try:
+        #         watermark_logo = PILImage.open(logo_path).convert("RGBA")
+        #     except FileNotFoundError:
+        #         return JsonResponse({"error": "Watermark logo file not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+        #     # Resize watermark logo proportionally (e.g., 1/4 of the main image size)
+        #     #logo_size = (img.width // 4, img.height // 4)
+        #     logo_size = (68, 18)
+        #     watermark_logo = watermark_logo.resize(logo_size, PILImage.LANCZOS)
+
+        #     # Position the logo (e.g., bottom-right corner)
+        #     #position = (img.width - logo_size[0] - 10, img.height - logo_size[1] - 10)  # 10px padding
+
+        #     position = (img.width - logo_size[0] - 10, 10)
+
+        #     # Overlay the watermark logo
+        #     img = img.convert("RGBA")
+        #     watermarked = PILImage.new("RGBA", img.size, (255, 255, 255, 0))
+        #     watermarked.paste(img, (0, 0), img)
+        #     watermarked.paste(watermark_logo, position, watermark_logo)
+
+        #     # Convert to RGB and save
+        #     output = io.BytesIO()
+        #     watermarked = watermarked.convert("RGB")
+        #     watermarked.save(output, format='JPEG')
+        #     output.seek(0)
+
+        #     # Unlink (delete) the existing image if replacing
+        #     if image_instance:
+        #         if os.path.isfile(image_instance.image.path):
+        #             os.remove(image_instance.image.path)
+        #         image_instance.image.save(os.path.join(file.name), ContentFile(output.read()), save=True)
+        #     else:
+        #         image_instance = models.Image_Upload(profile_id=profile_id)
+        #         image_instance.image.save(os.path.join(file.name), ContentFile(output.read()), save=True)
+            
+        #     image_objects.append(image_instance)
+
         def process_and_save_image(file, image_instance=None):
             valid_extensions = ['png', 'jpeg', 'jpg']
             file_extension = os.path.splitext(file.name)[1][1:].lower()
             if file_extension not in valid_extensions:
                 return JsonResponse({"error": "Invalid file type. Accepted formats are: png, jpeg, jpg"}, status=status.HTTP_400_BAD_REQUEST)
-            
+
             # Image processing (resize, watermark, etc.)
             img = PILImage.open(file)
             img = img.resize((201, 200))  # Resize the main image
 
-            # Load watermark logo
-            logo_path = os.path.join('vysya_color_logo.png')  # Path to your watermark logo
+            logo_path = 'vysya_color_logo.png'
             try:
                 watermark_logo = PILImage.open(logo_path).convert("RGBA")
             except FileNotFoundError:
                 return JsonResponse({"error": "Watermark logo file not found."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Resize watermark logo proportionally (e.g., 1/4 of the main image size)
-            #logo_size = (img.width // 4, img.height // 4)
             logo_size = (68, 18)
             watermark_logo = watermark_logo.resize(logo_size, PILImage.LANCZOS)
-
-            # Position the logo (e.g., bottom-right corner)
-            #position = (img.width - logo_size[0] - 10, img.height - logo_size[1] - 10)  # 10px padding
-
             position = (img.width - logo_size[0] - 10, 10)
 
-            # Overlay the watermark logo
             img = img.convert("RGBA")
             watermarked = PILImage.new("RGBA", img.size, (255, 255, 255, 0))
             watermarked.paste(img, (0, 0), img)
             watermarked.paste(watermark_logo, position, watermark_logo)
 
-            # Convert to RGB and save
             output = io.BytesIO()
-            watermarked = watermarked.convert("RGB")
-            watermarked.save(output, format='JPEG')
+            watermarked.convert("RGB").save(output, format='JPEG')
             output.seek(0)
 
-            # Unlink (delete) the existing image if replacing
             if image_instance:
-                if os.path.isfile(image_instance.image.path):
-                    os.remove(image_instance.image.path)
-                image_instance.image.save(os.path.join(file.name), ContentFile(output.read()), save=True)
+                # Delete the old file from Azure Storage
+                if image_instance.image:
+                    image_instance.image.delete(save=False)  # Use delete() method to remove the file safely
+
+                # Save the new file
+                image_instance.image.save(file.name, ContentFile(output.read()), save=True)
             else:
                 image_instance = models.Image_Upload(profile_id=profile_id)
-                image_instance.image.save(os.path.join(file.name), ContentFile(output.read()), save=True)
-            
+                image_instance.image.save(file.name, ContentFile(output.read()), save=True)
+
             image_objects.append(image_instance)
+
 
         # Process replacement images
         for idx, image_id in enumerate(replace_image_ids):
@@ -11383,7 +11426,7 @@ def fetch_porutham_details(profile_from, profile_to):
             dest_rasi_id=dest_rasi_id,
             gender=gender_to
         ).first()
-        
+
         porutham_names = models.Matchingporutham.objects.all()
 
         if not matching_star_partner:
