@@ -6,6 +6,10 @@ from datetime import datetime, date
 
 from .models import Profile
 from datetime import datetime
+from .models import SentFullProfileEmailLog
+from .models import SentShortProfileEmailLog
+from .models import SentFullProfilePrintPDFLog
+from .models import SentShortProfilePrintPDFLog
 
 
 class ProfileStatusSerializer(serializers.ModelSerializer):
@@ -773,3 +777,29 @@ class ProfileVysAssistFollowupSerializer(serializers.ModelSerializer):
             if field not in data or data[field] in [None, '']:
                 raise serializers.ValidationError({field: f"{field} is required."})
         return data
+    
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = '__all__'
+
+    
+class SentFullProfileEmailLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SentFullProfileEmailLog
+        fields = '__all__'  # Include all fields
+
+class SentShortProfileEmailLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SentShortProfileEmailLog
+        fields = '__all__'
+
+class SentFullProfilePrintPDFLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SentFullProfilePrintPDFLog
+        fields = '__all__'  # Serializes all fields
+
+class SentShortProfilePrintPDFLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SentShortProfilePrintPDFLog
+        fields = '__all__'  # Include all model fields

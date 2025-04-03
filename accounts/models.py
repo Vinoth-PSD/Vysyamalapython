@@ -7,6 +7,7 @@ from django.http import JsonResponse
 from rest_framework.views import status
 from django.conf import settings
 from .storages import AzureMediaStorage
+from django.core.mail import EmailMessage
 
 
 class ProfileStatus(models.Model):
@@ -2155,3 +2156,102 @@ class c(models.Model):
 
     def __str__(self):
         return self.id
+
+
+class SentFullProfileEmailLog(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)  # Change from IntegerField to CharField
+    to_ids = models.CharField(max_length=255)
+    profile_owner = models.CharField(max_length=50)
+    status = models.CharField(max_length=20)
+    sent_datetime = models.DateTimeField()
+    class Meta:
+        managed = False  # Django won't create or modify this table
+        db_table = 'sent_profile_email_log'  # Name of the existing table in your database
+
+    def __str__(self):
+        return f"Email Log {self.id} - Profile {self.profile_id} to {self.to_ids}"
+
+
+class SentShortProfileEmailLog(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)  # Stores multiple profile IDs as a string
+    to_ids = models.CharField(max_length=255)  # Recipient profile ID
+    profile_owner = models.CharField(max_length=50)  # Owner of the profile
+    status = models.CharField(max_length=20)  # "sent" or "failed"
+    sent_datetime = models.DateTimeField()  # Timestamp
+
+    class Meta:
+        managed = False  # This table already exists in DB
+        db_table = 'sent_short_profile_email_log'  # Database table name
+
+    def __str__(self):
+        return f"Short Profile Email Log {self.id} - Profile {self.profile_id} to {self.to_ids}"
+
+
+
+class SentFullProfilePrintPDFLog(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)  # Stores multiple profile IDs as a string
+    to_ids = models.CharField(max_length=255)  # Recipient profile ID
+    profile_owner = models.CharField(max_length=50)  # Owner of the profile
+    status = models.CharField(max_length=20)  # "sent" or "failed"
+    sent_datetime = models.DateTimeField(default=datetime.now)  # Timestamp
+
+    class Meta:
+        managed = False  # This table already exists in DB
+        db_table = 'sent_full_profile_print_pdf_log'  # Database table name
+
+    def __str__(self):
+        return f"Full Profile Print PDF Log {self.id} - Profile {self.profile_id} to {self.to_ids}"
+    
+
+class SentShortProfilePrintPDFLog(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)  # Stores multiple profile IDs as a string
+    to_ids = models.CharField(max_length=255)  # Recipient profile ID
+    profile_owner = models.CharField(max_length=50)  # Owner of the profile
+    status = models.CharField(max_length=20)  # "sent" or "failed"
+    sent_datetime = models.DateTimeField(default=datetime.now)  # Timestamp
+
+    class Meta:
+        managed = False  # This table already exists in DB
+        db_table = 'sent_short_profile_print_pdf_log'  # Database table name
+
+    def __str__(self):
+        return f"Short Profile Print PDF Log {self.id} - Profile {self.profile_id} to {self.to_ids}"
+
+
+class SentFullProfilePrintwpLog(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)  # Stores multiple profile IDs as a string
+    to_ids = models.CharField(max_length=255)  # Recipient profile ID
+    profile_owner = models.CharField(max_length=50)  # Owner of the profile
+    status = models.CharField(max_length=20)  # "sent" or "failed"
+    sent_datetime = models.DateTimeField(default=datetime.now)  # Timestamp
+
+    class Meta:
+        managed = False  # This table already exists in DB
+        db_table = 'matching_whatsapp_full_profile_log'  # Database table name
+
+    def __str__(self):
+        return f"Full Profile Print PDF Log {self.id} - Profile {self.profile_id} to {self.to_ids}"
+    
+class SentShortProfilePrintwpLog(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)  # Stores multiple profile IDs as a string
+    to_ids = models.CharField(max_length=255)  # Recipient profile ID
+    profile_owner = models.CharField(max_length=50)  # Owner of the profile
+    status = models.CharField(max_length=20)  # "sent" or "failed"
+    sent_datetime = models.DateTimeField(default=datetime.now)  # Timestamp
+
+    class Meta:
+        managed = False  # This table already exists in DB
+        db_table = 'matching_whatsapp_short_profile_log'  # Database table name
+
+    def __str__(self):
+        return f"Short Profile Print PDF Log {self.id} - Profile {self.profile_id} to {self.to_ids}"
+
+
+
+    
