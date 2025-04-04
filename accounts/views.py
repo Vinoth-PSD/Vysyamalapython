@@ -30,7 +30,7 @@ from rest_framework.parsers import JSONParser, MultiPartParser
 import json
 from django.forms.models import model_to_dict
 from django.core.exceptions import ObjectDoesNotExist
-from PyPDF2 import PdfMerger
+# from PyPDF2 import PdfMerger
 import tempfile
 from . import models
 from authentication.views import My_horoscope_generate,WithoutAddressSendEmailAPI,WithoutAddressPrintPDF
