@@ -2,8 +2,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from . import views 
-from .views import WithoutAddressSendEmailAPI,HoroscopeKattamAPI
+from . import views
 
 
 urlpatterns = [
@@ -223,11 +222,16 @@ urlpatterns = [
       
      path('My_horoscope_pdf_color/<str:user_profile_id>/',  views.My_horoscope_generate, name='horoscope_pdf'),
 
-    path('My_horoscope_black/<str:user_profile_id>/',  views.My_horoscope, name='horoscope_pdf'),
+     path('My_horoscope_black/<str:user_profile_id>/',  views.My_horoscope, name='horoscope_pdf'),
+
+    # path('generate-porutham-pdf/', views.generate_porutham_pdf, name='generate_porutham_pdf'),
     
-    path('without-address-send-email/', WithoutAddressSendEmailAPI.as_view(), name='without_address_send_email'),
-    # path('horoscope/kattam/', HoroscopeKattamAPI.as_view(), name='horoscope_kattam'),
+    # path('My_horoscope_pdf_color/<str:user_profile_id>/',  views.My_horoscope_generate, name='horoscope_pdf'),
+
+    # path('My_horoscope_black/<str:user_profile_id>/',  views.My_horoscope, name='horoscope_pdf'),
     
+    # path('generate_pdf_tamil_new/',  views.generate_pdf_tamil_new, name='generate_pdf_tamil_new'),
+
 
 
 
