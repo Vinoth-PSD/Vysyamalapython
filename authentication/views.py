@@ -61,9 +61,9 @@ from django.http import HttpRequest, Http404
 from xhtml2pdf import pisa
 from django.db import connection
 from django.core.mail import send_mail
-from deep_translator import GoogleTranslator
+# from deep_translator import GoogleTranslator
 from django.core.mail import EmailMessage
-from PyPDF2 import PdfMerger
+# from PyPDF2 import PdfMerger
 from accounts.models import LoginDetails
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
