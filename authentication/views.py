@@ -71,7 +71,7 @@ from .models import SentWithoutAddressPrintwpPDFLog
 
 # from rest_framework.permissions import IsAuthenticated
 # from oauth2_provider.contrib.rest_framework import OAuth2Authentication
-import imgkit
+# import imgkit
 from django.core.files.base import ContentFile
 import base64
 import tempfile
