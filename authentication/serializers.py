@@ -7,6 +7,8 @@ from django.contrib.auth.hashers import make_password
 from .encryption_utils import encrypt_password, decrypt_password , generate_key
 from django.conf import settings
 from .utils import send_email_notification
+from .models import SentWithoutAddressEmailLog
+from .models import SentWithoutAddressPrintPDFLog
 
 
 
@@ -1628,3 +1630,14 @@ class ProfileVysAssistFollowupSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ProfileVysAssistFollowup
         fields = ['comments', 'update_at']
+
+class WithoutAddressEmailLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SentWithoutAddressEmailLog
+        fields = '__all__'
+
+
+class SentWithoutAddressPrintPDFLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SentWithoutAddressPrintPDFLog
+        fields = '__all__'  # Includes all fields

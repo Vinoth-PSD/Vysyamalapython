@@ -596,7 +596,7 @@ class MatchingStarPartner(models.Model):
         db_table = 'matching_stars_partner'  # Name of the table in your database
 
     @staticmethod
-    def get_matching_stars(birth_rasi_id, birth_star_id, gender):
+    def get_matching_stars(birth_rasi_id,birth_star_id,gender):
         query = '''
         SELECT 
             sp.id,
@@ -614,7 +614,7 @@ class MatchingStarPartner(models.Model):
             masterbirthstar sd ON sd.id = sp.dest_star_id 
             LEFT JOIN 
             masterrasi rd ON rd.id = sp.dest_rasi_id
-            LEFT JOIN 
+        LEFT JOIN 
             matching_porutham_names pn ON FIND_IN_SET(pn.id, sp.matching_porutham) 
         WHERE 
             sp.gender = %s 
@@ -622,6 +622,47 @@ class MatchingStarPartner(models.Model):
         GROUP BY 
             sp.id, sp.gender, sp.source_star_id
         '''
+        with connection.cursor() as cursor:
+            cursor.execute(query, [gender, birth_star_id , birth_rasi_id])
+            columns = [col[0] for col in cursor.description]
+            rows = cursor.fetchall()
+            result = [
+                dict(zip(columns, row))
+                for row in rows
+            ]
+        #print("Query result:", result)
+        return result
+    
+
+    @staticmethod
+    def get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender):
+        query = '''
+            SELECT 
+                sp.id,
+                sp.source_star_id,
+                sp.matching_porutham,
+                sp.dest_rasi_id,
+                sp.dest_star_id,
+                sp.match_count,
+                sd.star as matching_starname, 
+                rd.name as matching_rasiname,  
+                GROUP_CONCAT(pn.protham_name) AS protham_names 
+            FROM 
+                matching_stars_partner sp 
+                LEFT JOIN masterbirthstar sd ON sd.id = sp.dest_star_id 
+                LEFT JOIN masterrasi rd ON rd.id = sp.dest_rasi_id
+                LEFT JOIN matching_porutham_names pn ON FIND_IN_SET(pn.id, sp.matching_porutham) 
+            WHERE 
+                sp.gender = %s 
+                AND sp.source_star_id = %s 
+                AND sp.source_rasi_id = %s 
+            GROUP BY 
+                sp.id, sp.gender, sp.source_star_id, 
+                sp.matching_porutham, sp.dest_rasi_id, 
+                sp.dest_star_id, sp.match_count, 
+                sd.star, rd.name
+            '''
+
         with connection.cursor() as cursor:
             cursor.execute(query, [gender, birth_star_id , birth_rasi_id])
             columns = [col[0] for col in cursor.description]
@@ -1952,3 +1993,50 @@ class Profile_PlanFeatureLimit(models.Model):
     def __str__(self):
         # return f"PlanFeatureLimit {self.id}"
         return self.id
+    
+class SentWithoutAddressEmailLog(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)  # Multiple profile IDs
+    to_ids = models.CharField(max_length=255)  # Recipient profile ID
+    profile_owner = models.CharField(max_length=50)  # Owner of the profile
+    status = models.CharField(max_length=20)  # "sent" or "failed"
+    sent_datetime = models.DateTimeField()  # Timestamp
+
+    class Meta:
+        managed = False  # This table already exists in DB
+        db_table = 'sent_without_address_email_log'  # Table name
+
+    def __str__(self):
+        return f"Without Address Email Log {self.id} - Profile {self.profile_id} to {self.to_ids}"
+
+    
+class SentWithoutAddressPrintPDFLog(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)  # Stores multiple profile IDs as a string
+    to_ids = models.CharField(max_length=255)  # Recipient profile ID
+    profile_owner = models.CharField(max_length=50)  # Owner of the profile
+    status = models.CharField(max_length=20)  # "sent" or "failed"
+    sent_datetime = models.DateTimeField(default=datetime.now)  # Timestamp
+
+    class Meta:
+        managed = False  # This table already exists in DB
+        db_table = 'sent_without_address_print_pdf_log'  # Database table name
+
+    def __str__(self):
+        return f"Without Address Print PDF Log {self.id} - Profile {self.profile_id} to {self.to_ids}"
+    
+class SentWithoutAddressPrintwpPDFLog(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)  # Stores multiple profile IDs as a string
+    to_ids = models.CharField(max_length=255)  # Recipient profile ID
+    profile_owner = models.CharField(max_length=50)  # Owner of the profile
+    status = models.CharField(max_length=20)  # "sent" or "failed"
+    sent_datetime = models.DateTimeField(default=datetime.now)  # Timestamp
+
+    class Meta:
+        managed = False  # This table already exists in DB
+        db_table = 'sent_withoutaddress_whatsapp_print_pdf_log'  # Database table name
+
+    def __str__(self):
+        return f"Without Address Print PDF Log {self.id} - Profile {self.profile_id} to {self.to_ids}"
+    
