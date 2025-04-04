@@ -6,13 +6,6 @@ from datetime import datetime, date
 
 from .models import Profile
 from datetime import datetime
-from .models import SentFullProfileEmailLog
-from .models import SentShortProfileEmailLog
-from .models import SentFullProfilePrintPDFLog
-from .models import SentShortProfilePrintPDFLog
-from .models import CallType
-from .models import CallStatus
-from .models import CallAction
 
 
 class ProfileStatusSerializer(serializers.ModelSerializer):
@@ -780,44 +773,3 @@ class ProfileVysAssistFollowupSerializer(serializers.ModelSerializer):
             if field not in data or data[field] in [None, '']:
                 raise serializers.ValidationError({field: f"{field} is required."})
         return data
-    
-class ProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Profile
-        fields = '__all__'
-
-    
-class SentFullProfileEmailLogSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SentFullProfileEmailLog
-        fields = '__all__'  # Include all fields
-
-class SentShortProfileEmailLogSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SentShortProfileEmailLog
-        fields = '__all__'
-
-class SentFullProfilePrintPDFLogSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SentFullProfilePrintPDFLog
-        fields = '__all__'  # Serializes all fields
-
-class SentShortProfilePrintPDFLogSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SentShortProfilePrintPDFLog
-        fields = '__all__'  # Include all model fields
-
-class CallTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CallType
-        fields = '__all__'
-
-class CallStatusSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CallStatus
-        fields = '__all__'
-
-class CallActionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CallAction
-        fields = '__all__'

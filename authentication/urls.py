@@ -225,7 +225,7 @@ urlpatterns = [
 
     path('My_horoscope_black/<str:user_profile_id>/',  views.My_horoscope, name='horoscope_pdf'),
     
-    path('without-address-send-email/', WithoutAddressSendEmailAPI.as_view(), name='without_address_send_email'),
+    path('without-address-send-email/', views.WithoutAddressSendEmailAPI.as_view(), name='without_address_send_email'),
     # path('horoscope/kattam/', HoroscopeKattamAPI.as_view(), name='horoscope_kattam'),
     
 

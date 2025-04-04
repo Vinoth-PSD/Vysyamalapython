@@ -7,10 +7,7 @@ from .views import (
     AnnualIncomeViewSet,  BirthStarViewSet, RasiViewSet, LagnamViewSet,
     DasaBalanceViewSet, FamilyTypeViewSet, FamilyStatusViewSet, FamilyValueViewSet, LoginDetailsTempViewSet , Newprofile_get ,GetProfileDataView,LoginDetailsListCreateView, LoginDetailsDetailView , MatchViewSet , SuccessStoryViewSet, SuccessStoryListViewSet , AwardViewSet , AwardListViewSet , TestimonialViewSet , TestimonialListViewSet , CityViewSet , EditProfileAPIView , GetProfEditDetailsAPIView, fetch_login_details  , fetch_login_details_profile ,VysycommentsListViewSet
 )
-from .views import LoginDetailsViewSet, ProfileFamilyDetailsViewSet, ProfileEduDetailsViewSet, Newprofile_get, PageViewSet, PageListViewSet, PageEditView, PageDeleteView,  AdminSettingsView, AdminSettingsUpdateView, ImageUploadView,  AdminUserDetailView , list_admin_users , list_admin_users,list_roles, add_admin_user, edit_admin_user, delete_admin_user , SuccessStoryEditView, SuccessStoryDeleteView , AwardEditView , AwardDeleteView , TestimonialEditView,TestimonialDeleteView,export_excel , QuickUploadAPIView , ExpressInterestView , ViewedProfileByDateRangeView,PhotoRequestView , BookmarksView , ProfileImages , ProfileImagesView , GetMasterStatus , Get_prof_list_match , ProfileVysAssistView , HomepageListView, delete_profile, My_viewed_profiles, Get_photo_request_list, My_vysassist_list, Get_personal_notes, Exp_intrests_list , send_bulk_email, ProfileSendTo , Update_AdminComments ,GetSubMasterStatus , GetPlanbyStatus , ProfileVysAssistFollowupListCreateView , ProfileVysAssistFollowupRetrieveUpdateDeleteView , My_profiles_vistors , CallactionReceived , CallactionSent , Get_suggest_list_match , Exp_intrests_received , Exp_intrests_mutual , Matchingprintprofile , Matchingwhatsapp , Matchingsendemail ,Partnersettings , Suggestsettings ,GetallPlans,ShortProfilePDFView,SendShortProfilePDFEmail,SendFullProfilePDFEmail
-from .views import CallTypeListCreateView
-from .views import CallStatusListCreateView
-from .views import CallActionListCreateView
+from .views import LoginDetailsViewSet, ProfileFamilyDetailsViewSet, ProfileEduDetailsViewSet, Newprofile_get, PageViewSet, PageListViewSet, PageEditView, PageDeleteView,  AdminSettingsView, AdminSettingsUpdateView, ImageUploadView,  AdminUserDetailView , list_admin_users , list_admin_users,list_roles, add_admin_user, edit_admin_user, delete_admin_user , SuccessStoryEditView, SuccessStoryDeleteView , AwardEditView , AwardDeleteView , TestimonialEditView,TestimonialDeleteView,export_excel , QuickUploadAPIView , ExpressInterestView , ViewedProfileByDateRangeView,PhotoRequestView , BookmarksView , ProfileImages , ProfileImagesView , GetMasterStatus , Get_prof_list_match , ProfileVysAssistView , HomepageListView, delete_profile, My_viewed_profiles, Get_photo_request_list, My_vysassist_list, Get_personal_notes, Exp_intrests_list , send_bulk_email, ProfileSendTo , Update_AdminComments ,GetSubMasterStatus , GetPlanbyStatus , ProfileVysAssistFollowupListCreateView , ProfileVysAssistFollowupRetrieveUpdateDeleteView , My_profiles_vistors , CallactionReceived , CallactionSent , Get_suggest_list_match , Exp_intrests_received , Exp_intrests_mutual , Matchingprintprofile , Matchingwhatsapp , Matchingsendemail ,Partnersettings , Suggestsettings ,GetallPlans
 
 
 router = DefaultRouter()
@@ -155,14 +152,14 @@ urlpatterns = [
     #matching profilesaction
     path('partnersettings/', Partnersettings.as_view(), name='vysfollowups'),
     path('suggestsettings/', Suggestsettings.as_view(), name='suggestsettings'),
-    path('matching-print-profiles/', Matchingprintprofile.as_view(), name='matching_print_profiles'),
+
+
+    
+    path('Matching_print_profiles/', Matchingprintprofile.as_view(), name='Matching_print_profiles'),
     path('Matching_whatsapp/', Matchingwhatsapp.as_view(), name='Matching_whatsapp'),
     path('Matching_sendemail/', Matchingsendemail.as_view(), name='Matching_sendemail'),
-    path('generate_short_profile_pdf/', ShortProfilePDFView.as_view(), name='generate_short_profile_pdf'),
-    path('send_short_profile_pdf_email/', SendShortProfilePDFEmail.as_view(), name='send_short_profile_pdf_email'),
-    path('send-full-profile-email/', SendFullProfilePDFEmail.as_view(), name='send_full_profile_email'),
-    path('calltypes/', CallTypeListCreateView.as_view(), name='calltypes-list-create'),
-    path('callstatus/', CallStatusListCreateView.as_view(), name='callstatus-list-create'),
-    path('callactions/', CallActionListCreateView.as_view(), name='callactions-list-create'),
+
+
+
 
 ]
