@@ -1176,7 +1176,7 @@ class Get_profiledata_Matching(models.Model):
     #updated by vinoth 1908-2024
 
     @staticmethod
-    def get_profile_list(gender,profile_id,start, per_page , search_profile_id , order_by,search_profession,search_age,search_location):
+    def get_profile_list(gender,profile_id,start,per_page,search_profile_id,order_by,search_profession,search_age,search_location,complexion):
 
         # print
 
