@@ -63,7 +63,7 @@ from django.db import connection
 from django.core.mail import send_mail
 # from deep_translator import GoogleTranslator
 from django.core.mail import EmailMessage
-# from PyPDF2 import PdfMerger
+from PyPDF2 import PdfMerger
 from accounts.models import LoginDetails
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -9393,7 +9393,8 @@ class AwardListView(APIView):
 
         serialized_data = serializer.data
         for item in serialized_data:
-            item['image'] = f"{base_url}{item['image']}"
+            # item['image'] = f"{base_url}{item['image']}"
+            item['image'] = f"{item['image']}"
         
         # Prepare response data
         response_data = {
@@ -9426,7 +9427,8 @@ class TestimonialListView(APIView):
 
         serialized_data = serializer.data
         for item in serialized_data:
-            item['user_image'] = f"{base_url}{item['user_image']}"
+            # item['user_image'] = f"{base_url}{item['user_image']}"
+            item['user_image'] = f"{item['user_image']}"
         
         response_data = {
             'data': serialized_data,
@@ -10601,7 +10603,7 @@ class HomepageListView(APIView):
 
 def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirthchart"):
 
-                print('1234567')
+                # print('1234567')
   
                 # Retrieve the Horoscope object based on the provided profile_id
                 horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
@@ -10746,7 +10748,9 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 birth_rasi_id = horoscope.birth_rasi_name
                 gender = login_details.Gender
                 porutham_data = models.MatchingStarPartner.get_matching_stars(birth_rasi_id, birth_star_id, gender)
-            
+
+                # print('porutham_data',porutham_data)
+                # print('type',type(porutham_data))
                 # Prepare the Porutham sections for the PDF
                 def format_star_names(poruthams):
                     return ', '.join([item['matching_starname'] for item in poruthams])
@@ -13060,6 +13064,8 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
             birth_rasi_id = horoscope.birth_rasi_name
             gender = login_details.Gender
             porutham_data = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
+            
+            # print('porutham_data',porutham_data)
         
             # Prepare the Porutham sections for the PDF
             def format_star_names(poruthams):
