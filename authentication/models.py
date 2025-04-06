@@ -596,7 +596,7 @@ class MatchingStarPartner(models.Model):
         db_table = 'matching_stars_partner'  # Name of the table in your database
 
     @staticmethod
-    def get_matching_stars(birth_rasi_id, birth_star_id, gender):
+    def get_matching_stars(birth_rasi_id,birth_star_id,gender):
         query = '''
         SELECT 
             sp.id,
@@ -614,7 +614,7 @@ class MatchingStarPartner(models.Model):
             masterbirthstar sd ON sd.id = sp.dest_star_id 
             LEFT JOIN 
             masterrasi rd ON rd.id = sp.dest_rasi_id
-            LEFT JOIN 
+        LEFT JOIN 
             matching_porutham_names pn ON FIND_IN_SET(pn.id, sp.matching_porutham) 
         WHERE 
             sp.gender = %s 
@@ -630,23 +630,8 @@ class MatchingStarPartner(models.Model):
                 dict(zip(columns, row))
                 for row in rows
             ]
-        
-        # Group the results by Porutham count
-        grouped_data = defaultdict(list)
-        for item in result:
-            match_count = item['match_count']
-            grouped_data[match_count].append(item)
-
-        # Separate by Porutham counts 9, 8, 7, 6, 5
-        porutham_data = {
-            "9 Poruthams": grouped_data.get(9, []),
-            "8 Poruthams": grouped_data.get(8, []),
-            "7 Poruthams": grouped_data.get(7, []),
-            "6 Poruthams": grouped_data.get(6, []),
-            "5 Poruthams": grouped_data.get(5, [])
-        }
-        
-        return porutham_data
+        #print("Query result:", result)
+        return result
     
 
     @staticmethod
@@ -1432,8 +1417,8 @@ class Express_interests(models.Model):
     profile_from = models.CharField(max_length=50)
     profile_to = models.CharField(max_length=50)
     to_express_message = models.CharField(max_length=1000)
-    req_datetime = models.DateTimeField(null=True, blank=True)
-    response_datetime = models.DateTimeField(null=True, blank=True) 
+    req_datetime = models.DateTimeField()
+    response_datetime = models.TextField() 
     status = models.CharField(max_length=50)  #if status is 1  requestsent 2 is accepted 3 is rejected 0 is removed
 
 
@@ -1464,7 +1449,7 @@ class Profile_visitors(models.Model):
     id  = models.AutoField(primary_key=True)
     profile_id = models.CharField(max_length=100)
     viewed_profile = models.CharField(max_length=100)
-    datetime = models.DateTimeField(null=True, blank=True)
+    datetime = models.DateTimeField()
     status = models.CharField(max_length=15)  #if status is 1 requestsent 2 is accepted 3 is rejected
 
 
@@ -1481,7 +1466,7 @@ class Profile_docviewlogs(models.Model):
     profile_id = models.CharField(max_length=100)
     viewed_profile = models.CharField(max_length=100)
     type = models.IntegerField(null=True)
-    datetime = models.DateTimeField(null=True, blank=True)
+    datetime = models.DateTimeField()
     status = models.CharField(max_length=15)  #if status is 1 requestsent 2 is accepted 3 is rejected
 
 
@@ -1498,7 +1483,7 @@ class Profile_personal_notes(models.Model):
     profile_id = models.CharField(max_length=100)
     profile_to = models.CharField(max_length=100)
     notes = models.TextField()
-    datetime = models.DateTimeField(null=True, blank=True)
+    datetime = models.DateTimeField()
     status = models.CharField(max_length=15)  #if status is 1 requestsent 2 is accepted 3 is rejected
 
 
@@ -1518,9 +1503,9 @@ class Photo_request(models.Model):
     id  = models.AutoField(primary_key=True)
     profile_from = models.CharField(max_length=50)
     profile_to = models.CharField(max_length=50)
-    req_datetime = models.DateTimeField(null=True, blank=True)
-    response_datetime = models.DateTimeField(null=True, blank=True) 
-    response_message = models.TextField(null=True, blank=True) 
+    req_datetime = models.TextField()
+    response_datetime = models.TextField() 
+    response_message = models.TextField() 
     status = models.CharField(max_length=50)  #if status is 1  requestsent 2 is accepted 3 is rejected 0 is removed
 
 
@@ -1537,9 +1522,9 @@ class Profile_vysassist(models.Model):
     id  = models.AutoField(primary_key=True)
     profile_from = models.CharField(max_length=50)
     profile_to = models.CharField(max_length=50)
-    req_datetime = models.DateTimeField(null=True, blank=True)
-    response_datetime = models.DateTimeField(null=True, blank=True) 
-    to_message = models.TextField(null=True, blank=True) 
+    req_datetime = models.TextField()
+    response_datetime = models.TextField() 
+    to_message = models.TextField() 
     status = models.CharField(max_length=50)  #if status is 1  requestsent 2 is accepted 3 is rejected 0 is removed
 
 
@@ -1554,7 +1539,7 @@ class Profile_callogs(models.Model):
     id  = models.AutoField(primary_key=True)
     profile_from = models.CharField(max_length=50)
     profile_to = models.CharField(max_length=50)
-    req_datetime = models.DateTimeField(null=True, blank=True)
+    req_datetime = models.TextField()
     status = models.CharField(max_length=50)  #if status is 1  requestsent 2 is accepted 3 is rejected 0 is removed
 
 

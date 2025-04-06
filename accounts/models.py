@@ -2196,7 +2196,7 @@ class SentFullProfilePrintPDFLog(models.Model):
     to_ids = models.CharField(max_length=255)  # Recipient profile ID
     profile_owner = models.CharField(max_length=50)  # Owner of the profile
     status = models.CharField(max_length=20)  # "sent" or "failed"
-    sent_datetime = models.DateTimeField(auto_now_add=True)  # Timestamp
+    sent_datetime = models.DateTimeField(default=datetime.now)  # Timestamp
 
     class Meta:
         managed = False  # This table already exists in DB
