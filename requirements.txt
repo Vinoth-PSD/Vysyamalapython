@@ -81,3 +81,4 @@ html5lib==1.1
 Pillow==11.0.0
 svglib==1.5.1
 xhtml2pdf==0.2.16
+PyPDF2>=2.0.0
