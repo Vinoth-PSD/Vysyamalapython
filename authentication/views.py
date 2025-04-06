@@ -63,7 +63,7 @@ from django.db import connection
 from django.core.mail import send_mail
 # from deep_translator import GoogleTranslator
 from django.core.mail import EmailMessage
-# from PyPDF2 import PdfMerger
+from PyPDF2 import PdfMerger
 from accounts.models import LoginDetails
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -9393,7 +9393,7 @@ class AwardListView(APIView):
 
         serialized_data = serializer.data
         for item in serialized_data:
-            item['image'] = f"{base_url}{item['image']}"
+            item['image'] = f"{item['image']}"
         
         # Prepare response data
         response_data = {
@@ -9426,7 +9426,7 @@ class TestimonialListView(APIView):
 
         serialized_data = serializer.data
         for item in serialized_data:
-            item['user_image'] = f"{base_url}{item['user_image']}"
+            item['user_image'] = f"{item['user_image']}"
         
         response_data = {
             'data': serialized_data,
@@ -11045,7 +11045,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 <tr>
                                     <td class="header-left">
                                         <div class="header-logo">
-                                            <img src="http://apiupg.rainyseasun.com/media/pdfimages/horoHeader.png" alt="Vysyamala Logo">
+                                            <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
                                         </div>
                                     </td>
                                 </tr>
@@ -11380,7 +11380,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
 
 
                 <div class="upload-horo-bg" >
-                    <img  src="http://apiupg.rainyseasun.com/media/pdfimages/horoHeader.png" >
+                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
                 </div>
 
                 <div class="upload-horo-image">
@@ -11388,7 +11388,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 </div>
 
                 <div class="upload-horo-bg" >
-                    <img  src="http://apiupg.rainyseasun.com/media/pdfimages/uploadHoroFooter.png" >
+                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png" >
                 </div>
 
                     </body>
@@ -12027,7 +12027,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                 <tr>
                                     <td class="header-left">
                                         <div class="header-logo">
-                                            <img src="http://apiupg.rainyseasun.com/media/pdfimages/horoHeader-bg-white.png" alt="Vysyamala Logo">
+                                            <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader-bg-white.png" alt="Vysyamala Logo">
                                         </div>
                                     </td>
                                 </tr>
@@ -12369,7 +12369,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
 
 
                 <div class="upload-horo-bg" >
-                    <img  src="http://apiupg.rainyseasun.com/media/pdfimages/horoHeader.png" >
+                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
                 </div>
 
                 <div class="upload-horo-image">
@@ -12377,7 +12377,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 </div>
 
                 <div class="upload-horo-bg" >
-                    <img  src=http://apiupg.rainyseasun.com/media/pdfimages/uploadHoroFooter.png" >
+                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png" >
                 </div>
 
 
@@ -13331,7 +13331,7 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
                             <tr>
                                 <td class="header-left">
                                     <div class="header-logo">
-                                        <img src="http://apiupg.rainyseasun.com/media/pdfimages/horoHeader.png" alt="Vysyamala Logo">
+                                        <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
                                     </div>
                                 </td>
                             </tr>
@@ -13622,13 +13622,13 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
             </tr>
             </table>
             <div class="upload-horo-bg" >
-                <img  src="http://apiupg.rainyseasun.com/media/pdfimages/horoHeader.png" >
+                <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
             </div>
             <div class="upload-horo-image">
                      {horoscope_content} 
             </div>
             <div class="upload-horo-bg" >
-                <img  src="http://apiupg.rainyseasun.com/media/pdfimages/uploadHoroFooter.png" >
+                <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/uploadHoroFooter.png" >
             </div>
                
                 </body>

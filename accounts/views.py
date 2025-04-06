@@ -30,7 +30,7 @@ from rest_framework.parsers import JSONParser, MultiPartParser
 import json
 from django.forms.models import model_to_dict
 from django.core.exceptions import ObjectDoesNotExist
-# from PyPDF2 import PdfMerger
+from PyPDF2 import PdfMerger
 import tempfile
 from . import models
 from authentication.views import My_horoscope_generate,WithoutAddressSendEmailAPI,WithoutAddressPrintPDF
@@ -5909,6 +5909,7 @@ class SendFullProfilePrintPDF(APIView):
 
         profile_ids = request.data.get('profile_id')  # Expecting a comma-separated string
         action_type = request.data.get('action_type')  # 'print' or 'whatsapp'
+        to_profile_id = request.data.get('to_profile_id') 
 
         # Check if profile_ids and action_type are provided
         if not profile_ids:
@@ -5973,7 +5974,7 @@ class SendFullProfilePrintPDF(APIView):
         if action_type == 'whatsapp':
             SentFullProfilePrintwpLog.objects.create(
                 profile_id=profile_ids,
-                to_ids="self",  # Since it's a file download, the recipient is self
+                to_ids=to_profile_id,  # Since it's a file download, the recipient is self
                 profile_owner=profile_owner if profile_owner else "Unknown",  # Dynamic profile owner
                 status=log_status,
                 sent_datetime=datetime.now()
@@ -5981,7 +5982,7 @@ class SendFullProfilePrintPDF(APIView):
         else:
             SentFullProfilePrintPDFLog.objects.create(
                 profile_id=profile_ids,
-                to_ids="self",  # Since it's a file download, the recipient is self
+                to_ids=to_profile_id,  # Since it's a file download, the recipient is self
                 profile_owner=profile_owner if profile_owner else "Unknown",  # Dynamic profile owner
                 status=log_status,
                 sent_datetime=datetime.now()
@@ -5996,6 +5997,7 @@ class SendShortProfilePrintPDF(APIView):
     def post(self, request):
         profile_ids = request.data.get('profile_id')
         action_type = request.data.get('action_type')  # 'print' or 'whatsapp'
+        to_profile_id = request.data.get('to_profile_id')
        
         if not profile_ids:
             return JsonResponse({"error": "profile_id is required"}, status=400)
@@ -6089,7 +6091,7 @@ class SendShortProfilePrintPDF(APIView):
            log_model = SentShortProfilePrintwpLog if action_type == 'whatsapp' else SentShortProfilePrintPDFLog
            log_model.objects.create(
                profile_id=profile_ids,
-               to_ids="self",  # Since it's a file download or WhatsApp share, recipient is "self"
+               to_ids=to_profile_id,  # Since it's a file download or WhatsApp share, recipient is "self"
                profile_owner=profile_owner if profile_owner else "Unknown",  # Dynamic profile owner
                status="failed",
                sent_datetime=datetime.now()
@@ -6100,7 +6102,7 @@ class SendShortProfilePrintPDF(APIView):
         log_model = SentShortProfilePrintwpLog if action_type == 'whatsapp' else SentShortProfilePrintPDFLog
         log_model.objects.create(
             profile_id=profile_ids,
-            to_ids="self",
+            to_ids=to_profile_id,
             profile_owner=profile_owner if profile_owner else "Unknown",  # Dynamic profile owner
             status="sent",
             sent_datetime=datetime.now()
