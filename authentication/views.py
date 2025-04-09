@@ -9359,7 +9359,7 @@ class SuccessStoryListView(APIView):
         # Modify the serialized data to include the full image URL
         serialized_data = serializer.data
         for item in serialized_data:
-            item['photo'] = f"{base_url}{item['photo']}"
+            item['photo'] = f"{item['photo']}"
         
         # Prepare response data
         response_data = {
