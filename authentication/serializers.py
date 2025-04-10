@@ -1540,7 +1540,7 @@ class ProfileImagesSerializer(serializers.Serializer):
     images = serializers.SerializerMethodField()
     Video_url = serializers.SerializerMethodField()
 
-    base_url =settings.IMAGE_BASEURL
+    base_url =settings.MEDIA_URL
 
     class Meta:
         fields = ['horoscope_file', 'Profile_idproof', 'Profile_divorceproof','images','Video_url']
@@ -1550,7 +1550,7 @@ class ProfileImagesSerializer(serializers.Serializer):
             # Fetch the horoscope image for the given profile
             horoscope = models.Horoscope.objects.get(profile_id=obj)
             # return horoscope.horoscope_file.url if horoscope.horoscope_file else None
-            return f"{self.base_url}{horoscope.horoscope_file.url}" if horoscope.horoscope_file else None
+            return f"{horoscope.horoscope_file.url}" if horoscope.horoscope_file else None
         except models.Horoscope.DoesNotExist:
             return None
 
@@ -1559,7 +1559,8 @@ class ProfileImagesSerializer(serializers.Serializer):
             # Fetch the profile image from LoginDetails for the given profile
             login_details = models.Registration1.objects.get(ProfileId=obj)
             # return login_details.Profile_idproof.url if login_details.Profile_idproof else None
-            return f"{self.base_url}{login_details.Profile_idproof.url}" if login_details.Profile_idproof else None
+            # return f"{self.base_url}{login_details.Profile_idproof.url}" if login_details.Profile_idproof else None
+            return f"{login_details.Profile_idproof.url}" if login_details.Profile_idproof else None
         except models.LoginDetails.DoesNotExist:
             return None
     
@@ -1568,7 +1569,8 @@ class ProfileImagesSerializer(serializers.Serializer):
             # Fetch the Profile_divorceproof from LoginDetails for the given profile
             login_details = models.Registration1.objects.get(ProfileId=obj)
             # return login_details.Profile_divorceproof.url if login_details.Profile_divorceproof else None
-            return f"{self.base_url}{login_details.Profile_divorceproof.url}" if login_details.Profile_divorceproof else None
+            # return f"{self.base_url}{login_details.Profile_divorceproof.url}" if login_details.Profile_divorceproof else None
+            return f"{login_details.Profile_divorceproof.url}" if login_details.Profile_divorceproof else None
         except models.LoginDetails.DoesNotExist:
             return None
     
@@ -1589,7 +1591,8 @@ class ProfileImagesSerializer(serializers.Serializer):
             
             #return [{"image_file": img.image} for img in images if img.image]
             # return [{"image_file": img.image.url} for img in images if img.image]
-            return [{"image_file": f"{self.base_url}{img.image.url}","image_name": f"{img.image.url}","image_id": f"{img.id}"} for img in images if img.image]
+            # return [{"image_file": f"{self.base_url}{img.image.url}","image_name": f"{img.image.url}","image_id": f"{img.id}"} for img in images if img.image]
+            return [{"image_file": f"{img.image.url}","image_name": f"{img.image.url}","image_id": f"{img.id}"} for img in images if img.image]
         except models.Image_Upload.DoesNotExist:
             
             # print('1234')
