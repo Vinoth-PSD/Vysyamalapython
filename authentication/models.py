@@ -49,11 +49,20 @@ class Basic_Registration(models.Model):
 
 
 def upload_to_profile_basic(instance, filename):
-    return os.path.join('profile_{0}'.format(instance.ProfileId), filename)
+    # return os.path.join('profile_{0}'.format(instance.ProfileId), filename)
+    return f"profile_idproof/IDProof/{filename}"
 
+def upload_to_profile_horoscope(instance, filename):
+    # return os.path.join('profile_{0}'.format(instance.ProfileId), filename)
+    return f"profile_horoscope_original/HoroscopeOriginal/{filename}"
+
+def upload_to_profile_divorce(instance, filename):
+    # return os.path.join('profile_{0}'.format(instance.ProfileId), filename)
+    return f"profile_divorce/{filename}"
 
 def upload_to_profile(instance, filename):
-    return os.path.join('profile_{0}'.format(instance.profile_id), filename)
+    # return os.path.join('profile_{0}'.format(instance.profile_id), filename)
+    return f"profile_images/{filename}"
     
 class Registration1(models.Model):
     ContentId  = models.AutoField(primary_key=True)
@@ -92,7 +101,8 @@ class Registration1(models.Model):
     Profile_mobile_no= models.CharField(max_length=20)
     Profile_emailid= models.CharField(max_length=20)
     Profile_idproof = models.FileField(upload_to=upload_to_profile_basic,storage=AzureMediaStorage())
-    Profile_divorceproof = models.FileField(upload_to=upload_to_profile_basic,storage=AzureMediaStorage())
+    # Profile_divorceproof = models.FileField(upload_to=upload_to_profile_basic,storage=AzureMediaStorage())
+    Profile_divorceproof = models.FileField(upload_to=upload_to_profile_divorce,storage=AzureMediaStorage())
     Profile_gothras = models.CharField(max_length=255)
     Photo_password = models.CharField(max_length=255)
     Photo_protection = models.SmallIntegerField(default=0)
@@ -777,7 +787,7 @@ class Horoscope(models.Model):
     rasi_kattam = models.CharField(max_length=1000)  # Changed from CharField to TextField
     amsa_kattam = models.CharField(max_length=1000)  # Changed from CharField to TextField
    # horoscope_file = models.TextField()
-    horoscope_file = models.FileField(upload_to=upload_to_profile,storage=AzureMediaStorage())
+    horoscope_file = models.FileField(upload_to=upload_to_profile_horoscope,storage=AzureMediaStorage())
     horo_file_updated = models.CharField(max_length=100)
 
     calc_chevvai_dhosham = models.CharField(max_length=100)
