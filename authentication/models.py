@@ -1528,8 +1528,8 @@ class Photo_request(models.Model):
     profile_from = models.CharField(max_length=50)
     profile_to = models.CharField(max_length=50)
     req_datetime = models.TextField()
-    response_datetime = models.TextField() 
-    response_message = models.TextField() 
+    response_datetime = models.DateTimeField()
+    response_message = models.DateTimeField() 
     status = models.CharField(max_length=50)  #if status is 1  requestsent 2 is accepted 3 is rejected 0 is removed
 
 
@@ -1546,8 +1546,8 @@ class Profile_vysassist(models.Model):
     id  = models.AutoField(primary_key=True)
     profile_from = models.CharField(max_length=50)
     profile_to = models.CharField(max_length=50)
-    req_datetime = models.TextField()
-    response_datetime = models.TextField() 
+    req_datetime = models.DateTimeField()
+    response_datetime = models.DateTimeField() 
     to_message = models.TextField() 
     status = models.CharField(max_length=50)  #if status is 1  requestsent 2 is accepted 3 is rejected 0 is removed
 
