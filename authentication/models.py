@@ -1442,7 +1442,7 @@ class Express_interests(models.Model):
     profile_to = models.CharField(max_length=50)
     to_express_message = models.CharField(max_length=1000)
     req_datetime = models.DateTimeField()
-    response_datetime = models.TextField() 
+    response_datetime = models.DateTimeField() 
     status = models.CharField(max_length=50)  #if status is 1  requestsent 2 is accepted 3 is rejected 0 is removed
 
 
