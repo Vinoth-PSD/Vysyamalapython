@@ -185,19 +185,22 @@ class LoginView(APIView):
                 profile_completion=0
                 birth_star_id=''
                 birth_rasi_id=''
+                profile_image=''
                 if horodetails:
                     birth_star_id=horodetails.birthstar_name
                     birth_rasi_id=horodetails.birth_rasi_name
 
                 if profile_images:
                     profile_icon=profile_images.image.url
+                    profile_image = profile_icon
                 #default image icon
                 else:
                     
                     profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
+                    profile_image = settings.MEDIA_URL+profile_icon
                     
                     
-                profile_image = settings.MEDIA_URL+profile_icon
+                # profile_image = settings.MEDIA_URL+profile_icon
 
 
                 #logindetails_exists = models.Registration1.objects.filter(ProfileId=username).filter(Profile_address__isnull=False).exclude(Profile_address__exact='').first()
@@ -1923,16 +1926,18 @@ class Login_verifyotp(APIView):
                 if horodetails:
                     birth_star_id=horodetails.birthstar_name
                     birth_rasi_id=horodetails.birth_rasi_name
+                
+                profile_image=''
 
                 if profile_images:
                     profile_icon=profile_images.image.url
+                    profile_image =profile_icon
                 #default image icon
                 else:
                     
                     profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
+                    profile_image = settings.MEDIA_URL+profile_icon
                     
-                    
-                profile_image = settings.MEDIA_URL+profile_icon
 
 
                 logindetails_exists = models.Registration1.objects.filter(ProfileId=profile_id).filter(Profile_address__isnull=False).exclude(Profile_address__exact='').first()
