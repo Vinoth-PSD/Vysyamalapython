@@ -3482,17 +3482,18 @@ def Get_matching_score(source_star_id, source_rasi_id,dest_star_id,dest_rasi_id,
     
     # print('source_star_id : ',source_star_id,'source_rasi_id: ',source_rasi_id,'dest_star_id: ', dest_star_id , 'dest_rasi_id: ',dest_rasi_id,'gender',gender)
 
+    print('outside if cond')
     if source_star_id and source_rasi_id and dest_star_id and dest_rasi_id:
-        
+        print('inside if cond')
        
 
         # Get the first matching entry
         existing_entry = models.MatchingStarPartner.objects.filter(source_star_id=source_star_id, source_rasi_id=source_rasi_id, dest_star_id=dest_star_id,dest_rasi_id=dest_rasi_id,gender=gender)
 
-
+        print('existing_entry',existing_entry)
         if existing_entry:
 
-            # print('sddgdfgfg')
+            print('inside existing entry')
             # Serialize the single instance
             serializer = serializers.MatchingscoreSerializer(existing_entry,many=True)
 
@@ -3503,11 +3504,13 @@ def Get_matching_score(source_star_id, source_rasi_id,dest_star_id,dest_rasi_id,
             else:
                 matching_score=match_count*10            
 
+            print('matching_score',matching_score)
             return matching_score
         else:
-            
+            print('query not executed')
             return 0
 
+    print('if Not executed cond')
     return 0  # Return 0 if no entry exists or profile_id/user_profile_id are not provided
 
 
@@ -4017,9 +4020,12 @@ class Get_profile_det_match(APIView):
                 except models.Profile_vysassist.DoesNotExist:
                    vys_assits=False
                    vysystatus_serializer=None
+                   
+                   permission_contact_details=get_permission_limits(profile_id, 'contact_details')
+                   permission_horosocpegrid_details=get_permission_limits(profile_id, 'horoscope_grid_details')
 
 
-                profile_details={
+                profile_data={
                         "basic_details": {
                             "profile_id": profile_details[0]['ProfileId'],
                             "profile_name": profile_details[0]['Profile_name'],
@@ -4036,11 +4042,6 @@ class Get_profile_det_match(APIView):
                             "horoscope_link":Profile_horoscope_file_link,
                             "user_status": Profile_status_active,
                             "verified":profile_details[0]['Profile_verified'],
-                        #     "last_visit": (profile_details[0]['Last_login_date'].strftime("(%B %d, %Y)") 
-                        #   if profile_details[0]['Last_login_date'] else "Date not available"),
-                            # "last_visit":(profile_details[0]['Last_login_date'].strftime("(%B %d, %Y)") 
-                            #     if profile_details[0]['Last_login_date'] and isinstance(profile_details[0]['Last_login_date'], datetime) 
-                            #     else "Date not available"),
                             "last_visit":last_visit,
                             "user_profile_views": count_records(models.Profile_visitors, {'status': 1,'viewed_profile':user_profile_id}),
                             "wish_list": Get_wishlist(profile_id,user_profile_id),
@@ -4112,20 +4113,33 @@ class Get_profile_det_match(APIView):
                             "dasa_balance": profile_details[0]['dasa_balance'],
                             "chevvai_dosham": profile_details[0]['calc_chevvai_dhosham'],
                             "sarpadosham": profile_details[0]['calc_raguketu_dhosham'],
-                            "rasi_kattam":profile_details[0]['rasi_kattam'],
-                            "amsa_kattam":profile_details[0]['amsa_kattam'],
-                        },
+                            # "rasi_kattam":profile_details[0]['rasi_kattam'],
+                            # "amsa_kattam":profile_details[0]['amsa_kattam'],
+                        }
                         # "contact_details": {
                         #     "address": profile_details[0]['Profile_address'],
-                        #     "city": profile_details[0]['Profile_city'],
-                        #     "state": profile_state_name,
-                        #     "country": profile_country_name,
+                        #     "city": get_city_name(profile_details[0]['Profile_city']),
+                        #     "district": get_district_name(profile_details[0]['Profile_district']),
+                        #     "state": get_state_name(profile_details[0]['Profile_state']),
+                        #     "country": get_country_name(profile_details[0]['Profile_country']),                           
                         #     "phone": profile_details[0]['Mobile_no'],
                         #     "mobile": profile_details[0]['Mobile_no'],
                         #     "whatsapp": profile_details[0]['Profile_whatsapp'],
                         #     "email": profile_details[0]['EmailId'],
                         # }
-                        "contact_details": {
+                    }
+                
+
+                     # Conditionally add horoscope_details if allowed
+                if permission_horosocpegrid_details != 0:  # Replace with your actual condition
+                        profile_data["horoscope_details"].update({
+                            "rasi_kattam": profile_details[0]['rasi_kattam'],
+                            "amsa_kattam": profile_details[0]['amsa_kattam'],
+                        })
+
+                    # Conditionally add contact_details if allowed
+                if permission_contact_details != 0:  # Replace with your actual condition
+                        profile_data["contact_details"] = {
                             "address": profile_details[0]['Profile_address'],
                             "city": get_city_name(profile_details[0]['Profile_city']),
                             "district": get_district_name(profile_details[0]['Profile_district']),
@@ -4136,10 +4150,11 @@ class Get_profile_det_match(APIView):
                             "whatsapp": profile_details[0]['Profile_whatsapp'],
                             "email": profile_details[0]['EmailId'],
                         }
-                    }
+
+                profile_details_response = profile_data
 
             
-                return JsonResponse(profile_details, safe=False, status=status.HTTP_200_OK)
+                return JsonResponse(profile_details_response, safe=False, status=status.HTTP_200_OK)
 
        else:
             return JsonResponse({'status': 'failure', 'message': 'Limit Reached to view the profile'}, status=status.HTTP_201_CREATED)
