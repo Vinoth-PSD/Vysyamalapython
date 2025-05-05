@@ -1490,7 +1490,7 @@ class Get_Matchstr_Pref(APIView):
 
             # # Construct the response structure with specific conditions for 15 and 0 counts
             # response = {}
-
+            
             # for count, items in grouped_data.items():
             #     if count == 15:
             #         response["Yega poruthams"] = items
@@ -10755,7 +10755,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 birth_star_id = horoscope.birthstar_name
                 birth_rasi_id = horoscope.birth_rasi_name
                 gender = login_details.Gender
-                porutham_data = models.MatchingStarPartner.get_matching_stars(birth_rasi_id, birth_star_id, gender)
+                porutham_data = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
             
                 # Prepare the Porutham sections for the PDF
                 def format_star_names(poruthams):
@@ -11723,7 +11723,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 birth_star_id = horoscope.birthstar_name
                 birth_rasi_id = horoscope.birth_rasi_name
                 gender = login_details.Gender
-                porutham_data = models.MatchingStarPartner.get_matching_stars(birth_rasi_id, birth_star_id, gender)
+                porutham_data = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
             
                 # Prepare the Porutham sections for the PDF
                 def format_star_names(poruthams):
