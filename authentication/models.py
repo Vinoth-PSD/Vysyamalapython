@@ -23,6 +23,7 @@ class AuthUser(models.Model):
 
 class Basic_Registration(models.Model):
     ContentId  = models.AutoField(primary_key=True)
+    Profile_name = models.CharField(max_length=255, blank=True, null=True)
     ProfileId = models.CharField(max_length=50)
     LoginId = models.CharField(max_length=50)
     Profile_for = models.CharField(max_length=50)
