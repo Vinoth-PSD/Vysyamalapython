@@ -1482,35 +1482,25 @@ class Get_Matchstr_Pref(APIView):
             data = models.MatchingStarPartner.get_matching_stars(birth_rasi_id,birth_star_id,gender)
             output_serializer = serializers.MatchingStarSerializer(data, many=True)
 
-            grouped_data = defaultdict(list)
+            # grouped_data = defaultdict(list)
+
             # for item in data:
             #     match_count = item['match_count']
             #     grouped_data[match_count].append(item)
 
-            # # Construct the response structure
-            # # response = {f"No_of_porutham{count}": items for count, items in grouped_data.items()}
+            # # Construct the response structure with specific conditions for 15 and 0 counts
+            # response = {}
 
-            # response = {f"{count} Poruthas": items for count, items in grouped_data.items()}
+            # for count, items in grouped_data.items():
+            #     if count == 15:
+            #         response["Yega poruthams"] = items
+            #     elif count == 0:
+            #         response["No poruthas"] = items
+            #     else:
+            #         response[f"{count} Poruthas"] = items
 
-            for item in data:
-                match_count = item['match_count']
-                grouped_data[match_count].append(item)
-
-            # Construct the response structure with specific conditions for 15 and 0 counts
-            response = {}
-
-            for count, items in grouped_data.items():
-                if count == 15:
-                    response["Yega poruthams"] = items
-                elif count == 0:
-                    response["No poruthas"] = items
-                else:
-                    response[f"{count} Poruthas"] = items
-
-            return JsonResponse(response, status=status.HTTP_200_OK, safe=False)
-
-
-            # return JsonResponse(response, status=status.HTTP_200_OK, safe=False)
+            return JsonResponse(data, status=status.HTTP_200_OK, safe=False)
+        
         return JsonResponse(input_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -3487,18 +3477,18 @@ def Get_matching_score(source_star_id, source_rasi_id,dest_star_id,dest_rasi_id,
     
     # print('source_star_id : ',source_star_id,'source_rasi_id: ',source_rasi_id,'dest_star_id: ', dest_star_id , 'dest_rasi_id: ',dest_rasi_id,'gender',gender)
 
-    print('outside if cond')
+    # print('outside if cond')
     if source_star_id and source_rasi_id and dest_star_id and dest_rasi_id:
-        print('inside if cond')
+        # print('inside if cond')
        
 
         # Get the first matching entry
         existing_entry = models.MatchingStarPartner.objects.filter(source_star_id=source_star_id, source_rasi_id=source_rasi_id, dest_star_id=dest_star_id,dest_rasi_id=dest_rasi_id,gender=gender)
 
-        print('existing_entry',existing_entry)
+        # print('existing_entry',existing_entry)
         if existing_entry:
 
-            print('inside existing entry')
+            # print('inside existing entry')
             # Serialize the single instance
             serializer = serializers.MatchingscoreSerializer(existing_entry,many=True)
 
@@ -3509,13 +3499,13 @@ def Get_matching_score(source_star_id, source_rasi_id,dest_star_id,dest_rasi_id,
             else:
                 matching_score=match_count*10            
 
-            print('matching_score',matching_score)
+            # print('matching_score',matching_score)
             return matching_score
         else:
-            print('query not executed')
+            # print('query not executed')
             return 0
 
-    print('if Not executed cond')
+    # print('if Not executed cond')
     return 0  # Return 0 if no entry exists or profile_id/user_profile_id are not provided
 
 
@@ -3718,13 +3708,6 @@ class Get_prof_list_match(APIView):
                 # Calculate the starting record for the SQL LIMIT clause
             start = (page_number - 1) * per_page
 
-            # response_data = {
-            #     "message": "Profile ID is valid.",
-            #     "profile_id": profile_id,
-            #     "gender": profile_data.Gender,
-            # }
-            # print('params names123',gender,'  ',profile_id,'  ',start,'  ',per_page,'  ',search_profile_id,'  ',order_by,'  ',search_profession,'  ',search_age,'  ',search_location,'  ')
-
             profile_details , total_count ,profile_with_indices = models.Get_profiledata.get_profile_list(gender,profile_id,start,per_page,search_profile_id,order_by,search_profession,search_age,search_location)
 
             my_profile_id = [profile_id]   
@@ -3747,6 +3730,11 @@ class Get_prof_list_match(APIView):
             #print('matching profile limit 1',profile_details[0])
 
             #return JsonResponse(response_data, status=status.HTTP_200_OK)
+
+            
+            # timming = datetime.now()
+
+            print("Execution time before loop ",datetime.now())
 
             if profile_details:
 
@@ -3773,6 +3761,8 @@ class Get_prof_list_match(APIView):
                             }
                             for detail in profile_details
                         ]
+                
+                print("Execution time after loop ",datetime.now())
             
                 combined_data = {
                             #"interests": serialized_fetch_data,

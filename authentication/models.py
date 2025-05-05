@@ -648,11 +648,14 @@ class MatchingStarPartner(models.Model):
 
         # Separate by Porutham counts 9, 8, 7, 6, 5
         porutham_data = {
+            "Yega Poruthams": grouped_data.get(15, []),
+            "10 Poruthams": grouped_data.get(10, []),
             "9 Poruthams": grouped_data.get(9, []),
             "8 Poruthams": grouped_data.get(8, []),
             "7 Poruthams": grouped_data.get(7, []),
             "6 Poruthams": grouped_data.get(6, []),
-            "5 Poruthams": grouped_data.get(5, [])
+            "5 Poruthams": grouped_data.get(5, []),
+            "No poruthams": grouped_data.get(0, [])
         }
         
         return porutham_data
