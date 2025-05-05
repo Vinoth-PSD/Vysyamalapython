@@ -465,6 +465,7 @@ class Registrationstep2(APIView):
                     'Profile_height': serializer.validated_data.get('Profile_height'),
                     'Profile_complexion': serializer.validated_data.get('Profile_complexion'), 
                     'DateOfJoin': timezone.now(), 
+                    'Otp': 0,
                     'status': 0,
                     'temp_profileid':profile_id,
                     'Reset_OTP_Time':None,

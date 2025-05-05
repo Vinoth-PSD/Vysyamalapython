@@ -111,12 +111,12 @@ class Registration1(models.Model):
     Plan_id= models.CharField(max_length=100)
     Addon_package= models.CharField(max_length=100)
     # Last_login_date= models.CharField(max_length=100)
-    Last_login_date= models.CharField(max_length=100)  
+    Last_login_date= models.CharField(max_length=100,null=True, blank=True)  
     # Last_login_date = models.DateTimeField(null=True, blank=True)
     #Last_login_date= models.DateTimeField()
-    Notifcation_enabled= models.CharField(max_length=100)
-    Featured_profile= models.CharField(max_length=100)
-    DateOfJoin= models.CharField(max_length=100) #models.DateTimeField()
+    Notifcation_enabled= models.CharField(max_length=100,null=True, blank=True)
+    Featured_profile= models.CharField(max_length=100,null=True, blank=True)
+    DateOfJoin= models.CharField(max_length=100,null=True, blank=True) #models.DateTimeField()
     Reset_OTP = models.CharField(max_length=6, blank=True, null=True)
     quick_registration=models.CharField(max_length=6, blank=True, null=True)
     #Reset_OTP_Time =  models.CharField(max_length=100)   #models.CharField(max_length=100)
@@ -130,7 +130,7 @@ class Registration1(models.Model):
     #Profile_idproof= models.TextField()
     
 
-    status = models.IntegerField() 
+    status = models.IntegerField(null=True, blank=True) 
 
 
     class Meta:
@@ -774,10 +774,10 @@ class Horoscope(models.Model):
     amsa_kattam = models.CharField(max_length=1000)  # Changed from CharField to TextField
    # horoscope_file = models.TextField()
     horoscope_file = models.FileField(upload_to=upload_to_profile_horoscope,storage=AzureMediaStorage())
-    horo_file_updated = models.CharField(max_length=100)
+    horo_file_updated = models.CharField(max_length=100,null=True, blank=True)
 
-    calc_chevvai_dhosham = models.CharField(max_length=100)
-    calc_raguketu_dhosham = models.CharField(max_length=100)
+    calc_chevvai_dhosham = models.CharField(max_length=100,null=True, blank=True)
+    calc_raguketu_dhosham = models.CharField(max_length=100,null=True, blank=True)
 
 
     class Meta:
