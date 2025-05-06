@@ -11,7 +11,7 @@ from .views import LoginDetailsViewSet, ProfileFamilyDetailsViewSet, ProfileEduD
 from .views import CallTypeListCreateView
 from .views import CallStatusListCreateView
 from .views import CallActionListCreateView
-# from .views import DashboardcountView
+from .views import DashboardcountView
 
 
 router = DefaultRouter()
@@ -166,6 +166,6 @@ urlpatterns = [
     path('callstatus/', CallStatusListCreateView.as_view(), name='callstatus-list-create'),
     path('callactions/', CallActionListCreateView.as_view(), name='callactions-list-create'),
 
-    # path('dashboard_counts/', DashboardcountView.as_view(), name='dashboard_counts'),
+    path('dashboard_counts/', DashboardcountView.as_view(), name='dashboard_counts'),
 
 ]

@@ -527,6 +527,8 @@ class Image_Upload(models.Model):
     # image = models.ImageField(upload_to=upload_to_profile)
     image = models.ImageField(upload_to=upload_to_profile, storage=AzureMediaStorage())
     uploaded_at = models.DateTimeField(auto_now_add=True)
+    image_approved  = models.SmallIntegerField(blank=True, null=True)
+    is_deleted  = models.SmallIntegerField(blank=True, null=True)
 
     class Meta:
         managed = False  # Assuming this model is managed externally

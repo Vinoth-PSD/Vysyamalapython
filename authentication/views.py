@@ -3543,7 +3543,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
         
             if(no_of_image==1):
 
-                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id).first()           
+                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()           
             
                 if get_entry:
                         # Serialize the single instance
@@ -3563,7 +3563,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                         
                     
             else:
-                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id)[:10]
+                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0)[:10]
                 if get_entry.exists():
                     # Serialize the single instance
                     serializer = serializers.ImageGetSerializer(get_entry,many=True)
@@ -3584,7 +3584,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
         print('photo protection is true')
 
         if(no_of_image==1):
-            get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id).first()   
+            get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()   
 
                 #print('get_entry',get_entry)        
                     
@@ -3609,7 +3609,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
         else:
 
-                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id).first()   
+                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()   
      
                     
                 if get_entry:
@@ -3631,6 +3631,46 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                     if(gender=='female'):
                                     
                         return {"1": base_url+default_img_groom }
+
+
+
+
+def get_default_or_blurred_image(user_profile_id,gender):
+
+            print('get_default_or_blurred_image')
+            
+            base_url=settings.MEDIA_URL
+            #base_url='http://127.0.0.1:8000/'
+            
+            #default_img_grrom='media/default_groom.png'
+            default_img_bride='default_bride.png'
+            default_img_groom='default_groom.png'
+            default_lock='default_photo_protect.png'
+
+            get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()   
+
+                #print('get_entry',get_entry)        
+                    
+            if get_entry:
+                        # Serialize the single instance
+                    serializer = serializers.ImageGetSerializer(get_entry)
+                                # Return only the status
+                    img_base64=get_blurred_image(serializer.data['image'])
+                    
+                    
+                    
+                    return img_base64,
+            else :
+                
+                if(gender=='male'):
+                        
+                        return base_url+default_img_bride
+                                
+                if(gender=='female'):
+                                    
+                        return base_url+default_img_groom
+
+
              
 def Get_image_profile(user_profile_id):
     base_url = settings.MEDIA_URL
@@ -3643,14 +3683,14 @@ def Get_image_profile(user_profile_id):
 
     # Default to the appropriate image based on gender
     if not photo_protection:
-        get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id).first()
+        get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()
         if get_entry:
             serializer = serializers.ImageGetSerializer(get_entry)
             return serializer.data['image']
         
         return base_url + (default_img_groom if gender.lower() == 'male' else default_img_bride)
     
-    get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id).first()
+    get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()
     if get_entry:
         serializer = serializers.ImageGetSerializer(get_entry)
         img_base64 = get_blurred_image(serializer.data['image'])
@@ -3731,6 +3771,14 @@ class Get_prof_list_match(APIView):
             my_star_id=my_profile_details[0]['birthstar_name']
             my_rasi_id=my_profile_details[0]['birth_rasi_name']
 
+            photo_viewing=get_permission_limits(profile_id,'photo_viewing')
+
+            if photo_viewing == 1:
+                image_function = lambda detail: Get_profile_image(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
+            else:
+                image_function = lambda detail: get_default_or_blurred_image(detail.get("ProfileId"), my_gender)
+
+
             # print('Testing','8752145')
 
             #print('matching profile limit 1',profile_details[0])
@@ -3749,7 +3797,8 @@ class Get_prof_list_match(APIView):
                             {
                                 "profile_id": detail.get("ProfileId"),
                                 "profile_name": detail.get("Profile_name"),
-                                "profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                                # "profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                                "profile_img": image_function(detail),
                                 "profile_age": calculate_age(detail.get("Profile_dob")),
                                 "profile_gender":detail.get("Gender"),
                                 "height": detail.get("Profile_height"),
@@ -4297,7 +4346,7 @@ class ListProfileImagesView(APIView):
             return JsonResponse({'status': 'failure', 'message': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         # Get all images related to the profile
-        profile_images =  models.Image_Upload.objects.filter(profile_id=profile_id)
+        profile_images =  models.Image_Upload.objects.filter(profile_id=profile_id,image_approved=1,is_deleted=0)
         media_root_len = len(settings.MEDIA_ROOT)
         
         # Define the URL prefix
@@ -4888,7 +4937,7 @@ class Get_profile_images(APIView):
         if serializer.is_valid():
 
             # Get images for the specified profile
-            images = models.Image_Upload.objects.filter(profile_id=profile_id)
+            images = models.Image_Upload.objects.filter(profile_id=profile_id,image_approved=1,is_deleted=0)
             
             if not images.exists():
                 return JsonResponse({"message": "No images found for this profile."}, status=status.HTTP_200_OK)
@@ -4949,7 +4998,7 @@ class Get_photo_bypassword(APIView):
         if serializer.is_valid():
             profile_to = serializer.validated_data['profile_to']
 
-            get_entry = models.Image_Upload.objects.filter(profile_id=profile_to)[:10]
+            get_entry = models.Image_Upload.objects.filter(profile_id=profile_to,image_approved=1,is_deleted=0)[:10]
             if get_entry.exists():
                 # Serialize the single instance
                 serializer = serializers.ImageGetSerializer(get_entry,many=True)
@@ -4995,7 +5044,7 @@ class Get_common_details(APIView):
                         Profile_owner = None
                 
                 #get first image for the profile icon
-                profile_images=models.Image_Upload.objects.filter(profile_id=profile_id).first()
+                profile_images=models.Image_Upload.objects.filter(profile_id=profile_id,image_approved=1,is_deleted=0).first()
                 
                 plan_id = logindetails.Plan_id
                 plan_limits_json=''
@@ -8025,7 +8074,7 @@ class CreateOrderView(APIView):
 
 def profile_preview(request: HttpRequest, profile_id):
     profile = get_object_or_404(models.Registration1, ProfileId=profile_id)
-    profile_images = models.Image_Upload.objects.filter(profile_id=profile).first()
+    profile_images = models.Image_Upload.objects.filter(profile_id=profile,image_approved=1,is_deleted=0).first()
     profile_horo = get_object_or_404(models.Horoscope, profile_id=profile_id)
     profile_edu = get_object_or_404(models.Edudetails, profile_id=profile_id)
     
@@ -8101,7 +8150,7 @@ def profile_preview(request: HttpRequest, profile_id):
 
 def profile_preview_withouphoto(request: HttpRequest, profile_id):
     profile = get_object_or_404(models.Registration1, ProfileId=profile_id)
-    profile_images = models.Image_Upload.objects.filter(profile_id=profile).first()
+    profile_images = models.Image_Upload.objects.filter(profile_id=profile,image_approved=1,is_deleted=0).first()
     profile_horo = get_object_or_404(models.Horoscope, profile_id=profile_id)
     profile_edu = get_object_or_404(models.Edudetails, profile_id=profile_id)
     
@@ -8685,7 +8734,7 @@ def calculate_profile_completion(profile_id):
                 completed_points += weight
 
     # 2. Photo Upload
-    profile_images = models.Image_Upload.objects.filter(profile_id=profile_id).first()
+    profile_images = models.Image_Upload.objects.filter(profile_id=profile_id,image_approved=1,is_deleted=0).first()
     if profile_images:
         for field, weight in field_weights['profile_images'].items():
             total_points += weight
@@ -8784,7 +8833,7 @@ def calculate_points_and_get_empty_fields(profile_id):
                 empty_fields.append({'tab': 'Personal_info', 'field': field})
 
     # 2. Photo Upload
-    profile_images = models.Image_Upload.objects.filter(profile_id=profile_id).first()
+    profile_images = models.Image_Upload.objects.filter(profile_id=profile_id,image_approved=1,is_deleted=0).first()
     if profile_images:
         for field, weight in field_weights['profile_images'].items():
             total_points += weight
@@ -9920,10 +9969,13 @@ def get_blurred_image(image_name):
             # Return the URL of the blurred image
             return f"https://{blob_service.account_name}.blob.core.windows.net/{container_name}/{blurred_blob_name}"
 
-    except Exception as e:
-        print(f"Error processing image: {str(e)}", exc_info=True)
+    except FileNotFoundError as fnf_error:
+        logger.error(f"Image not found: {fnf_error}")
         return settings.MEDIA_URL + 'default_img.png'
-    
+
+    except Exception as e:
+        logger.exception(f"Error processing image: {e}")
+        return settings.MEDIA_URL + 'default_img.png'
     
 def can_send_express_interest(profile_id):
 

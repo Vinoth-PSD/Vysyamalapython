@@ -376,7 +376,6 @@ class LoginDetailsTemp(models.Model):
     DateOfJoin = models.DateField(null=True)
 
 
-
     class Meta:
         db_table = 'logindetails_temp'
         
@@ -518,6 +517,8 @@ class LoginDetails(models.Model):
     PaymentType = models.CharField(max_length=255,blank=True, null=True)  # Changed from CharField to TextField
     Package_name= models.CharField(max_length=255,blank=True, null=True)  # Changed from CharField to TextField
     Video_url= models.TextField(blank=True, null=True)
+    Plan_id= models.CharField(max_length=100,blank=True, null=True)
+
 
     class Meta:
         db_table = 'logindetails'
@@ -569,6 +570,8 @@ class Image_Upload(models.Model):
     profile_id = models.CharField(max_length=50)
     image = models.ImageField(upload_to=upload_to_profile,storage=AzureMediaStorage())
     uploaded_at = models.DateTimeField(auto_now_add=True)
+    image_approved  = models.SmallIntegerField(blank=True, null=True)
+    is_deleted  = models.SmallIntegerField(blank=True, null=True)
 
     class Meta:
         managed = False  # Assuming this model is managed externally

@@ -65,12 +65,37 @@ from .serializers import CallActionSerializer
 #         return Response({"status": "deleted"})
 
 
-# class DashboardcountView(APIView):
-#       def get(self, request):
+class DashboardcountView(APIView):
+      def get(self, request):
 
+        try:
+            # Counts based on assumptions
+            new_profiles = LoginDetails.objects.filter(status=0).count()
+            approved_profiles = LoginDetails.objects.filter(status=1).count()
+            pending_profiles = LoginDetails.objects.filter(status=2).count()
+            hidden_profiles = LoginDetails.objects.filter(status=3).count()
+            photo_request_count = Image_Upload.objects.filter(image_approved=0,is_deleted=0).count()
+            quick_upload_count = LoginDetails.objects.filter(quick_registration=1).count()
+            paidprofiles_count = LoginDetails.objects.filter(~Q(Plan_id__in=[6, 7, 8, 9, 11, 12, 13])).count()
+            prospect_profiles = LoginDetails.objects.filter(Plan_id=8).exclude(status__in=[0, 3, 4]).count()
+            featured_profiles = LoginDetails.objects.filter(Plan_id__in=[3, 4]).exclude(status__in=[0, 3, 4]).count()
+            deletedprofiles = LoginDetails.objects.filter(status=4).count()
 
+            return Response({
+                "new_profiles": new_profiles,
+                "approved_profiles": approved_profiles,
+                "pending_profiles":pending_profiles,
+                "photo_request_count": photo_request_count,
+                "hidden_profiles_count": hidden_profiles,
+                "quick_upload_count": quick_upload_count,
+                "paidprofiles_count":paidprofiles_count,
+                "prospect_profiles":prospect_profiles,
+                "featured_profiles":featured_profiles,
+                "deletedprofiles":deletedprofiles
+            })
 
-
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)  
 
 
 class GetMasterStatus(APIView):
