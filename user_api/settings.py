@@ -42,6 +42,9 @@ AZURE_ACCOUNT_KEY = '1mdfx0CBr1DTTNuVVK0qL5JXEpRNQnyWVEbIzndIPPlHXNERQIYGjsGWf3z
 AZURE_CONTAINER = 'vysyamala'  # The name of your blob container
 AZURE_URL_EXPIRATION_SECS = None  # Optional: set expiry for signed URLs
 
+AZURE_CONNECTION_STRING = f'DefaultEndpointsProtocol=https;AccountName={AZURE_ACCOUNT_NAME};AccountKey={AZURE_ACCOUNT_KEY};EndpointSuffix=core.windows.net'
+
+
 
 
 
@@ -55,7 +58,7 @@ AZURE_URL_EXPIRATION_SECS = None  # Optional: set expiry for signed URLs
 MEDIA_URL = f'https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/{AZURE_CONTAINER}/'
 MEDIA_ROOT = None  # No local file storage needed as we're using Azure
 
-
+MEDIA_ROOT_1 = os.path.join(BASE_DIR, 'media')  # Or your preferred path
 
 # Application definition
 

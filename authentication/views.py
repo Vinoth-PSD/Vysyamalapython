@@ -77,7 +77,10 @@ import base64
 import tempfile
 from django.http import HttpResponse
 #config = imgkit.config(wkhtmltoimage="C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltoimage.exe")
-
+import uuid
+from azure.storage.blob import BlobServiceClient
+from urllib.parse import urlparse
+from azure.storage.blob import ContentSettings  # Add this import
 
 
 
@@ -3577,6 +3580,8 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                     return {"1":  base_url + default_img,"2":  base_url + default_img}
                 
     else:
+
+        print('photo protection is true')
 
         if(no_of_image==1):
             get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id).first()   
@@ -9811,39 +9816,115 @@ class GetFooterView(APIView):
 
 
 
+# def get_blurred_image(image_name):
+#     # Construct the image path
+#     #print('image_name',image_name)
+
+#     image_name = image_name[len('/'):]
+    
+#     image_path = os.path.join(settings.MEDIA_URL,image_name)
+
+#     # print('image_path',image_path)
+    
+#     # Check if the file exists
+#     if not os.path.isfile(image_path):
+#         return settings.MEDIA_URL+'default_img.png'
+    
+#     try:
+#         # Open the image using Pillow
+#         with Image.open(image_path) as img:
+#             # Apply blur effect
+#             blurred_image = img.filter(ImageFilter.GaussianBlur(10))  # Adjust the blur radius if needed
+            
+#             # Save the blurred image to a BytesIO object
+#             buffered = BytesIO()
+#             blurred_image.save(buffered, format="JPEG")
+            
+#             # Encode the image in base64
+#             img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+            
+#             # Return the base64 encoded image in a JSON response
+#             return 'data:image/jpeg;base64,'+img_base64
+    
+#     except Exception as e:
+#         return settings.MEDIA_URL+'default_img.png'
+
+
 def get_blurred_image(image_name):
-    # Construct the image path
-    #print('image_name',image_name)
+    print('Inside Blur Images')
+    print("Original image URL:", image_name)
 
-    image_name = image_name[len('/'):]
-    
-    image_path = os.path.join(settings.MEDIA_URL,image_name)
-
-    # print('image_path',image_path)
-    
-    # Check if the file exists
-    if not os.path.isfile(image_path):
-        return settings.MEDIA_URL+'default_img.png'
-    
     try:
-        # Open the image using Pillow
-        with Image.open(image_path) as img:
-            # Apply blur effect
-            blurred_image = img.filter(ImageFilter.GaussianBlur(10))  # Adjust the blur radius if needed
-            
-            # Save the blurred image to a BytesIO object
-            buffered = BytesIO()
-            blurred_image.save(buffered, format="JPEG")
-            
-            # Encode the image in base64
-            img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-            
-            # Return the base64 encoded image in a JSON response
-            return 'data:image/jpeg;base64,'+img_base64
-    
-    except Exception as e:
-        return settings.MEDIA_URL+'default_img.png'
+        # Parse URL and extract path
+        parsed_url = urlparse(image_name)
+        full_path = parsed_url.path.lstrip('/')  # Remove leading slash
+        
+        # Remove container name from the path
+        container_name = settings.AZURE_CONTAINER
+        if full_path.startswith(container_name + '/'):
+            blob_path = full_path[len(container_name)+1:]  # Remove "vysyamala/"
+        else:
+            blob_path = full_path
+        
+        print('Container:', container_name)
+        print('Blob path:', blob_path)
 
+        if not blob_path:
+            raise ValueError("Blob path is empty")
+
+        # Initialize BlobServiceClient
+        blob_service = BlobServiceClient.from_connection_string(settings.AZURE_CONNECTION_STRING)
+        
+        # Check if the blurred image already exists
+        blurred_blob_name = f"blurred/{os.path.basename(blob_path)}"
+        blurred_blob_client = blob_service.get_blob_client(
+            container=container_name,
+            blob=blurred_blob_name
+        )
+
+        # If blurred image exists, return the URL immediately
+        if blurred_blob_client.exists():
+            print("Blurred image already exists.")
+            return f"https://{blob_service.account_name}.blob.core.windows.net/{container_name}/{blurred_blob_name}"
+
+        # Get blob client for original image
+        blob_client = blob_service.get_blob_client(
+            container=container_name,
+            blob=blob_path
+        )
+
+        # Verify blob exists
+        if not blob_client.exists():
+            raise FileNotFoundError(f"Blob {blob_path} not found in container {container_name}")
+
+        # Download and process image
+        image_bytes = blob_client.download_blob().readall()
+
+        with Image.open(BytesIO(image_bytes)) as img:
+            # Resize image for faster processing (optional)
+            img = img.resize((img.width // 2, img.height // 2))
+
+            # Apply blur
+            blurred_image = img.filter(ImageFilter.GaussianBlur(5))
+            
+            # Save blurred image to memory (in memory, avoiding disk I/O)
+            output_buffer = BytesIO()
+            blurred_image.save(output_buffer, format="JPEG", quality=70)
+            output_buffer.seek(0)  # Rewind the buffer
+            
+            # Upload blurred image to Azure
+            blurred_blob_client.upload_blob(output_buffer, overwrite=True, content_settings=ContentSettings(content_type="image/jpeg"))
+            
+            print(f"Blurred image uploaded as: {blurred_blob_name}")
+            
+            # Return the URL of the blurred image
+            return f"https://{blob_service.account_name}.blob.core.windows.net/{container_name}/{blurred_blob_name}"
+
+    except Exception as e:
+        print(f"Error processing image: {str(e)}", exc_info=True)
+        return settings.MEDIA_URL + 'default_img.png'
+    
+    
 def can_send_express_interest(profile_id):
 
     registration=models.Registration1.objects.filter(ProfileId=profile_id).first()
