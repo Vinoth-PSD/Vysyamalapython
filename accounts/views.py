@@ -65,6 +65,14 @@ from .serializers import CallActionSerializer
 #         return Response({"status": "deleted"})
 
 
+# class DashboardcountView(APIView):
+#       def get(self, request):
+
+
+
+
+
+
 class GetMasterStatus(APIView):
     def get(self, request):
         statuses = ProfileStatus.objects.all()
@@ -1816,8 +1824,9 @@ class SubmitProfileAPIView(APIView):
         # Save LoginDetails and generate ProfileId
         login_detail = login_serializer.save()
         content_id = login_detail.ContentId
-        numeric_part = f'{content_id:04}'  # Zero-pad ContentId to 4 digits
-        profile_id = f'VM240{numeric_part}' if login_detail.Gender.lower() == 'male' else f'VF240{numeric_part}'
+        # numeric_part = f'{content_id:04}'  # Zero-pad ContentId to 4 digits
+        numeric_part = content_id
+        profile_id = f'VM{numeric_part}' if login_detail.Gender.lower() == 'male' else f'VF{numeric_part}'
         login_detail.ProfileId = profile_id
 
         login_detail.save()

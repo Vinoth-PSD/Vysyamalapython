@@ -447,9 +447,9 @@ class Registrationstep2(APIView):
                 # if last_record.Gender.lower()=='male':
                 if registration.Gender.strip().lower() == 'male':
                 
-                    new_profile_id = f"VM240{numeric_part}" 
+                    new_profile_id = f"VM{numeric_part}" 
                 else :
-                    new_profile_id = f"VF240{numeric_part}"
+                    new_profile_id = f"VF{numeric_part}"
                 
                 # Update or create in Registration2 table
                 registration_data = {
