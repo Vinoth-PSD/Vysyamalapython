@@ -1486,7 +1486,7 @@ class Get_Matchstr_Pref(APIView):
             data = models.MatchingStarPartner.get_matching_stars(birth_rasi_id,birth_star_id,gender)
             output_serializer = serializers.MatchingStarSerializer(data, many=True)
 
-            # grouped_data = defaultdict(list)
+            grouped_data = defaultdict(list)
 
             # for item in data:
             #     match_count = item['match_count']
@@ -1503,9 +1503,30 @@ class Get_Matchstr_Pref(APIView):
             #     else:
             #         response[f"{count} Poruthas"] = items
 
-            return JsonResponse(data, status=status.HTTP_200_OK, safe=False)
-        
+            for item in data:
+                match_count = item['match_count']
+                grouped_data[match_count].append(item)
+
+            # Construct the response structure with specific conditions for 15 and 0 counts
+            response = {}
+
+            for count, items in grouped_data.items():
+                if count == 15:
+                    response["Yega poruthams"] = items
+                elif count == 0:
+                    response["No poruthas"] = items
+                else:
+                    response[f"{count} Poruthas"] = items
+
+            return JsonResponse(response, status=status.HTTP_200_OK, safe=False)
+
+
+            # return JsonResponse(response, status=status.HTTP_200_OK, safe=False)
         return JsonResponse(input_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+        #     return JsonResponse(data, status=status.HTTP_200_OK, safe=False)
+        
+        # return JsonResponse(input_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -12558,6 +12579,465 @@ def safe_str(value):
 
 @csrf_exempt
 def generate_porutham_pdf(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Only POST method is allowed'}, status=405)
+
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            profile_from = data.get('profile_from')
+            profile_to = data.get('profile_to')
+        else:
+            profile_from = request.GET.get('profile_from')
+            profile_to = request.GET.get('profile_to')
+
+        if not profile_from or not profile_to:
+            return JsonResponse({'status': 'error', 'message': 'profile_from and profile_to are required'}, status=400)
+
+        if can_see_compatability_report(profile_from, profile_to) is not True:
+            return JsonResponse({'status': 'failure', 'message': 'No access to see the compatibility report'}, status=400)
+
+        # Fetch required data
+        profile_from_details = models.Registration1.objects.get(ProfileId=profile_from)
+        profile_to_details = models.Registration1.objects.get(ProfileId=profile_to)
+        horoscope_from = models.Horoscope.objects.get(profile_id=profile_from)
+        horoscope_to = models.Horoscope.objects.get(profile_id=profile_to)
+        education_from_details = models.Edudetails.objects.get(profile_id=profile_from)
+        education_to_details = models.Edudetails.objects.get(profile_id=profile_to)
+
+        # Defensive check for null fields
+        if not horoscope_from.birthstar_name or not horoscope_to.birthstar_name:
+            return JsonResponse({'status': 'error', 'message': 'Missing birth star data'}, status=400)
+
+        if not horoscope_from.birth_rasi_name or not horoscope_to.birth_rasi_name:
+            return JsonResponse({'status': 'error', 'message': 'Missing rasi data'}, status=400)
+
+        if not education_from_details.highest_education or not education_to_details.highest_education:
+            return JsonResponse({'status': 'error', 'message': 'Missing education data'}, status=400)
+
+        # Fetch from master tables
+        birth_star_from = models.Birthstar.objects.get(id=horoscope_from.birthstar_name)
+        birth_star_to = models.Birthstar.objects.get(id=horoscope_to.birthstar_name)
+        rasi_from = models.Rasi.objects.get(id=horoscope_from.birth_rasi_name)
+        rasi_to = models.Rasi.objects.get(id=horoscope_to.birth_rasi_name)
+        highest_education_from = models.Edupref.objects.get(RowId=education_from_details.highest_education)
+        highest_education_to = models.Edupref.objects.get(RowId=education_to_details.highest_education)
+
+        # Handle Gender safely
+        gender_from = safe_str(profile_from_details.Gender).lower()
+        gender_to = safe_str(profile_to_details.Gender).lower()
+        if gender_from == gender_to:
+            return JsonResponse({'status': 'error', 'message': 'Profiles have the same gender. Matching is not applicable.'}, status=400)
+
+        # Parse Rasi Kattam data
+        rasi_kattam_from = parse_data(horoscope_from.rasi_kattam or "")
+        rasi_kattam_to = parse_data(horoscope_to.rasi_kattam or "")
+        rasi_kattam_from.extend(['-'] * (12 - len(rasi_kattam_from)))
+        rasi_kattam_to.extend(['-'] * (12 - len(rasi_kattam_to)))
+
+        # Get porutham data
+        porutham_data = fetch_porutham_details(profile_from, profile_to)
+
+
+            # Define the HTML content with custom styles
+        html_content = f"""
+            <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        background-color: #fff;
+                    }}
+        
+                    
+                    table {{
+                        width: 100%;
+                        border-collapse: collapse;
+                        
+                    }}
+        
+                    th, td {{
+                        border: 1px solid #dddddd;
+                        text-align: left;
+                        padding: 5px 5px;
+                    }}
+        
+                    th {{
+                        background-color: #4CAF50;
+                        color: white;
+                    }}
+        
+                    td {{
+                        background-color: #e7f3ff;
+                    }}
+        
+                    .header {{
+                        display: flex; 
+                        text-align: left;
+                        margin-bottom: 20px;
+                    }}
+        
+                    .header-logo{{
+                        text-align:center;
+                    }}
+        
+                    .header-logo img {{
+                        width: 200px;
+                        height: auto;
+                        margin: 0 auto;
+                        text-align: center;
+                    }}
+        
+                    .compatibility-report-header{{
+                        font-size: 2rem;
+                        font-weight: bold;
+                        text-align: center;
+                        margin-bottom: 10px;
+                    }}
+        
+                    .profile-name-info-table{{
+                        width: 100%;
+                        border: 1px solid #fff;
+                        border-collapse: collapse;
+                        background-color:#538136;
+                        margin-bottom:2rem;
+                    }}
+        
+                    .profile-name-info-table td{{
+                        border: 1px solid #fff;
+                        text-align: center;
+                        color: #fed966;
+                        background-color:#538136;
+                        padding: 10px 10px;
+        
+                    }}
+                    .profile-name {{
+                        font-size: 2rem;
+                        font-weight: 800;
+                    }}
+                    .profile-rasi-star{{
+                        font-size: 1.5rem;
+                        font-weight: 400;
+                    }}
+        
+                    .profile-addtional-info{{
+                        width: 100%;
+                        border: 1px solid #fff;
+                        background-color:#538136;
+                        margin-bottom:3rem;
+                    }}
+                    .profile-addtional-info tr{{
+                        border: none;
+                    }}
+                    .profile-addtional-info td{{
+                        font-size: 1.5rem;
+                        font-weight: 400;
+                        text-align: center;
+                        color:#538136;
+                        background-color: #fed966;
+                        padding: 5px 10px;
+                        border: none;
+                    }}
+        
+                    .highlight {{
+                        background-color: #fff7a8;
+                    }}
+        
+                    .score-box {{
+                        font-size:2rem;
+                        font-weight: 900;
+                        float: right;
+                        text-align: center;
+                            background-color: #fed966;
+                        border: 1px solid #d4d4d4;
+                        width: 150px;
+                        padding: 10px;
+                        vertial-align: middle;
+                    }}
+                    .score-box p{{
+                        padding-top: 20px;
+                        vertial-align: bottom;
+        
+                    }}
+        
+                    .profile-details {{
+                        width: 100%;
+                        border-collapse: collapse;
+                        border: none !important;  /* Remove table border */
+                    }}
+        
+                    .profile-details td {{
+                        vertical-align: top;
+                        width: 50%;
+                        padding: 5px 5px;
+                        background-color: transparent; /* Remove background color */
+                        border: none !important;  /* Remove table border */
+                    }}
+                  
+        
+                    .profile-details h2 {{
+                        margin-top: 0;
+                    }}
+                    .subheader{{
+                        font-size: 1.8rem;
+                        font-weight: 600;
+                        margin-bottom:0.8rem;
+                    }}
+                    .outer {{
+                                width: 100%;
+                                border-collapse: collapse;
+                                text-align: center;
+                                font-family: Arial, sans-serif;
+                                margin-bottom: 2rem;
+                            }}
+        
+                    .inner {{
+                        width: 45%;
+                        height: 100%;
+                        border: 1px solid #000;
+                        border-collapse: collapse;
+                        text-align: center;
+                        font-family: Arial, sans-serif;
+                        padding: 5px;
+                        display: inline-block;
+                        vertical-align: top;
+                        background-color: #ffffff;
+        
+                    }}
+                    .inner tr {{
+                        width:100%; 
+                        height: 100%;
+                    }}
+                    .inner td {{
+                        border: 1px solid #000;
+                        padding: 5px 5px;
+                        font-weight: bold;
+                        font-size: 12px;
+                        text-align: center;
+                        background-color: #f0f8ff;
+                        white-space: pre-line;
+                        width:25%;
+                        height:100px;
+                    }}
+        
+                    .inner .highlight {{
+                        background-color: #fffacd;
+                        text-align: center;
+                        width: 100%;
+                        height: 100%;
+                        font-size:2rem;
+                        font-weight: bold;
+                    }}
+        
+                     .spacer {{
+                                width: 5%;
+                                display: inline-block;
+                                background-color: transparent;
+                            }}
+        .porutham-table {{
+            margin-top:1rem;
+        }}
+        .porutham-table th{{
+            font-size: 2em;
+            font-weight: 900;
+            text-align: center;
+            background-color:#538136;
+            padding-top:15px;
+            
+        }}
+        .porutham-table td{{
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-align: center;
+            background-color: #fed966;
+            color: #000;
+        }}
+        
+        
+                </style>
+            </head>
+        <body>
+                               
+            <div class="header-logo">
+                <img  src="https://vysyamala.com/img/newlogo.png" alt="Vysyamala-Logo">
+            </div>                              
+        
+            <h2 class="compatibility-report-header">Marriage Compatibility Report</h2>
+        
+            <table class="profile-name-info-table">
+                <tr>
+                <td>
+                    <p class="profile-name">{profile_from_details.Profile_name} - {profile_from_details.ProfileId}</p>
+                </td>
+                <td>
+                    <p class="profile-name"> {profile_to_details.Profile_name} - {profile_to_details.ProfileId}</p>   
+                 </td>
+                </tr>
+                <tr>
+                <td>
+                    <p class="profile-rasi-star"> {rasi_from.name} - {birth_star_from.star}</p>
+                </td>
+                <td>
+                    <p class="profile-rasi-star"> {rasi_to.name} - {birth_star_to.star}</p>
+                </td>
+                </tr>
+            </table>
+        
+            <table class="profile-addtional-info">
+                <tr>
+                <td>
+                     <p> Place of Birth : {horoscope_from.place_of_birth}</p>
+                </td>
+                <td>
+                    <p> Place of Birth : {horoscope_to.place_of_birth}</p>
+                </td>
+                </tr>
+                <tr>
+                <td>
+                    <p> Time of Birth : {horoscope_from.time_of_birth}</p>
+                </td>
+                <td>
+                    <p>  Time of Birth : {horoscope_to.time_of_birth}</p>
+                </td>
+                </tr>
+                <tr>
+                <td>
+                    <p> Date Of Birth : {profile_from_details.Profile_dob}</p>
+                </td>
+                <td>
+                    <p> Date Of Birth : {profile_to_details.Profile_dob}</p>
+                </td>
+                </tr>
+            </table>
+        
+              <table class="profile-addtional-info">
+                <tr>
+                <td>
+                    <p> Height : {profile_from_details.Profile_height}</p>
+                </td>
+                <td>
+                        <p> Height : {profile_to_details.Profile_height}</p>
+        
+                </td>
+                </tr>
+                <tr>
+                <td>
+                    <p> {highest_education_from.EducationLevel}</p>
+                </td>
+                <td>
+                    <p> {highest_education_to.EducationLevel}</p>
+                </td>
+                </tr>
+            </table>
+        
+        
+        
+            <h2 class="subheader">Rasi Kattam Comparison</h2>
+                        <table class="outer">
+                            <tr>
+                                <td>
+                                    <table class="inner">
+                                        <tr>
+                                            <td>{rasi_kattam_from[0].replace('/', '<br>')}</td>
+                                            <td>{rasi_kattam_from[1].replace('/', '<br>')}</td>
+                                            <td>{rasi_kattam_from[2].replace('/', '<br>')}</td>
+                                            <td>{rasi_kattam_from[3].replace('/', '<br>')}</td>
+                                            
+                                        </tr>
+                                        <tr>
+                                            <td>{rasi_kattam_from[11].replace('/', '<br>')}</td>
+                                            <td colspan="2" rowspan="2" class="highlight">RASI <br> vysyamala.com </td>
+                                            <td>{rasi_kattam_from[4].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>{rasi_kattam_from[10].replace('/', '<br>')}</td>
+                                            <td>{rasi_kattam_from[5].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>{rasi_kattam_from[9].replace('/', '<br>')}</td>
+                                            <td>{rasi_kattam_from[8].replace('/', '<br>')}</td>
+                                            <td>{rasi_kattam_from[7].replace('/', '<br>')}</td>
+                                            <td>{rasi_kattam_from[6].replace('/', '<br>')}</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td class="spacer"></td>
+                                <td>
+                                    <table class="inner">
+                                        <tr>
+                                            <td>{rasi_kattam_to[0].replace('/', '<br>')}</td>
+                                            <td>{rasi_kattam_to[1].replace('/', '<br>')}</td>
+                                            <td>{rasi_kattam_to[2].replace('/', '<br>')}</td>
+                                            <td>{rasi_kattam_to[3].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>{rasi_kattam_to[11].replace('/', '<br>')}</td>
+                                            <td colspan="2" rowspan="2" class="highlight">RASI <br> vysyamala.com </td>
+                                            <td>{rasi_kattam_to[4].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>{rasi_kattam_to[10].replace('/', '<br>')}</td>
+                                            <td>{rasi_kattam_to[5].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>{rasi_kattam_to[9].replace('/', '<br>')}</td>
+                                            <td>{rasi_kattam_to[8].replace('/', '<br>')}</td>
+                                            <td>{rasi_kattam_to[7].replace('/', '<br>')}</td>
+                                            <td>{rasi_kattam_to[6].replace('/', '<br>')}</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+        
+            <h2 class="subheader">Nakshatra Porutham & Rasi Porutham</h2>
+            <table class="porutham-table">
+                <tr>
+                    <th>Porutham Name</th>
+                    <th>Status</th>
+                </tr>
+                {" ".join([f"<tr><td>{porutham['porutham_name']}</td><td>{porutham['status']}</td></tr>" for porutham in porutham_data['porutham_results']])}
+            </table>
+        
+            <div class="score-box">
+                <p><b>Matching Score: {porutham_data['matching_score']}</b></p>
+            </div>  
+        </body>
+        </html>    """
+
+            # Log profile view
+        save_logs, created = models.Profile_docviewlogs.objects.get_or_create(
+            profile_id=profile_from,
+            viewed_profile=profile_to,
+            type=3,
+            defaults={
+                'viewed_profile': profile_to,
+                'datetime': timezone.now(),
+                'type': 3,
+                'status': 1
+            }
+        )
+        if not created:
+            save_logs.datetime = timezone.now()
+            save_logs.save()
+
+        # Render and return PDF
+        return render_to_pdf(html_content)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+    except models.Registration1.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Profile not found'}, status=404)
+    except models.Horoscope.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Horoscope not found'}, status=404)
+    except models.Edudetails.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Education details not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+def generate_porutham_pdf_mobile(request):
     if request.method != 'GET':
         return JsonResponse({'status': 'error', 'message': 'Only GET method is allowed'}, status=405)
 
@@ -13013,6 +13493,8 @@ def generate_porutham_pdf(request):
         return JsonResponse({'status': 'error', 'message': 'Education details not found'}, status=404)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
 
 
 

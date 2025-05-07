@@ -220,6 +220,7 @@ urlpatterns = [
 
 
      path('generate-porutham-pdf/', views.generate_porutham_pdf, name='generate_porutham_pdf'),
+     path('generate-porutham-pdf-mobile/', views.generate_porutham_pdf_mobile, name='generate_porutham_pdf_mobile'),
       
      path('My_horoscope_pdf_color/<str:user_profile_id>/',  views.My_horoscope_generate, name='horoscope_pdf'),
 
