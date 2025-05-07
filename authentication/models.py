@@ -1099,7 +1099,7 @@ class Get_profiledata(models.Model):
                     # """
                     base_query = """
                     SELECT DISTINCT a.ProfileId,a.*,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
-                    f.highest_education, g.EducationLevel, d.star, h.income
+                    f.highest_education, g.EducationLevel, d.star, h.income ,  v.viewed_profile
                     FROM logindetails a 
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
                     JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
@@ -1107,6 +1107,7 @@ class Get_profiledata(models.Model):
                     JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
                     JOIN mastereducation g ON f.highest_education = g.RowId 
                     JOIN masterannualincome h ON h.id = f.anual_income
+                    LEFT JOIN profile_visit_logs v ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
                     WHERE a.status=1 AND a.gender != %s AND a.ProfileId != %s 
                     AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {operator} %s
                     """
@@ -1114,7 +1115,7 @@ class Get_profiledata(models.Model):
                    
 
                     # query_params = [gender, profile_id, matching_age, min_income,max_income, partner_pref_education,partner_pref_porutham_star_rasi]
-                    query_params = [gender, profile_id, matching_age]
+                    query_params = [profile_id,gender, profile_id, matching_age]
 
                     if min_income and max_income:
                         base_query += " AND h.income_amount BETWEEN %s AND %s"
@@ -1174,6 +1175,13 @@ class Get_profiledata(models.Model):
                     # if order_by:
                     #     orderby_cond = "ORDER BY a.DateOfJoin " + order_by
                     # print('order_by',order_by)
+                    
+                    
+                    view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END"
+                    # plan_priority_order = "FIELD(a.Plan_id, 3, 2,15, 14, 1, 11,12,13,6,7,8)"
+
+                    plan_priority = "FIELD(a.Plan_id, 3, 2,15, 14, 1, 11,12,13,6,7,8)"
+                    
                     try:
                         order_by = int(order_by)  # Convert order_by to integer
                     except (ValueError, TypeError):
@@ -1182,13 +1190,19 @@ class Get_profiledata(models.Model):
                     if order_by == 1:
                             # print('order by 123456',order_by)
                             
-                            orderby_cond = " ORDER BY a.DateOfJoin ASC "
+                            #orderby_cond = " ORDER BY a.DateOfJoin ASC "
+                            # orderby_cond = f" ORDER BY {plan_priority_order}, a.DateOfJoin ASC "
+                            orderby_cond = f" ORDER BY {view_priority}, {plan_priority}, a.DateOfJoin ASC"
                     elif order_by == 2:
                             # print('order by 123456',order_by)
-                            orderby_cond = " ORDER BY a.DateOfJoin DESC "
+                            # orderby_cond = " ORDER BY a.DateOfJoin DESC "
+                            # orderby_cond = f" ORDER BY {plan_priority_order}, a.DateOfJoin DESC "
+                            orderby_cond = f" ORDER BY {view_priority}, {plan_priority}, a.DateOfJoin DESC"
                     else:
                             # print('esg')
-                            orderby_cond = ""  # Default case if no valid order_by is provided
+                            # orderby_cond = ""  # Default case if no valid order_by is provided
+                            orderby_cond = f" ORDER BY {view_priority}, {plan_priority}"
+
 
                        
                     # query = base_query.format(operator=age_condition_operator) + height_conditions
