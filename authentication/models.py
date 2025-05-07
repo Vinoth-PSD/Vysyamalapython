@@ -130,7 +130,7 @@ class Registration1(models.Model):
     #Profile_idproof= models.TextField()
     
 
-    status = models.IntegerField(null=True, blank=True) 
+    Status = models.IntegerField(null=True, blank=True) 
 
 
     class Meta:
@@ -1108,7 +1108,7 @@ class Get_profiledata(models.Model):
                     JOIN mastereducation g ON f.highest_education = g.RowId 
                     JOIN masterannualincome h ON h.id = f.anual_income
                     LEFT JOIN profile_visit_logs v ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
-                    WHERE a.status=1 AND a.gender != %s AND a.ProfileId != %s 
+                    WHERE a.Status=1 AND a.gender != %s AND a.ProfileId != %s 
                     AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {operator} %s
                     """
 

@@ -1155,9 +1155,7 @@ class Registration1(models.Model):
     device_id=models.TextField(null=True, blank=True)
 
     #Profile_idproof= models.TextField()
-    
-
-    status = models.IntegerField() 
+    Status = models.IntegerField() 
 
 
     class Meta:
@@ -1290,7 +1288,7 @@ class Get_profiledata_Matching(models.Model):
                     JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
                     JOIN mastereducation g ON f.highest_education = g.RowId 
                     JOIN masterannualincome h ON h.id = f.anual_income
-                    WHERE a.status=1 AND a.gender != %s AND a.ProfileId != %s 
+                    WHERE a.Status=1 AND a.gender != %s AND a.ProfileId != %s 
                     AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {operator} %s
                     """
 

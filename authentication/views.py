@@ -14,7 +14,7 @@ from PIL import Image as PILImage, ImageDraw, ImageFont, ImageFilter
 import io
 import os
 from django.core.files.base import ContentFile
-from django.db.models import Q
+from django.db.models import Q ,Case, When, Value, IntegerField
 import requests
 from collections import defaultdict
 from datetime import datetime , date
@@ -8966,61 +8966,67 @@ def calculate_points_and_get_empty_fields(profile_id):
     # print("Empty Fields:", result['empty_fields'])
 
 
-
 class FeaturedProfile(APIView):
     def post(self, request):
         gender = request.query_params.get('gender') or request.data.get('gender')
-        
 
         if not gender:
             return JsonResponse({"Status": 0, "message": "Gender is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         normalized_gender = gender.strip().lower()
-        if normalized_gender=='male':
-                photo_gender='female'
-        else :
-            photo_gender='male'
+        photo_gender = 'female' if normalized_gender == 'male' else 'male'
 
         try:
-            # print(f"Normalized Gender: {normalized_gender}")
+            # Raw SQL query to fetch random profiles
+            query = """
+                SELECT ProfileId, Profile_name, Gender, Profile_dob, Profile_height, 
+                       Profile_city, Photo_protection
+                FROM logindetails 
+                WHERE 
+                    LOWER(Gender) = LOWER(%s) AND 
+                    Status = 1 AND 
+                    Plan_id IN (2, 3, 15)
+                ORDER BY RAND()
+                LIMIT 10
+            """
+            with connection.cursor() as cursor:
+                cursor.execute(query, [normalized_gender])
+                columns = [col[0] for col in cursor.description]
+                profile_details = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
-            profile_details = models.Registration1.objects.filter(
-                Gender__iexact=normalized_gender, Featured_profile=1
-            )
-
-            # print(f"Number of profiles found: {profile_details.count()}")
-
-            if not profile_details.exists():
+            # Check if any profiles were found (use len() for lists)
+            if not profile_details:  # Replaces .exists()
                 return JsonResponse({"Status": 0, "message": "No featured profiles found"}, status=status.HTTP_200_OK)
 
-            profile_ids = profile_details.values_list('ProfileId', flat=True)
+            # Extract ProfileIds from the raw SQL results
+            profile_ids = [profile['ProfileId'] for profile in profile_details]
 
+            # Fetch education details for these profiles
             edu_details = models.Edudetails.objects.filter(profile_id__in=profile_ids)
-
             profession_id_mapping = {edu.profile_id: edu.profession for edu in edu_details}
             highest_education_mapping = {edu.profile_id: edu.highest_education for edu in edu_details}
 
+            # Prefetch profession and degree mappings
             professions = models.Profespref.objects.all()
-
             degrees = models.Highesteducation.objects.all()
-
             profession_mapping = {str(prof.RowId): prof.profession for prof in professions}
             degree_mapping = {str(degree.id): degree.degree for degree in degrees}
 
-            restricted_profile_details = [
-                {
-                    "profile_id": detail.ProfileId,
-                    "profile_name": detail.Profile_name,
-                    "profile_img": Get_profile_image(detail.ProfileId, photo_gender, 1, detail.Photo_protection),
-                    "profile_age": calculate_age(detail.Profile_dob),
-                    "profile_gender": detail.Gender,
-                    "height": detail.Profile_height,
-                    "degree": degree_mapping.get(str(highest_education_mapping.get(detail.ProfileId, "")), ""),  
-                    "profession": profession_mapping.get(str(profession_id_mapping.get(detail.ProfileId, "")), ""), 
-                    "location": detail.Profile_city
-                }
-                for detail in profile_details
-            ]
+            # Build the response
+            restricted_profile_details = []
+            for profile in profile_details:
+                profile_id = profile['ProfileId']
+                restricted_profile_details.append({
+                    "profile_id": profile_id,
+                    "profile_name": profile['Profile_name'],
+                    "profile_img": Get_profile_image(profile_id, photo_gender, 1, profile['Photo_protection']),
+                    "profile_age": calculate_age(profile['Profile_dob']),
+                    "profile_gender": profile['Gender'],
+                    "height": profile['Profile_height'],
+                    "degree": degree_mapping.get(str(highest_education_mapping.get(profile_id, "")), ""),
+                    "profession": profession_mapping.get(str(profession_id_mapping.get(profile_id, "")), ""),
+                    "location": profile['Profile_city']
+                })
 
             return JsonResponse({
                 "Status": 1,
