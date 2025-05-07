@@ -12558,8 +12558,8 @@ def safe_str(value):
 
 @csrf_exempt
 def generate_porutham_pdf(request):
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'Only POST method is allowed'}, status=405)
+    if request.method != 'GET':
+        return JsonResponse({'status': 'error', 'message': 'Only GET method is allowed'}, status=405)
 
     try:
         if request.content_type == 'application/json':
@@ -12571,7 +12571,7 @@ def generate_porutham_pdf(request):
             profile_to = request.GET.get('profile_to')
 
         if not profile_from or not profile_to:
-            return JsonResponse({'status': 'error', 'message': 'Profile IDs are required'}, status=400)
+            return JsonResponse({'status': 'error', 'message': 'profile_from and profile_to are required'}, status=400)
 
         if can_see_compatability_report(profile_from, profile_to) is not True:
             return JsonResponse({'status': 'failure', 'message': 'No access to see the compatibility report'}, status=400)
