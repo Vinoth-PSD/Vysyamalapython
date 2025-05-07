@@ -218,9 +218,9 @@ urlpatterns = [
      path("profile/<str:profile_id>/", views.profile_preview, name="profile_preview"),
      path("profile_view/<str:profile_id>/", views.profile_preview_withouphoto, name="profile_preview"),
 
-
      path('generate-porutham-pdf/', views.generate_porutham_pdf, name='generate_porutham_pdf'),
-     path('generate-porutham-pdf-mobile/', views.generate_porutham_pdf_mobile, name='generate_porutham_pdf_mobile'),
+     path('generate-porutham-pdf-mobile/<str:profile_from>/<str:profile_to>/',views.generate_porutham_pdf_mobile,name='generate_porutham_pdf_mobile'
+    ),
       
      path('My_horoscope_pdf_color/<str:user_profile_id>/',  views.My_horoscope_generate, name='horoscope_pdf'),
 

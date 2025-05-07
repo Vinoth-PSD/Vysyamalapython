@@ -13043,18 +13043,18 @@ def generate_porutham_pdf(request):
 
 
 @csrf_exempt
-def generate_porutham_pdf_mobile(request):
+def generate_porutham_pdf_mobile(request, profile_from, profile_to):
     if request.method != 'GET':
         return JsonResponse({'status': 'error', 'message': 'Only GET method is allowed'}, status=405)
 
     try:
-        if request.content_type == 'application/json':
-            data = json.loads(request.body)
-            profile_from = data.get('profile_from')
-            profile_to = data.get('profile_to')
-        else:
-            profile_from = request.GET.get('profile_from')
-            profile_to = request.GET.get('profile_to')
+        # if request.content_type == 'application/json':
+        #     data = json.loads(request.body)
+        #     profile_from = data.get('profile_from')
+        #     profile_to = data.get('profile_to')
+        # else:
+        #     profile_from = request.GET.get('profile_from')
+        #     profile_to = request.GET.get('profile_to')
 
         if not profile_from or not profile_to:
             return JsonResponse({'status': 'error', 'message': 'profile_from and profile_to are required'}, status=400)
