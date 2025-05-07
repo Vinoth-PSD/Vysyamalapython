@@ -52,6 +52,23 @@ from .models import CallStatus
 from .serializers import CallStatusSerializer
 from .models import CallAction
 from .serializers import CallActionSerializer
+from .models import ProfileCallManagement
+from .serializers import ProfileCallManagementSerializer
+from .models import MarriageSettleDetails
+from .serializers import MarriageSettleDetailsSerializer
+from .models import PaymentTransaction
+from .serializers import PaymentTransactionSerializer
+from .serializers import InvoiceSerializer
+from .models import Invoice
+import tempfile
+from xhtml2pdf import pisa
+from io import BytesIO
+import base64
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from authentication.models import Horoscope
+
+
 
 # class ModeViewSet(viewsets.ModelViewSet):
 #     queryset = Mode.objects.filter(is_deleted=False)  # Only show non-deleted records
@@ -3037,11 +3054,57 @@ class PhotoRequestView(APIView):
 
 #Get All profile_images
 
+# class ProfileImages(APIView):
+#     pagination_class = StandardResultsPaging
+
+#     def get(self, request):
+#         profile_id = request.query_params.get('profile_id')  # Get the profile_id from query params
+
+#         # Fetch images based on whether profile_id is provided
+#         if profile_id:
+#             images = Image_Upload.objects.filter(profile_id=profile_id)
+#         else:
+#             images = Image_Upload.objects.all()
+
+#         # Check if images exist
+#         if not images.exists():
+#             if profile_id:
+#                 return Response({"message": "No images found for the provided profile_id."}, status=status.HTTP_404_NOT_FOUND)
+#             return Response({"message": "No images found."}, status=status.HTTP_404_NOT_FOUND)
+
+#         # Create a dictionary to group images by profile_id
+#         profile_images = {}
+#         for image in images:
+#             if image.profile_id not in profile_images:
+#                 profile_images[image.profile_id] = []
+
+#             profile_images[image.profile_id].append(request.build_absolute_uri(image.image.url))
+
+#         # Convert the dictionary to the desired list format
+#         result = []
+#         for profile_id, urls in profile_images.items():
+#             result.append({
+#                 'profile_id': profile_id,
+#                 'image_url': urls  # List of image URLs
+#             })
+
+#         # Implement pagination
+#         paginator = self.pagination_class()
+#         paginated_result = paginator.paginate_queryset(result, request)
+
+#         # If there are paginated results, return the paginated response
+#         if paginated_result is not None:
+#             return paginator.get_paginated_response(paginated_result)
+
+#         # If no pagination is needed, return the full result set
+#         return Response(result, status=status.HTTP_200_OK)
+
+
 class ProfileImages(APIView):
     pagination_class = StandardResultsPaging
 
     def get(self, request):
-        profile_id = request.query_params.get('profile_id')  # Get the profile_id from query params
+        profile_id = request.query_params.get('profile_id')
 
         # Fetch images based on whether profile_id is provided
         if profile_id:
@@ -3051,9 +3114,8 @@ class ProfileImages(APIView):
 
         # Check if images exist
         if not images.exists():
-            if profile_id:
-                return Response({"message": "No images found for the provided profile_id."}, status=status.HTTP_404_NOT_FOUND)
-            return Response({"message": "No images found."}, status=status.HTTP_404_NOT_FOUND)
+            message = "No images found for the provided profile_id." if profile_id else "No images found."
+            return Response({"message": message}, status=status.HTTP_404_NOT_FOUND)
 
         # Create a dictionary to group images by profile_id
         profile_images = {}
@@ -3061,26 +3123,29 @@ class ProfileImages(APIView):
             if image.profile_id not in profile_images:
                 profile_images[image.profile_id] = []
 
-            profile_images[image.profile_id].append(request.build_absolute_uri(image.image.url))
+            profile_images[image.profile_id].append({
+                "image_url": request.build_absolute_uri(image.image.url),
+                "image_approved": image.image_approved,
+                "is_deleted": image.is_deleted
+            })
 
         # Convert the dictionary to the desired list format
         result = []
-        for profile_id, urls in profile_images.items():
+        for profile_id, images_data in profile_images.items():
             result.append({
-                'profile_id': profile_id,
-                'image_url': urls  # List of image URLs
+                "profile_id": profile_id,
+                "images": images_data  # List of image details
             })
 
         # Implement pagination
         paginator = self.pagination_class()
         paginated_result = paginator.paginate_queryset(result, request)
 
-        # If there are paginated results, return the paginated response
         if paginated_result is not None:
             return paginator.get_paginated_response(paginated_result)
 
-        # If no pagination is needed, return the full result set
         return Response(result, status=status.HTTP_200_OK)
+
 
 
 
@@ -3145,6 +3210,48 @@ class ProfileImagesView(APIView):
 
 
 class Get_prof_list_match(APIView):
+
+    def get_action_score(self, profile_from, profile_to):
+        score = 0
+        actions = []
+    
+        express_interest = Express_interests.objects.filter(profile_from=profile_from, profile_to=profile_to).first()
+        if express_interest:
+            score += 1
+            actions.append({
+                'action': 'Express Interest',
+                'datetime': express_interest.req_datetime
+            })
+    
+        wishlist = Profile_wishlists.objects.filter(profile_from=profile_from, profile_to=profile_to).first()
+        if wishlist:
+            score += 1
+            actions.append({
+                'action': 'Added to Wishlist',
+                'datetime': wishlist.marked_datetime
+            })
+
+        photo_request = Photo_request.objects.filter(profile_from=profile_from, profile_to=profile_to).first()
+        if photo_request:
+            score += 1
+            actions.append({
+                'action': 'Photo Request Sent',
+                'datetime': photo_request.req_datetime
+            })
+
+        visit = Profile_visitors.objects.filter(profile_id=profile_from, viewed_profile=profile_to).first()
+        if visit:
+            score += 1
+            actions.append({
+                'action': 'Visited Profile',
+                'datetime': visit.datetime
+            })
+
+        return {
+            'score': score,
+            'actions': actions
+        }
+    
 
     def post(self, request):
         serializer = GetproflistSerializer(data=request.data)
@@ -3249,6 +3356,7 @@ class Get_prof_list_match(APIView):
                                 #"profile_image":"http://matrimonyapp.rainyseasun.com/assets/Bride-BEuOb3-D.png",
                                 "wish_list":Get_wishlist(profile_id,detail.get("ProfileId")),
                                 "verified":detail.get('Profile_verified'),
+                                "action_score": self.get_action_score(profile_id, detail.get("ProfileId")),
                             }
                             for detail in profile_details
                         ]
@@ -6157,3 +6265,382 @@ class CallStatusListCreateView(generics.ListCreateAPIView):
 class CallActionListCreateView(generics.ListCreateAPIView):
     queryset = CallAction.objects.all()
     serializer_class = CallActionSerializer
+
+# Insert (Create) API
+class ProfileCallManagementCreateView(generics.CreateAPIView):
+    queryset = ProfileCallManagement.objects.all()
+    serializer_class = ProfileCallManagementSerializer
+
+# Get (List) API
+class ProfileCallManagementListView(generics.ListAPIView):
+    serializer_class = ProfileCallManagementSerializer
+
+    def get_queryset(self):
+        profile_id = self.request.query_params.get('profile_id')
+        if profile_id:
+            return ProfileCallManagement.objects.filter(profile_id=profile_id)
+        return ProfileCallManagement.objects.none()
+
+
+# Create view
+class MarriageSettleDetailsCreateView(generics.CreateAPIView):
+   def post(self, request):
+        profile_id = request.data.get('profile_id')
+        if not profile_id:
+            return Response({'status': 'error', 'message': 'profile_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        existing_records = MarriageSettleDetails.objects.filter(profile_id=profile_id)
+
+        if existing_records.exists():
+            instance = existing_records.first()  # Use first matching instance
+            serializer = MarriageSettleDetailsSerializer(instance, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'status': 'success',"message": "Marriage Settle Details updated successfully",'data': serializer.data}, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # If no existing records, create new one
+        serializer = MarriageSettleDetailsSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'status': 'message',"message": "Marriage Settle Details inserted successfully", 'data': serializer.data}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+   
+# List view
+class MarriageSettleDetailsListView(generics.ListAPIView):
+    serializer_class = MarriageSettleDetailsSerializer
+
+    def get_queryset(self):
+        profile_id = self.request.query_params.get('profile_id')
+        if profile_id:
+            return MarriageSettleDetails.objects.filter(profile_id=profile_id)
+        return MarriageSettleDetails.objects.none()
+
+class PaymentTransactionCreateView(generics.CreateAPIView):
+    def post(self, request):
+        profile_id = request.data.get('profile_id')
+        payment_type = request.data.get('payment_type')
+        payment_status = request.data.get('status')
+
+        # Validate required fields
+        if not profile_id:
+            return Response({'status': 'error', 'message': 'profile_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        if not payment_type:
+            return Response({'status': 'error', 'message': 'payment_type is required'}, status=status.HTTP_400_BAD_REQUEST)
+        if payment_status is None:
+            return Response({'status': 'error', 'message': 'status is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        existing_records = PaymentTransaction.objects.filter(profile_id=profile_id)
+
+        if existing_records.exists():
+            instance = existing_records.first()
+            serializer = PaymentTransactionSerializer(instance, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'status': 'success', 'message': 'Payment Transaction updated successfully', 'data': serializer.data}, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create new record
+        serializer = PaymentTransactionSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'status': 'success', 'message': 'Payment Transaction inserted successfully', 'data': serializer.data}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class PaymentTransactionListView(generics.ListAPIView):
+    serializer_class = PaymentTransactionSerializer
+
+    def get_queryset(self):
+        profile_id = self.request.query_params.get('profile_id')
+        if profile_id:
+            return PaymentTransaction.objects.filter(profile_id=profile_id)
+        return PaymentTransaction.objects.none()
+
+    def list(self, request, *args, **kwargs):
+        profile_id = request.query_params.get('profile_id')
+        if not profile_id:
+            return Response({
+                'status': 'error',
+                'message': 'profile_id is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+
+        # Add extra fields to each serialized item
+        enriched_data = []
+        for item in serializer.data:
+            item_copy = dict(item)
+            item_copy['balance_amount'] = "0"
+            item_copy['payment_details'] = "null"
+            enriched_data.append(item_copy)
+
+        return Response({
+            'status': 'success',
+            'message': 'Payment transactions fetched successfully',
+            'data': enriched_data
+        })
+    
+class GenerateInvoicePDF(APIView):
+    def post(self, request):
+        serializer = InvoiceSerializer(data=request.data)
+        if serializer.is_valid():
+            data = serializer.validated_data
+            today = datetime.date.today()
+
+            # Load and encode the logo image
+            logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'newlogo.png')
+            print(logo_path)
+            try:
+                with open(logo_path, "rb") as image_file:
+                    encoded_logo = base64.b64encode(image_file.read()).decode()
+            except FileNotFoundError:
+                encoded_logo = ""
+
+            html_string = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        padding: 25px;
+                        font-size: 13px;
+                    }}
+                    .invoice-meta {{
+                        text-align: right;
+                        font-size: 13px;
+                    }}
+                    .invoice-meta h2 {{
+                        color: #9c9c9c;
+                        margin: 0 0 10px 0;
+                    }}
+                    .table {{
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 10px;
+                    }}
+                    .table th, .table td {{
+                        border: 1px solid #000;
+                        padding: 10px;
+                        text-align: left;
+                    }}
+                    .table th {{
+                        background-color: #f2f2f2;
+                    }}
+                    .footer {{
+                        margin-top: 20px;
+                        font-size: 12px;
+                    }}
+                    .note {{
+                        margin-top: 30px;
+                        font-style: italic;
+                        font-weight: bold;
+                        text-align: center;
+                    }}
+                    .bottom-contact {{
+                        margin-top: 10px;  /* reduced from 30px */
+                        font-size: 11px;
+                        border-top: 1px solid #ccc;
+                        padding-top: 5px;  /* optional: tighter padding */
+                    }}
+                    
+                </style>
+            </head>
+            <body>
+            
+            <table style="width: 100%;">
+                <tr>
+                    <td style="vertical-align: top; width: 60%; font-size: 13px;">
+                        {'<img src="data:image/png;base64,' + encoded_logo + '" style="height: 70px;"><br>' if encoded_logo else ''}
+                        <strong>To</strong><br>
+                        {data.get('customer_name', '')}<br>
+                        {data['address'].replace(chr(10), '<br>') if data.get("address") else ""}
+                    </td>
+                    <td style="vertical-align: top; text-align: right;">
+                        <h2 style="margin: 0; color: #9c9c9c;">Invoice</h2>
+                        Date: {data['date']}<br>
+                        Invoice #: {data['invoice_number']}<br>
+                        Vysyamala ID: {data['vysyamala_id']}<br>
+                    </td>
+                </tr>
+            </table>
+
+            <table class="table">
+                <tr>
+                    <th>Service Description</th>
+                    <th>Price</th>
+                    <th>Net Price</th>
+                </tr>
+                <tr>
+                    <td>
+                        {data['service_description']}<br>
+                        <small>Valid till: {data['valid_till']} or engagement date whichever is earlier</small>
+                    </td>
+                    <td>{data['price']}</td>
+                    <td>{data['price']}</td>
+                </tr>
+                <tr>
+                    <td colspan="2"><strong>Total</strong></td>
+                    <td><strong>{data['price']}</strong></td>
+                </tr>
+            </table>
+
+            <p><strong>In words:</strong> Seven Thousand Nine Hundred only.</p>
+
+            <table class="table" style="width: 50%; margin-top: 20px;">
+                <tr>
+                    <th>Payment Mode</th>
+                    <td>Online Transfer</td>
+                </tr>
+            </table>
+
+            <p class="note">Thank you for your opportunity to serve you!</p>
+
+            <div class="bottom-contact">
+                <table style="width: 100%;">
+                    <tr>
+                        <td style="vertical-align: top; width: 50%;">
+                            Vysyamala<br>
+                            C/o. YK Lavanya<br>
+                            No.2, Krishnaswamy Street (Lane)<br>
+                            A6-2nd Floor, Sri Vinayaga Flats<br>
+                            Ganapathipuram, Chrompet<br>
+                            Chennai – 600 044
+                        </td>
+                        <td style="vertical-align: top; text-align: right; font-size: 11px;">
+                            Web: <a href="http://www.vysyamala.com">www.vysyamala.com</a> |
+                            Email: vysyamala@gmail.com |
+                            Facebook: www.fb.com/vysyamala<br>
+                            Whatsapp: 9043085524 |
+                            Customer Support: 9944851550 (8 a.m. to 8 p.m.)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="text-align: center; font-style: italic; font-size: 12px; padding-top: 10px;">
+                            May Goddess Sri Vasavi Kanyaka Parameswari bless you and your family with peace & prosperity!
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        
+
+            </body>
+            </html>
+            """
+
+            result = BytesIO()
+            pisa_status = pisa.CreatePDF(src=html_string, dest=result)
+
+            if pisa_status.err:
+                return Response({"error": "Error generating PDF"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            response = HttpResponse(result.getvalue(), content_type='application/pdf')
+            response['Content-Disposition'] = f'inline; filename="invoice_{data["invoice_number"]}.pdf"'
+            return response
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def GetPhotoProofDetails(request):
+    if request.method == "GET":
+        profile_id = request.GET.get('profile_id')
+
+        if not profile_id:
+            return JsonResponse({'status': 'error', 'message': 'profile_id is required'}, status=400)
+
+        try:
+            login = LoginDetails.objects.get(ProfileId=profile_id)
+            horoscope = Horoscope.objects.get(profile_id=profile_id)
+            profile_images = Image_Upload.objects.filter(profile_id=profile_id)
+
+            image_list = [
+                {
+                    'id': image.id,
+                    'image_url': image.image.url if image.image else None,
+                    'image_approved': image.image_approved,
+                    'uploaded_at': image.uploaded_at,
+                    'is_deleted': image.is_deleted
+                }
+                for image in profile_images
+            ]
+
+            return JsonResponse({
+                'status': 'success',
+                'message': "Photo proof details fetched successfully.",
+                'data': {
+                    'photo_password': login.Photo_password,
+                    'id_proof': login.Profile_idproof.url if login.Profile_idproof else None,
+                    'divorce_certificate': login.Profile_divorceproof.url if login.Profile_divorceproof else None,
+                    'horoscope_file': horoscope.horoscope_file.url if horoscope.horoscope_file else None,
+                    'profile_images': image_list
+                }
+            })
+
+        except LoginDetails.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Login details not found'}, status=404)
+        except Horoscope.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Horoscope not found'}, status=404)
+
+    elif request.method == "POST":
+        profile_id = request.POST.get('profile_id')
+        image_ids_csv = request.POST.get('image_id')
+        is_deleted_csv = request.POST.get('is_deleted')
+        image_approved_csv = request.POST.get('image_approved')
+        photo_password = request.POST.get('photo_password')
+    
+        if not profile_id:
+            return JsonResponse({'status': 'error', 'message': 'profile_id is required'}, status=400)
+    
+        update_summary = {}
+    
+        try:
+            # IMAGE UPDATES WITH INDIVIDUAL VALUES
+            if image_ids_csv and is_deleted_csv and image_approved_csv:
+                image_ids = [i.strip() for i in image_ids_csv.split(',')]
+                is_deleted_vals = [int(i.strip()) for i in is_deleted_csv.split(',')]
+                image_approved_vals = [int(i.strip()) for i in image_approved_csv.split(',')]
+    
+                if len(image_ids) != len(is_deleted_vals) or len(image_ids) != len(image_approved_vals):
+                    return JsonResponse({'status': 'error', 'message': 'Length of image_id, is_deleted, and image_approved must match'}, status=400)
+    
+                updated_images = []
+                for idx, image_id in enumerate(image_ids):
+                    try:
+                        image = Image_Upload.objects.get(id=image_id, profile_id=profile_id)
+                        image.is_deleted = bool(is_deleted_vals[idx])
+                        image.image_approved = bool(image_approved_vals[idx])
+                        image.save()
+                        updated_images.append(image.id)
+                    except Image_Upload.DoesNotExist:
+                        continue  # You can also collect skipped IDs if needed
+                    
+                update_summary['images_updated'] = updated_images
+    
+            # PHOTO PASSWORD UPDATE
+            if photo_password is not None:
+                try:
+                    login = LoginDetails.objects.get(ProfileId=profile_id)
+                    login.Photo_password = photo_password
+                    login.save()
+                    update_summary['photo_password'] = "updated"
+                except LoginDetails.DoesNotExist:
+                    update_summary['photo_password'] = "login details not found"
+    
+            if not update_summary:
+                return JsonResponse({'status': 'error', 'message': 'No update data provided'}, status=400)
+    
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Updates applied successfully',
+                'update_summary': update_summary
+            })
+    
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+
+

@@ -518,6 +518,9 @@ class LoginDetails(models.Model):
     Package_name= models.CharField(max_length=255,blank=True, null=True)  # Changed from CharField to TextField
     Video_url= models.TextField(blank=True, null=True)
     Plan_id= models.CharField(max_length=100,blank=True, null=True)
+    
+    Profile_height = models.CharField(max_length=250)
+    Photo_password = models.CharField(max_length=255)
 
 
     class Meta:
@@ -570,8 +573,8 @@ class Image_Upload(models.Model):
     profile_id = models.CharField(max_length=50)
     image = models.ImageField(upload_to=upload_to_profile,storage=AzureMediaStorage())
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    image_approved  = models.SmallIntegerField(blank=True, null=True)
-    is_deleted  = models.SmallIntegerField(blank=True, null=True)
+    image_approved = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
 
     class Meta:
         managed = False  # Assuming this model is managed externally
@@ -2293,3 +2296,90 @@ class CallAction(models.Model):
 
     def __str__(self):
         return self.call_action_name
+
+class ProfileCallManagement(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)
+    profile_status_id = models.IntegerField()
+    owner_id = models.IntegerField()
+
+    inoutbound_id = models.IntegerField(null=True, blank=True)
+    call_type_id = models.IntegerField(null=True, blank=True)
+    comments = models.TextField(null=True, blank=True)
+    call_status_id = models.IntegerField(null=True, blank=True)
+    next_calldate = models.DateField(null=True, blank=True)
+    callaction_today_id = models.IntegerField(null=True, blank=True)
+    future_actiontaken_id = models.IntegerField(null=True, blank=True)
+    next_dateaction_point = models.DateField(null=True, blank=True)
+    work_asignid = models.IntegerField(null=True, blank=True)
+    updated_by = models.IntegerField(null=True, blank=True)
+    updated_on = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False  # This table already exists in the DB
+        db_table = 'profile_call_management'  # Database table name
+
+    def __str__(self):
+        return f"ProfileCallManagement {self.id}"
+
+class MarriageSettleDetails(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)
+    owner_id = models.IntegerField()
+
+    marriagedate = models.DateField(null=True, blank=True)
+    groombridefathername = models.CharField(max_length=255, null=True, blank=True)
+    groombridevysysaid = models.CharField(max_length=255, null=True, blank=True)
+    engagementdate = models.DateField(null=True, blank=True)
+    marriagephotodetails = models.TextField(null=True, blank=True)
+    engagementphotodetails = models.TextField(null=True, blank=True)
+    adminmarriagecomments = models.TextField(null=True, blank=True)
+    groombridename = models.CharField(max_length=255, null=True, blank=True)
+    groombridecity = models.CharField(max_length=255, null=True, blank=True)
+    settledthru = models.CharField(max_length=255, null=True, blank=True)
+    marriagecomments = models.TextField(null=True, blank=True)
+    marriageinvitationdetails = models.TextField(null=True, blank=True)
+    engagementinvitationdetails = models.TextField(null=True, blank=True)
+    adminsettledthru = models.CharField(max_length=255, null=True, blank=True)
+    updated_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False  # This table already exists in the DB
+        db_table = 'Marriage_settle_details'  # Database table name
+
+
+    def __str__(self):
+        return f"MarriageSettleDetails {self.id}"
+
+class PaymentTransaction(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)
+    plan_id = models.IntegerField()
+    order_id = models.CharField(max_length=255)
+    payment_id = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=50)  # 1: pending, 2: paid, 3: failed
+    created_at = models.DateTimeField()
+
+    payment_type = models.CharField(max_length=100)
+    discount_amont = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    payment_refno = models.CharField(max_length=255, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+    owner_id = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        managed = False  # Table already exists in DB
+        db_table = 'payment_transaction'
+
+    def __str__(self):
+        return f"PaymentTransaction {self.id}"
+
+class Invoice(models.Model):
+    customer_name = models.CharField(max_length=100)
+    address = models.TextField()
+    invoice_number = models.CharField(max_length=20)
+    vysyamala_id = models.CharField(max_length=20)
+    service_description = models.TextField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    valid_till = models.DateField()
+    date = models.DateField()

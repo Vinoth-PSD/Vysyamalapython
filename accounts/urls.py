@@ -12,6 +12,11 @@ from .views import CallTypeListCreateView
 from .views import CallStatusListCreateView
 from .views import CallActionListCreateView
 from .views import DashboardcountView
+from .views import ProfileCallManagementCreateView, ProfileCallManagementListView
+from .views import MarriageSettleDetailsCreateView, MarriageSettleDetailsListView
+from .views import PaymentTransactionCreateView, PaymentTransactionListView
+from .views import GenerateInvoicePDF
+from . import views
 
 
 router = DefaultRouter()
@@ -167,5 +172,13 @@ urlpatterns = [
     path('callactions/', CallActionListCreateView.as_view(), name='callactions-list-create'),
 
     path('dashboard_counts/', DashboardcountView.as_view(), name='dashboard_counts'),
+    path('profile-call-management/create/', ProfileCallManagementCreateView.as_view(), name='profile-call-management-create'),
+    path('profile-call-management/list/', ProfileCallManagementListView.as_view(), name='profile-call-management-list'),
+    path('marriage-settle-details/create/', MarriageSettleDetailsCreateView.as_view(), name='marriage-settle-details-create'),
+    path('marriage-settle-details/list/', MarriageSettleDetailsListView.as_view(), name='marriage-settle-details-list'),
+    path('payment-transaction/create/', PaymentTransactionCreateView.as_view(), name='payment-transaction-create'),
+    path('payment-transaction/list/', PaymentTransactionListView.as_view(), name='payment-transaction-list'),
+    path('generate-invoice/', GenerateInvoicePDF.as_view(), name='generate-invoice'),
+    path('get-photo-proof-details/', views.GetPhotoProofDetails, name='get_photo_proof_details'),
 
 ]

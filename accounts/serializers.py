@@ -13,7 +13,10 @@ from .models import SentShortProfilePrintPDFLog
 from .models import CallType
 from .models import CallStatus
 from .models import CallAction
-
+from .models import ProfileCallManagement
+from .models import MarriageSettleDetails
+from .models import PaymentTransaction
+from .models import Invoice
 
 class ProfileStatusSerializer(serializers.ModelSerializer):
     class Meta:
@@ -820,4 +823,56 @@ class CallStatusSerializer(serializers.ModelSerializer):
 class CallActionSerializer(serializers.ModelSerializer):
     class Meta:
         model = CallAction
+        fields = '__all__'
+class ProfileCallManagementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProfileCallManagement
+        fields = '__all__'
+
+    def validate(self, data):
+        required_fields = ['profile_id', 'profile_status_id', 'owner_id']
+        for field in required_fields:
+            if field not in data or data[field] is None:
+                raise serializers.ValidationError({field: "This field is required."})
+        return data
+        
+
+class MarriageSettleDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MarriageSettleDetails
+        fields = '__all__'
+
+    def validate(self, data):
+        required_fields = ['profile_id', 'owner_id']
+        for field in required_fields:
+            if not data.get(field):
+                raise serializers.ValidationError({field: "This field is required."})
+        return data
+
+class PaymentTransactionSerializer(serializers.ModelSerializer):
+    plan_id = serializers.IntegerField(required=False)
+    order_id = serializers.CharField(required=False)
+    payment_id = serializers.CharField(required=False)
+    amount = serializers.DecimalField(required=False, max_digits=10, decimal_places=2)
+    status = serializers.CharField(required=False)
+    created_at = serializers.DateTimeField(required=False)
+    discount_amont = serializers.DecimalField(required=False, max_digits=10, decimal_places=2)
+    payment_refno = serializers.CharField(required=False)
+    description = serializers.CharField(required=False)
+    owner_id = serializers.IntegerField(required=False)
+
+    class Meta:
+        model = PaymentTransaction
+        fields = '__all__'
+
+    def validate(self, data):
+        required_fields = ['profile_id', 'payment_type']
+        for field in required_fields:
+            if not data.get(field):
+                raise serializers.ValidationError({field: "This field is required."})
+        return data
+    
+class InvoiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Invoice
         fields = '__all__'
