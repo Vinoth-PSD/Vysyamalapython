@@ -7644,7 +7644,7 @@ class GetFeaturedList(APIView):
         JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
         JOIN mastereducation g ON f.highest_education = g.RowId 
         JOIN masterannualincome h ON h.id = f.anual_income
-        WHERE a.gender != %s AND a.ProfileId != %s AND a.Featured_profile = 1
+        WHERE a.gender != %s AND a.ProfileId != %s AND Plan_id IN (2, 3, 15)
         """
 
         # Prepare the query parameters
@@ -7779,9 +7779,9 @@ class SuggestedProfiles1(APIView):
         JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
         JOIN mastereducation g ON f.highest_education = g.RowId 
         JOIN masterannualincome h ON h.id = f.anual_income
-        WHERE a.gender != %s AND a.ProfileId != %s AND a.Featured_profile = 1
+        WHERE a.gender != %s AND a.ProfileId != %s AND Plan_id IN (2, 3, 15)
         """
-
+        
         # Prepare the query parameters
         query_params = [gender, profile_id]
 
