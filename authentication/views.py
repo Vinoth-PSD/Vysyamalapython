@@ -7777,7 +7777,7 @@ class SuggestedProfiles1(APIView):
         # Initialize the query with the base structure
         base_query = """
         SELECT a.*, 
-               f.profession, f.highest_education, g.EducationLevel, d.star, h.income
+               f.profession, f.highest_education, g.EducationLevel, d.star, h.income ,d.star as star_name , e.birthstar_name ,e.birth_rasi_name
         FROM logindetails a 
         JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
         JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
