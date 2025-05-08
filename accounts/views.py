@@ -825,6 +825,7 @@ class Newprofile_get(generics.ListAPIView):
     def get_queryset(self):
         search_query = self.request.query_params.get('search', None)
         page_id=self.request.query_params.get('page_name', None)
+        plan_ids=self.request.query_params.get('plan_ids', None)
 
         if page_id is None:
             status_id = 0  # Default status to 0 when page_id is '1'
@@ -869,12 +870,19 @@ class Newprofile_get(generics.ListAPIView):
                 ld.Profile_pincode LIKE %s
             ) AND ld.status= %s
             """
-
             search_pattern = f'%{search_query}%'
             params = [search_pattern] * 13 +  [status_id]  # Same pattern for all fields
         else:
             sql += "WHERE ld.status = %s"
             params = [status_id]
+
+        if plan_ids is not None:
+            plan_id_list = [pid.strip() for pid in plan_ids.split(',') if pid.strip()]
+            if plan_id_list:
+                placeholders = ','.join(['%s'] * len(plan_id_list))
+                sql += f" AND ld.Plan_id IN ({placeholders})"
+                params.extend(plan_id_list)
+        
 
         with connection.cursor() as cursor:
             cursor.execute(sql, params)
