@@ -7636,7 +7636,7 @@ class GetFeaturedList(APIView):
         # Initialize the query with the base structure
         base_query = """
         SELECT a.*, 
-               f.profession, f.highest_education, g.EducationLevel, d.star, h.income
+               f.profession, f.highest_education, g.EducationLevel, d.star, h.income ,d.star as star_name , e.birthstar_name ,e.birth_rasi_name
         FROM logindetails a 
         JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
         JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
@@ -7701,11 +7701,17 @@ class GetFeaturedList(APIView):
                     source_star_id=profilehoro_data.birthstar_name
 
 
+                    print(source_rasi_id,'source_rasi_id')
+                    print(source_star_id,'source_star_id')
+                    print(profile_id,'profile_id')
+                    print(gender,'gender')
+
                     transformed_results = [transform_data(result,profile_id,gender,source_rasi_id,source_star_id) for result in results]
 
+                    
+                    print('transformed_results',transformed_results)
 
-
-                    print(full_query)  
+                    # print(full_query)  
                     return JsonResponse({
                         'status': 'success',
                         'total_count':total_count,
@@ -7781,7 +7787,7 @@ class SuggestedProfiles1(APIView):
         JOIN masterannualincome h ON h.id = f.anual_income
         WHERE a.gender != %s AND a.ProfileId != %s AND Plan_id IN (2, 3, 15)
         """
-        
+
         # Prepare the query parameters
         query_params = [gender, profile_id]
 
@@ -8026,7 +8032,8 @@ def transform_data2(original_data,my_gender):
 def transform_data(original_data,my_profile_id,my_gender,source_rasi_id,source_star_id):
 
     # print('original_data',original_data)
-
+    print('birthstar_name',original_data.get("birthstar_name"))
+    print('birth_rasi_name',original_data.get("birth_rasi_name"))
     transformed_data = {
         "profile_id": original_data.get("ProfileId"),
         "profile_name": original_data.get("Profile_name"),
