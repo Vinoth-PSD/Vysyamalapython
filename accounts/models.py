@@ -2310,7 +2310,7 @@ class ProfileCallManagement(models.Model):
     future_actiontaken_id = models.IntegerField(null=True, blank=True)
     next_dateaction_point = models.DateTimeField(null=True, blank=True)
     work_asignid = models.IntegerField(null=True, blank=True)
-    updated_by = models.IntegerField(null=True, blank=True)
+    updated_by = models.CharField(max_length=255 , null=True, blank=True)
     updated_on = models.DateTimeField(auto_now=True)
 
     class Meta:
