@@ -3923,7 +3923,16 @@ class Get_profile_det_match(APIView):
                 #   print('Profile_id',profile_details[0]['ProfileId'])
                 
                 #   user_images = Get_profile_image(profile_details[0]['ProfileId'], profile_details[0]['Gender'], 'all',profile_details[0]['Photo_protection'])  
-                user_images = Get_profile_image(profile_details[0]['ProfileId'], my_gender, 'all',profile_details[0]['Photo_protection'])  
+                # user_images = Get_profile_image(profile_details[0]['ProfileId'], my_gender, 'all',profile_details[0]['Photo_protection']) 
+
+
+                photo_viewing=get_permission_limits(profile_id,'photo_viewing')
+                
+                if photo_viewing == 1:
+                     user_images =  lambda detail: Get_profile_image(profile_details[0]['ProfileId'], my_gender, 'all', profile_details[0]['Photo_protection'])
+                else:
+                    user_images = lambda detail: get_default_or_blurred_image(profile_details[0]['ProfileId'], my_gender)
+
                 
                 try:
                         Profile_complexion = models.Profilecomplexion.objects.get(complexion_id=profile_details[0]['Profile_complexion']).complexion_desc
@@ -4139,7 +4148,8 @@ class Get_profile_det_match(APIView):
                             "vys_list":vysystatus_serializer
                         },
                         "photo_protection":profile_details[0]['Photo_protection'],
-                        "user_images":user_images,
+                        # "user_images":user_images,
+                        "user_images":user_images(profile_details[0]),
                         "personal_details": {
                             "profile_name": profile_details[0]['Profile_name'],
                             "gender": profile_details[0]['Gender'],
