@@ -7824,6 +7824,12 @@ class SuggestedProfiles1(APIView):
         # Calculate the starting record for the SQL LIMIT clause
         start = (page_number - 1) * per_page
 
+
+        if gender.lower() == 'male':
+            age_condition_operator = '<'
+        else:
+            age_condition_operator = '>'
+
         # Initialize the query with the base structure
         base_query = """
         SELECT a.*, 
@@ -7847,25 +7853,25 @@ class SuggestedProfiles1(APIView):
         # query_params = [gender, profile_id]
 
         # Check if additional filters are provided, and add them to the query
-        if from_age or to_age or from_height or to_height:
-            # Add age filter
-            age_condition_operator = "BETWEEN %s AND %s" if from_age and to_age else ">=" if from_age else "<=" if to_age else None
-            if age_condition_operator:
-                base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator}"
-                if from_age and to_age:
-                    query_params.extend([from_age, to_age])
-                else:
-                    query_params.append(from_age or to_age)
+        # if from_age or to_age or from_height or to_height:
+        #     # Add age filter
+        #     age_condition_operator = "BETWEEN %s AND %s" if from_age and to_age else ">=" if from_age else "<=" if to_age else None
+        #     if age_condition_operator:
+        #         base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator}"
+        #         if from_age and to_age:
+        #             query_params.extend([from_age, to_age])
+        #         else:
+        #             query_params.append(from_age or to_age)
             
-            if from_height and to_height:
-                base_query += " AND a.Profile_height BETWEEN %s AND %s"
-                query_params.extend([from_height, to_height])
-            elif from_height:
-                base_query += " AND a.Profile_height >= %s"
-                query_params.append(from_height)
-            elif to_height:
-                base_query += " AND a.Profile_height <= %s"
-                query_params.append(to_height)
+        #     if from_height and to_height:
+        #         base_query += " AND a.Profile_height BETWEEN %s AND %s"
+        #         query_params.extend([from_height, to_height])
+        #     elif from_height:
+        #         base_query += " AND a.Profile_height >= %s"
+        #         query_params.append(from_height)
+        #     elif to_height:
+        #         base_query += " AND a.Profile_height <= %s"
+        #         query_params.append(to_height)
 
         count_query = f"SELECT COUNT(*) FROM ({base_query}) AS count_query"
 
