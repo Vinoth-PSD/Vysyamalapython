@@ -4405,39 +4405,46 @@ class Send_photo_request(APIView):
             profile_to = serializer.validated_data.get('profile_to')
             int_status = serializer.validated_data.get('status')
 
-            print('profile_from',profile_from)
-            print('profile_to',profile_to)
-            
-            # Check if an entry with the same profile_from and profile_to already exists
-            existing_entry = models.Photo_request.objects.filter(profile_from=profile_from, profile_to=profile_to).first()
-            
-            if existing_entry:
-                # Update the status to 0 if the entry already exists
-                #existing_entry.status = 0
-                existing_entry.status = int_status
-                existing_entry.req_datetime = timezone.now()
-                existing_entry.save()
-                                              
-                
-                return JsonResponse({"Status": 0, "message": "Photo interests updated"}, status=status.HTTP_200_OK)
-            
-            
-            else:
-                # Create a new entry with status 1
-                serializer.save(status=1)
-                
-                models.Profile_notification.objects.create(
-                    profile_id=profile_to,
-                    from_profile_id=profile_from,
-                    notification_type='photo_request',
-                    to_message='You received a photo request from profile ID '+profile_from,
-                    is_read=0,
-                    created_at=timezone.now()
-                )
 
-                return JsonResponse({"Status": 1, "message": "Photo interests sent successfully"}, status=status.HTTP_200_OK)
-        
-        return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            get_access=can_send_photoreq(profile_from)
+
+            if get_access is True: 
+
+                # print('profile_from',profile_from)
+                # print('profile_to',profile_to)
+                
+                # Check if an entry with the same profile_from and profile_to already exists
+                existing_entry = models.Photo_request.objects.filter(profile_from=profile_from, profile_to=profile_to).first()
+                
+                if existing_entry:
+                    # Update the status to 0 if the entry already exists
+                    #existing_entry.status = 0
+                    existing_entry.status = int_status
+                    existing_entry.req_datetime = timezone.now()
+                    existing_entry.save()
+                                                
+                    
+                    return JsonResponse({"Status": 0, "message": "Photo interests updated"}, status=status.HTTP_200_OK)
+                
+                
+                else:
+                    # Create a new entry with status 1
+                    serializer.save(status=1)
+                    
+                    models.Profile_notification.objects.create(
+                        profile_id=profile_to,
+                        from_profile_id=profile_from,
+                        notification_type='photo_request',
+                        to_message='You received a photo request from profile ID '+profile_from,
+                        is_read=0,
+                        created_at=timezone.now()
+                    )
+
+                    return JsonResponse({"Status": 1, "message": "Photo interests sent successfully"}, status=status.HTTP_200_OK)
+            
+            return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+                return JsonResponse({"Status": 0, "message": "No access to bookmark the profile"}, status=status.HTTP_200_OK)
     
 
 
@@ -10101,6 +10108,31 @@ def can_send_express_interest(profile_id):
     return False  # If no plan or plan is restricted
 
 
+
+
+
+
+def can_send_photoreq(profile_id):
+
+    registration=models.Registration1.objects.filter(ProfileId=profile_id).first()
+    plan_id = registration.Plan_id    
+    
+    plan = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,plan_id=plan_id).first()
+
+    # current_date = now().date()
+    current_time = timezone.now()
+    current_date = current_time.date()
+
+    # Check if the plan allows sending express interests
+    if plan and plan.photo_req is not None:
+        # print('123456')
+        # print('datetime',datetime.today())
+        if plan.photo_req == 0:
+            return False  # Not allowed to send express interests
+        elif plan.photo_req == 1:
+            return True  # Unlimited express interests
+
+    return False  # If no plan or plan is restricted
 
 def can_save_personal_notes(profile_id):
 
