@@ -3548,6 +3548,9 @@ def get_permission_limits(profile_id, column_name):
 
 def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
+    print('photo_protection',photo_protection)
+    
+
     #base_url='http://103.214.132.20:8000'
     base_url=settings.MEDIA_URL
     #base_url='http://127.0.0.1:8000/'
@@ -4094,6 +4097,15 @@ class Get_profile_det_match(APIView):
                    
                    permission_contact_details=get_permission_limits(profile_id, 'contact_details')
                    permission_horosocpegrid_details=get_permission_limits(profile_id, 'horoscope_grid_details')
+
+                
+                eng_print=get_permission_limits(profile_id,'eng_print')  #user uploaded horoscope grid download permision
+                
+                if eng_print == 0:
+
+                    Profile_horoscope=0
+                    Profile_horoscope_txt='Not available'
+                    Profile_horoscope_file_link=''
 
 
                 profile_data={
@@ -7605,11 +7617,16 @@ class GetFeaturedList(APIView):
         # Get gender from logindetails table
         try:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT Gender FROM logindetails WHERE ProfileId = %s", [profile_id])
-                gender = cursor.fetchone()
-                if not gender:
-                    return JsonResponse({'status': 'failure', 'message': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
-                gender = gender[0]
+                cursor.execute("SELECT Gender,Profile_dob FROM logindetails WHERE ProfileId = %s", [profile_id])
+                result = cursor.fetchone()
+                
+                if result:
+                    gender, profile_dob = result  # unpack the tuple
+                else:
+                    # Handle no result found
+                    gender = None
+                    profile_dob = None
+                profile_age=calculate_age(profile_dob)
         except Exception as e:
             return JsonResponse({'status': 'failure', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -7634,6 +7651,12 @@ class GetFeaturedList(APIView):
         start = (page_number - 1) * per_page
 
         # Initialize the query with the base structure
+        
+        if gender.lower() == 'male':
+            age_condition_operator = '<'
+        else:
+            age_condition_operator = '>'
+        
         base_query = """
         SELECT a.*, 
                f.profession, f.highest_education, g.EducationLevel, d.star, h.income ,d.star as star_name , e.birthstar_name ,e.birth_rasi_name
@@ -7647,29 +7670,33 @@ class GetFeaturedList(APIView):
         WHERE a.gender != %s AND a.ProfileId != %s AND Plan_id IN (2, 3, 15)
         """
 
+        base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator} %s"
+
+
         # Prepare the query parameters
-        query_params = [gender, profile_id]
+        query_params = [gender, profile_id, profile_age]
+        
 
         # Check if additional filters are provided, and add them to the query
-        if from_age or to_age or from_height or to_height:
-            # Add age filter
-            age_condition_operator = "BETWEEN %s AND %s" if from_age and to_age else ">=" if from_age else "<=" if to_age else None
-            if age_condition_operator:
-                base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator}"
-                if from_age and to_age:
-                    query_params.extend([from_age, to_age])
-                else:
-                    query_params.append(from_age or to_age)
+        # if from_age or to_age or from_height or to_height:
+        #     # Add age filter
+        #     age_condition_operator = "BETWEEN %s AND %s" if from_age and to_age else ">=" if from_age else "<=" if to_age else None
+        #     if age_condition_operator:
+        #         base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator}"
+        #         if from_age and to_age:
+        #             query_params.extend([from_age, to_age])
+        #         else:
+        #             query_params.append(from_age or to_age)
             
-            if from_height and to_height:
-                base_query += " AND a.Profile_height BETWEEN %s AND %s"
-                query_params.extend([from_height, to_height])
-            elif from_height:
-                base_query += " AND a.Profile_height >= %s"
-                query_params.append(from_height)
-            elif to_height:
-                base_query += " AND a.Profile_height <= %s"
-                query_params.append(to_height)
+        #     if from_height and to_height:
+        #         base_query += " AND a.Profile_height BETWEEN %s AND %s"
+        #         query_params.extend([from_height, to_height])
+        #     elif from_height:
+        #         base_query += " AND a.Profile_height >= %s"
+        #         query_params.append(from_height)
+        #     elif to_height:
+        #         base_query += " AND a.Profile_height <= %s"
+        #         query_params.append(to_height)
 
         count_query = f"SELECT COUNT(*) FROM ({base_query}) AS count_query"
 
@@ -7701,15 +7728,15 @@ class GetFeaturedList(APIView):
                     source_star_id=profilehoro_data.birthstar_name
 
 
-                    print(source_rasi_id,'source_rasi_id')
-                    print(source_star_id,'source_star_id')
-                    print(profile_id,'profile_id')
-                    print(gender,'gender')
+                    # print(source_rasi_id,'source_rasi_id')
+                    # print(source_star_id,'source_star_id')
+                    # print(profile_id,'profile_id')
+                    # print(gender,'gender')
 
                     transformed_results = [transform_data(result,profile_id,gender,source_rasi_id,source_star_id) for result in results]
 
                     
-                    print('transformed_results',transformed_results)
+                    # print('transformed_results',transformed_results)
 
                     # print(full_query)  
                     return JsonResponse({
@@ -7746,11 +7773,16 @@ class SuggestedProfiles1(APIView):
         # Get gender from logindetails table
         try:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT Gender FROM logindetails WHERE ProfileId = %s", [profile_id])
-                gender = cursor.fetchone()
-                if not gender:
-                    return JsonResponse({'status': 'failure', 'message': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
-                gender = gender[0]
+                cursor.execute("SELECT Gender,Profile_dob FROM logindetails WHERE ProfileId = %s", [profile_id])
+                result = cursor.fetchone()
+                
+                if result:
+                    gender, profile_dob = result  # unpack the tuple
+                else:
+                    # Handle no result found
+                    gender = None
+                    profile_dob = None
+                profile_age=calculate_age(profile_dob)
         except Exception as e:
             return JsonResponse({'status': 'failure', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -7759,7 +7791,7 @@ class SuggestedProfiles1(APIView):
         to_age = request.data.get('to_age')
         from_height = request.data.get('from_height')
         to_height = request.data.get('to_height')
-
+        
         received_per_page = request.data.get('per_page')
         received_page_number = request.data.get('page_number')
 
@@ -7789,7 +7821,12 @@ class SuggestedProfiles1(APIView):
         """
 
         # Prepare the query parameters
-        query_params = [gender, profile_id]
+        base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator} %s"
+        
+        # Prepare the query parameters
+        query_params = [gender, profile_id, profile_age]
+        
+        # query_params = [gender, profile_id]
 
         # Check if additional filters are provided, and add them to the query
         if from_age or to_age or from_height or to_height:
@@ -8032,8 +8069,8 @@ def transform_data2(original_data,my_gender):
 def transform_data(original_data,my_profile_id,my_gender,source_rasi_id,source_star_id):
 
     # print('original_data',original_data)
-    print('birthstar_name',original_data.get("birthstar_name"))
-    print('birth_rasi_name',original_data.get("birth_rasi_name"))
+    # print('birthstar_name',original_data.get("birthstar_name"))
+    # print('birth_rasi_name',original_data.get("birth_rasi_name"))
     transformed_data = {
         "profile_id": original_data.get("ProfileId"),
         "profile_name": original_data.get("Profile_name"),
@@ -10070,7 +10107,7 @@ def can_save_personal_notes(profile_id):
     registration=models.Registration1.objects.filter(ProfileId=profile_id).first()
     plan_id = registration.Plan_id    
     
-    plan = models.PlanFeatureLimit.objects.filter(profile_id=profile_id,plan_id=plan_id).first()
+    plan = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,plan_id=plan_id).first()
 
     # current_date = now().date()
     current_time = timezone.now()
