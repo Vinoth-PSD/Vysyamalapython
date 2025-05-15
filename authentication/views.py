@@ -4442,10 +4442,11 @@ class Send_photo_request(APIView):
 
                     return JsonResponse({"Status": 1, "message": "Photo interests sent successfully"}, status=status.HTTP_200_OK)
             
-            return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        else:
+            else:
                 return JsonResponse({"Status": 0, "message": "No access to bookmark the profile"}, status=status.HTTP_200_OK)
-    
+
+        return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
 
 
 class Get_photo_request_list(APIView):
