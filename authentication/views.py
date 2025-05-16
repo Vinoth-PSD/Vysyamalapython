@@ -3548,7 +3548,7 @@ def get_permission_limits(profile_id, column_name):
 
 def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
-    # print('photo_protection',photo_protection)
+    print('photo_protection',photo_protection)
     
 
     #base_url='http://103.214.132.20:8000'
@@ -3605,7 +3605,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                 
     else:
 
-        # print('photo protection is true')
+        print('photo protection is true')
 
         if(no_of_image==1):
             get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()   
@@ -4138,16 +4138,12 @@ class Get_profile_det_match(APIView):
                             "verified":profile_details[0]['Profile_verified'],
                             "last_visit":last_visit,
                             "user_profile_views": count_records(models.Profile_visitors, {'status': 1,'viewed_profile':user_profile_id}),
-                            # "wish_list": Get_wishlist(profile_id,user_profile_id),
-                            # "express_int": Get_expressstatus(profile_id,user_profile_id),
-                            # "personal_notes": Get_personalnotes_value(profile_id,user_profile_id),
+                            "wish_list": Get_wishlist(profile_id,user_profile_id),
+                            "express_int": Get_expressstatus(profile_id,user_profile_id),
+                            "personal_notes": Get_personalnotes_value(profile_id,user_profile_id),
+                            #"matching_score": "75%"
 
-                            "wish_list": 1,
-                            "express_int": 1,
-                            "personal_notes": "dfG",
-                            "matching_score": "75%",
-
-                            # "matching_score":Get_matching_score(my_star_id,my_rasi_id,profile_details[0]['birthstar_name'],profile_details[0]['birth_rasi_name'],my_gender),
+                            "matching_score":Get_matching_score(my_star_id,my_rasi_id,profile_details[0]['birthstar_name'],profile_details[0]['birth_rasi_name'],my_gender),
                             "plan_subscribed":Plan_subscribed,
                             "vysy_assist_enable":vysy_assist_enable,
                             "vys_assits":vys_assits,
@@ -4159,65 +4155,65 @@ class Get_profile_det_match(APIView):
                         "user_images": {
                                 "1": "https://vysyamaladev2025.blob.core.windows.net/vysyamala/default_groom.png"
                             },
-                        # "personal_details": {
-                        #     "profile_name": profile_details[0]['Profile_name'],
-                        #     "gender": profile_details[0]['Gender'],
-                        #     "age": calculate_age(profile_details[0]['Profile_dob']),
-                        #     "dob": profile_details[0]['Profile_dob'],
-                        #     "place_of_birth": profile_details[0]['place_of_birth'],
-                        #     "time_of_birth": profile_details[0]['time_of_birth'],                   
-                        #     "height": profile_details[0]['Profile_height'],
-                        #     "marital_status": Profile_marital_status,
-                        #     "blood_group": profile_details[0]['blood_group'],
-                        #     "about_self": profile_details[0]['about_self'],
-                        #     "complexion": Profile_complexion,
-                        #     "hobbies": profile_details[0]['hobbies'],
-                        #     "physical_status": profile_details[0]['Pysically_changed'],
-                        #     "eye_wear": profile_details[0]['eye_wear'] ,
-                        #     "weight": profile_details[0]['weight'] ,
-                        #     "body_type": profile_details[0]['body_type'] ,
-                        #     "profile_created_by": Profile_owner,
-                        # },
-                        # "education_details": {
-                        #     "education_level": Profile_high_edu,
-                        #     "education_detail": " ",
-                        #     "ug_degeree": get_degree(profile_details[0]['ug_degeree']),
-                        #     "about_education": profile_details[0]['about_edu'],
-                        #     "profession": Profile_profession,
-                        #     "company_name": profile_details[0]['company_name'],
-                        #     "business_name": profile_details[0]['business_name'],
-                        #     "business_address": profile_details[0]['business_address'],
-                        #     "annual_income": profile_details[0]['anual_income'],
-                        #     "gross_annual_income": profile_details[0]['actual_income'],
-                        #     "place_of_stay": profile_details[0]['Profile_city'],
-                        # },
-                        # "family_details": {
-                        #     "about_family": profile_details[0]['about_self'],
-                        #     "father_name": profile_details[0]['father_name'],
-                        #     "father_occupation": profile_details[0]['father_occupation'],
-                        #     "mother_name": profile_details[0]['mother_name'],
-                        #     "mother_occupation": profile_details[0]['mother_occupation'],
-                        #     "family_status": Profile_family_status,
-                        #     "no_of_sisters": profile_details[0]['no_of_sister'],
-                        #     "no_of_brothers": profile_details[0]['no_of_brother'],
-                        #     "no_of_sis_married": profile_details[0]['no_of_sis_married'],
-                        #     "no_of_bro_married": profile_details[0]['no_of_bro_married'],
-                        #     "property_details": profile_details[0]['property_details'],
-                        # },
-                        # "horoscope_details": {
-                        #     "rasi": profile_rasi_name,
-                        #     "star_name": profile_star_name,
-                        #     "lagnam": profile_details[0]['lagnam_didi'],
-                        #     "nallikai": profile_details[0]['nalikai'],
-                        #     "didi": profile_details[0]['lagnam_didi'],
-                        #     "surya_gothram": profile_details[0]['suya_gothram'],
-                        #     "dasa_name": profile_details[0]['dasa_name'],
-                        #     "dasa_balance": profile_details[0]['dasa_balance'],
-                        #     "chevvai_dosham": profile_details[0]['calc_chevvai_dhosham'],
-                        #     "sarpadosham": profile_details[0]['calc_raguketu_dhosham'],
-                        #     # "rasi_kattam":profile_details[0]['rasi_kattam'],
-                        #     # "amsa_kattam":profile_details[0]['amsa_kattam'],
-                        # }
+                        "personal_details": {
+                            "profile_name": profile_details[0]['Profile_name'],
+                            "gender": profile_details[0]['Gender'],
+                            "age": calculate_age(profile_details[0]['Profile_dob']),
+                            "dob": profile_details[0]['Profile_dob'],
+                            "place_of_birth": profile_details[0]['place_of_birth'],
+                            "time_of_birth": profile_details[0]['time_of_birth'],                   
+                            "height": profile_details[0]['Profile_height'],
+                            "marital_status": Profile_marital_status,
+                            "blood_group": profile_details[0]['blood_group'],
+                            "about_self": profile_details[0]['about_self'],
+                            "complexion": Profile_complexion,
+                            "hobbies": profile_details[0]['hobbies'],
+                            "physical_status": profile_details[0]['Pysically_changed'],
+                            "eye_wear": profile_details[0]['eye_wear'] ,
+                            "weight": profile_details[0]['weight'] ,
+                            "body_type": profile_details[0]['body_type'] ,
+                            "profile_created_by": Profile_owner,
+                        },
+                        "education_details": {
+                            "education_level": Profile_high_edu,
+                            "education_detail": " ",
+                            "ug_degeree": get_degree(profile_details[0]['ug_degeree']),
+                            "about_education": profile_details[0]['about_edu'],
+                            "profession": Profile_profession,
+                            "company_name": profile_details[0]['company_name'],
+                            "business_name": profile_details[0]['business_name'],
+                            "business_address": profile_details[0]['business_address'],
+                            "annual_income": profile_details[0]['anual_income'],
+                            "gross_annual_income": profile_details[0]['actual_income'],
+                            "place_of_stay": profile_details[0]['Profile_city'],
+                        },
+                        "family_details": {
+                            "about_family": profile_details[0]['about_self'],
+                            "father_name": profile_details[0]['father_name'],
+                            "father_occupation": profile_details[0]['father_occupation'],
+                            "mother_name": profile_details[0]['mother_name'],
+                            "mother_occupation": profile_details[0]['mother_occupation'],
+                            "family_status": Profile_family_status,
+                            "no_of_sisters": profile_details[0]['no_of_sister'],
+                            "no_of_brothers": profile_details[0]['no_of_brother'],
+                            "no_of_sis_married": profile_details[0]['no_of_sis_married'],
+                            "no_of_bro_married": profile_details[0]['no_of_bro_married'],
+                            "property_details": profile_details[0]['property_details'],
+                        },
+                        "horoscope_details": {
+                            "rasi": profile_rasi_name,
+                            "star_name": profile_star_name,
+                            "lagnam": profile_details[0]['lagnam_didi'],
+                            "nallikai": profile_details[0]['nalikai'],
+                            "didi": profile_details[0]['lagnam_didi'],
+                            "surya_gothram": profile_details[0]['suya_gothram'],
+                            "dasa_name": profile_details[0]['dasa_name'],
+                            "dasa_balance": profile_details[0]['dasa_balance'],
+                            "chevvai_dosham": profile_details[0]['calc_chevvai_dhosham'],
+                            "sarpadosham": profile_details[0]['calc_raguketu_dhosham'],
+                            # "rasi_kattam":profile_details[0]['rasi_kattam'],
+                            # "amsa_kattam":profile_details[0]['amsa_kattam'],
+                        }
                         # "contact_details": {
                         #     "address": profile_details[0]['Profile_address'],
                         #     "city": get_city_name(profile_details[0]['Profile_city']),
@@ -10004,8 +10000,8 @@ class GetFooterView(APIView):
 
 
 def get_blurred_image(image_name):
-    # print('Inside Blur Images')
-    # print("Original image URL:", image_name)
+    print('Inside Blur Images')
+    print("Original image URL:", image_name)
 
     try:
         # Parse URL and extract path
