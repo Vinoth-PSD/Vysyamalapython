@@ -3918,7 +3918,7 @@ class Get_profile_det_match(APIView):
 
                         # Plan_subscribed = None
 
-                
+
 
                 #   print('Profile_id',profile_details[0]['ProfileId'])
                 
@@ -3928,10 +3928,12 @@ class Get_profile_det_match(APIView):
 
                 photo_viewing=get_permission_limits(profile_id,'photo_viewing')
                 
-                if photo_viewing == 1:
-                     user_images =  lambda detail: Get_profile_image(profile_details[0]['ProfileId'], my_gender, 'all', profile_details[0]['Photo_protection'])
-                else:
-                    user_images = lambda detail: get_default_or_blurred_image(profile_details[0]['ProfileId'], my_gender)
+                #commented by vinoth 16-05-25
+
+                # if photo_viewing == 1:
+                #      user_images =  lambda detail: Get_profile_image(profile_details[0]['ProfileId'], my_gender, 'all', profile_details[0]['Photo_protection'])
+                # else:
+                #     user_images = lambda detail: get_default_or_blurred_image(profile_details[0]['ProfileId'], my_gender)
 
                 
                 try:
@@ -4149,7 +4151,10 @@ class Get_profile_det_match(APIView):
                         },
                         "photo_protection":profile_details[0]['Photo_protection'],
                         # "user_images":user_images,
-                        "user_images":user_images(profile_details[0]),
+                        # "user_images":user_images(profile_details[0]),
+                        "user_images": {
+                                "1": "https://vysyamaladev2025.blob.core.windows.net/vysyamala/default_groom.png"
+                            },
                         "personal_details": {
                             "profile_name": profile_details[0]['Profile_name'],
                             "gender": profile_details[0]['Gender'],
