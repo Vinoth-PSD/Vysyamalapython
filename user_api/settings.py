@@ -52,7 +52,6 @@ AZURE_CONNECTION_STRING = f'DefaultEndpointsProtocol=https;AccountName={AZURE_AC
 # AZURE_BLOB_BASE_URL = f"https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/{AZURE_CONTAINER_NAME}"
 
 
-
 # DEFAULT_FILE_STORAGE = 'storages.backends.azure_storage.AzureStorage'
 
 MEDIA_URL = f'https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/{AZURE_CONTAINER}/'

@@ -3548,7 +3548,7 @@ def get_permission_limits(profile_id, column_name):
 
 def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
-    print('photo_protection',photo_protection)
+    # print('photo_protection',photo_protection)
     
 
     #base_url='http://103.214.132.20:8000'
@@ -3605,7 +3605,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                 
     else:
 
-        print('photo protection is true')
+        # print('photo protection is true')
 
         if(no_of_image==1):
             get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()   
@@ -4138,12 +4138,16 @@ class Get_profile_det_match(APIView):
                             "verified":profile_details[0]['Profile_verified'],
                             "last_visit":last_visit,
                             "user_profile_views": count_records(models.Profile_visitors, {'status': 1,'viewed_profile':user_profile_id}),
-                            "wish_list": Get_wishlist(profile_id,user_profile_id),
-                            "express_int": Get_expressstatus(profile_id,user_profile_id),
-                            "personal_notes": Get_personalnotes_value(profile_id,user_profile_id),
-                            #"matching_score": "75%"
+                            # "wish_list": Get_wishlist(profile_id,user_profile_id),
+                            # "express_int": Get_expressstatus(profile_id,user_profile_id),
+                            # "personal_notes": Get_personalnotes_value(profile_id,user_profile_id),
 
-                            "matching_score":Get_matching_score(my_star_id,my_rasi_id,profile_details[0]['birthstar_name'],profile_details[0]['birth_rasi_name'],my_gender),
+                            "wish_list": 1,
+                            "express_int": 1,
+                            "personal_notes": "dfG",
+                            "matching_score": "75%",
+
+                            # "matching_score":Get_matching_score(my_star_id,my_rasi_id,profile_details[0]['birthstar_name'],profile_details[0]['birth_rasi_name'],my_gender),
                             "plan_subscribed":Plan_subscribed,
                             "vysy_assist_enable":vysy_assist_enable,
                             "vys_assits":vys_assits,
@@ -4213,21 +4217,20 @@ class Get_profile_det_match(APIView):
                             "sarpadosham": profile_details[0]['calc_raguketu_dhosham'],
                             # "rasi_kattam":profile_details[0]['rasi_kattam'],
                             # "amsa_kattam":profile_details[0]['amsa_kattam'],
+                        },
+                        "contact_details": {
+                            "address": profile_details[0]['Profile_address'],
+                            "city": get_city_name(profile_details[0]['Profile_city']),
+                            "district": get_district_name(profile_details[0]['Profile_district']),
+                            "state": get_state_name(profile_details[0]['Profile_state']),
+                            "country": get_country_name(profile_details[0]['Profile_country']),                           
+                            "phone": profile_details[0]['Mobile_no'],
+                            "mobile": profile_details[0]['Mobile_no'],
+                            "whatsapp": profile_details[0]['Profile_whatsapp'],
+                            "email": profile_details[0]['EmailId'],
                         }
-                        # "contact_details": {
-                        #     "address": profile_details[0]['Profile_address'],
-                        #     "city": get_city_name(profile_details[0]['Profile_city']),
-                        #     "district": get_district_name(profile_details[0]['Profile_district']),
-                        #     "state": get_state_name(profile_details[0]['Profile_state']),
-                        #     "country": get_country_name(profile_details[0]['Profile_country']),                           
-                        #     "phone": profile_details[0]['Mobile_no'],
-                        #     "mobile": profile_details[0]['Mobile_no'],
-                        #     "whatsapp": profile_details[0]['Profile_whatsapp'],
-                        #     "email": profile_details[0]['EmailId'],
-                        # }
                     }
                 
-
                      # Conditionally add horoscope_details if allowed
                 if permission_horosocpegrid_details != 0:  # Replace with your actual condition
                         profile_data["horoscope_details"].update({
@@ -10000,8 +10003,8 @@ class GetFooterView(APIView):
 
 
 def get_blurred_image(image_name):
-    print('Inside Blur Images')
-    print("Original image URL:", image_name)
+    # print('Inside Blur Images')
+    # print("Original image URL:", image_name)
 
     try:
         # Parse URL and extract path
