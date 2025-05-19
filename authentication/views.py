@@ -3573,7 +3573,18 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                         # Serialize the single instance
                         serializer = serializers.ImageGetSerializer(get_entry)
                         # Return only the status
-                        return serializer.data['image']
+                        # return serializer.data['image']
+                        image_url = serializer.data['image']
+                        try:
+                            response = requests.head(image_url, timeout=5)
+                            if response.status_code == 200:
+                                return image_url
+                        except requests.RequestException:
+                            pass  # Fall back to default if request fails
+                        
+                        # Return default image if no image found or image does not exist
+                        return default_img_bride if gender.lower() == 'female' else default_img_groom
+
                 else:
                         
                         
