@@ -4020,7 +4020,7 @@ class Get_profile_det_match(APIView):
                 Profile_status_active = ''
                 last_login_date=profile_details[0]['Last_login_date']
                 last_visit=''
-
+            
                 if last_login_date:
                 # Check if the date is the default invalid value
                     if last_login_date == '0000-00-00 00:00:00':
@@ -4047,7 +4047,7 @@ class Get_profile_det_match(APIView):
 
                         # Compare the last_login_date with one_month_ago
                             if last_login_date and last_login_date < one_month_ago:
-                                    Profile_status_active = "In Active User"  # Mark as inactive if last login is older than one month
+                                    Profile_status_active = "In Active User"  # Mark as inactive if last login is older than zone month
                             else:
                                     Profile_status_active = "Active User"
                 else:
@@ -4118,6 +4118,16 @@ class Get_profile_det_match(APIView):
                     Profile_horoscope_txt='Not available'
                     Profile_horoscope_file_link=''
 
+                
+                photo_request=0
+
+                if profile_details[0]['Photo_protection']==0:
+                    photo_request=1 
+
+                current_image_count = models.Image_Upload.objects.filter(profile_id=profile_details[0]['ProfileId']).count()              
+                if current_image_count==0:
+                     photo_request=1 
+
 
                 profile_data={
                         "basic_details": {
@@ -4138,22 +4148,23 @@ class Get_profile_det_match(APIView):
                             "verified":profile_details[0]['Profile_verified'],
                             "last_visit":last_visit,
                             "user_profile_views": count_records(models.Profile_visitors, {'status': 1,'viewed_profile':user_profile_id}),
-                            # "wish_list": Get_wishlist(profile_id,user_profile_id),
-                            # "express_int": Get_expressstatus(profile_id,user_profile_id),
-                            # "personal_notes": Get_personalnotes_value(profile_id,user_profile_id),
+                            "wish_list": Get_wishlist(profile_id,user_profile_id),
+                            "express_int": Get_expressstatus(profile_id,user_profile_id),
+                            "personal_notes": Get_personalnotes_value(profile_id,user_profile_id),
 
-                            "wish_list": 1,
-                            "express_int": 1,
-                            "personal_notes": "dfG",
-                            "matching_score": "75%",
+                            # "wish_list": 1,
+                            # "express_int": 1,
+                            # "personal_notes": "dfG",
+                            # "matching_score": "75%",
 
-                            # "matching_score":Get_matching_score(my_star_id,my_rasi_id,profile_details[0]['birthstar_name'],profile_details[0]['birth_rasi_name'],my_gender),
+                            "matching_score":Get_matching_score(my_star_id,my_rasi_id,profile_details[0]['birthstar_name'],profile_details[0]['birth_rasi_name'],my_gender),
                             "plan_subscribed":Plan_subscribed,
                             "vysy_assist_enable":vysy_assist_enable,
                             "vys_assits":vys_assits,
                             "vys_list":vysystatus_serializer
                         },
                         "photo_protection":profile_details[0]['Photo_protection'],
+                        "photo_request":photo_request,
                         # "user_images":user_images,
                         # "user_images":user_images(profile_details[0]),
                         "user_images": {
