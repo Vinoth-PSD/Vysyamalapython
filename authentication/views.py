@@ -3930,10 +3930,10 @@ class Get_profile_det_match(APIView):
                 
                 #commented by vinoth 16-05-25
 
-                # if photo_viewing == 1:
-                #      user_images =  lambda detail: Get_profile_image(profile_details[0]['ProfileId'], my_gender, 'all', profile_details[0]['Photo_protection'])
-                # else:
-                #     user_images = lambda detail: get_default_or_blurred_image(profile_details[0]['ProfileId'], my_gender)
+                if photo_viewing == 1:
+                     user_images =  lambda detail: Get_profile_image(profile_details[0]['ProfileId'], my_gender, 'all', profile_details[0]['Photo_protection'])
+                else:
+                    user_images = lambda detail: get_default_or_blurred_image(profile_details[0]['ProfileId'], my_gender)
 
                 
                 try:
@@ -4166,10 +4166,10 @@ class Get_profile_det_match(APIView):
                         "photo_protection":profile_details[0]['Photo_protection'],
                         "photo_request":photo_request,
                         # "user_images":user_images,
-                        # "user_images":user_images(profile_details[0]),
-                        "user_images": {
-                                "1": "https://vysyamaladev2025.blob.core.windows.net/vysyamala/default_groom.png"
-                            },
+                        "user_images":user_images(profile_details[0]),
+                        # "user_images": {
+                        #         "1": "https://vysyamaladev2025.blob.core.windows.net/vysyamala/default_groom.png"
+                        #     },
                         "personal_details": {
                             "profile_name": profile_details[0]['Profile_name'],
                             "gender": profile_details[0]['Gender'],
@@ -10013,84 +10013,121 @@ class GetFooterView(APIView):
 #         return settings.MEDIA_URL+'default_img.png'
 
 
-def get_blurred_image(image_name):
-    # print('Inside Blur Images')
-    # print("Original image URL:", image_name)
+#Commanded by vinoth by 19-05-25
 
+# def get_blurred_image(image_name):
+#     # print('Inside Blur Images')
+#     # print("Original image URL:", image_name)
+
+#     try:
+#         # Parse URL and extract path
+#         parsed_url = urlparse(image_name)
+#         full_path = parsed_url.path.lstrip('/')  # Remove leading slash
+        
+#         # Remove container name from the path
+#         container_name = settings.AZURE_CONTAINER
+#         if full_path.startswith(container_name + '/'):
+#             blob_path = full_path[len(container_name)+1:]  # Remove "vysyamala/"
+#         else:
+#             blob_path = full_path
+        
+#         print('Container:', container_name)
+#         print('Blob path:', blob_path)
+
+#         if not blob_path:
+#             raise ValueError("Blob path is empty")
+
+#         # Initialize BlobServiceClient
+#         blob_service = BlobServiceClient.from_connection_string(settings.AZURE_CONNECTION_STRING)
+        
+#         # Check if the blurred image already exists
+#         blurred_blob_name = f"blurred/{os.path.basename(blob_path)}"
+#         blurred_blob_client = blob_service.get_blob_client(
+#             container=container_name,
+#             blob=blurred_blob_name
+#         )
+
+#         # If blurred image exists, return the URL immediately
+#         if blurred_blob_client.exists():
+#             print("Blurred image already exists.")
+#             return f"https://{blob_service.account_name}.blob.core.windows.net/{container_name}/{blurred_blob_name}"
+
+#         # Get blob client for original image
+#         blob_client = blob_service.get_blob_client(
+#             container=container_name,
+#             blob=blob_path
+#         )
+
+#         # Verify blob exists
+#         if not blob_client.exists():
+#             raise FileNotFoundError(f"Blob {blob_path} not found in container {container_name}")
+
+#         # Download and process image
+#         image_bytes = blob_client.download_blob().readall()
+
+#         with Image.open(BytesIO(image_bytes)) as img:
+#             # Resize image for faster processing (optional)
+#             img = img.resize((img.width // 2, img.height // 2))
+
+#             # Apply blur
+#             blurred_image = img.filter(ImageFilter.GaussianBlur(5))
+            
+#             # Save blurred image to memory (in memory, avoiding disk I/O)
+#             output_buffer = BytesIO()
+#             blurred_image.save(output_buffer, format="JPEG", quality=70)
+#             output_buffer.seek(0)  # Rewind the buffer
+            
+#             # Upload blurred image to Azure
+#             blurred_blob_client.upload_blob(output_buffer, overwrite=True, content_settings=ContentSettings(content_type="image/jpeg"))
+            
+#             print(f"Blurred image uploaded as: {blurred_blob_name}")
+            
+#             # Return the URL of the blurred image
+#             return f"https://{blob_service.account_name}.blob.core.windows.net/{container_name}/{blurred_blob_name}"
+
+#     except FileNotFoundError as fnf_error:
+#         logger.error(f"Image not found: {fnf_error}")
+#         return settings.MEDIA_URL + 'default_img.png'
+
+#     except Exception as e:
+#         logger.exception(f"Error processing image: {e}")
+#         return settings.MEDIA_URL + 'default_img.png'
+
+
+def get_blurred_image(image_name):
     try:
-        # Parse URL and extract path
+        # Parse the URL and get the blob path
         parsed_url = urlparse(image_name)
         full_path = parsed_url.path.lstrip('/')  # Remove leading slash
-        
-        # Remove container name from the path
+
         container_name = settings.AZURE_CONTAINER
         if full_path.startswith(container_name + '/'):
-            blob_path = full_path[len(container_name)+1:]  # Remove "vysyamala/"
+            blob_path = full_path[len(container_name) + 1:]  # Remove container name
         else:
             blob_path = full_path
-        
-        print('Container:', container_name)
-        print('Blob path:', blob_path)
 
         if not blob_path:
             raise ValueError("Blob path is empty")
 
-        # Initialize BlobServiceClient
+        # Get the blurred image blob path
+        blurred_blob_name = f"blurred_images/{os.path.basename(blob_path)}"
+
+        # Initialize BlobServiceClient and get the blob client for blurred image
         blob_service = BlobServiceClient.from_connection_string(settings.AZURE_CONNECTION_STRING)
-        
-        # Check if the blurred image already exists
-        blurred_blob_name = f"blurred/{os.path.basename(blob_path)}"
-        blurred_blob_client = blob_service.get_blob_client(
-            container=container_name,
-            blob=blurred_blob_name
-        )
+        blurred_blob_client = blob_service.get_blob_client(container=container_name, blob=blurred_blob_name)
 
-        # If blurred image exists, return the URL immediately
+        # Check if blurred image exists
         if blurred_blob_client.exists():
-            print("Blurred image already exists.")
             return f"https://{blob_service.account_name}.blob.core.windows.net/{container_name}/{blurred_blob_name}"
-
-        # Get blob client for original image
-        blob_client = blob_service.get_blob_client(
-            container=container_name,
-            blob=blob_path
-        )
-
-        # Verify blob exists
-        if not blob_client.exists():
-            raise FileNotFoundError(f"Blob {blob_path} not found in container {container_name}")
-
-        # Download and process image
-        image_bytes = blob_client.download_blob().readall()
-
-        with Image.open(BytesIO(image_bytes)) as img:
-            # Resize image for faster processing (optional)
-            img = img.resize((img.width // 2, img.height // 2))
-
-            # Apply blur
-            blurred_image = img.filter(ImageFilter.GaussianBlur(5))
-            
-            # Save blurred image to memory (in memory, avoiding disk I/O)
-            output_buffer = BytesIO()
-            blurred_image.save(output_buffer, format="JPEG", quality=70)
-            output_buffer.seek(0)  # Rewind the buffer
-            
-            # Upload blurred image to Azure
-            blurred_blob_client.upload_blob(output_buffer, overwrite=True, content_settings=ContentSettings(content_type="image/jpeg"))
-            
-            print(f"Blurred image uploaded as: {blurred_blob_name}")
-            
-            # Return the URL of the blurred image
-            return f"https://{blob_service.account_name}.blob.core.windows.net/{container_name}/{blurred_blob_name}"
-
-    except FileNotFoundError as fnf_error:
-        logger.error(f"Image not found: {fnf_error}")
-        return settings.MEDIA_URL + 'default_img.png'
+        else:
+            return settings.MEDIA_URL + 'default_img.png'
 
     except Exception as e:
         logger.exception(f"Error processing image: {e}")
         return settings.MEDIA_URL + 'default_img.png'
-    
+
+
+  
 def can_send_express_interest(profile_id):
 
     registration=models.Registration1.objects.filter(ProfileId=profile_id).first()
