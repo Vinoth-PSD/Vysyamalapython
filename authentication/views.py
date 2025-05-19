@@ -3930,12 +3930,14 @@ class Get_profile_det_match(APIView):
                 
                 #commented by vinoth 16-05-25
 
+                print("Execution time before image ",datetime.now())
+
                 if photo_viewing == 1:
                      user_images =  lambda detail: Get_profile_image(profile_details[0]['ProfileId'], my_gender, 'all', profile_details[0]['Photo_protection'])
                 else:
                     user_images = lambda detail: get_default_or_blurred_image(profile_details[0]['ProfileId'], my_gender)
 
-                
+                print("Execution time after image  ",datetime.now())
                 try:
                         Profile_complexion = models.Profilecomplexion.objects.get(complexion_id=profile_details[0]['Profile_complexion']).complexion_desc
                 except models.Profilecomplexion.DoesNotExist:
