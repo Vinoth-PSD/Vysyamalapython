@@ -5028,7 +5028,9 @@ class Get_profile_images(APIView):
         if serializer.is_valid():
 
             # Get images for the specified profile
-            images = models.Image_Upload.objects.filter(profile_id=profile_id,image_approved=1,is_deleted=0)
+            # images = models.Image_Upload.objects.filter(profile_id=profile_id,image_approved=1,is_deleted=0)
+
+            images = models.Image_Upload.objects.filter(profile_id=profile_id)
             
             if not images.exists():
                 return JsonResponse({"message": "No images found for this profile."}, status=status.HTTP_200_OK)
