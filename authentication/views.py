@@ -3587,7 +3587,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                             pass  # Fall back to default if request fails
                         
                         # Return default image if no image found or image does not exist
-                        return  base_url + default_img_bride if gender.lower() == 'female' else base_url + default_img_groom
+                        return  base_url + default_img_bride if gender.lower() == 'male' else base_url + default_img_groom
 
                 else:
                         
