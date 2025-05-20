@@ -3559,6 +3559,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
     default_img_bride='default_bride.png'
     default_img_groom='default_groom.png'
     default_lock='default_photo_protect.png'
+    default_img='default_img.png'
     
 
     if photo_protection !=1:        
@@ -3587,7 +3588,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                             pass  # Fall back to default if request fails
                         
                         # Return default image if no image found or image does not exist
-                        return  base_url + default_lock
+                        return  base_url + default_img
 
                 else:
                         
@@ -9091,11 +9092,11 @@ class FeaturedProfile(APIView):
         photo_gender = 'female' if normalized_gender == 'male' else 'male'
 
 
-        oposi_gender=''
-        if((photo_gender=='male') or (photo_gender =='Male')):
-            oposi_gender='female'
-        else:
-            oposi_gender='male'
+        # oposi_gender=''
+        # if((photo_gender=='male') or (photo_gender =='Male')):
+        #     oposi_gender='female'
+        # else:
+        #     oposi_gender='male'
 
         try:
             # Raw SQL query to fetch random profiles
@@ -9140,7 +9141,7 @@ class FeaturedProfile(APIView):
                 restricted_profile_details.append({
                     "profile_id": profile_id,
                     "profile_name": profile['Profile_name'],
-                    "profile_img": Get_profile_image(profile_id, oposi_gender, 1, profile['Photo_protection']),
+                    "profile_img": Get_profile_image(profile_id, photo_gender, 1, profile['Photo_protection']),
                     "profile_age": calculate_age(profile['Profile_dob']),
                     "profile_gender": profile['Gender'],
                     "height": profile['Profile_height'],
