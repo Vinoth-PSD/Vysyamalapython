@@ -4142,7 +4142,7 @@ class Get_profile_det_match(APIView):
                 
                 photo_request=0
 
-                if profile_details[0]['Photo_protection']==0:
+                if profile_details[0]['Photo_protection']==1:
                     photo_request=1 
 
                 current_image_count = models.Image_Upload.objects.filter(profile_id=profile_details[0]['ProfileId']).count()              
