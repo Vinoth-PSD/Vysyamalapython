@@ -8968,7 +8968,7 @@ def calculate_points_and_get_empty_fields(profile_id):
                 empty_fields.append({'tab': 'Personal_info', 'field': field})
 
     # 2. Photo Upload
-    profile_images = models.Image_Upload.objects.filter(profile_id=profile_id,image_approved=1,is_deleted=0).first()
+    profile_images = models.Image_Upload.objects.filter(profile_id=profile_id).first()
     if profile_images:
         for field, weight in field_weights['profile_images'].items():
             total_points += weight
