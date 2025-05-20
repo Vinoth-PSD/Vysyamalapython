@@ -8966,7 +8966,7 @@ def calculate_points_and_get_empty_fields(profile_id):
             else:
                 #empty_fields.append(field)
                 empty_fields.append({'tab': 'Personal_info', 'field': field})
-
+                
     # 2. Photo Upload
     profile_images = models.Image_Upload.objects.filter(profile_id=profile_id).first()
     if profile_images:
@@ -9090,6 +9090,13 @@ class FeaturedProfile(APIView):
         normalized_gender = gender.strip().lower()
         photo_gender = 'female' if normalized_gender == 'male' else 'male'
 
+
+        oposi_gender=''
+        if((photo_gender=='male') or (photo_gender =='Male')):
+            oposi_gender='female'
+        else:
+            oposi_gender='male'
+
         try:
             # Raw SQL query to fetch random profiles
             query = """
@@ -9133,7 +9140,7 @@ class FeaturedProfile(APIView):
                 restricted_profile_details.append({
                     "profile_id": profile_id,
                     "profile_name": profile['Profile_name'],
-                    "profile_img": Get_profile_image(profile_id, photo_gender, 1, profile['Photo_protection']),
+                    "profile_img": Get_profile_image(profile_id, oposi_gender, 1, profile['Photo_protection']),
                     "profile_age": calculate_age(profile['Profile_dob']),
                     "profile_gender": profile['Gender'],
                     "height": profile['Profile_height'],
