@@ -3548,7 +3548,7 @@ def get_permission_limits(profile_id, column_name):
 
 def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
-    # print('photo_protection',photo_protection)
+    print('photo_protection',photo_protection)
     
 
     #base_url='http://103.214.132.20:8000'
@@ -3567,6 +3567,8 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
         
             if(no_of_image==1):
 
+                print('no_of_image','1')
+
                 get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()           
             
                 if get_entry:
@@ -3575,6 +3577,8 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                         # Return only the status
                         # return serializer.data['image']
                         image_url = serializer.data['image']
+
+                        print('image_url',image_url)
                         try:
                             response = requests.head(image_url, timeout=5)
                             if response.status_code == 200:
@@ -3583,7 +3587,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                             pass  # Fall back to default if request fails
                         
                         # Return default image if no image found or image does not exist
-                        return default_img_bride if gender.lower() == 'female' else default_img_groom
+                        return  base_url + default_img_bride if gender.lower() == 'female' else base_url + default_img_groom
 
                 else:
                         
@@ -7712,7 +7716,8 @@ class GetFeaturedList(APIView):
         
         base_query = """
         SELECT a.*, 
-               f.profession, f.highest_education, g.EducationLevel, d.star, h.income ,d.star as star_name , e.birthstar_name ,e.birth_rasi_name
+               f.profession, f.highest_education, g.EducationLevel, d.star, h.income ,d.star as star_name , e.birthstar_name ,e.birth_rasi_name ,
+               IF(i.id IS NOT NULL, 1, 0) AS has_image
         FROM logindetails a 
         JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
         JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
@@ -7720,10 +7725,16 @@ class GetFeaturedList(APIView):
         JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
         JOIN mastereducation g ON f.highest_education = g.RowId 
         JOIN masterannualincome h ON h.id = f.anual_income
+
+        LEFT JOIN profile_images i 
+        ON a.ProfileId = i.profile_id 
+        AND i.image_approved = 1 
+        AND i.is_deleted = 0
+
         WHERE a.gender != %s AND a.ProfileId != %s AND Plan_id IN (2, 3, 15)
         """
 
-        base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator} %s"
+        base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator} %s   ORDER BY has_image DESC"
 
 
         # Prepare the query parameters
