@@ -7718,7 +7718,7 @@ class GetFeaturedList(APIView):
             age_condition_operator = '>'
         
         base_query = """
-        SELECT a.*, 
+        SELECT DISTINCT b.profile_id,a.*, 
                f.profession, f.highest_education, g.EducationLevel, d.star, h.income ,d.star as star_name , e.birthstar_name ,e.birth_rasi_name ,
                IF(i.id IS NOT NULL, 1, 0) AS has_image
         FROM logindetails a 
@@ -7881,7 +7881,7 @@ class SuggestedProfiles1(APIView):
 
         # Initialize the query with the base structure
         base_query = """
-        SELECT a.*, 
+        SELECT DISTINCT b.profile_id,a.*, 
                f.profession, f.highest_education, g.EducationLevel, d.star, h.income ,d.star as star_name , e.birthstar_name ,e.birth_rasi_name
         FROM logindetails a 
         JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
