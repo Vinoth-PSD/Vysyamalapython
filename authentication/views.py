@@ -469,7 +469,7 @@ class Registrationstep2(APIView):
                     'Profile_complexion': serializer.validated_data.get('Profile_complexion'), 
                     'DateOfJoin': timezone.now(), 
                     'Otp': 0,
-                    'status': 0,
+                    'Status': 0,
                     'temp_profileid':profile_id,
                     'Reset_OTP_Time':None,
                     'Plan_id':6 #by default basic plan
