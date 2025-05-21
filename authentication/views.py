@@ -437,7 +437,7 @@ class Registrationstep2(APIView):
                 #print('profil id',profile_id)
                 # Check if the profile exists in Registration1 table
                 
-                registration = models.Basic_Registration.objects.get(ProfileId=profile_id,status=0)
+                registration = models.Basic_Registration.objects.get(ProfileId=profile_id,Status=0)
                 
                 try:
                     last_record = models.Registration1.objects.latest('ContentId')
