@@ -4249,18 +4249,18 @@ class Get_profile_det_match(APIView):
                             "sarpadosham": profile_details[0]['calc_raguketu_dhosham'],
                             # "rasi_kattam":profile_details[0]['rasi_kattam'],
                             # "amsa_kattam":profile_details[0]['amsa_kattam'],
-                        },
-                        "contact_details": {
-                            "address": profile_details[0]['Profile_address'],
-                            "city": get_city_name(profile_details[0]['Profile_city']),
-                            "district": get_district_name(profile_details[0]['Profile_district']),
-                            "state": get_state_name(profile_details[0]['Profile_state']),
-                            "country": get_country_name(profile_details[0]['Profile_country']),                           
-                            "phone": profile_details[0]['Mobile_no'],
-                            "mobile": profile_details[0]['Mobile_no'],
-                            "whatsapp": profile_details[0]['Profile_whatsapp'],
-                            "email": profile_details[0]['EmailId'],
                         }
+                        # "contact_details": {
+                        #     "address": profile_details[0]['Profile_address'],
+                        #     "city": get_city_name(profile_details[0]['Profile_city']),
+                        #     "district": get_district_name(profile_details[0]['Profile_district']),
+                        #     "state": get_state_name(profile_details[0]['Profile_state']),
+                        #     "country": get_country_name(profile_details[0]['Profile_country']),                           
+                        #     "phone": profile_details[0]['Mobile_no'],
+                        #     "mobile": profile_details[0]['Mobile_no'],
+                        #     "whatsapp": profile_details[0]['Profile_whatsapp'],
+                        #     "email": profile_details[0]['EmailId'],
+                        # }
                     }
                 
                      # Conditionally add horoscope_details if allowed
