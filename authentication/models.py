@@ -37,7 +37,7 @@ class Basic_Registration(models.Model):
     Payment = models.CharField(max_length=10)  # Changed from CharField to TextField
     PaymentExpire = models.DateTimeField(max_length=15)  # Changed from CharField to TextField
     PaymentType = models.CharField(max_length=255)  # Changed from CharField to TextField
-    status = models.IntegerField() 
+    Status = models.IntegerField() 
     
 
     
