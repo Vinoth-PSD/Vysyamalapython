@@ -2092,7 +2092,7 @@ class Send_profile_intrests(APIView):
 
                 return JsonResponse({"Status": 1, "message": "Express interests sent successfully"}, status=status.HTTP_200_OK)
             else:
-                return JsonResponse({"Status":0, "message": "Send express interests limit Reached"}, status=status.HTTP_200_OK)
+                return JsonResponse({"Status":0, "message": "Get full access - upgrade your package today!"}, status=status.HTTP_200_OK)
             
         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -3289,7 +3289,7 @@ class Save_personal_notes(APIView):
                 
                 return JsonResponse({"Status": 1, "message": message}, status=status_code)
             else:
-                return JsonResponse({"Status":0, "message": "No access to save personal notes"}, status=status.HTTP_200_OK)
+                return JsonResponse({"Status":0, "message": "Get full access - upgrade your package today!"}, status=status.HTTP_200_OK)
         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class Get_personal_notes(APIView):
@@ -4493,7 +4493,7 @@ class Send_photo_request(APIView):
                     return JsonResponse({"Status": 1, "message": "Photo interests sent successfully"}, status=status.HTTP_200_OK)
             
             else:
-                return JsonResponse({"Status": 0, "message": "No access to bookmark the profile"}, status=status.HTTP_200_OK)
+                return JsonResponse({"Status": 0, "message": "Get full access - upgrade your package today!"}, status=status.HTTP_200_OK)
 
         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
@@ -12787,7 +12787,7 @@ def generate_porutham_pdf(request):
             return JsonResponse({'status': 'error', 'message': 'profile_from and profile_to are required'}, status=400)
 
         if can_see_compatability_report(profile_from, profile_to) is not True:
-            return JsonResponse({'status': 'failure', 'message': 'No access to see the compatibility report'}, status=400)
+            return JsonResponse({'status': 'failure', 'message': 'Get full access - upgrade your package today!'}, status=400)
 
         # Fetch required data
         profile_from_details = models.Registration1.objects.get(ProfileId=profile_from)
