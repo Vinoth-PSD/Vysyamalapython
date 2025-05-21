@@ -88,13 +88,13 @@ class Registration1Serializer(serializers.ModelSerializer):
 
     def validate_EmailId(self, EmailId):
         print('EmailId',EmailId)
-        if models.Registration1.objects.filter(EmailId=EmailId,status=1).exists():
+        if models.Registration1.objects.filter(EmailId=EmailId,Status=1).exists():
             raise serializers.ValidationError("This email is already registered.")
         return EmailId
 
     def validate_Mobile_no(self, Mobile_no):
         print('Mobile_no',Mobile_no)
-        if models.Registration1.objects.filter(Mobile_no=Mobile_no,status=1).exists():
+        if models.Registration1.objects.filter(Mobile_no=Mobile_no,Status=1).exists():
             raise serializers.ValidationError("This mobile number is already registered.")
         return Mobile_no
     def validate(self, data):
