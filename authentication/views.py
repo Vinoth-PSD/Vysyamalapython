@@ -8201,6 +8201,7 @@ class CreateOrderView(APIView):
                 order_id=order["id"],
                 amount=amount / 100,  # Save in INR
                 plan_id=plan_id,
+                payment_type='Online',
                 status=1,
                 created_at=timezone.now()
             )

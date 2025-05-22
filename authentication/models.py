@@ -1929,6 +1929,7 @@ class PaymentTransaction(models.Model):
     plan_id = models.IntegerField(max_length=50)
     order_id = models.CharField(max_length=255)
     payment_id =  models.CharField(max_length=255)  
+    payment_type = models.CharField(max_length=255)  
     amount = models.DecimalField(max_digits=10, decimal_places=2) 
     status = models.CharField(max_length=50) #i is pending #2 is paid  # 3 is failed
     created_at = models.DateTimeField()
