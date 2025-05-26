@@ -119,7 +119,7 @@ class LoginView(APIView):
             #auth_user = models.Registration1.objects.get(ProfileId=username, Password__iexact=password)
             #ency_password=encrypt_password(password)
             # print('ency_password', ency_password)
-            auth_user = models.Registration1.objects.get(ProfileId=username)
+            auth_user = models.Registration1.objects.get(ProfileId=username, Status__in=[0,1,2,3])
                       
             if check_password(password,auth_user.Password):
             

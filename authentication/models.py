@@ -1099,7 +1099,7 @@ class Get_profiledata(models.Model):
                     # """
                     base_query = """
                     SELECT DISTINCT a.ProfileId,a.*,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
-                    f.highest_education, g.EducationLevel, d.star, h.income ,  v.viewed_profile
+                    f.highest_education, g.EducationLevel, d.star, h.income ,  v.viewed_profile , i.image
                     FROM logindetails a 
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
                     JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
@@ -1107,12 +1107,20 @@ class Get_profiledata(models.Model):
                     JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
                     JOIN mastereducation g ON f.highest_education = g.RowId 
                     JOIN masterannualincome h ON h.id = f.anual_income
+                    LEFT JOIN profile_images i ON i.id = (
+                            SELECT id
+                            FROM profile_images pi
+                            WHERE pi.profile_id = a.ProfileId
+                            AND pi.image_approved = 1
+                            AND pi.is_deleted = 0
+                            ORDER BY pi.id ASC
+                            LIMIT 1
+                        )
                     LEFT JOIN profile_visit_logs v ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
                     WHERE a.Status=1 AND a.gender != %s AND a.ProfileId != %s 
                     AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {operator} %s
                     """
 
-                   
 
                     # query_params = [gender, profile_id, matching_age, min_income,max_income, partner_pref_education,partner_pref_porutham_star_rasi]
                     query_params = [profile_id,gender, profile_id, matching_age]
@@ -1181,6 +1189,8 @@ class Get_profiledata(models.Model):
                     # plan_priority_order = "FIELD(a.Plan_id, 3, 2,15, 14, 1, 11,12,13,6,7,8)"
 
                     plan_priority = "FIELD(a.Plan_id, 3, 2,15, 14, 1, 11,12,13,6,7,8)"
+
+                    photo_priority = "CASE WHEN i.image IS NOT NULL AND i.image != '' THEN 0 ELSE 1 END"
                     
                     try:
                         order_by = int(order_by)  # Convert order_by to integer
@@ -1192,16 +1202,16 @@ class Get_profiledata(models.Model):
                             
                             #orderby_cond = " ORDER BY a.DateOfJoin ASC "
                             # orderby_cond = f" ORDER BY {plan_priority_order}, a.DateOfJoin ASC "
-                            orderby_cond = f" ORDER BY {view_priority}, {plan_priority}, a.DateOfJoin ASC"
+                            orderby_cond = f" ORDER BY {plan_priority},{photo_priority},{view_priority}, a.DateOfJoin ASC"
                     elif order_by == 2:
                             # print('order by 123456',order_by)
                             # orderby_cond = " ORDER BY a.DateOfJoin DESC "
                             # orderby_cond = f" ORDER BY {plan_priority_order}, a.DateOfJoin DESC "
-                            orderby_cond = f" ORDER BY {view_priority}, {plan_priority}, a.DateOfJoin DESC"
+                            orderby_cond = f" ORDER BY {plan_priority},{photo_priority},{view_priority}, a.DateOfJoin DESC"
                     else:
                             # print('esg')
                             # orderby_cond = ""  # Default case if no valid order_by is provided
-                            orderby_cond = f" ORDER BY {view_priority}, {plan_priority}"
+                            orderby_cond = f" ORDER BY {plan_priority},{photo_priority},{view_priority}, a.DateOfJoin DESC"
 
 
                        
