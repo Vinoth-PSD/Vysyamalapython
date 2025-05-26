@@ -1117,7 +1117,7 @@ class Get_profiledata(models.Model):
                             LIMIT 1
                         )
                     LEFT JOIN profile_visit_logs v ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
-                    WHERE a.Status=1 AND a.gender != %s AND a.ProfileId != %s 
+                    WHERE a.Status=1 AND a.Plan_id !=16 AND a.gender != %s AND a.ProfileId != %s 
                     AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {operator} %s
                     """
 
@@ -1188,7 +1188,7 @@ class Get_profiledata(models.Model):
                     view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END"
                     # plan_priority_order = "FIELD(a.Plan_id, 3, 2,15, 14, 1, 11,12,13,6,7,8)"
 
-                    plan_priority = "FIELD(a.Plan_id, 3, 2,15, 14, 1, 11,12,13,6,7,8)"
+                    plan_priority = "FIELD(a.Plan_id, 3,2,15,14,1,11,12,13,6,7,8)"
 
                     photo_priority = "CASE WHEN i.image IS NOT NULL AND i.image != '' THEN 0 ELSE 1 END"
                     
