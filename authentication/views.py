@@ -6392,14 +6392,14 @@ class UpdateMyProfileFamily(APIView):
 
                     # print('family_status_value:', family_status_value, type(family_status_value))
                     if family_details.family_status is not None and family_status_id is not None:
+                        
+                        if int(family_details.family_status) != int(family_status_id):
+                            # if family_details.family_status.strip() != family_status_id.strip():
 
-                       if int(family_details.family_status) != int(family_status_id):
-                    # if family_details.family_status.strip() != family_status_id.strip():
-                    
-                        # print('123456')
-                        family_details.family_status = family_status_id
-                        notification_message = "Family Status "
-                        notification_titile +=" Family Status "
+                            # print('123456')
+                            family_details.family_status = family_status_id
+                            notification_message = "Family Status "
+                            notification_titile +=" Family Status "
                     
                     
                     serializer.save()
