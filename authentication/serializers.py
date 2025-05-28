@@ -1294,6 +1294,7 @@ class PersonalFamilySerializer(serializers.ModelSerializer):
     no_of_brother = serializers.CharField(required=False, allow_blank=True , allow_null=True)
     no_of_bro_married = serializers.CharField(required=False, allow_blank=True , allow_null=True)
     property_details = serializers.CharField(required=False, allow_blank=True , allow_null=True)
+    property_worth = serializers.CharField(required=False, allow_blank=True , allow_null=True)
     about_family = serializers.CharField(required=False, allow_blank=True , allow_null=True)
     ancestor_origin = serializers.CharField(required=False, allow_blank=True , allow_null=True)
     uncle_gothram = serializers.CharField(required=False, allow_blank=True , allow_null=True)
@@ -1302,7 +1303,7 @@ class PersonalFamilySerializer(serializers.ModelSerializer):
     
     class Meta:
         model = models.Familydetails
-        fields = ['father_name','father_occupation','mother_name','mother_occupation','family_status','no_of_sister','no_of_sis_married','no_of_brother','no_of_bro_married','property_details','about_family','ancestor_origin','uncle_gothram','family_type','family_value']
+        fields = ['father_name','father_occupation','mother_name','mother_occupation','family_status','no_of_sister','no_of_sis_married','no_of_brother','no_of_bro_married','property_details','property_worth','about_family','ancestor_origin','uncle_gothram','family_type','family_value']
 
 class FamilyStatusSerializer(serializers.ModelSerializer):
     class Meta:
