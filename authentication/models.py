@@ -64,7 +64,7 @@ def upload_to_profile_divorce(instance, filename):
 def upload_to_profile(instance, filename):
     # return os.path.join('profile_{0}'.format(instance.profile_id), filename)
     return f"profile_images/{filename}"
-    
+
 class Registration1(models.Model):
     ContentId  = models.AutoField(primary_key=True)
     temp_profileid = models.CharField(max_length=200)
@@ -76,6 +76,7 @@ class Registration1(models.Model):
     EmailId = models.CharField(max_length=100)
     Password = models.CharField(max_length=20)  # Changed from CharField to TextField
     Otp = models.CharField(max_length=10)
+    Otp_verify = models.SmallIntegerField(max_length=10)
     Stage = models.SmallIntegerField()
     AdminPermission = models.SmallIntegerField()  # Changed from CharField to TextField
     Payment = models.CharField(max_length=10)  # Changed from CharField to TextField

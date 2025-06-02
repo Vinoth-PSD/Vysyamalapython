@@ -6408,7 +6408,7 @@ class UpdateMyProfileFamily(APIView):
                     # print('12345')
                        #notify_related_profiles(profile_id,'Profile_update',notification_titile,notification_message)
                         addto_notification_queue(profile_id,'Profile_update',notification_titile,notification_message)
-                        
+
                 response = {
                     "status": "success",
                     "message": "Family details updated successfully"
@@ -11977,6 +11977,23 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 profession_id = education_details.profession
                 profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
+                work_place=education_details.work_place
+                ocupation_title=''
+                ocupation=''
+
+                if profession_id==1:
+                        ocupation_title='Employment Details'
+                        ocupation=education_details.company_name+'/'+education_details.designation
+                if profession_id==2:
+                       ocupation_title='Business Details'
+                       ocupation=education_details.business_name+'/'+education_details.nature_of_business
+                
+                profession_id = education_details.profession
+                profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
+
+
+                
+
                 #father_occupation_id = family_detail.father_occupation
                 father_occupation = family_detail.father_occupation
 
@@ -11999,10 +12016,18 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                     rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
                 except models.Rasi.DoesNotExist:
                     rasi_name = "Unknown"
+                    
 
                 time_of_birth = horoscope.time_of_birth
                 place_of_birth = horoscope.place_of_birth
-                lagnam_didi = horoscope.lagnam_didi
+                
+                try:
+                    lagnam = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
+                    lagnam = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                except models.Rasi.DoesNotExist:
+                    lagnam = "Unknown"
+
+                didi = horoscope.didi
                 nalikai =  horoscope.nalikai
 
                 age = calculate_age(dob)  
@@ -12422,13 +12447,15 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                             <p><strong>Vysyamala Id : </strong></p>
                                             <p>Height / Photos </p>
                                             <p>Annual Income</p>
-                                            <p>Profession</p>
+                                            <p>Profession/Place of stay</p>
+                                            <p>{ocupation_title}</p>
                                         </td> 
                                         <td>
                                             <p><strong>{user_profile_id}</strong></p>
                                             <p> {height} / Not specified</p>
                                             <p>{annual_income}</p>
-                                            <p>{profession}</p>
+                                            <p>{profession} / {work_place}</p>
+                                            <p>{ocupation}</p>
                                         </td> 
                                     </tr>
                                 </table>
@@ -12496,8 +12523,8 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                                 <p>Nalikai </p>
                                             </td>
                                             <td>
-                                                <p><strong>{star_name}, {rasi_name}</strong></p>
-                                                <p>{lagnam_didi}</p>
+                                                <p><strong>{star_name}/{rasi_name}</strong></p>
+                                                <p>{lagnam}/{didi}</p>
                                                 <p>{nalikai}</p>
                                             </td>
                                         </tr>

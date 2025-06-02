@@ -64,10 +64,11 @@ urlpatterns = [
     path('Get_save_details/', views.Get_save_details.as_view(), name='Get_save_details'),
     path('Get_resend_otp/', views.Get_resend_otp.as_view(), name='Get_resend_otp'),
     path('Get_palns/', views.Get_palns.as_view(), name='Get_palns'),
-    
+
     path('Login_with_mobileno/', views.Login_with_mobileno.as_view(), name='Login_with_mobileno'),
     path('Login_verifyotp/', views.Login_verifyotp.as_view(), name='Login_verifyotp'),
     path('Get_prof_list_match/', views.Get_prof_list_match.as_view(), name='Get_prof_list_match'),
+    # path('Get_profile_det_match_1/', views.Get_profile_det_match_1.as_view(), name='Get_profile_det_match_1'),
     path('Get_profile_det_match/', views.Get_profile_det_match.as_view(), name='Get_profile_det_match'),
     path('Send_profile_intrests/', views.Send_profile_intrests.as_view(), name='Send_profile_intrests'),
     path('Get_profile_intrests_list/', views.Get_profile_intrests_list.as_view(), name='Get_profile_intrests_list'),
