@@ -2014,7 +2014,7 @@ class Partnerpref(models.Model):
     pref_ragukethu = models.CharField(max_length=20)
     pref_foreign_intrest = models.CharField(max_length=20)
     pref_porutham_star = models.TextField(max_length=200)
-    pref_porutham_star_rasi = models.TextField(max_length=200)
+    pref_porutham_star_rasi = models.TextField(max_length=200 , null=True, blank=True)
     status = models.IntegerField()   # Changed from CharField to TextField
     
     class Meta:
