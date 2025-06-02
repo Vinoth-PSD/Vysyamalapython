@@ -170,8 +170,6 @@ urlpatterns = [
 
     path('Get_featured_profiles/', views.FeaturedProfile.as_view(), name='Get_featured_profiles'),
     
-    path('Get_Suggested_List/', views.SuggestedProfiles1.as_view(), name='Suggested_profiles'),
-
     path('Search_byprofile_id/', views.Search_byprofile_id.as_view(), name='Search_byprofile_id'),
 
 

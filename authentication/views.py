@@ -7731,6 +7731,7 @@ class GetFeaturedList(APIView):
 
         LEFT JOIN profile_images i 
         ON a.ProfileId = i.profile_id 
+        AND a.Plan_id !=16
         AND i.image_approved = 1 
         AND i.is_deleted = 0
 
@@ -7890,12 +7891,17 @@ class SuggestedProfiles1(APIView):
         JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
         JOIN mastereducation g ON f.highest_education = g.RowId 
         JOIN masterannualincome h ON h.id = f.anual_income
+        LEFT JOIN profile_images i 
+        ON a.ProfileId = i.profile_id 
+        AND a.Plan_id !=16
+        AND i.image_approved = 1 
+        AND i.is_deleted = 0
         WHERE a.gender != %s AND a.ProfileId != %s AND Plan_id IN (2, 3, 15)
         """
 
-        # Prepare the query parameters
-        base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator} %s"
-        
+        base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator} %s   ORDER BY has_image DESC"
+
+
         # Prepare the query parameters
         query_params = [gender, profile_id, profile_age]
         
@@ -10959,7 +10965,7 @@ class HomepageListView(APIView):
 
 def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirthchart"):
 
-                print('1234567')
+                # print('1234567')
   
                 # Retrieve the Horoscope object based on the provided profile_id
                 horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
@@ -11009,6 +11015,22 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 profession_id = education_details.profession
                 profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
+
+                work_place=education_details.work_place
+                ocupation_title=''
+                ocupation=''
+
+                if profession_id==1:
+                        ocupation_title='Employment Details'
+                        ocupation=education_details.company_name+'/'+education_details.designation
+                if profession_id==2:
+                       ocupation_title='Business Details'
+                       ocupation=education_details.business_name+'/'+education_details.nature_of_business
+                
+                profession_id = education_details.profession
+                profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
+
+
                 #father_occupation_id = family_detail.father_occupation
                 father_occupation = family_detail.father_occupation
 
@@ -11034,10 +11056,17 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
 
                 time_of_birth = horoscope.time_of_birth
                 place_of_birth = horoscope.place_of_birth
-                lagnam_didi = horoscope.lagnam_didi
+                lagnam = horoscope.lagnam_didi
+                didi = horoscope.didi
                 nalikai =  horoscope.nalikai
 
                 age = calculate_age(dob)  
+
+                try:
+                    lagnam = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
+                    lagnam = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                except models.Rasi.DoesNotExist:
+                    lagnam = "Unknown"
 
                 # Planet mapping dictionary
                 planet_mapping = {
@@ -11093,9 +11122,9 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     horoscope_image_url = horoscope_data.horoscope_file.url
             
                     if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                        horoscope_content = f'<img src="{settings.IMAGE_BASEURL}{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
+                        horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
                     else:
-                        horoscope_content = f'<a href="{settings.IMAGE_BASEURL}{horoscope_image_url}" download>Download Horoscope File</a>'
+                        horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                 else:
                     horoscope_content = '<p>No horoscope uploaded</p>'
 
@@ -11109,12 +11138,18 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 def format_star_names(poruthams):
                     return ', '.join([item['matching_starname'] for item in poruthams])
 
-                profile_url = f"http://matrimonyapp.rainyseasun.com/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
+                profile_url = f"https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
 
-                
+                dasa_day = dasa_month = dasa_year = 0
 
+                # Try to split if format is correct
+                dasa_date_str=horoscope.dasa_balance
+                if dasa_date_str.count('/') == 2:
+                    parts = dasa_date_str.split('/')
+                    if all(part.isdigit() for part in parts):
+                        dasa_day, dasa_month, dasa_year = map(int, parts)
                     # Dynamic HTML content including Rasi and Amsam charts
-
+            
                 html_content = rf"""
                 <html>
                     <head>
@@ -11440,13 +11475,15 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                             <p><strong>Vysyamala Id : </strong></p>
                                             <p>Height / Photos </p>
                                             <p>Annual Income</p>
-                                            <p>Profession</p>
+                                            <p>Profession/Place of stay</p>
+                                            <p>{ocupation_title}</p>
                                         </td> 
                                         <td>
                                             <p><strong>{user_profile_id}</strong></p>
                                             <p> {height} / Not specified</p>
                                             <p>{annual_income}</p>
-                                            <p>{profession}</p>
+                                            <p>{profession} / {work_place}</p>
+                                            <p>{ocupation}</p>
                                         </td> 
                                     </tr>
                                 </table>
@@ -11511,7 +11548,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                             </td>
                                             <td>
                                                 <p><strong>{star_name}, {rasi_name}</strong></p>
-                                                <p>{lagnam_didi}</p>
+                                                <p>{lagnam}/{didi}</p>
                                                 <p>{nalikai}</p>
                                             </td>
                                         </tr>
@@ -11585,9 +11622,9 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                         <td>
                                             
                                                 <p><strong>Dasa Balance</strong</p>
-                                                <p>Years: 01</p>
-                                                <p>Months: 8</p>
-                                                <p>Days: 23</p>
+                                                <p>Years: {dasa_year} </p>
+                                                <p>Months: {dasa_month} </p>
+                                                <p>Days: {dasa_day} </p>
                                             </td>
                                         </tr>
                                             
@@ -11991,7 +12028,15 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 profession_id = education_details.profession
                 profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
+                
+                dasa_day = dasa_month = dasa_year = 0
 
+                # Try to split if format is correct
+                dasa_date_str=horoscope.dasa_balance
+                if dasa_date_str.count('/') == 2:
+                    parts = dasa_date_str.split('/')
+                    if all(part.isdigit() for part in parts):
+                        dasa_day, dasa_month, dasa_year = map(int, parts)
                 
 
                 #father_occupation_id = family_detail.father_occupation
@@ -12084,11 +12129,13 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
     
                 if horoscope_data.horoscope_file:
                     horoscope_image_url = horoscope_data.horoscope_file.url
-            
+
+                    print(horoscope_image_url)
+
                     if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                        horoscope_content = f'<img src="{settings.IMAGE_BASEURL}{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
+                        horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
                     else:
-                        horoscope_content = f'<a href="{settings.IMAGE_BASEURL}{horoscope_image_url}" download>Download Horoscope File</a>'
+                        horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                 else:
                     horoscope_content = '<p>No horoscope uploaded</p>'
 
@@ -12102,7 +12149,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 def format_star_names(poruthams):
                     return ', '.join([item['matching_starname'] for item in poruthams])
                 
-                profile_url = f"http://matrimonyapp.rainyseasun.com/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
+                profile_url = f"https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
 
                 
 
@@ -12598,9 +12645,9 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                         <td>
                                             
                                                 <p><b>Dasa Balance</b></p>
-                                                <p>Years: 01</p>
-                                                <p>Months: 8</p>
-                                                <p>Days: 23</p>
+                                                <p>Years: {dasa_year}</p>
+                                                <p>Months: {dasa_month}</p>
+                                                <p>Days: {dasa_day}</p>
                                             </td>
                                         </tr>
                                             
