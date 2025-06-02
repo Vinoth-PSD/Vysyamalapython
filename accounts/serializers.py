@@ -287,6 +287,7 @@ class LoginEditSerializer(serializers.ModelSerializer):
     Plan_id = serializers.CharField(required=True)
     Profile_idproof = serializers.FileField(required=False)  
     Profile_divorceproof = serializers.FileField(required=False)  
+    Otp_verify = serializers.IntegerField(required=False)  
 
     class Meta:
         model = LoginDetails

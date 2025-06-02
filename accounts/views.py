@@ -2072,6 +2072,7 @@ class EditProfileAPIView(APIView):
                 "primary_status":profile_common_data.get("primary_status"),
                 "secondary_status":profile_common_data.get("secondary_status"),
                 "plan_status":profile_common_data.get("plan_status"),
+                "Otp_verify":profile_common_data.get("mobile_otp_verify"),
             }
             family_common_data={
                 "family_status":profile_common_data.get("family_status")
@@ -2288,8 +2289,10 @@ class GetProfEditDetailsAPIView(APIView):
                 "age":calculate_age(login_detail.Profile_dob),
                 "payment_date":"2025-03-20",
                 "payment_mode":"Online",
-                "add_on_pack_name":""
+                "add_on_pack_name":"",
+                "mobile_otp_verify":login_detail.Otp_verify
                 }
+                
         
 
         # print('profile_common_details',response_data['profile_common_details'])
