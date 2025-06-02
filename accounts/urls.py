@@ -5,7 +5,7 @@ from .views import (
      ProfileHolderViewSet, MaritalStatusViewSet, HeightViewSet,
     ComplexionViewSet, ParentsOccupationViewSet, HighestEducationViewSet, SubmitProfileAPIView, UgDegreeViewSet,
     AnnualIncomeViewSet,  BirthStarViewSet, RasiViewSet, LagnamViewSet,
-    DasaBalanceViewSet, FamilyTypeViewSet, FamilyStatusViewSet, FamilyValueViewSet, LoginDetailsTempViewSet , Newprofile_get ,GetProfileDataView,LoginDetailsListCreateView, LoginDetailsDetailView , MatchViewSet , SuccessStoryViewSet, SuccessStoryListViewSet , AwardViewSet , AwardListViewSet , TestimonialViewSet , TestimonialListViewSet , CityViewSet , EditProfileAPIView , GetProfEditDetailsAPIView, fetch_login_details  , fetch_login_details_profile ,VysycommentsListViewSet
+    DasaBalanceViewSet, FamilyTypeViewSet, FamilyStatusViewSet, FamilyValueViewSet, LoginDetailsTempViewSet , Newprofile_get ,GetProfileDataView,LoginDetailsListCreateView, LoginDetailsDetailView , MatchViewSet , SuccessStoryViewSet, SuccessStoryListViewSet , AwardViewSet , AwardListViewSet , TestimonialViewSet , TestimonialListViewSet , CityViewSet , EditProfileAPIView , GetProfEditDetailsAPIView, fetch_login_details  , fetch_login_details_profile ,VysycommentsListViewSet , VerifymobileOtp 
 )
 from .views import LoginDetailsViewSet, ProfileFamilyDetailsViewSet, ProfileEduDetailsViewSet, Newprofile_get, PageViewSet, PageListViewSet, PageEditView, PageDeleteView,  AdminSettingsView, AdminSettingsUpdateView, ImageUploadView,  AdminUserDetailView , list_admin_users , list_admin_users,list_roles, add_admin_user, edit_admin_user, delete_admin_user , SuccessStoryEditView, SuccessStoryDeleteView , AwardEditView , AwardDeleteView , TestimonialEditView,TestimonialDeleteView,export_excel , QuickUploadAPIView , ExpressInterestView , ViewedProfileByDateRangeView,PhotoRequestView , BookmarksView , ProfileImages , ProfileImagesView , GetMasterStatus , Get_prof_list_match , ProfileVysAssistView , HomepageListView, delete_profile, My_viewed_profiles, Get_photo_request_list, My_vysassist_list, Get_personal_notes, Exp_intrests_list , send_bulk_email, ProfileSendTo , Update_AdminComments ,GetSubMasterStatus , GetPlanbyStatus , ProfileVysAssistFollowupListCreateView , ProfileVysAssistFollowupRetrieveUpdateDeleteView , My_profiles_vistors , CallactionReceived , CallactionSent , Get_suggest_list_match , Exp_intrests_received , Exp_intrests_mutual , Matchingprintprofile , Matchingwhatsapp , Matchingsendemail ,Partnersettings , Suggestsettings ,GetallPlans,ShortProfilePDFView,SendShortProfilePDFEmail,SendFullProfilePDFEmail
 from .views import CallTypeListCreateView
@@ -180,5 +180,6 @@ urlpatterns = [
     path('payment-transaction/list/', PaymentTransactionListView.as_view(), name='payment-transaction-list'),
     path('generate-invoice/', GenerateInvoicePDF.as_view(), name='generate-invoice'),
     path('get-photo-proof-details/', views.GetPhotoProofDetails, name='get_photo_proof_details'),
-
+    path('send_mobile_otp/', views.SendmobileOtp.as_view(), name='send_mobile_otp'),
+    path('verify_mobile_otp/', views.VerifymobileOtp.as_view(), name='verify_mobile_otp'),
 ]

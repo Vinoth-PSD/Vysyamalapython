@@ -67,7 +67,7 @@ import base64
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from authentication.models import Horoscope
-
+import requests
 
 
 # class ModeViewSet(viewsets.ModelViewSet):
@@ -6651,4 +6651,99 @@ def GetPhotoProofDetails(request):
 
 
 
+class SendmobileOtp(APIView):
+    
+    def generate_otp(self):
+        # Implement your OTP generation logic here
+        import random
+        return str(random.randint(100000, 999999))
+    
+    def post(self, request):
+        profile_id=request.data.get('profile_id')
+        if not profile_id:
+            return JsonResponse({"status": "error", "message": "Profile ID is required"}, status=400)
+        
+        # mobile_number='91'+mobile_number
 
+        # print('mobile_number',mobile_number)
+        # Check if the mobile number exists in Registration table
+        try:
+            profile = models.Registration1.objects.get(ProfileId=profile_id)
+        except models.Registration1.DoesNotExist:
+            return JsonResponse({"status": 0, "message": "Invalid profile id."}, status=status.HTTP_200_OK)
+        
+        mobile_number=profile.Mobile_no
+        # Generate OTP
+        otp = self.generate_otp()
+
+        # Send OTP via SMS (implement SendSMS() appropriately)
+        
+        #Below code commented on 30th jully 2024 harcode value set as 1234
+
+        sms_sender = SendSMS()  # Ensure SendSMS class is implemented and imported correctly
+        message_id = sms_sender.send_sms(otp, mobile_number)
+        dlr_status = sms_sender.check_dlr(message_id)
+        available_credit = sms_sender.available_credit()
+
+        # Save OTP to UserProfile
+        profile.Otp = otp
+        #profile.Otp = 123456 #otp
+        profile.save()
+
+        # Prepare response data
+        response_data = {
+            "message": "OTP sent successfully.",
+            "Send Message Response": message_id,
+            "Delivery Report Status": dlr_status,
+            "Available Credit": available_credit
+        }
+
+        return JsonResponse({"status": 1, "response_data": response_data, "message": "OTP sent successfully."}, status=status.HTTP_201_CREATED)
+    
+
+class SendSMS:
+    def __init__(self):
+        self.url = 'http://pay4sms.in'
+        self.token = '76111ad0d3c72d750e36ec22c6e5105d'
+        self.credit = '2'
+        self.sender = 'VYSYLA'
+        # self.message_template = 'Dear Customer, {} is the OTP for Edit profile. Please enter it in the space provided in the Website. Thank you for using Vysyamala.com'
+        self.message_template = 'Dear Customer,{} is the OTP for mobile verification. Please enter it in the space provided in the Website. Thank you for using Vysyamala.com'
+
+    def send_sms(self, otp, numbers):
+        message = self.message_template.format(otp)
+        message = requests.utils.quote(message)
+        sms_url = f"{self.url}/sendsms/?token={self.token}&credit={self.credit}&sender={self.sender}&number={numbers}&message={message}"
+        response = requests.get(sms_url)
+        return response.text
+
+    def check_dlr(self, message_id):
+        dlr_url = f"{self.url}/Dlrcheck/?token={self.token}&msgid={message_id}"
+        response = requests.get(dlr_url)
+        return response.text
+
+    def available_credit(self):
+        credit_url = f"{self.url}/Credit-Balance/?token={self.token}"
+        response = requests.get(credit_url)
+        return response.text
+    
+
+class VerifymobileOtp(APIView):
+    def post(self, request):
+        profile_id = request.data.get('profile_id')
+        otp = request.data.get('otp')
+
+        if not profile_id or not otp:
+            return JsonResponse({"status": "error", "message": "profile_id and otp are required"}, status=400)       
+
+        try:
+            profile = models.Registration1.objects.get(ProfileId=profile_id, Otp=otp)
+            
+            # Update the Otp_verify column
+            profile.Otp_verify = 1
+            profile.save()
+
+            return JsonResponse({"status": "success", "message": "Otp verified successfully"}, status=status.HTTP_200_OK)
+
+        except models.Registration1.DoesNotExist:
+            return JsonResponse({"status": "error", "message": "Invalid otp for the profile id"}, status=status.HTTP_200_OK)
