@@ -5689,37 +5689,61 @@ class ShortProfilePDFView(APIView):
             edu_details = get_object_or_404(ProfileEduDetails, profile_id=profile_id)
             horoscope_details = get_object_or_404(ProfileHoroscope, profile_id=profile_id)
 
-            # Other existing logic for fetching complexion, birthstar, etc.
-            complexion_desc = default_placeholder
-            if login_details.Profile_complexion:  
-                complexion_instance = get_object_or_404(Complexion, complexion_id=login_details.Profile_complexion)
+        # Other existing logic for fetching complexion, birthstar, etc.
+        # Complexion
+        complexion_desc = default_placeholder
+        try:
+            if login_details.Profile_complexion:
+                complexion_instance = Complexion.objects.get(complexion_id=login_details.Profile_complexion)
                 complexion_desc = complexion_instance.complexion_desc
+        except Complexion.DoesNotExist:
+            pass
 
-            birthstar_name = default_placeholder
-            if horoscope_details.birthstar_name:  
-                birthstar_instance = get_object_or_404(BirthStar, id=horoscope_details.birthstar_name)
+        # Birthstar
+        birthstar_name = default_placeholder
+        try:
+            if horoscope_details.birthstar_name:
+                birthstar_instance = BirthStar.objects.get(id=horoscope_details.birthstar_name)
                 birthstar_name = birthstar_instance.star
-            
-            highest_education = default_placeholder
+        except BirthStar.DoesNotExist:
+            pass
+
+        # Highest Education
+        highest_education = default_placeholder
+        try:
             if edu_details.highest_education:
-                education_instance = get_object_or_404(EducationLevel, row_id=edu_details.highest_education)
+                education_instance = EducationLevel.objects.get(row_id=edu_details.highest_education)
                 highest_education = education_instance.EducationLevel
+        except EducationLevel.DoesNotExist:
+            pass
 
-            profession = default_placeholder
+        # Profession
+        profession = default_placeholder
+        try:
             if edu_details.profession:
-                profession_instance = get_object_or_404(Profession, row_id=edu_details.profession)
+                profession_instance = Profession.objects.get(row_id=edu_details.profession)
                 profession = profession_instance.profession
+        except Profession.DoesNotExist:
+            pass
 
-            annual_income = default_placeholder
+        # Annual Income
+        annual_income = default_placeholder
+        try:
             if edu_details.anual_income:
-                income_instance = get_object_or_404(AnnualIncome, id=edu_details.anual_income)
+                income_instance = AnnualIncome.objects.get(id=edu_details.anual_income)
                 annual_income = income_instance.income
+        except AnnualIncome.DoesNotExist:
+            pass
 
-            state_name = default_placeholder
+        # State Name
+        state_name = default_placeholder
+        try:
             if login_details.Profile_state:
-                state_instance = get_object_or_404(State, id=login_details.Profile_state)
+                state_instance = State.objects.get(id=login_details.Profile_state)
                 state_name = state_instance.name
-
+        except State.DoesNotExist:
+            pass
+        
             # Process rasi_kattam
             if horoscope_details.rasi_kattam:
                 rasi_kattam = parse_data(horoscope_details.rasi_kattam)
