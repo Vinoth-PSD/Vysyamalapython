@@ -519,7 +519,7 @@ class LoginDetails(models.Model):
     Video_url= models.TextField(blank=True, null=True)
     Plan_id= models.CharField(max_length=100,blank=True, null=True)
     Otp = models.CharField(max_length=10)
-    Otp_verify = models.SmallIntegerField(max_length=10)
+    Otp_verify = models.SmallIntegerField(max_length=10,blank=True, null=True)
     
     Profile_height = models.CharField(max_length=250)
     Photo_password = models.CharField(max_length=255)
@@ -1116,13 +1116,13 @@ class Registration1(models.Model):
     EmailId = models.CharField(max_length=100)
     Password = models.CharField(max_length=20)  # Changed from CharField to TextField
     Otp = models.CharField(max_length=10)
-    Otp_verify = models.SmallIntegerField(max_length=10)
+    Otp_verify = models.SmallIntegerField(max_length=10,blank=True, null=True)
     Stage = models.SmallIntegerField()
     AdminPermission = models.SmallIntegerField()  # Changed from CharField to TextField
     Payment = models.CharField(max_length=10)  # Changed from CharField to TextField
     PaymentExpire = models.DateTimeField(max_length=15)  # Changed from CharField to TextField
     PaymentType = models.CharField(max_length=255)  # Changed from CharField to TextField
-
+    
 
     Profile_name = models.CharField(max_length=255) 
     Profile_marital_status = models.CharField(max_length=255) 
