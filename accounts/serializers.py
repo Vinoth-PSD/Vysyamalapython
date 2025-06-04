@@ -231,7 +231,7 @@ class LoginDetailsSerializer(serializers.ModelSerializer):
     Profile_pincode = serializers.CharField(required=True)
     
     Notifcation_enabled = serializers.CharField(required=True)
-    Addon_package = serializers.CharField(required=True)
+    Addon_package = serializers.CharField(required=False)
     Plan_id = serializers.CharField(required=False)
     Profile_idproof = serializers.FileField(required=False)  
     Profile_divorceproof = serializers.FileField(required=False)
@@ -283,7 +283,7 @@ class LoginEditSerializer(serializers.ModelSerializer):
     Profile_pincode = serializers.CharField(required=True)
 
     Notifcation_enabled = serializers.CharField(required=True)
-    Addon_package = serializers.CharField(required=True)
+    Addon_package = serializers.CharField(required=False)
     Plan_id = serializers.CharField(required=True)
     Profile_idproof = serializers.FileField(required=False)  
     Profile_divorceproof = serializers.FileField(required=False)  

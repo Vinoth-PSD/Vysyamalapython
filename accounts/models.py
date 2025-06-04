@@ -519,8 +519,7 @@ class LoginDetails(models.Model):
     Video_url= models.TextField(blank=True, null=True)
     Plan_id= models.CharField(max_length=100,blank=True, null=True)
     Otp = models.CharField(max_length=10)
-    Otp_verify = models.SmallIntegerField(max_length=10,blank=True, null=True)
-    
+    Otp_verify = models.SmallIntegerField(max_length=10,blank=True, null=True)    
     Profile_height = models.CharField(max_length=250)
     Photo_password = models.CharField(max_length=255)
 
@@ -1122,7 +1121,7 @@ class Registration1(models.Model):
     Payment = models.CharField(max_length=10)  # Changed from CharField to TextField
     PaymentExpire = models.DateTimeField(max_length=15)  # Changed from CharField to TextField
     PaymentType = models.CharField(max_length=255)  # Changed from CharField to TextField
-    
+
 
     Profile_name = models.CharField(max_length=255) 
     Profile_marital_status = models.CharField(max_length=255) 
@@ -1146,7 +1145,7 @@ class Registration1(models.Model):
     Photo_protection = models.SmallIntegerField(default=0)
     Video_url= models.CharField(max_length=255)
     Plan_id= models.CharField(max_length=100)
-    Addon_package= models.CharField(max_length=100)
+    Addon_package= models.CharField(max_length=100 , blank=True, null=True)
     Last_login_date= models.CharField(max_length=100)  
     Notifcation_enabled= models.CharField(max_length=100)
     Featured_profile= models.CharField(max_length=100)

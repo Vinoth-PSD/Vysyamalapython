@@ -2234,7 +2234,8 @@ class GetProfEditDetailsAPIView(APIView):
         except Profile_PlanFeatureLimit.DoesNotExist:
 
             profile_plan_features = Profile_PlanFeatureLimit.objects.create(
-                    profile_id=profile_id
+                    profile_id=profile_id,
+                    status=1
                 ) 
             response_data['profile_plan_features'] = ProfileplanSerializer(profile_plan_features).data
             # response_data['profile_plan_features'] = {}  # Return an empty object if not found
