@@ -11260,13 +11260,22 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                             }}
                             .inner td {{
                                 width:25%;
-                               height:85px;
+                                height:80px;
                                 border:2px solid #d6d6d6;
                                 padding: 10px;
                                 color: #008000;
                                 font-weight: bold;
                                 font-size: 12px;
                                 white-space: pre-line; /* Ensures new lines are respected */
+                            }}
+
+                            .inner-table tr td p{{
+                                white-space: pre-line;
+                               word-break: break-all;
+                                word-wrap: normal;
+                                word-wrap: break-word;
+                                overflow:hidden;
+                                
                             }}
 
                             .inner .highlight {{
@@ -11342,9 +11351,9 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 margin: 30px auto;
                                 text-align: right;
                             }}
-                          
+ 
                             .add-info tr {{
-                           padding:10px 20px ;
+                           padding:5px 20px ;
                             }}
                         
                             .add-info td {{
@@ -11352,10 +11361,10 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 padding: 5px 5px;
                             }}
                           .add-info td p{{
-                            font-size: 16px;
+                            font-size: 14px;
                             font-weight: 400;
                             color: #008000;
-                            padding:0 20px;
+                            padding:0 10px;
                            }}
                            .click-here{{
                             color:#318f9a;
@@ -12266,7 +12275,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                             }}
                             .inner td {{
                                 width:25%;
-                                height:85px;
+                                height:80px;
                                 border:2px solid #d6d6d6;
                                 padding: 10px;
                                 color: #000000;
@@ -12285,7 +12294,14 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                     color: #000000;
 
                             }}
-
+                            .inner-table tr td p{{
+                                white-space: pre-line;
+                               word-break: break-all;
+                                word-wrap: normal;
+                                word-wrap: break-word;
+                                overflow:hidden;
+                                
+                            }}
                             .inner .highlight p{{
                                 font-size: 16px;
                                 font-weight: 400;
@@ -12360,9 +12376,9 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                 margin: 30px auto;
                                 text-align: right;
                             }}
-                          
-                            .add-info tr {{
-                            padding:10px 20px ;
+
+                             .add-info tr {{
+                            padding:5px 20px ;
                             }}
                         
                             .add-info td {{
@@ -12370,11 +12386,12 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                 padding: 5px 5px;
                             }}
                           .add-info td p{{
-                            font-size: 16px;
+                            font-size: 14px;
                             font-weight: 400;
                             color: #000000;
-                            padding:0 20px;
+                            padding:0 10px;
                            }}
+                          
                            .click-here{{
                             color:#000;
                             font-weight:700 ;
