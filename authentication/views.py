@@ -2260,12 +2260,22 @@ class Get_dashboard_details(APIView):
 
             #if profile_details.status_code != 200 or profile_details is None:
             #if getattr(profile_details, 'status_code', None) != 200 or profile_details is None:
-            if profile_details is None:
-                matching_profile_count = 0
-                profile_ids=[]
-            else:
+            # if profile_details is None:
+            #     matching_profile_count = 0
+            #     profile_ids=[]
+            # else:
+            #     matching_profile_count = len(profile_details)
+            #     profile_ids = [profile['ProfileId'] for profile in profile_details]
+
+            if profile_details and isinstance(profile_details, list):
                 matching_profile_count = len(profile_details)
-                profile_ids = [profile[0] for profile in profile_details]
+                try:
+                    profile_ids = [profile['ProfileId'] for profile in profile_details]
+                except (TypeError, KeyError):
+                    profile_ids = []
+            else:
+                matching_profile_count = 0
+                profile_ids = []
 
                
                 #print('profile_ids',profile_ids)
