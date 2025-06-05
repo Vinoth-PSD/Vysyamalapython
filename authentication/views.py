@@ -2449,38 +2449,82 @@ class Get_dashboard_details(APIView):
 
 
 def matching_gallery(profile_id):
-    
-
+    try:
         user = models.Registration1.objects.get(ProfileId=profile_id)
         gender = user.Gender.lower()
 
         profile_details = models.Get_profiledata.get_profile_match_count(profile_id)
+
+        # Check that profile_details is a non-empty list
+        if isinstance(profile_details, list) and profile_details:
+            profile_ids = [profile['ProfileId'] for profile in profile_details]
+            placeholders = ', '.join(['%s'] * len(profile_ids))
+
+            base_url = settings.MEDIA_URL  # not used here, just retained from your code
+
+            # SQL query to count distinct profile IDs from images
+            sql_query_count = f"""
+                SELECT COUNT(DISTINCT pi.profile_id)
+                FROM profile_images pi
+                JOIN logindetails ld ON pi.profile_id = ld.ProfileId
+                WHERE ld.Photo_protection != 1
+                AND ld.ProfileId IN ({placeholders})
+            """
+
+            with connection.cursor() as cursor:
+                cursor.execute(sql_query_count, profile_ids)
+                total_records = cursor.fetchone()[0]  # Get total count
+
+            return total_records
+        else:
+            return 0
+
+    except models.Registration1.DoesNotExist:
+        return 0
+
+    except Exception as e:
+        print(f"Error in matching_gallery: {e}")
+        return 0
+
+
+
+
+
+#commented by vinoth for getting matching galler error for no record on 05-0625
+
+# def matching_gallery(profile_id):
+    
+
+#         user = models.Registration1.objects.get(ProfileId=profile_id)
+#         gender = user.Gender.lower()
+
+#         profile_details = models.Get_profiledata.get_profile_match_count(profile_id)
             
-        if profile_details is not None and getattr(profile_details, 'status_code', None) != 400:
-        #if profile_details is not None and profile_details.status_code != 400 :
-        #  if profile_details.status_code != 200 or profile_details is None:
-                profile_ids = [profile['ProfileId'] for profile in profile_details]
-                placeholders = ', '.join(['%s'] * len(profile_ids))
+#         if profile_details is not None and getattr(profile_details, 'status_code', None) != 400:
+#         #if profile_details is not None and profile_details.status_code != 400 :
+#         #  if profile_details.status_code != 200 or profile_details is None:
+#                 profile_ids = [profile['ProfileId'] for profile in profile_details]
+#                 placeholders = ', '.join(['%s'] * len(profile_ids))
 
-                # base_url = 'http://103.214.132.20:8000/'
-                base_url = settings.MEDIA_URL
+#                 # base_url = 'http://103.214.132.20:8000/'
+#                 base_url = settings.MEDIA_URL
 
-                                # Define the SQL query to fetch total images count
-                sql_query_count = f"""SELECT COUNT(DISTINCT pi.profile_id)
-                                FROM profile_images pi
-                                JOIN logindetails ld ON pi.profile_id = ld.ProfileId
-                                WHERE ld.Photo_protection != 1
-                                AND ld.ProfileId IN ({placeholders})"""
+#                                 # Define the SQL query to fetch total images count
+#                 sql_query_count = f"""SELECT COUNT(DISTINCT pi.profile_id)
+#                                 FROM profile_images pi
+#                                 JOIN logindetails ld ON pi.profile_id = ld.ProfileId
+#                                 WHERE ld.Photo_protection != 1
+#                                 AND ld.ProfileId IN ({placeholders})"""
                 
-                with connection.cursor() as cursor:
-                            cursor.execute(sql_query_count, profile_ids)
-                            total_records = cursor.fetchone()[0]  # Get total count
+#                 with connection.cursor() as cursor:
+#                             cursor.execute(sql_query_count, profile_ids)
+#                             total_records = cursor.fetchone()[0]  # Get total count
 
-                            # print('total_records',total_records)
+#                             # print('total_records',total_records)
 
-                return total_records
-        else :
-                return 0
+#                 return total_records
+#         else :
+#                 return 0
 
 
 
