@@ -2265,7 +2265,7 @@ class Get_dashboard_details(APIView):
                 profile_ids=[]
             else:
                 matching_profile_count = len(profile_details)
-                profile_ids = [profile['ProfileId'] for profile in profile_details]
+                profile_ids = [profile[0] for profile in profile_details]
 
                
                 #print('profile_ids',profile_ids)
