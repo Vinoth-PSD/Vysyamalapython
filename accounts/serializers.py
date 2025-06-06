@@ -230,8 +230,8 @@ class LoginDetailsSerializer(serializers.ModelSerializer):
     Gender = serializers.CharField(required=True)
     Profile_pincode = serializers.CharField(required=True)
     
-    Notifcation_enabled = serializers.CharField(required=True)
-    Addon_package = serializers.CharField(required=False)
+    Notifcation_enabled = serializers.CharField(required=False , allow_blank=True, allow_null=True)
+    Addon_package = serializers.CharField(required=False , allow_blank=True, allow_null=True)
     Plan_id = serializers.CharField(required=False)
     Profile_idproof = serializers.FileField(required=False)  
     Profile_divorceproof = serializers.FileField(required=False)
