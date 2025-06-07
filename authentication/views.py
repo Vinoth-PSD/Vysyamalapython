@@ -13305,7 +13305,7 @@ def generate_porutham_pdf(request):
 
 
         </body>
-        </html>    """
+        </html>"""
 
             # Log profile view
         save_logs, created = models.Profile_docviewlogs.objects.get_or_create(
@@ -13720,14 +13720,11 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                 </tr>
                 </table>
                 <br>
-        
             </td>
             </tr>
             </table>
-
-
         </body>
-        </html>    """
+        </html>"""
 
             # Log profile view
         save_logs, created = models.Profile_docviewlogs.objects.get_or_create(
