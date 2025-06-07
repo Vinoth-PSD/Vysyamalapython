@@ -7890,7 +7890,7 @@ class SuggestedProfiles1(APIView):
         profile_id = request.data.get('profile_id')
 
         if not profile_id:
-            return JsonResponse({'status': 'failure', 'message': 'Profile ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'status': 'failure', 'message': 'profile_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Get gender from logindetails table
         try:
@@ -7913,7 +7913,7 @@ class SuggestedProfiles1(APIView):
         to_age = request.data.get('to_age')
         from_height = request.data.get('from_height')
         to_height = request.data.get('to_height')
-        
+
         received_per_page = request.data.get('per_page')
         received_page_number = request.data.get('page_number')
 
@@ -7928,16 +7928,17 @@ class SuggestedProfiles1(APIView):
         # Calculate the starting record for the SQL LIMIT clause
         start = (page_number - 1) * per_page
 
-
+        # Initialize the query with the base structure
+        
         if gender.lower() == 'male':
             age_condition_operator = '<'
         else:
             age_condition_operator = '>'
-
-        # Initialize the query with the base structure
+        
         base_query = """
         SELECT DISTINCT b.profile_id,a.*, 
-               f.profession, f.highest_education, g.EducationLevel, d.star, h.income ,d.star as star_name , e.birthstar_name ,e.birth_rasi_name
+               f.profession, f.highest_education, g.EducationLevel, d.star, h.income ,d.star as star_name , e.birthstar_name ,e.birth_rasi_name ,
+               IF(i.id IS NOT NULL, 1, 0) AS has_image
         FROM logindetails a 
         JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
         JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
@@ -7945,11 +7946,13 @@ class SuggestedProfiles1(APIView):
         JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
         JOIN mastereducation g ON f.highest_education = g.RowId 
         JOIN masterannualincome h ON h.id = f.anual_income
+
         LEFT JOIN profile_images i 
         ON a.ProfileId = i.profile_id 
         AND a.Plan_id !=16
         AND i.image_approved = 1 
         AND i.is_deleted = 0
+
         WHERE a.gender != %s AND a.ProfileId != %s AND Plan_id IN (2, 3, 15)
         """
 
@@ -7959,7 +7962,6 @@ class SuggestedProfiles1(APIView):
         # Prepare the query parameters
         query_params = [gender, profile_id, profile_age]
         
-        # query_params = [gender, profile_id]
 
         # Check if additional filters are provided, and add them to the query
         # if from_age or to_age or from_height or to_height:
@@ -8012,11 +8014,17 @@ class SuggestedProfiles1(APIView):
                     source_star_id=profilehoro_data.birthstar_name
 
 
+                    # print(source_rasi_id,'source_rasi_id')
+                    # print(source_star_id,'source_star_id')
+                    # print(profile_id,'profile_id')
+                    # print(gender,'gender')
+
                     transformed_results = [transform_data(result,profile_id,gender,source_rasi_id,source_star_id) for result in results]
 
+                    
+                    # print('transformed_results',transformed_results)
 
-
-                    print(full_query)  
+                    # print(full_query)  
                     return JsonResponse({
                         'status': 'success',
                         'total_count':total_count,
