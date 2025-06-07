@@ -13274,7 +13274,7 @@ def generate_porutham_pdf(request):
                 </tr>
                 {"".join([
                     f"<tr><td>{porutham['porutham_name']}</td>"
-                    f"<td><span style='color: {"green" if porutham["status"].startswith("YES") else "red"};'>{porutham['status']}</span></td>"
+                    f"<td><span style='color: {'green' if porutham["status"].startswith("YES") else 'red'};'>{porutham['status']}</span></td>"
                     + (
                         f"<td rowspan='{len(porutham_data['porutham_results'])}'>"
                         f"<p class='matching-score' style='font-size:40px;'>{porutham_data['matching_score']}</p>"
@@ -13697,7 +13697,7 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                 </tr>
                 {"".join([
                     f"<tr><td>{porutham['porutham_name']}</td>"
-                    f"<td><span style='color: {"green" if porutham["status"].startswith("YES") else "red"};'>{porutham['status']}</span></td>"
+                    f"<td><span style='color: {'green' if porutham["status"].startswith("YES") else 'red'};'>{porutham['status']}</span></td>"
                     + (
                         f"<td rowspan='{len(porutham_data['porutham_results'])}'>"
                         f"<p class='matching-score' style='font-size:40px;'>{porutham_data['matching_score']}</p>"
