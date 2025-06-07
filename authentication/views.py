@@ -12982,364 +12982,328 @@ def generate_porutham_pdf(request):
             <html>
             <head>
                 <style>
-                    body {{
-                        font-family: Arial, sans-serif;
-                        background-color: #fff;
-                    }}
-        
-                    
-                    table {{
-                        width: 100%;
-                        border-collapse: collapse;
+                   @page {{
+                                size: A4;
+                                margin: 0;
+                            }}
+                            body {{
+                                background-color: #ffffff;
+                            }}
+
+                            .header {{
+                                margin-bottom: 10px;
+                            }}
+
+                            .header-left img {{
+                                width: 100%;
+                                height: auto;
+                            }}
+                            .logo-text{{
+                                font-size: 18px;
+                                font-weight: 400;
+                                color:  #fbf274;
+                            }}
+                            .header-left {{
+                                width: 100%;
+                            }}
+                            
+                            .header-left p{{
+                                font-size: 18px;
+                                font-weight: 400;
+                                color: #ffffff;
+                            }}
+                            .header-info p {{
+                                color:#fbf274;
+                                font-size:16px;
+                                padding-bottom:5px;
+                                text-align:center;
+                            }}
+                           
+                           
+                            .porutham-header p {{
+                                font-size:22px;
+                                font-weight: 700;
+                                color:#000000;
+                            }}
+
+                            h2.porutham-table-title{{
+                                font-size: 24px;
+                                font-weight: 700;
+                                margin-bottom: 20px;
+                                padding:0px 0px;
+                            }}
+                            .porutham-table{{
+                                border:1px solid #538135;
+                                border-collapse: collapse;
+                                margin-bottom: 10px;
+                            }}
+                            .porutham-table th {{
+                                padding: 5px 0;
+                                  background-color: #538135;
+                                  color:#f4c542;
+                                font-size:16px;
+                                font-weight:700;
+                                text-align:center;
+                                padding: 5px 0 0 0;
+                            }}
+                            .porutham-table td {{
+                                border:1px solid #538135;
+                                  color: #538135;
+                                font-size:15px;
+                                font-weight:400;
+                                text-align:center;
+                                padding: 5px 0px 0px 0px;
+                            }}
+                            .porutham-table tr td p{{
+                                color: #538135;
+                                font-size:15px;
+                                font-weight:700;
+                                text-align:center;
+                                padding: 5px 0;
+                            }}
+                          
+                            .porutham-stars tr td p{{
+                                text-align:left;
+                                padding: 20px 20px;
+                            }}
+                            .porutham-note{{
+                                font-size: 17px;
+                                font-weight:400;
+                                color: #000000;
+                                padding:20px 0px;
+                            }}
+
+
+                            .matching-score{{
+                                font-size:30px ;
+                                font-weight:700;
+                            }}
                         
-                    }}
-        
-                    th, td {{
-                        border: 1px solid #dddddd;
-                        text-align: left;
-                        padding: 5px 5px;
-                    }}
-        
-                    th {{
-                        background-color: #4CAF50;
-                        color: white;
-                    }}
-        
-                    td {{
-                        background-color: #e7f3ff;
-                    }}
-        
-                    .header {{
-                        display: flex; 
-                        text-align: left;
-                        margin-bottom: 20px;
-                    }}
-        
-                    .header-logo{{
-                        text-align:center;
-                    }}
-        
-                    .header-logo img {{
-                        width: 200px;
-                        height: auto;
-                        margin: 0 auto;
-                        text-align: center;
-                    }}
-        
-                    .compatibility-report-header{{
-                        font-size: 2rem;
-                        font-weight: bold;
-                        text-align: center;
-                        margin-bottom: 10px;
-                    }}
-        
-                    .profile-name-info-table{{
-                        width: 100%;
-                        border: 1px solid #fff;
-                        border-collapse: collapse;
-                        background-color:#538136;
-                        margin-bottom:2rem;
-                    }}
-        
-                    .profile-name-info-table td{{
-                        border: 1px solid #fff;
-                        text-align: center;
-                        color: #fed966;
-                        background-color:#538136;
-                        padding: 10px 10px;
-        
-                    }}
-                    .profile-name {{
-                        font-size: 2rem;
-                        font-weight: 800;
-                    }}
-                    .profile-rasi-star{{
-                        font-size: 1.5rem;
-                        font-weight: 400;
-                    }}
-        
-                    .profile-addtional-info{{
-                        width: 100%;
-                        border: 1px solid #fff;
-                        background-color:#538136;
-                        margin-bottom:3rem;
-                    }}
-                    .profile-addtional-info tr{{
-                        border: none;
-                    }}
-                    .profile-addtional-info td{{
-                        font-size: 1.5rem;
-                        font-weight: 400;
-                        text-align: center;
-                        color:#538136;
-                        background-color: #fed966;
-                        padding: 5px 10px;
-                        border: none;
-                    }}
-        
-                    .highlight {{
-                        background-color: #fff7a8;
-                    }}
-        
-                    .score-box {{
-                        font-size:2rem;
-                        font-weight: 900;
-                        float: right;
-                        text-align: center;
-                            background-color: #fed966;
-                        border: 1px solid #d4d4d4;
-                        width: 150px;
-                        padding: 10px;
-                        vertial-align: middle;
-                    }}
-                    .score-box p{{
-                        padding-top: 20px;
-                        vertial-align: bottom;
-        
-                    }}
-        
-                    .profile-details {{
-                        width: 100%;
-                        border-collapse: collapse;
-                        border: none !important;  /* Remove table border */
-                    }}
-        
-                    .profile-details td {{
-                        vertical-align: top;
-                        width: 50%;
-                        padding: 5px 5px;
-                        background-color: transparent; /* Remove background color */
-                        border: none !important;  /* Remove table border */
-                    }}
-                  
-        
-                    .profile-details h2 {{
-                        margin-top: 0;
-                    }}
-                    .subheader{{
-                        font-size: 1.8rem;
-                        font-weight: 600;
-                        margin-bottom:0.8rem;
-                    }}
-                    .outer {{
+
+                            .compatibility-page-wrapper {{
+                                 margin:0px auto;
+                                text-align:center;
+                                width:100%;
+                            }}
+                            .compatibility-page-wrapper tr {{
+                                margin: auto;
+                                text-align:center;
+                                width:100%;
+                            }}
+                            
+                            .compatibility-page-wrapper tr td{{
+                                background-color: #ffd966;
+                                width:100%;
+                                text-align:center;
+                                margin: auto;
+                               
+                            }}
+
+                            .report-title {{
+                                background-color: #ffd966;
+                                color: #538135;
+                                font-weight: bold;
+                                text-align: center;
+                                padding: 10px 0px 0px;
+                                font-size: 16px;
+                            }}
+                             .report-table {{
                                 width: 100%;
                                 border-collapse: collapse;
+                                background-color: #538135;
+                                
+                            }}
+                             .report-table  tr {{
+                                background-color: #538135;
+
+                             }}
+                             .report-table  tr  td{{
+                                background-color: #538135;
+                                color:#ffd966;
+                                border:1px solid #ffd966;
+
+                             }}
+                             .report-table  tr  td p{{
+                                background-color: #538135;
+                                color:#ffd966;
+                                font-size:14px;
+                                width:100%;
+
+                             }}
+                             .profile-name{{
+                                color:#ffd966;
+                             }}
+                            .header-cell {{
+                                background-color: #538135;
+                                color: #fff;
+                                font-weight: bold;
                                 text-align: center;
-                                font-family: Arial, sans-serif;
-                                margin-bottom: 2rem;
+                                padding: 6px;
                             }}
-        
-                    .inner {{
-                        width: 45%;
-                        height: 100%;
-                        border: 1px solid #000;
-                        border-collapse: collapse;
-                        text-align: center;
-                        font-family: Arial, sans-serif;
-                        padding: 5px;
-                        display: inline-block;
-                        vertical-align: top;
-                        background-color: #ffffff;
-        
-                    }}
-                    .inner tr {{
-                        width:100%; 
-                        height: 100%;
-                    }}
-                    .inner td {{
-                        border: 1px solid #000;
-                        padding: 5px 5px;
-                        font-weight: bold;
-                        font-size: 12px;
-                        text-align: center;
-                        background-color: #f0f8ff;
-                        white-space: pre-line;
-                        width:25%;
-                        height:100px;
-                    }}
-        
-                    .inner .highlight {{
-                        background-color: #fffacd;
-                        text-align: center;
-                        width: 100%;
-                        height: 100%;
-                        font-size:2rem;
-                        font-weight: bold;
-                    }}
-        
-                     .spacer {{
-                                width: 5%;
-                                display: inline-block;
-                                background-color: transparent;
+                            .sub-header {{
+                                background-color:#538135;
+                                color: #000;
+                                text-align: center;
+                                padding: 4px;
                             }}
-        .porutham-table {{
-            margin-top:1rem;
-        }}
-        .porutham-table th{{
-            font-size: 2em;
-            font-weight: 900;
-            text-align: center;
-            background-color:#538136;
-            padding-top:15px;
-            
-        }}
-        .porutham-table td{{
-            font-size: 1.5rem;
-            font-weight: 600;
-            text-align: center;
-            background-color: #fed966;
-            color: #000;
-        }}
-        
+                            .profile-addtional-info{{
+                                width: 100%;
+                                background-color: #ffd966;
+                                border:1px solid #538135;
+
+                            }}
+                              .profile-addtional-info  tr {{
+                                background-color: #ffd966;
+                                border:none;
+
+                             }}
+                            
+                             .profile-addtional-info  tr  td p{{
+                                background-color: #ffd966;
+                                color:#538135;
+                                font-size:14px;
+                                width:100%;
+
+                             }}
+                            .data-row {{
+                                padding: 2px 0px;
+                            }}
+                            .data-label {{
+                                font-weight: bold;
+                                width: 40%;
+                                padding: 4px;
+                            }}
+                            .data-value {{
+                                padding: 4px;
+                            }}
         
                 </style>
             </head>
         <body>
                                
-            <div class="header-logo">
-                <img  src="https://vysyamala.com/img/newlogo.png" alt="Vysyamala-Logo">
-            </div>                              
+                <table class="header">
+                                <tr>
+                                    <td class="header-left">
+                                        <div class="header-logo">
+                                            <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
+                                        </div>
+                                    </td>
+                                </tr>
+                        </table>
+
+            <table class="compatibility-page-wrapper" >
+            <tr>
+            <td style="text-align:center;margin:0 auto; padding:0px 20px;">
+                        
+            <h2 class="report-title">Marriage Compatibility Report</h2>
         
-            <h2 class="compatibility-report-header">Marriage Compatibility Report</h2>
-        
-            <table class="profile-name-info-table">
+            <table class="report-table" border="0">
                 <tr>
-                <td>
+                <td class="header-cell">
                     <p class="profile-name">{profile_from_details.Profile_name} - {profile_from_details.ProfileId}</p>
                 </td>
-                <td>
+                <td class="header-cell">
                     <p class="profile-name"> {profile_to_details.Profile_name} - {profile_to_details.ProfileId}</p>   
                  </td>
                 </tr>
                 <tr>
-                <td>
+                <td class="sub-header">
                     <p class="profile-rasi-star"> {rasi_from.name} - {birth_star_from.star}</p>
                 </td>
-                <td>
+                <td class="sub-header">
                     <p class="profile-rasi-star"> {rasi_to.name} - {birth_star_to.star}</p>
                 </td>
                 </tr>
             </table>
+            <br>
         
-            <table class="profile-addtional-info">
+            <table class="profile-addtional-info" >
                 <tr>
-                <td>
+                <td class="data-row">
                      <p> Place of Birth : {horoscope_from.place_of_birth}</p>
                 </td>
-                <td>
+                <td class="data-row">
                     <p> Place of Birth : {horoscope_to.place_of_birth}</p>
                 </td>
                 </tr>
                 <tr>
-                <td>
+                <td class="data-row">
                     <p> Time of Birth : {horoscope_from.time_of_birth}</p>
                 </td>
-                <td>
+                <td class="data-row">
                     <p>  Time of Birth : {horoscope_to.time_of_birth}</p>
                 </td>
                 </tr>
                 <tr>
-                <td>
+                <td class="data-row">
                     <p> Date Of Birth : {profile_from_details.Profile_dob}</p>
                 </td>
-                <td>
+                <td class="data-row">
                     <p> Date Of Birth : {profile_to_details.Profile_dob}</p>
                 </td>
                 </tr>
             </table>
+            <br>
         
               <table class="profile-addtional-info">
                 <tr>
-                <td>
+                <td class="data-row">
                     <p> Height : {profile_from_details.Profile_height}</p>
                 </td>
-                <td>
+                <td class="data-row">
                         <p> Height : {profile_to_details.Profile_height}</p>
         
                 </td>
                 </tr>
                 <tr>
-                <td>
+                <td class="data-row">
                     <p> {highest_education_from.EducationLevel}</p>
                 </td>
-                <td>
+                <td class="data-row">
                     <p> {highest_education_to.EducationLevel}</p>
                 </td>
                 </tr>
             </table>
-        
-        
-        
-            <h2 class="subheader">Rasi Kattam Comparison</h2>
-                        <table class="outer">
-                            <tr>
-                                <td>
-                                    <table class="inner">
-                                        <tr>
-                                            <td>{rasi_kattam_from[0].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_from[1].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_from[2].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_from[3].replace('/', '<br>')}</td>
-                                            
-                                        </tr>
-                                        <tr>
-                                            <td>{rasi_kattam_from[11].replace('/', '<br>')}</td>
-                                            <td colspan="2" rowspan="2" class="highlight">RASI <br> vysyamala.com </td>
-                                            <td>{rasi_kattam_from[4].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{rasi_kattam_from[10].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_from[5].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{rasi_kattam_from[9].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_from[8].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_from[7].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_from[6].replace('/', '<br>')}</td>
-                                        </tr>
-                                    </table>
-                                </td>
-                                <td class="spacer"></td>
-                                <td>
-                                    <table class="inner">
-                                        <tr>
-                                            <td>{rasi_kattam_to[0].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_to[1].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_to[2].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_to[3].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{rasi_kattam_to[11].replace('/', '<br>')}</td>
-                                            <td colspan="2" rowspan="2" class="highlight">RASI <br> vysyamala.com </td>
-                                            <td>{rasi_kattam_to[4].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{rasi_kattam_to[10].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_to[5].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{rasi_kattam_to[9].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_to[8].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_to[7].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_to[6].replace('/', '<br>')}</td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-                        </table>
-        
-            <h2 class="subheader">Nakshatra Porutham & Rasi Porutham</h2>
-            <table class="porutham-table">
+                
+            <h2 class="report-title" >Nakshatra Porutham & Rasi Porutham</h2>
+           <table class="porutham-table">
                 <tr>
                     <th>Porutham Name</th>
                     <th>Status</th>
+                    <th>Matching Score</th>
                 </tr>
-                {" ".join([f"<tr><td>{porutham['porutham_name']}</td><td>{porutham['status']}</td></tr>" for porutham in porutham_data['porutham_results']])}
+                {"".join([
+                    f"<tr><td>{porutham['porutham_name']}</td>"
+                    f"<td><span style='color: {"green" if porutham["status"].startswith("YES") else "red"};'>{porutham['status']}</span></td>"
+                    + (
+                        f"<td rowspan='{len(porutham_data['porutham_results'])}'>"
+                        f"<p class='matching-score' style='font-size:40px;'>{porutham_data['matching_score']}</p>"
+                        f"<p style='font-weight:300;'>Please check with your astrologer for detailed compatibility.</p>"
+                        f"<p>Jai Vasavi</p>"
+                        f"</td>"
+                    if idx == 0 else "") +
+                    "</tr>"
+                    for idx, porutham in enumerate(porutham_data['porutham_results'])
+                ])}
             </table>
+
         
-            <div class="score-box">
-                <p><b>Matching Score: {porutham_data['matching_score']}</b></p>
-            </div>  
+              <table class="profile-addtional-info">
+                <tr >
+                <td class="data-row"  style="width:100%;">
+                <p>
+                Our best wishes for finding your soulmate in Vyasyamala soon. Please inform Vyasyamala if your marriage is fixed. Share your engagement photo and receive a surprise gift. No commissions / hidden charges. Jai Vasavi!
+                </p>
+                </td>
+                </tr>
+                </table>
+                <br>
+        
+            </td>
+            </tr>
+            </table>
+
+
         </body>
         </html>    """
 
@@ -13441,364 +13405,328 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
             <html>
             <head>
                 <style>
-                    body {{
-                        font-family: Arial, sans-serif;
-                        background-color: #fff;
-                    }}
-        
-                    
-                    table {{
-                        width: 100%;
-                        border-collapse: collapse;
+                   @page {{
+                                size: A4;
+                                margin: 0;
+                            }}
+                            body {{
+                                background-color: #ffffff;
+                            }}
+
+                            .header {{
+                                margin-bottom: 10px;
+                            }}
+
+                            .header-left img {{
+                                width: 100%;
+                                height: auto;
+                            }}
+                            .logo-text{{
+                                font-size: 18px;
+                                font-weight: 400;
+                                color:  #fbf274;
+                            }}
+                            .header-left {{
+                                width: 100%;
+                            }}
+                            
+                            .header-left p{{
+                                font-size: 18px;
+                                font-weight: 400;
+                                color: #ffffff;
+                            }}
+                            .header-info p {{
+                                color:#fbf274;
+                                font-size:16px;
+                                padding-bottom:5px;
+                                text-align:center;
+                            }}
+                           
+                           
+                            .porutham-header p {{
+                                font-size:22px;
+                                font-weight: 700;
+                                color:#000000;
+                            }}
+
+                            h2.porutham-table-title{{
+                                font-size: 24px;
+                                font-weight: 700;
+                                margin-bottom: 20px;
+                                padding:0px 0px;
+                            }}
+                            .porutham-table{{
+                                border:1px solid #538135;
+                                border-collapse: collapse;
+                                margin-bottom: 10px;
+                            }}
+                            .porutham-table th {{
+                                padding: 5px 0;
+                                  background-color: #538135;
+                                  color:#f4c542;
+                                font-size:16px;
+                                font-weight:700;
+                                text-align:center;
+                                padding: 5px 0 0 0;
+                            }}
+                            .porutham-table td {{
+                                border:1px solid #538135;
+                                  color: #538135;
+                                font-size:15px;
+                                font-weight:400;
+                                text-align:center;
+                                padding: 5px 0px 0px 0px;
+                            }}
+                            .porutham-table tr td p{{
+                                color: #538135;
+                                font-size:15px;
+                                font-weight:700;
+                                text-align:center;
+                                padding: 5px 0;
+                            }}
+                          
+                            .porutham-stars tr td p{{
+                                text-align:left;
+                                padding: 20px 20px;
+                            }}
+                            .porutham-note{{
+                                font-size: 17px;
+                                font-weight:400;
+                                color: #000000;
+                                padding:20px 0px;
+                            }}
+
+
+                            .matching-score{{
+                                font-size:30px ;
+                                font-weight:700;
+                            }}
                         
-                    }}
-        
-                    th, td {{
-                        border: 1px solid #dddddd;
-                        text-align: left;
-                        padding: 5px 5px;
-                    }}
-        
-                    th {{
-                        background-color: #4CAF50;
-                        color: white;
-                    }}
-        
-                    td {{
-                        background-color: #e7f3ff;
-                    }}
-        
-                    .header {{
-                        display: flex; 
-                        text-align: left;
-                        margin-bottom: 20px;
-                    }}
-        
-                    .header-logo{{
-                        text-align:center;
-                    }}
-        
-                    .header-logo img {{
-                        width: 200px;
-                        height: auto;
-                        margin: 0 auto;
-                        text-align: center;
-                    }}
-        
-                    .compatibility-report-header{{
-                        font-size: 2rem;
-                        font-weight: bold;
-                        text-align: center;
-                        margin-bottom: 10px;
-                    }}
-        
-                    .profile-name-info-table{{
-                        width: 100%;
-                        border: 1px solid #fff;
-                        border-collapse: collapse;
-                        background-color:#538136;
-                        margin-bottom:2rem;
-                    }}
-        
-                    .profile-name-info-table td{{
-                        border: 1px solid #fff;
-                        text-align: center;
-                        color: #fed966;
-                        background-color:#538136;
-                        padding: 10px 10px;
-        
-                    }}
-                    .profile-name {{
-                        font-size: 2rem;
-                        font-weight: 800;
-                    }}
-                    .profile-rasi-star{{
-                        font-size: 1.5rem;
-                        font-weight: 400;
-                    }}
-        
-                    .profile-addtional-info{{
-                        width: 100%;
-                        border: 1px solid #fff;
-                        background-color:#538136;
-                        margin-bottom:3rem;
-                    }}
-                    .profile-addtional-info tr{{
-                        border: none;
-                    }}
-                    .profile-addtional-info td{{
-                        font-size: 1.5rem;
-                        font-weight: 400;
-                        text-align: center;
-                        color:#538136;
-                        background-color: #fed966;
-                        padding: 5px 10px;
-                        border: none;
-                    }}
-        
-                    .highlight {{
-                        background-color: #fff7a8;
-                    }}
-        
-                    .score-box {{
-                        font-size:2rem;
-                        font-weight: 900;
-                        float: right;
-                        text-align: center;
-                            background-color: #fed966;
-                        border: 1px solid #d4d4d4;
-                        width: 150px;
-                        padding: 10px;
-                        vertial-align: middle;
-                    }}
-                    .score-box p{{
-                        padding-top: 20px;
-                        vertial-align: bottom;
-        
-                    }}
-        
-                    .profile-details {{
-                        width: 100%;
-                        border-collapse: collapse;
-                        border: none !important;  /* Remove table border */
-                    }}
-        
-                    .profile-details td {{
-                        vertical-align: top;
-                        width: 50%;
-                        padding: 5px 5px;
-                        background-color: transparent; /* Remove background color */
-                        border: none !important;  /* Remove table border */
-                    }}
-                  
-        
-                    .profile-details h2 {{
-                        margin-top: 0;
-                    }}
-                    .subheader{{
-                        font-size: 1.8rem;
-                        font-weight: 600;
-                        margin-bottom:0.8rem;
-                    }}
-                    .outer {{
+
+                            .compatibility-page-wrapper {{
+                                 margin:0px auto;
+                                text-align:center;
+                                width:100%;
+                            }}
+                            .compatibility-page-wrapper tr {{
+                                margin: auto;
+                                text-align:center;
+                                width:100%;
+                            }}
+                            
+                            .compatibility-page-wrapper tr td{{
+                                background-color: #ffd966;
+                                width:100%;
+                                text-align:center;
+                                margin: auto;
+                               
+                            }}
+
+                            .report-title {{
+                                background-color: #ffd966;
+                                color: #538135;
+                                font-weight: bold;
+                                text-align: center;
+                                padding: 10px 0px 0px;
+                                font-size: 16px;
+                            }}
+                             .report-table {{
                                 width: 100%;
                                 border-collapse: collapse;
+                                background-color: #538135;
+                                
+                            }}
+                             .report-table  tr {{
+                                background-color: #538135;
+
+                             }}
+                             .report-table  tr  td{{
+                                background-color: #538135;
+                                color:#ffd966;
+                                border:1px solid #ffd966;
+
+                             }}
+                             .report-table  tr  td p{{
+                                background-color: #538135;
+                                color:#ffd966;
+                                font-size:14px;
+                                width:100%;
+
+                             }}
+                             .profile-name{{
+                                color:#ffd966;
+                             }}
+                            .header-cell {{
+                                background-color: #538135;
+                                color: #fff;
+                                font-weight: bold;
                                 text-align: center;
-                                font-family: Arial, sans-serif;
-                                margin-bottom: 2rem;
+                                padding: 6px;
                             }}
-        
-                    .inner {{
-                        width: 45%;
-                        height: 100%;
-                        border: 1px solid #000;
-                        border-collapse: collapse;
-                        text-align: center;
-                        font-family: Arial, sans-serif;
-                        padding: 5px;
-                        display: inline-block;
-                        vertical-align: top;
-                        background-color: #ffffff;
-        
-                    }}
-                    .inner tr {{
-                        width:100%; 
-                        height: 100%;
-                    }}
-                    .inner td {{
-                        border: 1px solid #000;
-                        padding: 5px 5px;
-                        font-weight: bold;
-                        font-size: 12px;
-                        text-align: center;
-                        background-color: #f0f8ff;
-                        white-space: pre-line;
-                        width:25%;
-                        height:100px;
-                    }}
-        
-                    .inner .highlight {{
-                        background-color: #fffacd;
-                        text-align: center;
-                        width: 100%;
-                        height: 100%;
-                        font-size:2rem;
-                        font-weight: bold;
-                    }}
-        
-                     .spacer {{
-                                width: 5%;
-                                display: inline-block;
-                                background-color: transparent;
+                            .sub-header {{
+                                background-color:#538135;
+                                color: #000;
+                                text-align: center;
+                                padding: 4px;
                             }}
-        .porutham-table {{
-            margin-top:1rem;
-        }}
-        .porutham-table th{{
-            font-size: 2em;
-            font-weight: 900;
-            text-align: center;
-            background-color:#538136;
-            padding-top:15px;
-            
-        }}
-        .porutham-table td{{
-            font-size: 1.5rem;
-            font-weight: 600;
-            text-align: center;
-            background-color: #fed966;
-            color: #000;
-        }}
-        
+                            .profile-addtional-info{{
+                                width: 100%;
+                                background-color: #ffd966;
+                                border:1px solid #538135;
+
+                            }}
+                              .profile-addtional-info  tr {{
+                                background-color: #ffd966;
+                                border:none;
+
+                             }}
+                            
+                             .profile-addtional-info  tr  td p{{
+                                background-color: #ffd966;
+                                color:#538135;
+                                font-size:14px;
+                                width:100%;
+
+                             }}
+                            .data-row {{
+                                padding: 2px 0px;
+                            }}
+                            .data-label {{
+                                font-weight: bold;
+                                width: 40%;
+                                padding: 4px;
+                            }}
+                            .data-value {{
+                                padding: 4px;
+                            }}
         
                 </style>
             </head>
         <body>
                                
-            <div class="header-logo">
-                <img  src="https://vysyamala.com/img/newlogo.png" alt="Vysyamala-Logo">
-            </div>                              
+                <table class="header">
+                                <tr>
+                                    <td class="header-left">
+                                        <div class="header-logo">
+                                            <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
+                                        </div>
+                                    </td>
+                                </tr>
+                        </table>
+
+            <table class="compatibility-page-wrapper" >
+            <tr>
+            <td style="text-align:center;margin:0 auto; padding:0px 20px;">
+                        
+            <h2 class="report-title">Marriage Compatibility Report</h2>
         
-            <h2 class="compatibility-report-header">Marriage Compatibility Report</h2>
-        
-            <table class="profile-name-info-table">
+            <table class="report-table" border="0">
                 <tr>
-                <td>
+                <td class="header-cell">
                     <p class="profile-name">{profile_from_details.Profile_name} - {profile_from_details.ProfileId}</p>
                 </td>
-                <td>
+                <td class="header-cell">
                     <p class="profile-name"> {profile_to_details.Profile_name} - {profile_to_details.ProfileId}</p>   
                  </td>
                 </tr>
                 <tr>
-                <td>
+                <td class="sub-header">
                     <p class="profile-rasi-star"> {rasi_from.name} - {birth_star_from.star}</p>
                 </td>
-                <td>
+                <td class="sub-header">
                     <p class="profile-rasi-star"> {rasi_to.name} - {birth_star_to.star}</p>
                 </td>
                 </tr>
             </table>
+            <br>
         
-            <table class="profile-addtional-info">
+            <table class="profile-addtional-info" >
                 <tr>
-                <td>
+                <td class="data-row">
                      <p> Place of Birth : {horoscope_from.place_of_birth}</p>
                 </td>
-                <td>
+                <td class="data-row">
                     <p> Place of Birth : {horoscope_to.place_of_birth}</p>
                 </td>
                 </tr>
                 <tr>
-                <td>
+                <td class="data-row">
                     <p> Time of Birth : {horoscope_from.time_of_birth}</p>
                 </td>
-                <td>
+                <td class="data-row">
                     <p>  Time of Birth : {horoscope_to.time_of_birth}</p>
                 </td>
                 </tr>
                 <tr>
-                <td>
+                <td class="data-row">
                     <p> Date Of Birth : {profile_from_details.Profile_dob}</p>
                 </td>
-                <td>
+                <td class="data-row">
                     <p> Date Of Birth : {profile_to_details.Profile_dob}</p>
                 </td>
                 </tr>
             </table>
+            <br>
         
               <table class="profile-addtional-info">
                 <tr>
-                <td>
+                <td class="data-row">
                     <p> Height : {profile_from_details.Profile_height}</p>
                 </td>
-                <td>
+                <td class="data-row">
                         <p> Height : {profile_to_details.Profile_height}</p>
         
                 </td>
                 </tr>
                 <tr>
-                <td>
+                <td class="data-row">
                     <p> {highest_education_from.EducationLevel}</p>
                 </td>
-                <td>
+                <td class="data-row">
                     <p> {highest_education_to.EducationLevel}</p>
                 </td>
                 </tr>
             </table>
-        
-        
-        
-            <h2 class="subheader">Rasi Kattam Comparison</h2>
-                        <table class="outer">
-                            <tr>
-                                <td>
-                                    <table class="inner">
-                                        <tr>
-                                            <td>{rasi_kattam_from[0].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_from[1].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_from[2].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_from[3].replace('/', '<br>')}</td>
-                                            
-                                        </tr>
-                                        <tr>
-                                            <td>{rasi_kattam_from[11].replace('/', '<br>')}</td>
-                                            <td colspan="2" rowspan="2" class="highlight">RASI <br> vysyamala.com </td>
-                                            <td>{rasi_kattam_from[4].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{rasi_kattam_from[10].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_from[5].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{rasi_kattam_from[9].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_from[8].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_from[7].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_from[6].replace('/', '<br>')}</td>
-                                        </tr>
-                                    </table>
-                                </td>
-                                <td class="spacer"></td>
-                                <td>
-                                    <table class="inner">
-                                        <tr>
-                                            <td>{rasi_kattam_to[0].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_to[1].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_to[2].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_to[3].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{rasi_kattam_to[11].replace('/', '<br>')}</td>
-                                            <td colspan="2" rowspan="2" class="highlight">RASI <br> vysyamala.com </td>
-                                            <td>{rasi_kattam_to[4].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{rasi_kattam_to[10].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_to[5].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{rasi_kattam_to[9].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_to[8].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_to[7].replace('/', '<br>')}</td>
-                                            <td>{rasi_kattam_to[6].replace('/', '<br>')}</td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-                        </table>
-        
-            <h2 class="subheader">Nakshatra Porutham & Rasi Porutham</h2>
-            <table class="porutham-table">
+                
+            <h2 class="report-title" >Nakshatra Porutham & Rasi Porutham</h2>
+           <table class="porutham-table">
                 <tr>
                     <th>Porutham Name</th>
                     <th>Status</th>
+                    <th>Matching Score</th>
                 </tr>
-                {" ".join([f"<tr><td>{porutham['porutham_name']}</td><td>{porutham['status']}</td></tr>" for porutham in porutham_data['porutham_results']])}
+                {"".join([
+                    f"<tr><td>{porutham['porutham_name']}</td>"
+                    f"<td><span style='color: {"green" if porutham["status"].startswith("YES") else "red"};'>{porutham['status']}</span></td>"
+                    + (
+                        f"<td rowspan='{len(porutham_data['porutham_results'])}'>"
+                        f"<p class='matching-score' style='font-size:40px;'>{porutham_data['matching_score']}</p>"
+                        f"<p style='font-weight:300;'>Please check with your astrologer for detailed compatibility.</p>"
+                        f"<p>Jai Vasavi</p>"
+                        f"</td>"
+                    if idx == 0 else "") +
+                    "</tr>"
+                    for idx, porutham in enumerate(porutham_data['porutham_results'])
+                ])}
             </table>
+
         
-            <div class="score-box">
-                <p><b>Matching Score: {porutham_data['matching_score']}</b></p>
-            </div>  
+              <table class="profile-addtional-info">
+                <tr >
+                <td class="data-row"  style="width:100%;">
+                <p>
+                Our best wishes for finding your soulmate in Vyasyamala soon. Please inform Vyasyamala if your marriage is fixed. Share your engagement photo and receive a surprise gift. No commissions / hidden charges. Jai Vasavi!
+                </p>
+                </td>
+                </tr>
+                </table>
+                <br>
+        
+            </td>
+            </tr>
+            </table>
+
+
         </body>
         </html>    """
 
