@@ -13272,19 +13272,6 @@ def generate_porutham_pdf(request):
                     <th>Status</th>
                     <th>Matching Score</th>
                 </tr>
-                {"".join([
-                f"<tr><td>{porutham['porutham_name']}</td>"
-               f"<td><span style=\"color: {'green' if porutham['status'].startswith('YES') else 'red'};\">{porutham['status']}</span></td>"
-                + (
-                    f"<td rowspan='{len(porutham_data['porutham_results'])}'>"
-                    f"<p class='matching-score' style='font-size:40px;'>{porutham_data['matching_score']}</p>"
-                    f"<p style='font-weight:300;'>Please check with your astrologer for detailed compatibility.</p>"
-                    f"<p>Jai Vasavi</p>"
-                    f"</td>"
-                if idx == 0 else "") +
-                "</tr>"
-                for idx, porutham in enumerate(porutham_data['porutham_results'])
-            ])}
             </table>
 
         
