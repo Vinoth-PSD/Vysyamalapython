@@ -155,7 +155,7 @@ urlpatterns = [
     path('Get_advance_search/',views.GetSearchResults.as_view(), name='GetSearchResults'),
 
     path('Get_Featured_List/',views.GetFeaturedList.as_view(), name='Get_Featured_List'),
-    path('Get_suggested_List/',views.SuggestedProfiles1.as_view(), name='Get_suggested_List'),
+    path('Get_Suggested_List/',views.SuggestedProfiles1.as_view(), name='Get_Suggested_List'),
 
     path('Get_photo_protection/', views.PhotoProtectionView.as_view(), name='Get_photo_protection'),
 
