@@ -4181,8 +4181,8 @@ class Get_profile_det_match(APIView):
                    vys_assits=False
                    vysystatus_serializer=None
                    
-                   permission_contact_details=get_permission_limits(profile_id, 'contact_details')
-                   permission_horosocpegrid_details=get_permission_limits(profile_id, 'horoscope_grid_details')
+                permission_contact_details=get_permission_limits(profile_id, 'contact_details')
+                permission_horosocpegrid_details=get_permission_limits(profile_id, 'horoscope_grid_details')
 
                 
                 eng_print=get_permission_limits(profile_id,'eng_print')  #user uploaded horoscope grid download permision
@@ -9372,6 +9372,8 @@ class Send_vysassist_request(APIView):
 
             get_limits=can_get_vysassist_profile(profile_from)
 
+            print('get_limits',get_limits)
+
             if get_limits is True: 
         
 
@@ -10423,12 +10425,12 @@ def can_get_vysassist_profile(profile_id):
     # current_date = now().date()
     current_time = timezone.now()
     current_date = current_time.date()
-
+    
     # print('current_datetime',timezone.now())
     # print('current_date',current_date)
 
     # print(plan)
-   
+      
     # Check if the plan allows sending express interests
     if plan and plan.vys_assist is not None:
         # print('123456')
@@ -10438,6 +10440,8 @@ def can_get_vysassist_profile(profile_id):
         elif plan.vys_assist == 2:
             return True  # Unlimited click to vysassist request
         else:
+                 
+                 
                         # Check how many express interests the user has sent today
             #print('894563')
 
@@ -10457,7 +10461,7 @@ def can_get_vysassist_profile(profile_id):
 
             # print('sent_interests_count',sent_interests_count)
             # print('express_int_count',plan.express_int_count)
-
+            # print('vysyassist_action_count',vysyassist_action_count)
             if vysyassist_action_count < plan.vys_assist_count:
                 return True  # Within the express interest limit
             else:
@@ -13721,7 +13725,7 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                 </td>
                 </tr>
             </table>
-                
+               
             <h2 class="report-title" >Nakshatra Porutham & Rasi Porutham</h2>
            <table class="porutham-table">
                 <tr>
