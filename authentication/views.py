@@ -6486,6 +6486,20 @@ class UpdateMyProfileFamily(APIView):
 
 
 class GetMyProfileHoroscope(APIView):
+    
+    def dasa_format_date(self, value):
+                    """
+                    Format the date based on the input format.
+                    If input is like "12/7/5", convert to "day:12, month:7, year:5".
+                    If already in desired format, return as-is.
+                    """
+                    if isinstance(value, str) and '/' in value:
+                        parts = value.split('/')
+                        if len(parts) == 3:
+                            day, month, year = parts
+                            return f"day:{day}, month:{month}, year:{year}"
+                    return value
+    
     def post(self, request):
         profile_id = request.data.get('profile_id')
         if not profile_id:
@@ -6541,7 +6555,15 @@ class GetMyProfileHoroscope(APIView):
             except models.Lagnamdidi.DoesNotExist:
                 lagnam_didi_name = None  # Handle case where object doesn't exist
 
-
+            
+            
+            def dosham_value_formatter(value):
+                if isinstance(value, str):
+                    return {"0": "Unknown", "1": "Yes", "2": "No"}.get(value, value)
+                elif isinstance(value, int):
+                    return {0: "Unknown", 1: "Yes", 2: "No"}.get(value, value)
+                return value
+            
             data = {
                 "personal_bthstar_id": birthstar_id,
                 "personal_bthstar_name": birthstar_name,
@@ -6550,12 +6572,12 @@ class GetMyProfileHoroscope(APIView):
                 "personal_lagnam_didi_id": lagnam_didi_id,
                 "personal_lagnam_didi_name": lagnam_didi_name,
                 "personal_didi":horoscope_serializer.data.get("didi"),
-                "personal_chevvai_dos": horoscope_serializer.data.get("chevvai_dosaham"),
-                "personal_ragu_dos": horoscope_serializer.data.get("ragu_dosham"),
+                "personal_chevvai_dos": dosham_value_formatter(horoscope_serializer.data.get("chevvai_dosaham")),
+                "personal_ragu_dos": dosham_value_formatter(horoscope_serializer.data.get("ragu_dosham")),
                 "personal_nalikai": horoscope_serializer.data.get("nalikai"),
                 "personal_surya_goth": family_serializer.data.get("suya_gothram"),
-                "personal_dasa": horoscope_serializer.data.get("dasa_name"),
-                "personal_dasa_bal": horoscope_serializer.data.get("dasa_balance"),
+                "personal_dasa": get_dasa_name(horoscope_serializer.data.get("dasa_name")),
+                "personal_dasa_bal": self.dasa_format_date(horoscope_serializer.data.get("dasa_balance")),
                 "personal_rasi_katt": horoscope_serializer.data.get("rasi_kattam"),
                 "personal_amsa_katt": horoscope_serializer.data.get("amsa_kattam"),
                 "personal_horoscope_hints": horoscope_serializer.data.get("horoscope_hints")
@@ -7708,6 +7730,19 @@ def get_district_name(district_id):
     except Exception as e:
         return district_id 
 
+def get_dasa_name(dasa_id):
+    # print('dasa_id',dasa_id)
+    try:
+        # Attempt to retrieve the city object using the string city_id
+        print('dasa_id',dasa_id)
+        dasa =  models.Dasaname.objects.get(id=dasa_id)
+        print('dasa name',dasa.name)
+        return dasa.name  # Return the city name if found
+    except models.Dasaname.DoesNotExist:
+        return dasa_id  # Return city_id if the city does not exist
+    except Exception as e:
+        return dasa_id 
+    
 def get_country_name(country_id):
     try:
         # Attempt to retrieve the city object using the string city_id
