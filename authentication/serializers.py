@@ -1103,6 +1103,8 @@ class CreatepnotesSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 class GetproflistSerializer(serializers.ModelSerializer):
+
+    print("Execution time before loop ",datetime.now())
     
     profile_id = serializers.CharField(write_only=True)
     profile_id_out = serializers.SerializerMethodField()

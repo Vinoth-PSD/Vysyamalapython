@@ -1005,9 +1005,9 @@ class Get_profiledata(models.Model):
         # print
 
         #return [], 0, {}
-        print('inside count')
+        # print('inside count')
         try:
-            print('inside count2')
+            # print('inside count2')
 
             profile = get_object_or_404(Registration1, ProfileId=profile_id)
             gender = profile.Gender
@@ -1057,7 +1057,7 @@ class Get_profiledata(models.Model):
                 # print('No income data found for the provided IDs.')
 
 
-            print('partner_pref_porutham_star_rasi',partner_pref_porutham_star_rasi)
+            # print('partner_pref_porutham_star_rasi',partner_pref_porutham_star_rasi)
 
             try:
                 age_difference = int(age_difference_str)
@@ -1067,7 +1067,7 @@ class Get_profiledata(models.Model):
                 return [], 0, {}           
             
                 #exit
-            print('inside count3')
+            # print('inside count3')
             if search_age:
                 age_difference=int(search_age)
 
@@ -1253,9 +1253,9 @@ class Get_profiledata(models.Model):
                     cleaned_query = query.replace('\n', ' ').replace('  ', ' ').strip()
                     formatted_query = query % tuple(query_params)
                     
-                    print('formatted_query')
+                    # print('formatted_query')
 
-                    print('formatted_query',formatted_query)
+                    # print('formatted_query',formatted_query)
 
                     cleaned_query1 = formatted_query.replace('\n', ' ').replace('  ', ' ').strip()
 
@@ -1274,7 +1274,7 @@ class Get_profiledata(models.Model):
                             return results , total_count , profile_with_indices
                             #return [], 0, {}
                         else:
-                            print('123')
+                            # print('123')
                             # return JsonResponse({'status': 'failure', 'message': 'No records found.', 'query': cleaned_query}, status=status.HTTP_404_NOT_FOUND)
                             # return None , 0 , None
                             return [], 0, {}
@@ -1285,14 +1285,14 @@ class Get_profiledata(models.Model):
                     #     return None ,0 ,None # Return 0 as the total count in case of an error
 
             except Exception as e:
-                print(str(e),'weegger')
-                print('5678900')
+                # print(str(e),'weegger')
+                # print('5678900')
                 # return JsonResponse({'status': 'failure1', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                 # return None , 0 , None
                 return [], 0, {}
 
         except Exception as e:
-                print('12357576')
+                # print('12357576')
 
                 # print(str(e))
 
@@ -1302,7 +1302,7 @@ class Get_profiledata(models.Model):
         
     @staticmethod
     def get_profile_match_count(profile_id):
-        print("Fetching profile details...")
+        # print("Fetching profile details...")
 
         try:
             profile = get_object_or_404(Registration1, ProfileId=profile_id)
@@ -1560,7 +1560,7 @@ class Profile_vysassist(models.Model):
     profile_from = models.CharField(max_length=50)
     profile_to = models.CharField(max_length=50)
     req_datetime = models.DateTimeField()
-    response_datetime = models.DateTimeField() 
+    response_datetime = models.DateTimeField(null=True, blank=True) 
     to_message = models.TextField() 
     status = models.CharField(max_length=50)  #if status is 1  requestsent 2 is accepted 3 is rejected 0 is removed
 
