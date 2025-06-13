@@ -1099,7 +1099,7 @@ class Get_profiledata(models.Model):
                     # AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0
                     # """
                     base_query = """
-                    SELECT DISTINCT a.ProfileId,a.*,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
+                    SELECT DISTINCT a.ProfileId,a.Plan_id ,a.DateOfJoin,a.Photo_protection,a.Profile_city,a.Profile_verified,a.Profile_name,a.Profile_dob,a.Profile_height,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
                     f.highest_education, g.EducationLevel, d.star, h.income ,  v.viewed_profile , i.image
                     FROM logindetails a 
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
@@ -1230,13 +1230,13 @@ class Get_profiledata(models.Model):
                     #try:
                     # print('query',query)
                     
-                    with connection.cursor() as cursor1:
-                        cursor1.execute(query, query_params)
-                        all_profile_ids = [row1[0] for row1 in cursor1.fetchall()]
+                    # with connection.cursor() as cursor1:
+                    #     cursor1.execute(query, query_params)
+                    #     all_profile_ids = [row1[0] for row1 in cursor1.fetchall()]
 
-                        total_count = len(all_profile_ids)
+                    #     total_count = len(all_profile_ids)
 
-                        profile_with_indices={str(i + 1): profile_id for i, profile_id in enumerate(all_profile_ids)}
+                        # profile_with_indices={str(i + 1): profile_id for i, profile_id in enumerate(all_profile_ids)}
 
                     # Format the query for logging/debugging
 
@@ -1255,7 +1255,7 @@ class Get_profiledata(models.Model):
                     
                     # print('formatted_query')
 
-                    # print('formatted_query',formatted_query)
+                    print('formatted_query',formatted_query)
 
                     cleaned_query1 = formatted_query.replace('\n', ' ').replace('  ', ' ').strip()
 
@@ -1271,7 +1271,8 @@ class Get_profiledata(models.Model):
                             # print('total_count',total_count)
                             # print('profile_with_indices',profile_with_indices)
 
-                            return results , total_count , profile_with_indices
+                            # return results , total_count , profile_with_indices
+                            return results , 0 , {}
                             #return [], 0, {}
                         else:
                             # print('123')
