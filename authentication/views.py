@@ -3604,6 +3604,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
     print("Execution time before return image ",datetime.now())
     
+
     #base_url='http://103.214.132.20:8000'
     base_url=settings.MEDIA_URL
     #base_url='http://127.0.0.1:8000/'
@@ -3612,41 +3613,131 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
     default_img_bride='default_bride.png'
     default_img_groom='default_groom.png'
     default_lock='default_photo_protect.png'
-    default_img='default_img.png'   
+    default_img='default_img.png'
+    
 
-    # if(no_of_image==1):
+    if photo_protection !=1:        
 
-    #             print('no_of_image','1')
+        if user_profile_id:
+        
+            if(no_of_image==1):
 
-    get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()           
+                print('no_of_image','1')
 
-    if get_entry:
-            # Serialize the single instance
-            serializer = serializers.ImageGetSerializer(get_entry)
-            # Return only the status
-            # return serializer.data['image']
-            image_url = serializer.data['image']
-
-            print('image_url',image_url)
-            try:
-                response = requests.head(image_url, timeout=5)
-                if response.status_code == 200:
-                    return image_url
-            except requests.RequestException:
-                pass  # Fall back to default if request fails
+                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()           
             
-            # Return default image if no image found or image does not exist
-            print("Execution time before return one image ",datetime.now())
-            return  base_url + default_img
+                if get_entry:
+                        # Serialize the single instance
+                        serializer = serializers.ImageGetSerializer(get_entry)
+                        # Return only the status
+                        # return serializer.data['image']
+                        image_url = serializer.data['image']
 
-    else:
-            #return 0
-            if(gender.lower()=='male'):
+                        print('image_url',image_url)
+                        try:
+                            response = requests.head(image_url, timeout=5)
+                            if response.status_code == 200:
+                                return image_url
+                        except requests.RequestException:
+                            pass  # Fall back to default if request fails
+                        
+                        # Return default image if no image found or image does not exist
+                        print("Execution time before return one image ",datetime.now())
+                        return  base_url + default_img
+
+                else:
+                        
+                        
+                        #return 0
+                        if(gender.lower()=='male'):
+                           
+                            return base_url+default_img_bride
+                        
+                        if(gender.lower()=='female'):
+                            return base_url+default_img_groom
+                        
+                    
+            else:
+                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0)[:10]
+                if get_entry.exists():
+                    # Serialize the single instance
+                    serializer = serializers.ImageGetSerializer(get_entry,many=True)
+                    # Return only the status
+                    images_dict = {
+                        str(index + 1): entry['image']
+                        for index, entry in enumerate(serializer.data)
+                    }
+                    #print(images_dict)
+                    print("Execution time before return all image ",datetime.now())
+                    return images_dict
+                    
+                else:                
+                    default_img = default_img_bride if gender == 'male' else default_img_groom
+                    print("Execution time before return default image ",datetime.now())
+                    return {"1":  base_url + default_img,"2":  base_url + default_img}
                 
-                return base_url+default_img_bride
-            
-            if(gender.lower()=='female'):
-                return base_url+default_img_groom
+    else:
+
+        # print('photo protection is true')
+
+        if(no_of_image==1):
+            get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()   
+
+                #print('get_entry',get_entry)        
+                    
+            if get_entry:
+                        # Serialize the single instance
+                    serializer = serializers.ImageGetSerializer(get_entry)
+                                # Return only the status
+                    img_base64=get_blurred_image(serializer.data['image'])
+                    
+                    
+                    print("Execution time when blur image return ",datetime.now())
+                    return img_base64,
+            else :
+                
+                if(gender=='male'):
+                        print("Execution time when blur image failed ",datetime.now())
+                        
+                        return base_url+default_img_bride
+                                
+                if(gender=='female'):
+                        print("Execution time when blur image failed ",datetime.now())
+                                    
+                        return base_url+default_img_groom
+
+        else:
+
+                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()   
+     
+                    
+                if get_entry:
+                        # Serialize the single instance
+                    serializer = serializers.ImageGetSerializer(get_entry)
+                                # Return only the status
+                    img_base64=get_blurred_image(serializer.data['image'])
+
+                    print("Execution time when return blur image failed ",datetime.now())
+                    
+                    return {"1": img_base64}
+                        
+                    # else:
+                    #     raise Exception(f"Failed to download image. Status code: {response.status_code}")
+             
+                else:
+                    if(gender=='male'):
+
+                        print("Execution time when return blur image failed ",datetime.now())
+                        
+                        return {"1": base_url+default_img_bride }
+                                
+                    if(gender=='female'):
+
+                        print("Execution time when return blur image failed ",datetime.now())
+                                    
+                        return {"1": base_url+default_img_groom }
+
+
 
 
 def get_default_or_blurred_image(user_profile_id,gender):
@@ -3786,12 +3877,12 @@ class Get_prof_list_match(APIView):
 
             photo_viewing=get_permission_limits(profile_id,'photo_viewing')
 
-            # if photo_viewing == 1:
-            #     print("Execution time before image starts ",datetime.now())
-            #     image_function = lambda detail: Get_profile_image(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
-            # else:
-            #     print("Execution time before blur image starts ",datetime.now())
-            #     image_function = lambda detail: get_default_or_blurred_image(detail.get("ProfileId"), my_gender)
+            if photo_viewing == 1:
+                print("Execution time before image starts ",datetime.now())
+                image_function = lambda detail: Get_profile_image(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
+            else:
+                print("Execution time before blur image starts ",datetime.now())
+                image_function = lambda detail: get_default_or_blurred_image(detail.get("ProfileId"), my_gender)
 
 
             # print('Testing','8752145')
@@ -3813,7 +3904,7 @@ class Get_prof_list_match(APIView):
                                 "profile_id": detail.get("ProfileId"),
                                 "profile_name": detail.get("Profile_name"),
                                 # "profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
-                                # "profile_img": image_function(detail),
+                                "profile_img": image_function(detail),
                                 "profile_age": calculate_age(detail.get("Profile_dob")),
                                 "profile_gender":detail.get("Gender"),
                                 "height": detail.get("Profile_height"),
