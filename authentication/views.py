@@ -3602,7 +3602,7 @@ def get_permission_limits(profile_id, column_name):
 
 def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
-    print('photo_protection',photo_protection)
+    print("Execution time before return image ",datetime.now())
     
 
     #base_url='http://103.214.132.20:8000'
@@ -3642,6 +3642,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                             pass  # Fall back to default if request fails
                         
                         # Return default image if no image found or image does not exist
+                        print("Execution time before return one image ",datetime.now())
                         return  base_url + default_img
 
                 else:
@@ -3667,10 +3668,12 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                         for index, entry in enumerate(serializer.data)
                     }
                     #print(images_dict)
+                    print("Execution time before return all image ",datetime.now())
                     return images_dict
                     
                 else:                
                     default_img = default_img_bride if gender == 'male' else default_img_groom
+                    print("Execution time before return default image ",datetime.now())
                     return {"1":  base_url + default_img,"2":  base_url + default_img}
                 
     else:
@@ -3689,15 +3692,17 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                     img_base64=get_blurred_image(serializer.data['image'])
                     
                     
-                    
+                    print("Execution time when blur image return ",datetime.now())
                     return img_base64,
             else :
                 
                 if(gender=='male'):
+                        print("Execution time when blur image failed ",datetime.now())
                         
                         return base_url+default_img_bride
                                 
                 if(gender=='female'):
+                        print("Execution time when blur image failed ",datetime.now())
                                     
                         return base_url+default_img_groom
 
@@ -3711,6 +3716,8 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                     serializer = serializers.ImageGetSerializer(get_entry)
                                 # Return only the status
                     img_base64=get_blurred_image(serializer.data['image'])
+
+                    print("Execution time when return blur image failed ",datetime.now())
                     
                     return {"1": img_base64}
                         
@@ -3719,10 +3726,14 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
              
                 else:
                     if(gender=='male'):
+
+                        print("Execution time when return blur image failed ",datetime.now())
                         
                         return {"1": base_url+default_img_bride }
                                 
                     if(gender=='female'):
+
+                        print("Execution time when return blur image failed ",datetime.now())
                                     
                         return {"1": base_url+default_img_groom }
 
@@ -3731,7 +3742,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
 def get_default_or_blurred_image(user_profile_id,gender):
 
-            # print('get_default_or_blurred_image')
+            # print("Execution time on blurred image start ",datetime.now())
             
             base_url=settings.MEDIA_URL
             #base_url='http://127.0.0.1:8000/'
@@ -3765,7 +3776,7 @@ def get_default_or_blurred_image(user_profile_id,gender):
                         return base_url+default_img_groom
 
 
-             
+
 def Get_image_profile(user_profile_id):
     base_url = settings.MEDIA_URL
     default_img_bride = 'default_bride.png'
@@ -3798,9 +3809,8 @@ def Get_image_profile(user_profile_id):
 class Get_prof_list_match(APIView):
 
     def post(self, request):
+        print("Execution time when starts ",datetime.now())
         serializer = serializers.GetproflistSerializer(data=request.data)
-
-        print('Testing','123456')
 
         if serializer.is_valid():            
             
@@ -3847,18 +3857,18 @@ class Get_prof_list_match(APIView):
 
                 # Calculate the starting record for the SQL LIMIT clause
             start = (page_number - 1) * per_page
-
+            print("Execution time before matching list fetch ",datetime.now())
             profile_details , total_count ,profile_with_indices = models.Get_profiledata.get_profile_list(gender,profile_id,start,per_page,search_profile_id,order_by,search_profession,search_age,search_location)
-
+            print("Execution time after matching list fetch ",datetime.now())
             my_profile_id = [profile_id]   
 
             # print('my_profile_id',my_profile_id) 
 
             # print('profile_details',profile_details)        
 
-           
+            print("Execution time before matching list details get ",datetime.now())
             my_profile_details = get_profile_details(my_profile_id)
-
+            print("Execution time after matching list details get ",datetime.now())
             # print('my_profile_details',my_profile_details)
             
             my_gender=my_profile_details[0]['Gender']
@@ -3868,8 +3878,10 @@ class Get_prof_list_match(APIView):
             photo_viewing=get_permission_limits(profile_id,'photo_viewing')
 
             if photo_viewing == 1:
+                print("Execution time before image starts ",datetime.now())
                 image_function = lambda detail: Get_profile_image(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
             else:
+                print("Execution time before blur image starts ",datetime.now())
                 image_function = lambda detail: get_default_or_blurred_image(detail.get("ProfileId"), my_gender)
 
 
