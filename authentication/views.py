@@ -3615,6 +3615,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
     default_lock='default_photo_protect.png'
     default_img='default_img.png'
     
+    return  base_url + default_img
 
     if photo_protection !=1:        
 
@@ -3877,12 +3878,12 @@ class Get_prof_list_match(APIView):
 
             photo_viewing=get_permission_limits(profile_id,'photo_viewing')
 
-            if photo_viewing == 1:
-                print("Execution time before image starts ",datetime.now())
-                image_function = lambda detail: Get_profile_image(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
-            else:
-                print("Execution time before blur image starts ",datetime.now())
-                image_function = lambda detail: get_default_or_blurred_image(detail.get("ProfileId"), my_gender)
+            # if photo_viewing == 1:
+            #     print("Execution time before image starts ",datetime.now())
+            #     image_function = lambda detail: Get_profile_image(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
+            # else:
+            #     print("Execution time before blur image starts ",datetime.now())
+            #     image_function = lambda detail: get_default_or_blurred_image(detail.get("ProfileId"), my_gender)
 
 
             # print('Testing','8752145')
@@ -3904,7 +3905,7 @@ class Get_prof_list_match(APIView):
                                 "profile_id": detail.get("ProfileId"),
                                 "profile_name": detail.get("Profile_name"),
                                 # "profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
-                                "profile_img": image_function(detail),
+                               #"profile_img": image_function(detail),
                                 "profile_age": calculate_age(detail.get("Profile_dob")),
                                 "profile_gender":detail.get("Gender"),
                                 "height": detail.get("Profile_height"),
@@ -3914,7 +3915,7 @@ class Get_prof_list_match(APIView):
                                 "profession": getprofession(detail.get("profession")),
                                 "location":detail.get("Profile_city"),
                                 "photo_protection":detail.get("Photo_protection"),
-                                "matching_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
+                                # "matching_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
                                 #"profile_image":"http://matrimonyapp.rainyseasun.com/assets/Bride-BEuOb3-D.png",
                                 "wish_list":Get_wishlist(profile_id,detail.get("ProfileId")),
                                 "verified":detail.get('Profile_verified'),
