@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Open Graph Meta Tags for WhatsApp Preview -->
+    <meta property="og:title" content="Matrimony Profile - {{ profile_name }}">
+    <meta property="og:description" content="Age: {{ profile_age }}, Education: {{ profile_education }}, Profession: {{ profile_prof }}">
+    <meta property="og:image" content="{{ profile_image_url }}">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:type" content="website">
+    <meta property="og:image:width" content="300">
+    <meta property="og:image:height" content="300">
+
+    <title>{{ profile_name }} - Matrimony Profile</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 350px;
+        }
+        .profile-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 15px;
+        }
+        .profile-info p {
+            margin: 5px 0;
+            color: #333;
+        }
+        .view-profile {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .view-profile:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="{{ profile_image_url }}" alt="Profile Image" class="profile-img">
+        <h2>{{ profile_name }}</h2>
+        <div class="profile-info">
+            <p><strong>Age:</strong> {{ profile_age }}</p>
+            <p><strong>DOB:</strong> {{ profile_dob }}</p>
+            <p><strong>Height:</strong> {{ profile_height }}</p>
+            <p><strong>Education:</strong> {{ profile_education }}</p>
+            <p><strong>Profession:</strong> {{ profile_prof }}</p>
+        </div>
+        <!-- <a href="{{ request.build_absolute_uri }}" class="view-profile">View Full Profile</a> -->
+        <a href="https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net/" class="view-profile">View Full Profile</a>
+    </div>
+</body>
+</html>
