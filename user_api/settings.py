@@ -163,6 +163,32 @@ DATABASES = {
 }
 
 
+#Build paths inside the project like this: BASE_DIR / 'subdir'.
+# BASE_DIR = Path(__file__).resolve().parent.parent
+
+# # Cache directory inside project folder
+# CACHE_DIR = BASE_DIR / 'cache'
+
+# # Create directory if it doesn't exist
+# CACHE_DIR.mkdir(exist_ok=True)
+
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+#         'LOCATION': str(CACHE_DIR),
+#         'TIMEOUT': 3600,  # 1 hour cache timeout
+#         'OPTIONS': {
+#             'MAX_ENTRIES': 1000,
+#         }
+#     },
+#     'images': {
+#         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+#         'LOCATION': str(BASE_DIR / 'cache' / 'images'),
+#         'TIMEOUT': 86400,  # Longer timeout for images (1 day)
+#         'OPTIONS': {'MAX_ENTRIES': 500}
+#     }
+# }
+
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',
@@ -274,18 +300,61 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #     },
 # }
 
+
+#Commented by vinoth on 15th june 2025
+
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [("localhost", 6379)],  # Now works because Redis runs locally
+#         },
+#     },
+# }
+
+AZURE_REDIS_HOST = 'vysyamala-redis.redis.cache.windows.net'
+AZURE_REDIS_KEY = 'MRum39q8JRawJ3lBM9Dd7qbSPmrdgZPC1AzCaGwflN8='  # Replace with your actual key
+
+
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [("localhost", 6379)],  # Now works because Redis runs locally
+            "hosts": [(
+                f"rediss://:{AZURE_REDIS_KEY}@{AZURE_REDIS_HOST}:6380/1"  # DB 1 for channels
+            )],
+            "ssl": True,
         },
     },
 }
 
 
-
 ASGI_APPLICATION = 'user_api.asgi.application'
+
+
+
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"rediss://:{AZURE_REDIS_KEY}@{AZURE_REDIS_HOST}:6380/0",  # DB 0 for cache
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "SSL": True,
+            "SOCKET_CONNECT_TIMEOUT": 5,
+            "SOCKET_TIMEOUT": 5
+        }
+    },
+    'images': {  # This is the missing configuration
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f"rediss://:{AZURE_REDIS_KEY}@{AZURE_REDIS_HOST}:6380/1",    # Using DB 1 for images
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+
+
 
 
 

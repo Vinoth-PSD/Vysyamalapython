@@ -85,6 +85,10 @@ from azure.storage.blob import ContentSettings  # Add this import
 from authentication.helpers.matching import preload_matching_scores
 from django.core.cache import cache
 
+from django.core.cache import caches
+import hashlib
+from pathlib import Path
+
 class LoginView(APIView):
     # authentication_classes = []
     # permission_classes = []
@@ -3622,6 +3626,249 @@ def get_permission_limits(profile_id, column_name):
     #return True
 
 
+# Initialize Azure Blob Service Client
+blob_service_client = BlobServiceClient.from_connection_string(settings.AZURE_CONNECTION_STRING)
+container_client = blob_service_client.get_container_client(settings.AZURE_CONTAINER)
+
+def get_profile_image_azure_optimized(user_profile_id, gender, no_of_image, photo_protection):
+    """
+    Optimized image retrieval with:
+    - Dual caching (Redis + local fallback)
+    - Pre-generated blurred images
+    - Efficient database queries
+    - Comprehensive error handling
+    """
+    # Configuration
+    DEFAULT_IMAGES = {
+        'male': f"{settings.MEDIA_URL}default_bride.png",
+        'female': f"{settings.MEDIA_URL}default_groom.png",
+        'default': f"{settings.MEDIA_URL}default_img.png",
+        'locked': f"{settings.MEDIA_URL}default_photo_protect.png"
+    }
+
+    # Cache keys
+    cache_key = f"img:{user_profile_id}:{no_of_image}"
+    blurred_cache_key = f"img_blurred:{user_profile_id}:{no_of_image}"
+    
+    try:
+        redis_cache = caches['images']
+        
+        # ===== 1. PHOTO PROTECTION HANDLING =====
+        if photo_protection == 1:
+            blurred_cache_key = f"img_blurred:{user_profile_id}:{no_of_image}"
+            
+            # Try cache first
+            if cached := redis_cache.get(blurred_cache_key):
+                return cached
+
+            # Get original images from DB
+            images = models.Image_Upload.objects.filter(
+                profile_id=user_profile_id,
+                image_approved=1,
+                is_deleted=0
+            ).order_by('id').values_list('image', flat=True)[:10]  # Limit to 10
+
+            if not images:
+                return DEFAULT_IMAGES['locked'] if no_of_image == 1 else \
+                    {str(i): DEFAULT_IMAGES['locked'] for i in range(1, no_of_image+1)}
+
+            # Prepare URLs for blur check
+            original_urls = [f"{settings.MEDIA_URL}{img}" for img in (
+                [images[0]] if no_of_image == 1 else images[:no_of_image]
+            )]
+
+            # Get blurred images in batch
+            blurred_results = get_blurred_images_updated(original_urls, return_multiple=(no_of_image != 1))
+
+            # Process results
+            if no_of_image == 1:
+                result = blurred_results if isinstance(blurred_results, str) else \
+                    blurred_results.get(original_urls[0], DEFAULT_IMAGES['locked'])
+            else:
+                result = {
+                    str(i+1): blurred_results.get(url, DEFAULT_IMAGES['locked'])
+                    for i, url in enumerate(original_urls)
+                }
+
+            # Cache results
+            if result and result != DEFAULT_IMAGES['locked']:
+                redis_cache.set(blurred_cache_key, result, timeout=3600)
+            return result
+
+        # ===== 2. REGULAR IMAGE FLOW =====
+        # Check cache first
+        if cached := redis_cache.get(cache_key):
+            return cached
+            
+        # Database lookup
+        if user_profile_id:
+            query = models.Image_Upload.objects.filter(
+                profile_id=user_profile_id,
+                image_approved=1,
+                is_deleted=0
+            ).order_by('id')
+            
+            if no_of_image == 1:
+                image_name = query.values_list('image', flat=True).first()
+                if image_name:
+                    image_url = f"{settings.MEDIA_URL}{image_name}"
+                    redis_cache.set(cache_key, image_url, timeout=86400)  # 24h cache
+                    return image_url
+            else:
+                images = list(query.values_list('image', flat=True)[:10])
+                if images:
+                    result = {str(i+1): f"{settings.MEDIA_URL}{img}" 
+                            for i, img in enumerate(images)}
+                    redis_cache.set(cache_key, result, timeout=86400)
+                    return result
+
+        # ===== 3. FALLBACK =====
+        gender_key = str(gender).lower() if gender else 'default'
+        gender_key = gender_key if gender_key in ('male', 'female') else 'default'
+        return DEFAULT_IMAGES[gender_key]
+        
+    except Exception as e:
+        logger.error(f"Image loading failed: {str(e)}", exc_info=True)
+        # Fallback to local cache
+        local_cache = caches['default']
+        if photo_protection == 1:
+            if cached := local_cache.get(blurred_cache_key):
+                return cached
+        else:
+            if cached := local_cache.get(cache_key):
+                return cached
+                
+        return DEFAULT_IMAGES['default']
+
+
+
+
+
+# image_cache = caches['images']
+# BASE_DIR = Path(__file__).resolve().parent.parent
+# def Get_profile_image_optimized(user_profile_id, gender, no_of_image, photo_protection):
+#     """
+#     Ultra-optimized image retrieval with:
+#     - Multi-level caching
+#     - Async-ready structure
+#     - Zero unnecessary queries
+#     - Pre-computed defaults
+#     """
+#     # Static configuration - loaded once at startup
+#     DEFAULT_IMAGES = {
+#         'male': f"{settings.MEDIA_URL}default_bride.png",
+#         'female': f"{settings.MEDIA_URL}default_groom.png",
+#         'default': f"{settings.MEDIA_URL}default_img.png",
+#         'locked': f"{settings.MEDIA_URL}default_photo_protect.png"
+#     }
+    
+#     # Fast path for photo protection
+#     if photo_protection == 1:
+#         return DEFAULT_IMAGES['locked']
+    
+#     gender_str = str(gender).lower() if gender is not None else 'default'
+
+#     cache_key = f"img_{user_profile_id}_{no_of_image}"
+
+#     # 1. First try: Memory cache
+#     if cached := image_cache.get(cache_key):
+#         return cached
+
+#     # 2. Second try: Filesystem cache
+#     # Get the proper cache path using your project's BASE_DIR
+#     fs_cache_dir = BASE_DIR / 'cache' / 'images'
+#     fs_cache_dir.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
+
+#     # Create hashed filename
+#     hashed_filename = f"{hashlib.md5(cache_key.encode()).hexdigest()}.cache"
+#     fs_cache_path = fs_cache_dir / hashed_filename
+#     if os.path.exists(fs_cache_path):
+#         with open(fs_cache_path, 'r') as f:
+#             cached_data = f.read()
+#         image_cache.set(cache_key, cached_data, timeout=3600)
+#         return cached_data
+    
+#     # 3. Database lookup (optimized)
+#     if user_profile_id:
+#         # Using values_list() avoids model instantiation
+#         images = models.Image_Upload.objects.filter(
+#             Q(profile_id=user_profile_id) &
+#             Q(image_approved=1) &
+#             Q(is_deleted=0)
+#         ).order_by('id').values_list('image', flat=True)[:10]
+        
+#         if images:
+#             # Direct URL construction avoids serialization
+#             media_url = settings.MEDIA_URL
+#             if no_of_image == 1:
+#                 result = f"{media_url}{images[0]}"
+#             else:
+#                 result = {str(i+1): f"{media_url}{img}" for i, img in enumerate(images)}
+            
+#             # Cache the result
+#             image_cache.set(cache_key, result, timeout=3600)
+#             with open(fs_cache_path, 'w') as f:
+#                 f.write(str(result))
+#             return result
+    
+#     # Fallback to default image
+#     default_key = gender_str if gender_str in ('male', 'female') else 'default'
+#     result = DEFAULT_IMAGES[default_key]
+#     image_cache.set(cache_key, result, timeout=3600)
+#     return result
+
+
+
+def Get_profile_image_New(user_profile_id, gender, no_of_image, photo_protection):
+    # Configuration from settings
+    base_url = settings.MEDIA_URL
+    default_images = {
+        'male': base_url + 'default_bride.png',
+        'female': base_url + 'default_groom.png',
+        'default': base_url + 'default_img.png',
+        'locked': base_url + 'default_photo_protect.png'
+    }
+    
+    # Handle photo protection case
+    if photo_protection == 1:
+        return default_images['locked']
+    
+    # Get approved images for the profile
+    images = models.Image_Upload.objects.filter(
+        profile_id=user_profile_id,
+        image_approved=1,
+        is_deleted=0
+    ).order_by('id')[:10] if user_profile_id else None
+    
+    # Handle single image request
+    if no_of_image == 1:
+        if images and images.exists():
+            image_url = serializers.ImageGetSerializer(images[0]).data['image']
+            if validate_image_url(image_url):
+                return image_url
+        return default_images.get(gender.lower(), default_images['default'])
+    
+    # Handle multiple images request
+    else:
+        if images and images.exists():
+            serializer = serializers.ImageGetSerializer(images, many=True)
+            return {
+                str(i+1): entry['image'] 
+                for i, entry in enumerate(serializer.data)
+            }
+        default_img = default_images.get(gender.lower(), default_images['default'])
+        return {"1": default_img, "2": default_img}
+
+def validate_image_url(url):
+    """Helper function to validate image URL"""
+    try:
+        response = requests.head(url, timeout=2)
+        return response.status_code == 200
+    except requests.RequestException:
+        return False
+
+
+
 
 def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
@@ -3901,12 +4148,13 @@ class Get_prof_list_match(APIView):
 
             if photo_viewing == 1:
                 print("Execution time before image starts ",datetime.now())
-                image_function = lambda detail: Get_profile_image(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
+                image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
             else:
                 print("Execution time before blur image starts ",datetime.now())
-                image_function = lambda detail: get_default_or_blurred_image(detail.get("ProfileId"), my_gender)
+                image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
 
 
+            
             # print('Testing','8752145')
 
             #print('matching profile limit 1',profile_details[0])
@@ -3945,10 +4193,22 @@ class Get_prof_list_match(APIView):
                     match_count = score_map.get(key, 0)
                     matching_score = 100 if match_count == 15 else match_count * 10
 
+
+
+                    photo_protection = detail.get("Photo_protection", 0)
+
+                    profile_img = get_profile_image_azure_optimized(
+                        user_profile_id=profile_to,
+                        gender=detail.get("Gender"),
+                        no_of_image=1,
+                        photo_protection=1
+                    )
+
                     restricted_profile_details.append({
                         "profile_id": detail.get("ProfileId"),
                         "profile_name": detail.get("Profile_name"),
-                        "profile_img": "https://vysyamaladev2025.blob.core.windows.net/vysyamala/default_img.png",
+                        "profile_img": image_function(detail),
+                        #"profile_img": profile_img,
                         "profile_age": calculate_age(detail.get("Profile_dob")),
                         "profile_gender": detail.get("Gender"),
                         "height": detail.get("Profile_height"),
@@ -4057,11 +4317,11 @@ class Get_profile_det_match(APIView):
 
                 if photo_viewing == 1:
                      print("Execution time before image ",datetime.now())
-                     user_images =  lambda detail: Get_profile_image(profile_details[0]['ProfileId'], my_gender, 'all', profile_details[0]['Photo_protection'])
+                     user_images =  lambda detail: get_profile_image_azure_optimized(profile_details[0]['ProfileId'], my_gender, 'all', profile_details[0]['Photo_protection'])
                      print("Execution time after image  ",datetime.now())
                 else:
                     print("Execution time before image ",datetime.now())
-                    user_images = lambda detail: get_default_or_blurred_image(profile_details[0]['ProfileId'], my_gender)
+                    user_images = lambda detail: get_profile_image_azure_optimized(profile_details[0]['ProfileId'], my_gender,'all',1)
                     print("Execution time after image  ",datetime.now())
                
                 try:
@@ -10288,6 +10548,70 @@ class GetFooterView(APIView):
 #     except Exception as e:
 #         logger.exception(f"Error processing image: {e}")
 #         return settings.MEDIA_URL + 'default_img.png'
+
+
+
+
+
+
+def get_blurred_images_updated(image_names, return_multiple=False):
+    """
+    Get blurred image URLs from Azure Blob Storage
+    Args:
+        image_names: Single image path (str) or list of paths
+        return_multiple: Always return dict even for single image
+    Returns:
+        Single URL (str) or dict of {original_path: blurred_url}
+    """
+    if not image_names:
+        return {} if return_multiple else settings.MEDIA_URL + 'default_img.png'
+
+    # Convert single image to list for uniform processing
+    single_mode = not isinstance(image_names, list)
+    if single_mode:
+        image_names = [image_names]
+
+    results = {}
+    container_name = settings.AZURE_CONTAINER
+    blob_service = BlobServiceClient.from_connection_string(settings.AZURE_CONNECTION_STRING)
+
+    for original_url in image_names:
+        try:
+            parsed_url = urlparse(original_url)
+            full_path = parsed_url.path.lstrip('/')
+            
+            # Extract blob path
+            if full_path.startswith(container_name + '/'):
+                blob_path = full_path[len(container_name)+1:]
+            else:
+                blob_path = full_path
+
+            if not blob_path:
+                raise ValueError("Empty blob path")
+
+            # Construct blurred image path
+            blurred_blob_name = f"blurred_images/{os.path.basename(blob_path)}"
+            blurred_blob_client = blob_service.get_blob_client(
+                container=container_name,
+                blob=blurred_blob_name
+            )
+
+            if blurred_blob_client.exists():
+                results[original_url] = (
+                    f"https://{blob_service.account_name}.blob.core.windows.net/"
+                    f"{container_name}/{blurred_blob_name}"
+                )
+            else:
+                results[original_url] = settings.MEDIA_URL + 'default_img.png'
+
+        except Exception as e:
+            logger.error(f"Error processing {original_url}: {str(e)}")
+            results[original_url] = settings.MEDIA_URL + 'default_img.png'
+
+    if single_mode and not return_multiple:
+        return results.get(image_names[0], settings.MEDIA_URL + 'default_img.png')
+    return results
+
 
 
 def get_blurred_image(image_name):
