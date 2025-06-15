@@ -3948,7 +3948,7 @@ class Get_prof_list_match(APIView):
                     restricted_profile_details.append({
                         "profile_id": detail.get("ProfileId"),
                         "profile_name": detail.get("Profile_name"),
-                        "profile_img": image_function(detail),
+                        "profile_img": "https://vysyamaladev2025.blob.core.windows.net/vysyamala/default_img.png",
                         "profile_age": calculate_age(detail.get("Profile_dob")),
                         "profile_gender": detail.get("Gender"),
                         "height": detail.get("Profile_height"),
