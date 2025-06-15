@@ -3674,7 +3674,7 @@ def get_profile_image_azure_optimized(user_profile_id, gender, no_of_image, phot
 
             # Prepare URLs for blur check
             original_urls = [f"{settings.MEDIA_URL}{img}" for img in (
-                [images[0]] if no_of_image == 1 else images[:no_of_image]
+                [images[0]] if no_of_image == 1 else images[:10]
             )]
 
             # Get blurred images in batch
