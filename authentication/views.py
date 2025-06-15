@@ -82,7 +82,7 @@ from azure.storage.blob import BlobServiceClient
 from urllib.parse import urlparse
 from azure.storage.blob import ContentSettings  # Add this import
 # from authentication.helpers.matching import get_matching_score_util
-from authentication.helpers.matching import preload_matching_scores
+from authentication.helpers.matching import preload_matching_scores , get_matching_score_util
 from django.core.cache import cache
 
 from django.core.cache import caches
@@ -4195,14 +4195,14 @@ class Get_prof_list_match(APIView):
 
 
 
-                    photo_protection = detail.get("Photo_protection", 0)
+                    # photo_protection = detail.get("Photo_protection", 0)
 
-                    profile_img = get_profile_image_azure_optimized(
-                        user_profile_id=profile_to,
-                        gender=detail.get("Gender"),
-                        no_of_image=1,
-                        photo_protection=1
-                    )
+                    # profile_img = get_profile_image_azure_optimized(
+                    #     user_profile_id=profile_to,
+                    #     gender=detail.get("Gender"),
+                    #     no_of_image=1,
+                    #     photo_protection=1
+                    # )
 
                     restricted_profile_details.append({
                         "profile_id": detail.get("ProfileId"),
@@ -4545,7 +4545,8 @@ class Get_profile_det_match(APIView):
                             # "personal_notes": "dfG",
                             # "matching_score": "75%",
 
-                            "matching_score":Get_matching_score(my_star_id,my_rasi_id,profile_details[0]['birthstar_name'],profile_details[0]['birth_rasi_name'],my_gender),
+                            #"matching_score":Get_matching_score(my_star_id,my_rasi_id,profile_details[0]['birthstar_name'],profile_details[0]['birth_rasi_name'],my_gender),
+                            "matching_score":get_matching_score_util(source_star_id=my_star_id,source_rasi_id=my_rasi_id,dest_star_id=profile_details[0]['birthstar_name'],dest_rasi_id=profile_details[0]['birth_rasi_name'],gender=my_gender),
                             "plan_subscribed":Plan_subscribed,
                             "vysy_assist_enable":vysy_assist_enable,
                             "vys_assits":vys_assits,
