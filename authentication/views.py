@@ -81,8 +81,9 @@ import uuid
 from azure.storage.blob import BlobServiceClient
 from urllib.parse import urlparse
 from azure.storage.blob import ContentSettings  # Add this import
-
-
+# from authentication.helpers.matching import get_matching_score_util
+from authentication.helpers.matching import preload_matching_scores
+from django.core.cache import cache
 
 class LoginView(APIView):
     # authentication_classes = []
@@ -3475,6 +3476,27 @@ def Get_wishlist(profile_id,user_profile_id):
     return None
 
 
+def preload_wishlist(profile_id, profile_ids_to_check):
+    """
+    Optimized wishlist checker to preload all wished profiles in one query.
+    Returns a set of profile_to IDs that are in the wishlist.
+    """
+    if not profile_ids_to_check:
+        return set()
+
+    wishes = models.Profile_wishlists.objects.filter(
+        profile_from=profile_id,
+        profile_to__in=profile_ids_to_check,
+        status=1
+    ).values_list('profile_to', flat=True)
+
+    return set(wishes)
+
+
+
+
+
+
 def Get_expressstatus(profile_id, user_profile_id):
     if profile_id and user_profile_id:
         print(f'profile_id: {profile_id}, user_profile_id: {user_profile_id}')
@@ -3600,6 +3622,7 @@ def get_permission_limits(profile_id, column_name):
     #return True
 
 
+
 def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
     print("Execution time before return image ",datetime.now())
@@ -3615,7 +3638,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
     default_lock='default_photo_protect.png'
     default_img='default_img.png'
     
-    return  base_url + default_img
+    #return  base_url + default_img
 
     if photo_protection !=1:        
 
@@ -3737,8 +3760,6 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                         print("Execution time when return blur image failed ",datetime.now())
                                     
                         return {"1": base_url+default_img_groom }
-
-
 
 
 def get_default_or_blurred_image(user_profile_id,gender):
@@ -3878,12 +3899,12 @@ class Get_prof_list_match(APIView):
 
             photo_viewing=get_permission_limits(profile_id,'photo_viewing')
 
-            # if photo_viewing == 1:
-            #     print("Execution time before image starts ",datetime.now())
-            #     image_function = lambda detail: Get_profile_image(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
-            # else:
-            #     print("Execution time before blur image starts ",datetime.now())
-            #     image_function = lambda detail: get_default_or_blurred_image(detail.get("ProfileId"), my_gender)
+            if photo_viewing == 1:
+                print("Execution time before image starts ",datetime.now())
+                image_function = lambda detail: Get_profile_image(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
+            else:
+                print("Execution time before blur image starts ",datetime.now())
+                image_function = lambda detail: get_default_or_blurred_image(detail.get("ProfileId"), my_gender)
 
 
             # print('Testing','8752145')
@@ -3897,32 +3918,51 @@ class Get_prof_list_match(APIView):
 
             print("Execution time before loop ",datetime.now())
 
-            if profile_details:
+            if profile_details:                
+                # Preload matching scores into a dictionary
 
+                preload_matching_scores()
+                score_map = cache.get("matching_score_map", {})
 
-                restricted_profile_details = [
-                            {
-                                "profile_id": detail.get("ProfileId"),
-                                "profile_name": detail.get("Profile_name"),
-                                # "profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
-                               #"profile_img": image_function(detail),
-                                #"profile_age": calculate_age(detail.get("Profile_dob")),
-                                "profile_gender":detail.get("Gender"),
-                                "height": detail.get("Profile_height"),
-                                "weight": detail.get("weight"),
-                                #"degree": get_degree(detail.get("ug_degeree")),
-                                "star":detail.get("star"),
-                                #"profession": getprofession(detail.get("profession")),
-                                "location":detail.get("Profile_city"),
-                                "photo_protection":detail.get("Photo_protection"),
-                                # "matching_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
-                                #"profile_image":"http://matrimonyapp.rainyseasun.com/assets/Bride-BEuOb3-D.png",
-                                #"wish_list":Get_wishlist(profile_id,detail.get("ProfileId")),
-                                "verified":detail.get('Profile_verified'),
-                                #"wishlist_profile_notes": 'Iam intrested in your profile if you are intrested in my profile , please contact me',
-                            }
-                            for detail in profile_details
-                        ]
+                # Standardize your inputs
+                my_star_id_str = str(my_star_id)
+                my_rasi_id_str = str(my_rasi_id)
+                my_gender_lower = my_gender.lower()
+
+                # Generate the full list efficiently
+                
+                profile_to_ids = [detail.get("ProfileId") for detail in profile_details]
+                wishlisted_ids = preload_wishlist(profile_id, profile_to_ids)
+                restricted_profile_details = []
+                
+                
+                for detail in profile_details:
+                    dest_star = str(detail.get("birthstar_name"))
+                    dest_rasi = str(detail.get("birth_rasi_name"))
+                    profile_to = detail.get("ProfileId")
+
+                    key = (my_star_id_str, my_rasi_id_str, dest_star, dest_rasi, my_gender_lower)
+                    match_count = score_map.get(key, 0)
+                    matching_score = 100 if match_count == 15 else match_count * 10
+
+                    restricted_profile_details.append({
+                        "profile_id": detail.get("ProfileId"),
+                        "profile_name": detail.get("Profile_name"),
+                        "profile_img": image_function(detail),
+                        "profile_age": calculate_age(detail.get("Profile_dob")),
+                        "profile_gender": detail.get("Gender"),
+                        "height": detail.get("Profile_height"),
+                        "weight": detail.get("weight"),
+                        "degree": get_degree(detail.get("ug_degeree")),
+                        "star": detail.get("star"),
+                        "profession": getprofession(detail.get("profession")),
+                        "location": detail.get("Profile_city"),
+                        "photo_protection": detail.get("Photo_protection"),
+                        "matching_score": matching_score,
+                        # "wish_list":Get_wishlist(profile_id,detail.get("ProfileId")),
+                        "wish_list": 1 if profile_to in wishlisted_ids else 0,
+                        "verified":detail.get('Profile_verified'),
+                    })
                 
                 print("Execution time after loop ",datetime.now())
             

@@ -1108,15 +1108,16 @@ class Get_profiledata(models.Model):
                     JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
                     JOIN mastereducation g ON f.highest_education = g.RowId 
                     JOIN masterannualincome h ON h.id = f.anual_income
-                    LEFT JOIN profile_images i ON i.id = (
-                            SELECT id
-                            FROM profile_images pi
-                            WHERE pi.profile_id = a.ProfileId
-                            AND pi.image_approved = 1
-                            AND pi.is_deleted = 0
-                            ORDER BY pi.id ASC
-                            LIMIT 1
-                        )
+                    LEFT JOIN (
+                        SELECT *
+                        FROM (
+                            SELECT *,
+                                ROW_NUMBER() OVER (PARTITION BY profile_id ORDER BY id ASC) AS rn
+                            FROM profile_images
+                            WHERE image_approved = 1 AND is_deleted = 0
+                        ) AS ranked_images
+                        WHERE rn = 1
+                    ) AS i ON i.profile_id = a.ProfileId
                     LEFT JOIN profile_visit_logs v ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
                     WHERE a.Status=1 AND a.Plan_id !=16 AND a.gender != %s AND a.ProfileId != %s 
                     AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {operator} %s
@@ -1230,15 +1231,32 @@ class Get_profiledata(models.Model):
                     #try:
                     # print('query',query)
                     
+                    #commented By vinth on 15th june 2025
                     # with connection.cursor() as cursor1:
                     #     cursor1.execute(query, query_params)
                     #     all_profile_ids = [row1[0] for row1 in cursor1.fetchall()]
 
                     #     total_count = len(all_profile_ids)
 
-                        # profile_with_indices={str(i + 1): profile_id for i, profile_id in enumerate(all_profile_ids)}
+                    #     profile_with_indices={str(i + 1): profile_id for i, profile_id in enumerate(all_profile_ids)}
 
-                    # Format the query for logging/debugging
+
+                    with connection.cursor() as cursor1:
+                        cursor1.execute(query, query_params)
+
+                        profile_with_indices = {}
+                        index = 1
+                        fetch_size = 200  # or 500
+
+                        while True:
+                            rows = cursor1.fetchmany(fetch_size)
+                            if not rows:
+                                break
+                            for row in rows:
+                                profile_with_indices[str(index)] = row[0]
+                                index += 1
+
+                    total_count = index - 1
 
                     # print('all_profile_ids',all_profile_ids)
                     
@@ -1271,8 +1289,8 @@ class Get_profiledata(models.Model):
                             # print('total_count',total_count)
                             # print('profile_with_indices',profile_with_indices)
 
-                            # return results , total_count , profile_with_indices
-                            return results , 0 , {}
+                            return results , total_count, profile_with_indices
+                            #return results , 0 , {}
                             #return [], 0, {}
                         else:
                             # print('123')
