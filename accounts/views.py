@@ -2056,7 +2056,7 @@ class EditProfileAPIView(APIView):
 
         if profile_common_data:
             # Only include the common data keys that are available in the request
-            login_common_data = {
+            login_common_data = clean_none_fields({
                 "Addon_package": profile_common_data.get("Addon_package"),
                 "Notifcation_enabled": profile_common_data.get("Notifcation_enabled"),
                 "PaymentExpire": profile_common_data.get("PaymentExpire"),
@@ -2073,23 +2073,23 @@ class EditProfileAPIView(APIView):
                 "secondary_status":profile_common_data.get("secondary_status"),
                 "plan_status":profile_common_data.get("plan_status"),
                 "Otp_verify":profile_common_data.get("mobile_otp_verify"),
-            }
-            family_common_data={
+            })
+            family_common_data=clean_none_fields({
                 "family_status":profile_common_data.get("family_status")
-            }
-            horos_common_data={
+            })
+            horos_common_data=clean_none_fields({
                 "calc_chevvai_dhosham":profile_common_data.get("calc_chevvai_dhosham"),
                 "calc_raguketu_dhosham":profile_common_data.get("calc_raguketu_dhosham"),
                 "horoscope_hints":profile_common_data.get("horoscope_hints")
-            }
-            profileplan_common_data={
+            })
+            profileplan_common_data=clean_none_fields({
                 "exp_int_lock":profile_common_data.get("exp_int_lock"),
                 "express_int_count":profile_common_data.get("exp_int_count"),
                 "profile_permision_toview":profile_common_data.get("visit_count"),
                 "membership_fromdate":profile_common_data.get("membership_fromdate"),
                 "membership_todate":profile_common_data.get("membership_todate")
 
-            }
+            })
 
 
             # Update Login Details
@@ -2131,6 +2131,10 @@ class EditProfileAPIView(APIView):
 
         # Success response
         return Response({"status": "success", "message": "Profile updated successfully."}, status=status.HTTP_200_OK)
+
+
+def clean_none_fields(data_dict):
+    return {k: v for k, v in data_dict.items() if v is not None}
 
 
 # class GetProfileDetailsAPIView(APIView):

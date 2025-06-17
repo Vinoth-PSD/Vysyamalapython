@@ -282,7 +282,7 @@ class LoginEditSerializer(serializers.ModelSerializer):
     Gender = serializers.CharField(required=False,allow_null=True)
     Profile_pincode = serializers.CharField(required=True)
 
-    Notifcation_enabled = serializers.CharField(required=True)
+    Notifcation_enabled = serializers.CharField(required=False)
     Addon_package = serializers.CharField(required=False)
     Plan_id = serializers.CharField(required=True)
     Profile_idproof = serializers.FileField(required=False)  
@@ -825,10 +825,58 @@ class CallActionSerializer(serializers.ModelSerializer):
     class Meta:
         model = CallAction
         fields = '__all__'
+# class ProfileCallManagementSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = ProfileCallManagement
+#         fields = '__all__'
+
 class ProfileCallManagementSerializer(serializers.ModelSerializer):
+    call_status_value = serializers.SerializerMethodField()
+    call_type_value = serializers.SerializerMethodField()
+    callaction_today_value = serializers.SerializerMethodField()
+    future_actiontaken_value = serializers.SerializerMethodField()
+
     class Meta:
         model = ProfileCallManagement
-        fields = '__all__'
+        fields = '__all__'  # all original DB fields
+        # Add the extra value fields to the response
+        extra_fields = ['call_status_value', 'call_type_value', 'callaction_today_value', 'future_actiontaken_value']
+
+    def get_call_status_value(self, obj):
+        from .models import CallStatus
+        if obj.call_status_id:
+            try:
+                return CallStatus.objects.get(id=obj.call_status_id).call_status
+            except CallStatus.DoesNotExist:
+                return None
+        return None
+
+    def get_call_type_value(self, obj):
+        from .models import CallType
+        if obj.call_type_id:
+            try:
+                return CallType.objects.get(id=obj.call_type_id).call_type
+            except CallType.DoesNotExist:
+                return None
+        return None
+
+    def get_callaction_today_value(self, obj):
+        from .models import CallAction
+        if obj.callaction_today_id:
+            try:
+                return CallAction.objects.get(id=obj.callaction_today_id).call_action_name
+            except CallAction.DoesNotExist:
+                return None
+        return None
+
+    def get_future_actiontaken_value(self, obj):
+        from .models import CallAction
+        if obj.future_actiontaken_id:
+            try:
+                return CallAction.objects.get(id=obj.future_actiontaken_id).call_action_name
+            except CallAction.DoesNotExist:
+                return None
+        return None
 
     def validate(self, data):
         required_fields = ['profile_id', 'profile_status_id', 'owner_id']
