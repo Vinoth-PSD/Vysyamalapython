@@ -835,12 +835,14 @@ class ProfileCallManagementSerializer(serializers.ModelSerializer):
     call_type_value = serializers.SerializerMethodField()
     callaction_today_value = serializers.SerializerMethodField()
     future_actiontaken_value = serializers.SerializerMethodField()
+    work_asignid_value = serializers.SerializerMethodField()
+    owner_id_value = serializers.SerializerMethodField()
 
     class Meta:
         model = ProfileCallManagement
         fields = '__all__'  # all original DB fields
         # Add the extra value fields to the response
-        extra_fields = ['call_status_value', 'call_type_value', 'callaction_today_value', 'future_actiontaken_value']
+        extra_fields = ['call_status_value', 'call_type_value', 'callaction_today_value', 'future_actiontaken_value', 'work_asignid_value', 'owner_id_value']
 
     def get_call_status_value(self, obj):
         from .models import CallStatus
@@ -877,7 +879,27 @@ class ProfileCallManagementSerializer(serializers.ModelSerializer):
             except CallAction.DoesNotExist:
                 return None
         return None
+    
+    def get_work_asignid_value(self, obj):
+        from .models import AdminUser
+        if obj.work_asignid:
+            try:
+                user = AdminUser.objects.get(id=obj.work_asignid)
+                return user.first_name or user.username
+            except AdminUser.DoesNotExist:
+                return None
+        return None
 
+    def get_owner_id_value(self, obj):
+        from .models import AdminUser
+        if obj.owner_id:
+            try:
+                user = AdminUser.objects.get(id=obj.owner_id)
+                return user.first_name or user.username
+            except AdminUser.DoesNotExist:
+                return None
+        return None
+    
     def validate(self, data):
         required_fields = ['profile_id', 'profile_status_id', 'owner_id']
         for field in required_fields:

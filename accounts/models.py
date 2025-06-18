@@ -2314,7 +2314,7 @@ class ProfileCallManagement(models.Model):
     work_asignid = models.IntegerField(null=True, blank=True)
     updated_by = models.CharField(max_length=255 , null=True, blank=True)
     updated_on = models.DateTimeField(auto_now=True)
-
+    
     class Meta:
         managed = False  # This table already exists in the DB
         db_table = 'profile_call_management'  # Database table name
