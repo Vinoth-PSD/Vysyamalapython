@@ -7,7 +7,7 @@ from .serializers import ChangePasswordSerializer, ProfileEduDetailsSerializer, 
 from rest_framework import viewsets
 from .models import Country, ProfileEduDetails, ProfileFamilyDetails, ProfilePartnerPref, State, District, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, BirthStar, Rasi, Lagnam, DasaBalance, FamilyType, FamilyStatus, FamilyValue, LoginDetailsTemp ,Get_profiledata , Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , City , Express_interests , Profile_visitors, Profile_wishlists , Photo_request , PlanDetails , Image_Upload  ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1 , Get_profiledata_Matching , Profespref , Profile_vysassist , Homepage,ProfileLoginLogs,ProfileSendFromAdmin , ProfileSubStatus , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref , Profile_callogs , ProfileHoroscope
 
-from .serializers import CountrySerializer, StateSerializer, DistrictSerializer,ProfileHolderSerializer, MaritalStatusSerializer, HeightSerializer, ComplexionSerializer, ParentsOccupationSerializer, HighestEducationSerializer, UgDegreeSerializer, AnnualIncomeSerializer,BirthStarSerializer, RasiSerializer, LagnamSerializer, DasaBalanceSerializer, FamilyTypeSerializer, FamilyStatusSerializer, FamilyValueSerializer, LoginDetailsTempSerializer,Getnewprofiledata , ModeSerializer, PropertySerializer , GothramSerializer , EducationLevelSerializer ,ProfessionSerializer , MatchSerializer ,MasterStatePrefSerializer , CitySerializer , Getnewprofiledata_new , QuickUploadSerializer , ProfileStatusSerializer , LoginEditSerializer , GetproflistSerializer , ImageGetSerializer , MatchingscoreSerializer , HomepageSerializer, Profile_idValidationSerializer , UpdateAdminComments_Serializer , ProfileSubStatusSerializer , PlandetailsSerializer ,ProfileplanSerializer , ProfileVysAssistFollowupSerializer , VysassistSerializer , ProfileSuggestedPrefSerializer
+from .serializers import CountrySerializer, StateSerializer, DistrictSerializer,ProfileHolderSerializer, MaritalStatusSerializer, HeightSerializer, ComplexionSerializer, ParentsOccupationSerializer, HighestEducationSerializer, UgDegreeSerializer, AnnualIncomeSerializer,BirthStarSerializer, RasiSerializer, LagnamSerializer, DasaBalanceSerializer, FamilyTypeSerializer, FamilyStatusSerializer, FamilyValueSerializer, LoginDetailsTempSerializer,Getnewprofiledata , ModeSerializer, PropertySerializer , GothramSerializer , EducationLevelSerializer ,ProfessionSerializer , MatchSerializer ,MasterStatePrefSerializer , CitySerializer , Getnewprofiledata_new , QuickUploadSerializer , ProfileStatusSerializer , LoginEditSerializer , GetproflistSerializer , ImageGetSerializer , MatchingscoreSerializer , HomepageSerializer, Profile_idValidationSerializer , UpdateAdminComments_Serializer , ProfileSubStatusSerializer , PlandetailsSerializer ,ProfileplanSerializer , ProfileVysAssistFollowupSerializer , VysassistSerializer , ProfileSuggestedPrefSerializer  , AdminUserDropdownSerializer
 from rest_framework.decorators import action
 from rest_framework import generics, filters
 from rest_framework.pagination import PageNumberPagination
@@ -2260,6 +2260,13 @@ class GetProfEditDetailsAPIView(APIView):
 
         gender=login_detail.Gender
 
+        def dosham_value_formatter(value):
+                if isinstance(value, str):
+                    return {"0": "Unknown", "1": "Yes", "2": "No"}.get(value, value)
+                elif isinstance(value, int):
+                    return {0: "Unknown", 1: "Yes", 2: "No"}.get(value, value)
+                return value
+
         response_data['profile_common_details']={
                 "Addon_package": login_detail.Addon_package,
                 "Notifcation_enabled":  login_detail.Notifcation_enabled,
@@ -2272,8 +2279,8 @@ class GetProfEditDetailsAPIView(APIView):
                 "Gender":login_detail.Gender,
                 "Mobile_no":login_detail.Mobile_no,
                 "Profile_for":login_detail.Profile_for,
-                "calc_chevvai_dhosham": horoscope_detail.calc_chevvai_dhosham,
-                "calc_raguketu_dhosham": horoscope_detail.calc_raguketu_dhosham,
+                "calc_chevvai_dhosham": dosham_value_formatter(horoscope_detail.calc_chevvai_dhosham),
+                "calc_raguketu_dhosham": dosham_value_formatter(horoscope_detail.calc_raguketu_dhosham),
                 "horoscope_hints": horoscope_detail.horoscope_hints,
                 "family_status":family_detail.family_status,
                 "Admin_comments":login_detail.Admin_comments,
@@ -2297,6 +2304,7 @@ class GetProfEditDetailsAPIView(APIView):
                 "add_on_pack_name":"",
                 "mobile_otp_verify":login_detail.Otp_verify
                 }
+    
                 
         
 
@@ -6779,3 +6787,11 @@ class VerifymobileOtp(APIView):
 
         except models.Registration1.DoesNotExist:
             return JsonResponse({"status": "error", "message": "Invalid otp for the profile id"}, status=status.HTTP_200_OK)
+
+
+
+class AdminUserDropdownAPIView(APIView):
+    def get(self, request):
+        users = AdminUser.objects.filter(deleted=False)
+        serializer = AdminUserDropdownSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

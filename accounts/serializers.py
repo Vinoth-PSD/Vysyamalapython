@@ -925,3 +925,8 @@ class InvoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invoice
         fields = '__all__'
+
+class AdminUserDropdownSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AdminUser
+        fields = ['id', 'username']
