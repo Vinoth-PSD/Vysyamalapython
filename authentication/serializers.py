@@ -105,8 +105,8 @@ class Registration1Serializer(serializers.ModelSerializer):
      #print('ferkey',key.decode())
      #data['Password']=encrypt_password(data['Password'])
      data['ProfileId']=''.join(random.choices('0123456789', k=6))
-     data['Otp'] = random.randint(100000, 999999)
-     #data['Otp'] = 123456
+    #  data['Otp'] = random.randint(100000, 999999)
+     data['Otp'] = 123456
      data['Status']=0
 
      return data
