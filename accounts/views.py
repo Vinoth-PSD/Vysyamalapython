@@ -883,6 +883,8 @@ class Newprofile_get(generics.ListAPIView):
                 sql += f" AND ld.Plan_id IN ({placeholders})"
                 params.extend(plan_id_list)
         
+        sql += " ORDER BY ld.DateOfJoin DESC"
+        
 
         with connection.cursor() as cursor:
             cursor.execute(sql, params)
