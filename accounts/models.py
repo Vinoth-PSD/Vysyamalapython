@@ -245,6 +245,20 @@ class HighestEducation(models.Model):
     class Meta:
         db_table = 'masterhighesteducation'
 
+class MasterhighestEducation(models.Model):
+    id    = models.SmallIntegerField(primary_key=True)
+    edu_level = models.CharField(max_length=100)
+    fieldof_study = models.CharField(max_length=100)
+    degeree_name  = models.CharField(max_length=100) 
+    is_active  = models.BooleanField(default=False) 
+    is_deleted  = models.BooleanField(default=False) 
+
+    def __str__(self):
+        return self.degree
+
+    class Meta:
+        db_table = 'masteredu_degeree'
+
 class UgDegree(models.Model):
     id    = models.SmallIntegerField(primary_key=True)
     degree = models.CharField(max_length=100)

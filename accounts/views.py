@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .serializers import ChangePasswordSerializer, ProfileEduDetailsSerializer, ProfileFamilyDetailsSerializer, ProfileHoroscopeSerializer, ProfilePartnerPrefSerializer 
 from rest_framework import viewsets
-from .models import Country, ProfileEduDetails, ProfileFamilyDetails, ProfilePartnerPref, State, District, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, BirthStar, Rasi, Lagnam, DasaBalance, FamilyType, FamilyStatus, FamilyValue, LoginDetailsTemp ,Get_profiledata , Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , City , Express_interests , Profile_visitors, Profile_wishlists , Photo_request , PlanDetails , Image_Upload  ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1 , Get_profiledata_Matching , Profespref , Profile_vysassist , Homepage,ProfileLoginLogs,ProfileSendFromAdmin , ProfileSubStatus , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref , Profile_callogs , ProfileHoroscope
+from .models import Country, ProfileEduDetails, ProfileFamilyDetails, ProfilePartnerPref, State, District, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, BirthStar, Rasi, Lagnam, DasaBalance, FamilyType, FamilyStatus, FamilyValue, LoginDetailsTemp ,Get_profiledata , Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , City , Express_interests , Profile_visitors, Profile_wishlists , Photo_request , PlanDetails , Image_Upload  ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1 , Get_profiledata_Matching , Profespref , Profile_vysassist , Homepage,ProfileLoginLogs,ProfileSendFromAdmin , ProfileSubStatus , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref , Profile_callogs , ProfileHoroscope , MasterhighestEducation
 
 from .serializers import CountrySerializer, StateSerializer, DistrictSerializer,ProfileHolderSerializer, MaritalStatusSerializer, HeightSerializer, ComplexionSerializer, ParentsOccupationSerializer, HighestEducationSerializer, UgDegreeSerializer, AnnualIncomeSerializer,BirthStarSerializer, RasiSerializer, LagnamSerializer, DasaBalanceSerializer, FamilyTypeSerializer, FamilyStatusSerializer, FamilyValueSerializer, LoginDetailsTempSerializer,Getnewprofiledata , ModeSerializer, PropertySerializer , GothramSerializer , EducationLevelSerializer ,ProfessionSerializer , MatchSerializer ,MasterStatePrefSerializer , CitySerializer , Getnewprofiledata_new , QuickUploadSerializer , ProfileStatusSerializer , LoginEditSerializer , GetproflistSerializer , ImageGetSerializer , MatchingscoreSerializer , HomepageSerializer, Profile_idValidationSerializer , UpdateAdminComments_Serializer , ProfileSubStatusSerializer , PlandetailsSerializer ,ProfileplanSerializer , ProfileVysAssistFollowupSerializer , VysassistSerializer , ProfileSuggestedPrefSerializer  , AdminUserDropdownSerializer
 from rest_framework.decorators import action
@@ -2269,6 +2269,30 @@ class GetProfEditDetailsAPIView(APIView):
                     return {0: "Unknown", 1: "Yes", 2: "No"}.get(value, value)
                 
                 return value
+        
+        profession_name = safe_get_by_id(Profession, edu_detail.profession, 'profession')
+        qualification_name = safe_get_by_id(MasterhighestEducation, edu_detail.highest_education, 'degeree_name')
+        city_name = safe_get_by_id(City, login_detail.Profile_city, 'city_name')
+        
+        print('12345',profession_name,qualification_name , city_name )
+        
+        print("Profession to match:", repr(edu_detail.profession))
+        print("Degree to match:", repr(edu_detail.highest_education))
+        print("City to match:", repr(login_detail.Profile_city))
+
+
+
+        profile = {
+                "name": login_detail.Profile_name,
+                "profession": profession_name,
+                "company": edu_detail.company_name,
+                "business": edu_detail.business_name,
+                "qualification": qualification_name,
+                "location": city_name,
+                "profile_type": edu_detail.profession
+            }
+
+        myself=generate_about_myself_summary(profile)
 
         response_data['profile_common_details']={
                 "Addon_package": login_detail.Addon_package,
@@ -2305,7 +2329,8 @@ class GetProfEditDetailsAPIView(APIView):
                 "payment_date":"2025-03-20",
                 "payment_mode":"Online",
                 "add_on_pack_name":"",
-                "mobile_otp_verify":login_detail.Otp_verify
+                "mobile_otp_verify":login_detail.Otp_verify,
+                "myself":myself
                 }
     
                 
@@ -2386,6 +2411,63 @@ class GetProfEditDetailsAPIView(APIView):
     
         # Return all the gathered data
         return Response(response_data, status=status.HTTP_200_OK)
+
+
+def safe_get_by_id(model, pk_value, return_field):
+    if not pk_value:
+        return ""
+    try:
+        obj = model.objects.get(pk=pk_value)
+        return getattr(obj, return_field)
+    except model.DoesNotExist:
+        return ""
+    except Exception as e:
+        print(f"[ERROR] {e}")
+        return ""
+
+
+
+def generate_about_myself_summary(profile):
+    name = profile.get("name", "Name")
+    profession = profile.get("profession", "your profession")
+    business = profile.get("business", "your business")
+    company = profile.get("company", "your company")
+    qualification = profile.get("qualification", "your qualification")
+    institution = profile.get("institution", None)
+    location = profile.get("location", "your location")
+    profile_type = profile.get("profile_type")  # 'employee', 'business', or 'not_working'
+
+    if profile_type == "1":
+        summary = (
+            f"I am {name}, currently working as a {profession} at {company}. "
+            f"I hold a degree in {qualification}"
+        )
+        #if institution:
+            #summary += f" and have completed my education from {institution}."
+        summary += f" I reside in {location}."
+
+    elif profile_type == "2":
+        summary = (
+            f"I am {name}, a business professional engaged in {business}. "
+            f"I hold a degree in {qualification}"
+        )
+        #if institution:
+            #summary += f" from {institution}."
+        summary += f" I operate my business from {location}."
+
+    else:  # Not working or student, etc.
+        summary = (
+            f"I am {name}, currently not working. "
+            f"I have completed my education in {qualification}"
+        )
+        #if institution:
+            #summary += f" from {institution}."
+        summary += f" I live in {location}."
+
+    return summary
+
+
+
 
 
 def calculate_points_and_get_empty_fields(profile_id):
