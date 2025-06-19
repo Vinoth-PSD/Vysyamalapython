@@ -2264,9 +2264,10 @@ class GetProfEditDetailsAPIView(APIView):
 
         def dosham_value_formatter(value):
                 if isinstance(value, str):
-                    return {"0": "Unknown", "1": "Yes", "2": "No"}.get(value, value)
+                    return {"0": "Unknown", "1": "Yes", "2": "No","False":"No","True":"Yes"}.get(value, value)
                 elif isinstance(value, int):
                     return {0: "Unknown", 1: "Yes", 2: "No"}.get(value, value)
+                
                 return value
 
         response_data['profile_common_details']={
