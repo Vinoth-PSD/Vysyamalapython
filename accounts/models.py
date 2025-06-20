@@ -1161,7 +1161,7 @@ class Registration1(models.Model):
     Plan_id= models.CharField(max_length=100)
     Addon_package= models.CharField(max_length=100 , blank=True, null=True)
     Last_login_date= models.CharField(max_length=100)  
-    Notifcation_enabled= models.CharField(max_length=100)
+    Notifcation_enabled= models.CharField(max_length=100 , blank=True, null=True)
     Featured_profile= models.CharField(max_length=100)
     DateOfJoin= models.CharField(max_length=100) #models.DateTimeField()
     Reset_OTP = models.CharField(max_length=6, blank=True, null=True)
