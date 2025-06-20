@@ -645,7 +645,7 @@ class VysassistSerializer(serializers.ModelSerializer):
 
 class ProfileHoroscopeSerializer(serializers.ModelSerializer):
     profile_id = serializers.CharField(required=False , allow_null=True) 
-    horoscope_hints = serializers.CharField(required=False , allow_null=True) 
+    horoscope_hints = serializers.CharField(required=False ,allow_blank=True , allow_null=True) 
     dasa_name = serializers.CharField(required=False , allow_null=True) 
     amsa_kattam = serializers.CharField(required=False, allow_null=True)
     rasi_kattam = serializers.CharField(required=False ,allow_null=True)
