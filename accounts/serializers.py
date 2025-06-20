@@ -232,6 +232,7 @@ class LoginDetailsSerializer(serializers.ModelSerializer):
     
     Notifcation_enabled = serializers.CharField(required=False , allow_blank=True, allow_null=True)
     Addon_package = serializers.CharField(required=False , allow_blank=True, allow_null=True)
+    Otp_verify = serializers.IntegerField(required=False ,allow_null=True) 
     Plan_id = serializers.CharField(required=False)
     Profile_idproof = serializers.FileField(required=False)  
     Profile_divorceproof = serializers.FileField(required=False)
@@ -287,7 +288,7 @@ class LoginEditSerializer(serializers.ModelSerializer):
     Plan_id = serializers.CharField(required=True)
     Profile_idproof = serializers.FileField(required=False)  
     Profile_divorceproof = serializers.FileField(required=False)  
-    Otp_verify = serializers.IntegerField(required=False , allow_blank=True, allow_null=True)  
+    Otp_verify = serializers.IntegerField(required=False ,allow_null=True)  
 
     class Meta:
         model = LoginDetails
