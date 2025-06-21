@@ -11963,20 +11963,27 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                             }}
 
 
-
-                           .upload-horo-bg img{{
+                            .upload-horo-bg img{{
                                width:100%;
                                height:auto;
                            }}
                             .upload-horo-image{{
                                 margin: 10px 0px;
                                 text-align: center;
-
+                                height: 800px;
+                           
+                            }}
+                            .upload-horo-image tr{{
+                                height: 800px;
+                            }}
+                            .upload-horo-image tr td{{
+                                height: 800px;
                             }}
                             .upload-horo-image img{{
                                 width:400px;
                                 height:800px;
-                                object-fit: contain;
+                                object-fit: cover;
+                             
                             }}
                             
 
@@ -12329,10 +12336,15 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
                 </div>
 
-                <div class="upload-horo-image">
-                         {horoscope_content} 
-                </div>
-
+                <table class="upload-horo-image">
+                <tr>
+                <td>
+                         {horoscope_content}
+ 
+                </td>
+                </tr>
+                </table>
+                
                 <div class="upload-horo-bg" >
                     <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png" >
                 </div>
@@ -12998,12 +13010,20 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                             .upload-horo-image{{
                                 margin: 10px 0px;
                                 text-align: center;
-
+                                height: 800px;
+                           
+                            }}
+                            .upload-horo-image tr{{
+                                height: 800px;
+                            }}
+                            .upload-horo-image tr td{{
+                                height: 800px;
                             }}
                             .upload-horo-image img{{
                                 width:400px;
                                 height:800px;
-                                object-fit: contain;
+                                object-fit: cover;
+                             
                             }}
                             
 
@@ -13363,10 +13383,14 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                     <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
                 </div>
 
-                <div class="upload-horo-image">
-                         {horoscope_content} 
-                </div>
-
+               <table class="upload-horo-image">
+                <tr>
+                <td>
+                         {horoscope_content}
+ 
+                </td>
+                </tr>
+                </table>
                 <div class="upload-horo-bg" >
                     <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png" >
                 </div>
