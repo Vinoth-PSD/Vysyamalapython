@@ -6445,150 +6445,150 @@ class Save_plan_package(APIView):
             return JsonResponse({"status": "error", "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
         
 
-def GetMarsRahuKethuDoshamDetails(raw_input):
-    # def post(self, request):
-        # Get the input data from the single text field
-        # raw_input = request.data.get('input_data', '')
-        # if not raw_input:
-        #     raw_input = request.POST.get('input_data', '')
-        # if not raw_input:
-        #     raw_input = request.query_params.get('input_data', '')
+# def GetMarsRahuKethuDoshamDetails(raw_input):
+#     # def post(self, request):
+#         # Get the input data from the single text field
+#         # raw_input = request.data.get('input_data', '')
+#         # if not raw_input:
+#         #     raw_input = request.POST.get('input_data', '')
+#         # if not raw_input:
+#         #     raw_input = request.query_params.get('input_data', '')
 
-        # Parse the input string to create the rasi_grid_data dictionary
-        rasi_grid_data = {}
-        pattern = r"Grid (\d+):\s*([\d,]*|empty)"
-        matches = re.findall(pattern, raw_input)
+#         # Parse the input string to create the rasi_grid_data dictionary
+#         rasi_grid_data = {}
+#         pattern = r"Grid (\d+):\s*([\d,]*|empty)"
+#         matches = re.findall(pattern, raw_input)
 
-        for match in matches:
-            grid_number = int(match[0])
-            if match[1].lower() == "empty" or match[1].strip() == "":
-                rasi_grid_data[f'Grid {grid_number}'] = []
-            else:
-                rasi_grid_data[f'Grid {grid_number}'] = [
-                    int(x) for x in match[1].split(',') if x.strip()
-                ]
+#         for match in matches:
+#             grid_number = int(match[0])
+#             if match[1].lower() == "empty" or match[1].strip() == "":
+#                 rasi_grid_data[f'Grid {grid_number}'] = []
+#             else:
+#                 rasi_grid_data[f'Grid {grid_number}'] = [
+#                     int(x) for x in match[1].split(',') if x.strip()
+#                 ]
 
-        # Planet mapping dictionary
-        planet_mapping = {
-            1: "Sun",
-            2: "Moon",
-            3: "Mars",
-            4: "Mercury",
-            5: "Jupiter",
-            6: "Venus",
-            7: "Saturn",
-            8: "Rahu",
-            9: "Kethu",
-            10: "Lagnam",
-        }
+#         # Planet mapping dictionary
+#         planet_mapping = {
+#             1: "Sun",
+#             2: "Moon",
+#             3: "Mars",
+#             4: "Mercury",
+#             5: "Jupiter",
+#             6: "Venus",
+#             7: "Saturn",
+#             8: "Rahu",
+#             9: "Kethu",
+#             10: "Lagnam",
+#         }
 
-        # Create a grid of 12 cells with mapped planet names
-        grid = []
-        for i in range(1, 13):
-            if f'Grid {i}' in rasi_grid_data:
-                planets = [planet_mapping.get(x, '') for x in rasi_grid_data[f'Grid {i}']]
-                grid.append(", ".join(planets))
-            else:
-                grid.append("")
+#         # Create a grid of 12 cells with mapped planet names
+#         grid = []
+#         for i in range(1, 13):
+#             if f'Grid {i}' in rasi_grid_data:
+#                 planets = [planet_mapping.get(x, '') for x in rasi_grid_data[f'Grid {i}']]
+#                 grid.append(", ".join(planets))
+#             else:
+#                 grid.append("")
 
-        # Calculation for identifying the positions
-        mars_position = None
-        rahu_positions = []
-        kethu_positions = []
-        lagnam_position = None
+#         # Calculation for identifying the positions
+#         mars_position = None
+#         rahu_positions = []
+#         kethu_positions = []
+#         lagnam_position = None
 
-        for grid_num, planets in rasi_grid_data.items():
-            if 3 in planets:  # Mars
-                mars_position = int(grid_num.split()[1])
-            if 8 in planets:  # Rahu
-                rahu_positions.append(int(grid_num.split()[1]))
-            if 9 in planets:  # Kethu
-                kethu_positions.append(int(grid_num.split()[1]))
-            if 10 in planets:  # Lagnam
-                lagnam_position = int(grid_num.split()[1])
+#         for grid_num, planets in rasi_grid_data.items():
+#             if 3 in planets:  # Mars
+#                 mars_position = int(grid_num.split()[1])
+#             if 8 in planets:  # Rahu
+#                 rahu_positions.append(int(grid_num.split()[1]))
+#             if 9 in planets:  # Kethu
+#                 kethu_positions.append(int(grid_num.split()[1]))
+#             if 10 in planets:  # Lagnam
+#                 lagnam_position = int(grid_num.split()[1])
 
-        def calculate_position(from_position, to_position):
-            if from_position is None or to_position is None:
-                return None
-            if to_position >= from_position:
-                return to_position - from_position + 1
-            else:
-                return 12 - from_position + to_position + 1
+#         def calculate_position(from_position, to_position):
+#             if from_position is None or to_position is None:
+#                 return None
+#             if to_position >= from_position:
+#                 return to_position - from_position + 1
+#             else:
+#                 return 12 - from_position + to_position + 1
 
-        # Calculate positions relative to Lagnam
-        rahu_positions_from_lagnam = [
-            calculate_position(lagnam_position, pos) for pos in rahu_positions
-        ]
-        kethu_positions_from_lagnam = [
-            calculate_position(lagnam_position, pos) for pos in kethu_positions
-        ]
+#         # Calculate positions relative to Lagnam
+#         rahu_positions_from_lagnam = [
+#             calculate_position(lagnam_position, pos) for pos in rahu_positions
+#         ]
+#         kethu_positions_from_lagnam = [
+#             calculate_position(lagnam_position, pos) for pos in kethu_positions
+#         ]
 
-        # Calculate mars position from lagnam
-        mars_position_from_lagnam = calculate_position(lagnam_position, mars_position)
+#         # Calculate mars position from lagnam
+#         mars_position_from_lagnam = calculate_position(lagnam_position, mars_position)
 
-        # Determine if there is Mars dosham
-        mars_dosham = False
-        if mars_position_from_lagnam in {1, 2, 4, 7, 8, 12}:
-            mars_dosham = True
+#         # Determine if there is Mars dosham
+#         mars_dosham = False
+#         if mars_position_from_lagnam in {1, 2, 4, 7, 8, 12}:
+#             mars_dosham = True
 
-        # Determine if there is Rahu-Kethu dosham
-        critical_positions = {1, 2, 7, 8}
-        rahu_kethu_dosham = False
+#         # Determine if there is Rahu-Kethu dosham
+#         critical_positions = {1, 2, 7, 8}
+#         rahu_kethu_dosham = False
 
-        # Check if any Rahu or Kethu position falls within the critical positions
-        if any(pos in critical_positions for pos in rahu_positions_from_lagnam) or \
-           any(pos in critical_positions for pos in kethu_positions_from_lagnam):
-            rahu_kethu_dosham = True
+#         # Check if any Rahu or Kethu position falls within the critical positions
+#         if any(pos in critical_positions for pos in rahu_positions_from_lagnam) or \
+#            any(pos in critical_positions for pos in kethu_positions_from_lagnam):
+#             rahu_kethu_dosham = True
 
-        # Debugging: Print positions and dosham status
-        print(f"Lagnam position: {lagnam_position}")
-        print(f"Rahu positions from Lagnam: {rahu_positions_from_lagnam}")
-        print(f"Kethu positions from Lagnam: {kethu_positions_from_lagnam}")
-        print(f"Rahu-Kethu Dosham: {rahu_kethu_dosham}")
-        print(f"mars_position_from_lagnam: {mars_position_from_lagnam}")
-        print(f"mars_dosham: {mars_dosham}")
+#         # Debugging: Print positions and dosham status
+#         print(f"Lagnam position: {lagnam_position}")
+#         print(f"Rahu positions from Lagnam: {rahu_positions_from_lagnam}")
+#         print(f"Kethu positions from Lagnam: {kethu_positions_from_lagnam}")
+#         print(f"Rahu-Kethu Dosham: {rahu_kethu_dosham}")
+#         print(f"mars_position_from_lagnam: {mars_position_from_lagnam}")
+#         print(f"mars_dosham: {mars_dosham}")
 
-        # Generate the HTML directly in the API with the .format() method
-        html_content = """
-        <table border="1" style="width: 100%; height: 400px; border-collapse: collapse; text-align: center; font-family: Arial, sans-serif;">
-            <tr>
-                <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{0}</td>
-                <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{1}</td>
-                <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{2}</td>
-                <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{3}</td>
-            </tr>
-            <tr>
-                <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{4}</td>
-                <td colspan="2" rowspan="2" style="background-color: #fffacd; width: 50%; height: 50%; padding: 20px; font-weight: bold; font-size: 18px;">Center</td>
-                <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{5}</td>
-            </tr>
-            <tr>
-                <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{6}</td>
-                <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{7}</td>
-            </tr>
-            <tr>
-                <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{8}</td>
-                <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{9}</td>
-                <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{10}</td>
-                <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{11}</td>
-            </tr>
-        </table>
-        """.format(
-            grid[0],
-            grid[1],
-            grid[2],
-            grid[3],
-            grid[11],
-            grid[4],
-            grid[10],
-            grid[5],
-            grid[9],
-            grid[8],
-            grid[7],
-            grid[6]
-        )
+#         # Generate the HTML directly in the API with the .format() method
+#         html_content = """
+#         <table border="1" style="width: 100%; height: 400px; border-collapse: collapse; text-align: center; font-family: Arial, sans-serif;">
+#             <tr>
+#                 <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{0}</td>
+#                 <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{1}</td>
+#                 <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{2}</td>
+#                 <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{3}</td>
+#             </tr>
+#             <tr>
+#                 <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{4}</td>
+#                 <td colspan="2" rowspan="2" style="background-color: #fffacd; width: 50%; height: 50%; padding: 20px; font-weight: bold; font-size: 18px;">Center</td>
+#                 <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{5}</td>
+#             </tr>
+#             <tr>
+#                 <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{6}</td>
+#                 <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{7}</td>
+#             </tr>
+#             <tr>
+#                 <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{8}</td>
+#                 <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{9}</td>
+#                 <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{10}</td>
+#                 <td style="width: 25%; height: 25%; padding: 20px; background-color: #f0f8ff; font-weight: bold; font-size: 16px;">{11}</td>
+#             </tr>
+#         </table>
+#         """.format(
+#             grid[0],
+#             grid[1],
+#             grid[2],
+#             grid[3],
+#             grid[11],
+#             grid[4],
+#             grid[10],
+#             grid[5],
+#             grid[9],
+#             grid[8],
+#             grid[7],
+#             grid[6]
+#         )
 
-        return mars_dosham, rahu_kethu_dosham
+#         return mars_dosham, rahu_kethu_dosham
 
         # Returning both HTML content, grid data, and calculated flags in JSON
         # return JsonResponse({
@@ -6878,6 +6878,14 @@ class GetMyProfileHoroscope(APIView):
                     return {0: "Unknown", 1: "Yes", 2: "No"}.get(value, value)
                 return value
             
+            if(horoscope_serializer.data.get("rasi_kattam")):
+                    mars_dosham, rahu_kethu_dosham=GetMarsRahuKethuDoshamDetails(horoscope_serializer.data.get("rasi_kattam"))
+
+                    print(rahu_kethu_dosham)
+                    print(mars_dosham)
+
+
+
             data = {
                 "personal_bthstar_id": birthstar_id,
                 "personal_bthstar_name": birthstar_name,
@@ -6999,6 +7007,7 @@ class GetMyProfileEducation(APIView):
                     work_state_name = work_state.name if work_state else None
                 except ValueError:
                     work_state_name = None  # Handle case where ID is invalid (not convertible to int)
+            
 
             # work_city_id = education_serializer.data.get("work_city")
             # try:
@@ -7006,13 +7015,16 @@ class GetMyProfileEducation(APIView):
             #     work_city_name = work_city.name if work_state else None
             # except models.Profilecity.DoesNotExist:
             #     work_city_name = None
-                
+        
             data = {
                 "personal_edu_id": highest_education_id,
                 "personal_edu_name": education_level_name,
                 "persoanl_edu_details": education_serializer.data.get("education_details"),
-                "persoanl_field_ofstudy": education_serializer.data.get("field_ofstudy"),
-                 "persoanl_degree": education_serializer.data.get("degree"),
+                # "persoanl_field_ofstudy": education_serializer.data.get("field_ofstudy"),
+                "persoanl_field_ofstudy":education_serializer.data.get("field_ofstudy"),
+                "persoanl_field_ofstudy_name": get_field_of_study_display(education_serializer.data.get("field_ofstudy")),
+                "persoanl_degree": education_serializer.data.get("degree"),
+                "persoanl_degree_name":  get_field_of_degree_display(education_serializer.data.get("degree")),
                 "persoanl_edu_other": education_serializer.data.get("other_degree"),
                 "personal_about_edu": education_serializer.data.get("about_edu"),
                 "personal_profession": education_serializer.data.get("profession"),
@@ -7063,6 +7075,57 @@ class GetMyProfileEducation(APIView):
             return JsonResponse({"status": "error", "message": "Work country not found"}, status=status.HTTP_404_NOT_FOUND)
         except models.Profilestate.DoesNotExist:
             return JsonResponse({"status": "error", "message": "Work state not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+def get_field_of_study_display(value):
+    """
+    Returns a comma-separated string of FieldOfStudy names based on ID input.
+    If the input is already a non-numeric string, it returns it as-is.
+
+    Args:
+        value (str): Comma-separated ID string or label string.
+
+    Returns:
+        str: Comma-separated FieldOfStudy names or original string.
+    """
+    if not value:
+        return ""
+
+    parts = [p.strip() for p in value.split(',') if p.strip()]
+
+    if all(p.isdigit() for p in parts):
+        ids = [int(p) for p in parts]
+        fields = models.Profilefieldstudy.objects.filter(id__in=ids).values_list('field_of_study', flat=True)
+        return ", ".join(fields)
+    
+    # If it's not numeric, assume it's already display text
+    return value
+
+
+def get_field_of_degree_display(value):
+    """
+    Returns a comma-separated string of FieldOfStudy names based on ID input.
+    If the input is already a non-numeric string, it returns it as-is.
+
+    Args:
+        value (str): Comma-separated ID string or label string.
+
+    Returns:
+        str: Comma-separated FieldOfStudy names or original string.
+    """
+    if not value:
+        return ""
+
+    parts = [p.strip() for p in value.split(',') if p.strip()]
+
+    if all(p.isdigit() for p in parts):
+        ids = [int(p) for p in parts]
+        fields = models.Profileedu_degree.objects.filter(id__in=ids).values_list('degeree_name', flat=True)
+        return ", ".join(fields)
+    
+    # If it's not numeric, assume it's already display text
+    return value
+
 
 class UpdateMyProfileEducation(APIView):
     def post(self, request):
