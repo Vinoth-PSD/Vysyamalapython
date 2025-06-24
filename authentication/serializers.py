@@ -69,9 +69,9 @@ class OtpSerializers(serializers.ModelSerializer):
             # Check if there is a record with the provided OTP and mobile number
             verify_otp=models.Basic_Registration.objects.get(Otp=otp, ProfileId=ProfileId)
 
-            # verify_otp.status = 1
+            verify_otp.Otp_verify = 1 #set Otp verify as one thats show in the admin as well
 
-            # verify_otp.save()
+            verify_otp.save()
 
         except models.Basic_Registration.DoesNotExist:
              raise serializers.ValidationError({

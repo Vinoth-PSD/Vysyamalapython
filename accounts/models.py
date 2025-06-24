@@ -481,6 +481,24 @@ def upload_to_profile_basic(instance, filename):
     return os.path.join('profile_{0}'.format(instance.ProfileId), filename)
 
 
+class PlanSubscription(models.Model):
+
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)
+    plan_id = models.IntegerField(max_length=50)
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_mode= models.CharField(max_length=75)
+    status =  models.IntegerField(max_length=10)  
+    payment_date = models.DateTimeField()
+
+    class Meta:
+        managed = False  
+        db_table = 'plan_subscription'  
+
+    def __str__(self):
+        return self.id
+
+
 def upload_to_profile(instance, filename):
     return os.path.join('profile_{0}'.format(instance.profile_id), filename)
 
