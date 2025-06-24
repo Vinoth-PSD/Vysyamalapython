@@ -2329,8 +2329,8 @@ class GetProfEditDetailsAPIView(APIView):
                 "membership_fromdate":getattr(profile_plan_features, "membership_fromdate", None),
                 "membership_todate":getattr(profile_plan_features, "membership_todate", None),
                 "age":calculate_age(login_detail.Profile_dob),
-                "payment_date":payment_detail.payment_date,
-                "payment_mode":payment_detail.payment_mode,
+                "payment_date":payment_date,
+                "payment_mode":payment_mode,
                 "add_on_pack_name":"",
                 "mobile_otp_verify":login_detail.Otp_verify,
                 "myself":myself

@@ -1984,6 +1984,9 @@ class PlanSubscription(models.Model):
     payment_mode= models.CharField(max_length=75)
     status =  models.IntegerField(max_length=10)  
     payment_date = models.DateTimeField()
+    payment_by= models.CharField(max_length=150)
+    admin_user= models.CharField(max_length=150)
+    order_id= models.CharField(max_length=150)
 
     class Meta:
         managed = False  

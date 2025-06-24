@@ -6348,6 +6348,7 @@ class Save_plan_package(APIView):
         plan_id = request.data.get('plan_id')
         addon_package_id = request.data.get('addon_package_id')
         total_amount = request.data.get('total_amount')
+        order_id = request.data.get('order_id')
         
         try:
             # Check if request data is empty
@@ -6414,8 +6415,10 @@ class Save_plan_package(APIView):
             plan_id=plan_id,               # e.g., 7
             paid_amount=total_amount,             # e.g., Decimal('499.99')
             payment_mode='Online',     # e.g., 'UPI'
-            status=1,                                # e.g., 1 for success, or your own logic
-            payment_date=datetime.now()             # current timestamp
+            status=1,   
+            payment_by='user_self',                             # e.g., 1 for success, or your own logic
+            payment_date=datetime.now(),          # current timestamp
+            order_id=order_id
         )
 
             models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(
