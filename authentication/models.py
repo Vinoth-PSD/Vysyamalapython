@@ -37,9 +37,11 @@ class Basic_Registration(models.Model):
     Payment = models.CharField(max_length=10)  # Changed from CharField to TextField
     PaymentExpire = models.DateTimeField(max_length=15)  # Changed from CharField to TextField
     PaymentType = models.CharField(max_length=255)  # Changed from CharField to TextField
-    Status = models.IntegerField() 
+    Status = models.IntegerField()
+    primary_status = models.IntegerField() 
+    secondary_status = models.IntegerField() 
+    plan_status = models.IntegerField() 
     
-
     
     class Meta:
         managed = False  # This tells Django not to handle database table creation/migration for this model
@@ -2097,3 +2099,31 @@ class SentWithoutAddressPrintwpPDFLog(models.Model):
     def __str__(self):
         return f"Without Address Print PDF Log {self.id} - Profile {self.profile_id} to {self.to_ids}"
     
+
+class ProfileSuggestedPref(models.Model):
+    profile_id = models.CharField(max_length=50, unique=True, primary_key=True)
+    pref_age_differences = models.CharField(max_length=10)
+    pref_height_from = models.CharField(max_length=10)
+    pref_height_to = models.CharField(max_length=50, null=True, blank=True)  # Added missing field
+    pref_marital_status = models.CharField(max_length=100, null=True, blank=True)
+    pref_profession = models.CharField(max_length=100, null=True, blank=True)
+
+    pref_education = models.CharField(max_length=100, null=True, blank=True)
+    pref_anual_income = models.CharField(max_length=100, null=True, blank=True)
+    pref_anual_income_max = models.CharField(max_length=100, null=True, blank=True)
+
+    pref_chevvai = models.CharField(max_length=10)
+    
+    pref_ragukethu = models.CharField(max_length=10)
+   
+    pref_foreign_intrest = models.CharField(max_length=100)
+   
+    pref_porutham_star = models.CharField(max_length=1000, null=True, blank=True)
+    pref_porutham_star_rasi	 = models.TextField(null=True, blank=True)
+    
+    # pref_education = models.CharField(max_length=100)
+    # pref_profession = models.CharField(max_length=100)
+    # pref_anual_income = models.CharField(max_length=100)
+    # pref_marital_status = models.CharField(max_length=100)
+    class Meta:
+        db_table = 'profile_suggested_pref'

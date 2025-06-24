@@ -88,6 +88,7 @@ from django.core.cache import cache
 from django.core.cache import caches
 import hashlib
 from pathlib import Path
+from django.forms.models import model_to_dict
 
 class LoginView(APIView):
     # authentication_classes = []
@@ -477,7 +478,9 @@ class Registrationstep2(APIView):
                     'Status': 0,
                     'temp_profileid':profile_id,
                     'Reset_OTP_Time':None,
-                    'Plan_id':6 #by default basic plan
+                    'Plan_id':7, #by default free plan
+                    'primary_status':0,
+                    'secondary_status':7
 
                     
                     # Add other fields as needed
@@ -496,12 +499,32 @@ class Registrationstep2(APIView):
                 insert_rowintables={
                     'profile_id': new_profile_id
                 }
+
+                # insert_planrowintables={
+                #     'profile_id': new_profile_id,
+                #     'plan_id':7
+                # }
                 registration2_instance = models.Registration1.objects.create(**registration_data)
 
                 horosocope_instance = models.Horoscope.objects.create(**insert_rowintables)
                 family_instance = models.Familydetails.objects.create(**insert_rowintables)
                 education_instance = models.Edudetails.objects.create(**insert_rowintables)
                 Partner_instance = models.Partnerpref.objects.create(**insert_rowintables)
+                # profile_planinstance=models.Profile_PlanFeatureLimit.objects.create(**insert_planrowintables)
+                profile_suggestedinstance=models.ProfileSuggestedPref.objects.create(**insert_rowintables)
+                profile_profilevisibility=models.ProfileVisibility.objects.create(**insert_rowintables)
+
+                membership_fromdate = date.today()
+                membership_todate = membership_fromdate + timedelta(days=365)
+
+                plan_features = models.PlanFeatureLimit.objects.filter(plan_id=7)
+
+                profile_feature_objects = [
+                    models.Profile_PlanFeatureLimit(**{**model_to_dict(feature), 'profile_id': new_profile_id,'plan_id':7,'membership_fromdate':membership_fromdate,'membership_todate':membership_todate})
+                    for feature in plan_features
+                ] #by default basic plan
+                
+                models.Profile_PlanFeatureLimit.objects.bulk_create(profile_feature_objects)
 
                 basic_reg = models.Basic_Registration.objects.get(ProfileId=profile_id)
                 basic_reg.status = 1  # Update status field as needed
@@ -6338,6 +6361,7 @@ class Save_plan_package(APIView):
             registration = models.Registration1.objects.get(ProfileId=profile_id)
              # Update the fields
             registration.Plan_id = plan_id
+            registration.secondary_status = plan_id
             registration.Addon_package = addon_package_id
             registration.Payment= total_amount
             
@@ -6379,6 +6403,15 @@ class Save_plan_package(APIView):
                 serializer = serializers.PlanFeatureLimitSerializer(plan_limits, many=True)
                 plan_limits_json = serializer.data
 
+
+            membership_fromdate = date.today()
+            membership_todate = membership_fromdate + timedelta(days=365)
+
+            models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(
+                plan_id=plan_id,
+                membership_fromdate=membership_fromdate,
+                membership_todate=membership_todate
+            )
 
             gender = logindetails.Gender
             height = logindetails.Profile_height
