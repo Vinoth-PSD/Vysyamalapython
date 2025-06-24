@@ -38,9 +38,7 @@ class Basic_Registration(models.Model):
     PaymentExpire = models.DateTimeField(max_length=15)  # Changed from CharField to TextField
     PaymentType = models.CharField(max_length=255)  # Changed from CharField to TextField
     Status = models.IntegerField()
-    primary_status = models.IntegerField() 
-    secondary_status = models.IntegerField() 
-    plan_status = models.IntegerField() 
+
     
     
     class Meta:
@@ -129,6 +127,9 @@ class Registration1(models.Model):
     Profile_verified = models.SmallIntegerField(default=0)
     device_id=models.TextField(null=True, blank=True)
     fcm_token=models.TextField(null=True, blank=True)
+    primary_status = models.IntegerField() 
+    secondary_status = models.IntegerField() 
+    plan_status = models.IntegerField() 
 
     #Profile_idproof= models.TextField()
     

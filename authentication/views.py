@@ -480,7 +480,8 @@ class Registrationstep2(APIView):
                     'Reset_OTP_Time':None,
                     'Plan_id':7, #by default free plan
                     'primary_status':0,
-                    'secondary_status':7
+                    'secondary_status':26,  #free and the newly registered
+                    'plan_status':7
 
                     
                     # Add other fields as needed
@@ -6361,10 +6362,11 @@ class Save_plan_package(APIView):
             registration = models.Registration1.objects.get(ProfileId=profile_id)
              # Update the fields
             registration.Plan_id = plan_id
-            registration.secondary_status = plan_id
+            registration.secondary_status = 30   # newly registered and the Premium
+            registration.plan_status = plan_id
             registration.Addon_package = addon_package_id
             registration.Payment= total_amount
-            
+
             # Save the changes
             registration.save() 
 
@@ -6372,7 +6374,7 @@ class Save_plan_package(APIView):
             if created:
                 # Handle user creation logic if needed
                 pass
-                
+              
             # Authentication successful, create token
             token, created = Token.objects.get_or_create(user=user)
 
