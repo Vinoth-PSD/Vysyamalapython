@@ -6391,7 +6391,7 @@ class Save_plan_package(APIView):
             logindetails.Last_login_date=timezone.now()
             logindetails.save()
 
-
+            
             horodetails=models.Horoscope.objects.filter(profile_id=profile_id).first()
             
             #get first image for the profile icon
@@ -6406,8 +6406,17 @@ class Save_plan_package(APIView):
                 plan_limits_json = serializer.data
 
 
-            membership_fromdate = date.today()
+            membership_fromdate = date.today() #same date of the payment date
             membership_todate = membership_fromdate + timedelta(days=365)
+
+            models.PlanSubscription.objects.create(
+            profile_id=profile_id,              # e.g., '123'
+            plan_id=plan_id,               # e.g., 7
+            paid_amount=total_amount,             # e.g., Decimal('499.99')
+            payment_mode='Online',     # e.g., 'UPI'
+            status=1,                                # e.g., 1 for success, or your own logic
+            payment_date=datetime.now()             # current timestamp
+        )
 
             models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(
                 plan_id=plan_id,
