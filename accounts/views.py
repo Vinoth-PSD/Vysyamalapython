@@ -68,7 +68,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from authentication.models import Horoscope
 import requests
-
+import re
 
 # class ModeViewSet(viewsets.ModelViewSet):
 #     queryset = Mode.objects.filter(is_deleted=False)  # Only show non-deleted records
@@ -2367,7 +2367,8 @@ class GetProfEditDetailsAPIView(APIView):
                 # "membership_fromdate": format(profile_plan_features.membership_fromdate, '0000-0-0') if profile_plan_features.membership_fromdate else '0000-0-0',
                 # "membership_todate": format(profile_plan_features.membership_todate, '0000-0-0') if profile_plan_features.membership_todate else '0000-0-0',
                 "age":calculate_age(login_detail.Profile_dob),
-                "payment_date":payment_date,
+                # "payment_date":payment_date,
+                "payment_date": payment_date.strftime("%d-%m-%Y") if payment_date else None ,
                 "payment_mode":payment_mode,
                 "add_on_pack_name":"",
                 "mobile_otp_verify":login_detail.Otp_verify,
@@ -5773,21 +5774,133 @@ from xhtml2pdf import pisa
 from django.template.loader import render_to_string
 
 # Planet mapping dictionary
+# planet_mapping = {
+#     "1": "Sun",
+#     "2": "Moo",
+#     "3": "Mar",
+#     "4": "Mer",
+#     "5": "Jup",
+#     "6": "Ven",
+#     "7": "Sat",
+#     "8": "Rahu",
+#     "9": "Kethu",
+#     "10": "Lagnam",
+# }
+
 planet_mapping = {
     "1": "Sun",
     "2": "Moo",
-    "3": "Mar",
-    "4": "Mer",
-    "5": "Jup",
+    "3": "Rahu",
+    "4": "Kethu",
+    "5": "Mar",
     "6": "Ven",
-    "7": "Sat",
-    "8": "Rahu",
-    "9": "Kethu",
+    "7": "Jup",
+    "8": "Mer",
+    "9": "Sat",
     "10": "Lagnam",
 }
 
+
 # Define a default placeholder for empty values
 default_placeholder = '-'
+
+def GetMarsRahuKethuDoshamDetails(raw_input):
+
+        rasi_grid_data = {}
+        pattern = r"Grid (\d+):\s*([\d,]*|empty)"
+        matches = re.findall(pattern, raw_input)
+
+        for match in matches:
+            grid_number = int(match[0])
+            if match[1].lower() == "empty" or match[1].strip() == "":
+                rasi_grid_data[f'Grid {grid_number}'] = []
+            else:
+                rasi_grid_data[f'Grid {grid_number}'] = [
+                    int(x) for x in match[1].split(',') if x.strip()
+                ]
+
+        planet_mapping = {
+                    "1": "Sun",
+                    "2": "Moon",
+                    "3": "Rahu",
+                    "4": "Kethu",
+                    "5": "Mars",
+                    "6": "Venus",
+                    "7": "Jupiter",
+                    "8": "Mercury",
+                    "9": "Saturn",
+                    "10": "Lagnam",
+                }
+
+        # Create a grid of 12 cells with mapped planet names
+        grid = []
+        for i in range(1, 13):
+            if f'Grid {i}' in rasi_grid_data:
+                planets = [planet_mapping.get(x, '') for x in rasi_grid_data[f'Grid {i}']]
+                grid.append(", ".join(planets))
+            else:
+                grid.append("")
+
+        # Calculation for identifying the positions
+        mars_position = None
+        rahu_positions = []
+        kethu_positions = []
+        lagnam_position = None
+
+        for grid_num, planets in rasi_grid_data.items():
+            if 5 in planets:  # Mars
+                mars_position = int(grid_num.split()[1])
+            if 3 in planets:  # Rahu
+                rahu_positions.append(int(grid_num.split()[1]))
+            if 4 in planets:  # Kethu
+                kethu_positions.append(int(grid_num.split()[1]))
+            if 10 in planets:  # Lagnam
+                lagnam_position = int(grid_num.split()[1])
+
+        def calculate_position(from_position, to_position):
+            if from_position is None or to_position is None:
+                return None
+            if to_position >= from_position:
+                return to_position - from_position + 1
+            else:
+                return 12 - from_position + to_position + 1
+
+        # Calculate positions relative to Lagnam
+        rahu_positions_from_lagnam = [
+            calculate_position(lagnam_position, pos) for pos in rahu_positions
+        ]
+        kethu_positions_from_lagnam = [
+            calculate_position(lagnam_position, pos) for pos in kethu_positions
+        ]
+
+        print('rahu_positions_from_lagnam',rahu_positions_from_lagnam)
+        print('kethu_positions_from_lagnam',kethu_positions_from_lagnam)
+
+
+        # Calculate mars position from lagnam
+        mars_position_from_lagnam = calculate_position(lagnam_position, mars_position)
+
+
+        print('mars_position_from_lagnam',mars_position_from_lagnam)
+
+        # Determine if there is Mars dosham
+        mars_dosham = False
+        # if mars_position_from_lagnam in {1, 2, 4, 7, 8, 12}:
+        if mars_position_from_lagnam in {2, 4, 7, 8, 12}:
+            mars_dosham = True
+
+        # Determine if there is Rahu-Kethu dosham
+        critical_positions = {1, 2, 7, 8}
+        rahu_kethu_dosham = False
+
+        # Check if any Rahu or Kethu position falls within the critical positions
+        if any(pos in critical_positions for pos in rahu_positions_from_lagnam) or \
+           any(pos in critical_positions for pos in kethu_positions_from_lagnam):
+            rahu_kethu_dosham = True
+        
+        return mars_dosham, rahu_kethu_dosham
+
+
 
 def parse_data(data):
     # Clean up and split data
