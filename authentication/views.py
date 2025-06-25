@@ -6994,6 +6994,7 @@ class GetMyProfileHoroscope(APIView):
 class UpdateMyProfileHoroscope(APIView):
     def post(self, request):
         profile_id = request.data.get('profile_id')
+        rasi_kattam = request.data.get('rasi_kattam')
         if not profile_id:
             return JsonResponse({"status": "error", "message": "Profile ID is required"}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -7004,7 +7005,7 @@ class UpdateMyProfileHoroscope(APIView):
             horoscope_serializer = serializers.HoroscopeSerializer(horoscope, data=request.data, partial=True)
             
             
-            calc_chevvai_dhosham, calc_raguketu_dhosham=GetMarsRahuKethuDoshamDetails(horoscope_serializer.rasi_kattam)
+            calc_chevvai_dhosham, calc_raguketu_dhosham=GetMarsRahuKethuDoshamDetails(rasi_kattam)
             
             if horoscope_serializer.is_valid():
                 horoscope_serializer.save(
