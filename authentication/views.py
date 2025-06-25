@@ -6110,6 +6110,27 @@ class GetMyProfilePersonal(APIView):
             
             result_percen=calculate_points_and_get_empty_fields(profile_id)
 
+            qualification_name = safe_get_by_id(models.Profileedu_degree, education_details_serializer.data.get('highest_education'), 'degeree_name')
+            city_name = safe_get_by_id(models.Profilecity, education_details_serializer.data.get('work_city'), 'city_name')
+
+            
+            myself = familydetails_serializer.data.get("about_self")
+
+            if myself is None or myself == "":
+                profile = {
+                    "name": registration_serializer.data.get("Profile_name"),
+                    "profession": Profile_prosession,
+                    "company": education_details_serializer.data.get('company_name'),
+                    "business": education_details_serializer.data.get('business_name'),
+                    "qualification": qualification_name,
+                    "location": city_name,
+                    "profile_type": education_details_serializer.data.get('profession')
+                }
+                myself = generate_about_myself_summary(profile)
+
+            
+            familydetails_serializer.data.get("about_self")
+
             data = {
                 "personal_profile_name": registration_serializer.data.get("Profile_name"),
                 "personal_gender": registration_serializer.data.get("Gender"),
@@ -6121,7 +6142,8 @@ class GetMyProfilePersonal(APIView):
                 "personal_profile_marital_status_id": registration_serializer.data.get("Profile_marital_status"),
                 "personal_profile_marital_status_name": marital_status_name,
                 "personal_blood_group": familydetails_serializer.data.get("blood_group"),
-                "personal_about_self": familydetails_serializer.data.get("about_self"),
+                #"personal_about_self": familydetails_serializer.data.get("about_self"),
+                "personal_about_self": myself,
                 "personal_profile_complexion_id": registration_serializer.data.get("Profile_complexion"),
                 "personal_profile_complexion_name": complexion_name,
                 "personal_hobbies": familydetails_serializer.data.get("hobbies"),
@@ -6162,6 +6184,65 @@ class GetMyProfilePersonal(APIView):
             return JsonResponse({"status": "error", "message": "Family details not found"}, status=status.HTTP_404_NOT_FOUND)
         except models.Profileholder.DoesNotExist:
             return JsonResponse({"status": "error", "message": "Profile mode not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+def generate_about_myself_summary(profile):
+    name = profile.get("name", "Name")
+    profession = profile.get("profession", "your profession")
+    business = profile.get("business", "your business")
+    company = profile.get("company", "your company")
+    qualification = profile.get("qualification", "your qualification")
+    institution = profile.get("institution", None)
+    location = profile.get("location", "your location")
+    profile_type = profile.get("profile_type")  # 'employee', 'business', or 'not_working'
+
+    if profile_type == "1":
+        summary = (
+            f"I am {name}, currently working as a {profession} at {company}. "
+            f"I hold a degree in {qualification}"
+        )
+        #if institution:
+            #summary += f" and have completed my education from {institution}."
+        summary += f" I reside in {location}."
+
+    elif profile_type == "2":
+        summary = (
+            f"I am {name}, a business professional engaged in {business}. "
+            f"I hold a degree in {qualification}"
+        )
+        #if institution:
+            #summary += f" from {institution}."
+        summary += f" I operate my business from {location}."
+
+    else:  # Not working or student, etc.
+        summary = (
+            f"I am {name}, currently not working. "
+            f"I have completed my education in {qualification}"
+        )
+        #if institution:
+            #summary += f" from {institution}."
+        summary += f" I live in {location}."
+
+    return summary
+
+
+
+
+
+def safe_get_by_id(model, pk_value, return_field):
+    if not pk_value:
+        return ""
+    try:
+        obj = model.objects.get(pk=pk_value)
+        return getattr(obj, return_field)
+    except model.DoesNotExist:
+        return ""
+    except Exception as e:
+        print(f"[ERROR] {e}")
+        return ""
+
+
 
 class UpdateMyProfilePersonal(APIView):
     def post(self, request):

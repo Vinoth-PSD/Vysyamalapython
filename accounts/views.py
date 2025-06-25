@@ -2314,9 +2314,10 @@ class GetProfEditDetailsAPIView(APIView):
         print("Degree to match:", repr(edu_detail.highest_education))
         print("City to match:", repr(login_detail.Profile_city))
 
+        about_self = response_data['family_details'].get('about_self')
+        if not about_self:  # Checks for None, '', or missing
 
-
-        profile = {
+            profile = {
                 "name": login_detail.Profile_name,
                 "profession": profession_name,
                 "company": edu_detail.company_name,
@@ -2325,9 +2326,9 @@ class GetProfEditDetailsAPIView(APIView):
                 "location": city_name,
                 "profile_type": edu_detail.profession
             }
-
+            myself = generate_about_myself_summary(profile)
+            response_data['family_details']['about_self'] = myself
         
-        myself=generate_about_myself_summary(profile)
 
         response_data['profile_common_details']={
                 "Addon_package": login_detail.Addon_package,
