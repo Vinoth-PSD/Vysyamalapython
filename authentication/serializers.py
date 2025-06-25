@@ -655,11 +655,14 @@ class HoroscopeSerializer(serializers.ModelSerializer):
     dasa_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     lagnam_didi = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
+    calc_chevvai_dhosham = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    calc_raguketu_dhosham = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
     time_of_birth = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = models.Horoscope
-        fields = ('profile_id','time_of_birth','place_of_birth', 'birthstar_name', 'birth_rasi_name','lagnam_didi','chevvai_dosaham','ragu_dosham','nalikai','dasa_name','dasa_balance','horoscope_hints','rasi_kattam','amsa_kattam','didi')
+        fields = ('profile_id','time_of_birth','place_of_birth', 'birthstar_name', 'birth_rasi_name','lagnam_didi','chevvai_dosaham','ragu_dosham','nalikai','dasa_name','dasa_balance','horoscope_hints','rasi_kattam','amsa_kattam','didi','calc_chevvai_dhosham','calc_raguketu_dhosham')
         
 class FamilydetaiSerializer(serializers.ModelSerializer):
 

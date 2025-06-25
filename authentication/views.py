@@ -7002,8 +7002,15 @@ class UpdateMyProfileHoroscope(APIView):
             family_details = models.Familydetails.objects.get(profile_id=profile_id)
 
             horoscope_serializer = serializers.HoroscopeSerializer(horoscope, data=request.data, partial=True)
+            
+            
+            calc_chevvai_dhosham, calc_raguketu_dhosham=GetMarsRahuKethuDoshamDetails(horoscope_serializer.rasi_kattam)
+            
             if horoscope_serializer.is_valid():
-                horoscope_serializer.save()
+                horoscope_serializer.save(
+                    calc_chevvai_dhosham=calc_chevvai_dhosham,
+                    calc_raguketu_dhosham=calc_raguketu_dhosham
+                )
             else:
                 return JsonResponse({"status": "error", "message": "Invalid horoscope data", "errors": horoscope_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
             
