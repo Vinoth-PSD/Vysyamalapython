@@ -2368,7 +2368,7 @@ class GetProfEditDetailsAPIView(APIView):
                 "payment_smode":payment_mode,
                 "add_on_pack_name":"",
                 "mobile_otp_verify":login_detail.Otp_verify,
-                "myself":myself
+                #"myself":myself
                 }
     
                 
