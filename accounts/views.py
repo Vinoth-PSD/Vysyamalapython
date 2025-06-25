@@ -2030,6 +2030,37 @@ class EditProfileAPIView(APIView):
                 partner_pref_detail = ProfilePartnerPref.objects.get(profile_id=profile_id)
             except ProfilePartnerPref.DoesNotExist:
                 return Response({'error': 'Partner preference details not found.'}, status=status.HTTP_404_NOT_FOUND)
+            
+        #prefered porutham rasi-stat value storing in the database mythili code 25-06-25
+
+                    # Make a proper mutable copy of the input dict
+            if isinstance(partner_pref_data, dict):
+                partner_pref_payload = partner_pref_data.copy()
+            else:
+                # If it's a QueryDict (e.g., from request.data), convert to normal dict
+                partner_pref_payload = dict(partner_pref_data.lists())
+                # flatten single-item lists: {'key': ['value']} -> {'key': 'value'}
+                for key in partner_pref_payload:
+                    if isinstance(partner_pref_payload[key], list) and len(partner_pref_payload[key]) == 1:
+                        partner_pref_payload[key] = partner_pref_payload[key][0]
+       
+            # Extract and process 'pref_porutham_star'
+            pref_star_ids = partner_pref_payload.get('pref_porutham_star')
+            if pref_star_ids:
+                try:
+                    id_list = [int(i.strip()) for i in str(pref_star_ids).split(',') if i.strip().isdigit()]
+                    matches = MatchingStarPartner.objects.filter(id__in=id_list)
+       
+                    star_rasi_pairs = [f"{m.dest_star_id}-{m.dest_rasi_id}" for m in matches]
+       
+                    # Save both cleaned values
+                    partner_pref_payload['pref_porutham_star'] = ",".join(map(str, id_list))
+                    partner_pref_payload['pref_porutham_star_rasi'] = ",".join(star_rasi_pairs)
+       
+                except Exception as e:
+                    errors['partner_pref_details'] = {
+                        'pref_porutham_star': [f"Invalid input or failed to process star IDs: {str(e)}"]
+                    }
 
             partner_pref_serializer = ProfilePartnerPrefSerializer(instance=partner_pref_detail, data=partner_pref_data, partial=True)
             if partner_pref_serializer.is_valid():

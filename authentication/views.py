@@ -1709,6 +1709,28 @@ class Education_registration(APIView):
         
 class Partner_pref_registration(APIView):
     def post(self, request, *args, **kwargs):
+        data = request.data.copy()  # Make a mutable copy of the data
+ 
+        # ===== Handle pref_porutham_star and generate pref_porutham_star_rasi =====
+        pref_star_ids = data.get('pref_porutham_star')
+        if pref_star_ids:
+            try:
+                id_list = [int(i.strip()) for i in pref_star_ids.split(',') if i.strip().isdigit()]
+ 
+                matches = models.MatchingStarPartner.objects.filter(id__in=id_list)
+ 
+                star_rasi_pairs = [
+                    f"{m.dest_star_id}-{m.dest_rasi_id}" for m in matches
+                ]
+ 
+                data['pref_porutham_star_rasi'] = ",".join(star_rasi_pairs)
+ 
+            except Exception as e:
+                return JsonResponse({
+                    "Status": 0,
+                    "message": f"Invalid pref_porutham_star input. Error: {str(e)}"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
         serializer = serializers.PartnerprefSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -7862,6 +7884,26 @@ class UpdateMyProfilePartner(APIView):
             partner_preferences = models.Partnerpref.objects.get(profile_id=profile_id)
         except models.Partnerpref.DoesNotExist:
             return JsonResponse({"status": "error", "message": "Partner preferences not found for this profile ID"}, status=status.HTTP_404_NOT_FOUND)
+        
+        data = request.data.copy()
+
+        pref_star_ids = data.get('pref_porutham_star')
+        if pref_star_ids:
+            try:
+                id_list = [int(i.strip()) for i in pref_star_ids.split(',') if i.strip().isdigit()]
+ 
+                matches = models.MatchingStarPartner.objects.filter(id__in=id_list)
+ 
+                star_rasi_pairs = [f"{m.dest_star_id}-{m.dest_rasi_id}" for m in matches]
+ 
+                # Add to the mutable copy
+                data['pref_porutham_star_rasi'] = ",".join(star_rasi_pairs)
+ 
+            except Exception as e:
+                return JsonResponse({
+                    "status": "error",
+                    "message": f"Invalid pref_porutham_star input. Error: {str(e)}"
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = serializers.ParPrefSerializer(partner_preferences, data=request.data, partial=True)
 
