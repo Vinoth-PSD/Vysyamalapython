@@ -750,7 +750,9 @@ class ProfileSuggestedPref(models.Model):
     # pref_anual_income = models.CharField(max_length=100)
     # pref_marital_status = models.CharField(max_length=100)
     class Meta:
+        managed = False
         db_table = 'profile_suggested_pref'
+     
 
 from django.db import models
 from ckeditor.fields import RichTextField
