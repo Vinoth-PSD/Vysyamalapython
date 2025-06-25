@@ -6295,12 +6295,20 @@ def GetMarsRahuKethuDoshamDetails(raw_input):
             calculate_position(lagnam_position, pos) for pos in kethu_positions
         ]
 
+        print('rahu_positions_from_lagnam',rahu_positions_from_lagnam)
+        print('kethu_positions_from_lagnam',kethu_positions_from_lagnam)
+
+
         # Calculate mars position from lagnam
         mars_position_from_lagnam = calculate_position(lagnam_position, mars_position)
 
+
+        print('mars_position_from_lagnam',mars_position_from_lagnam)
+
         # Determine if there is Mars dosham
         mars_dosham = False
-        if mars_position_from_lagnam in {1, 2, 4, 7, 8, 12}:
+        # if mars_position_from_lagnam in {1, 2, 4, 7, 8, 12}:
+        if mars_position_from_lagnam in {2, 4, 7, 8, 12}:
             mars_dosham = True
 
         # Determine if there is Rahu-Kethu dosham
