@@ -2262,11 +2262,14 @@ class GetProfEditDetailsAPIView(APIView):
         except ProfilePartnerPref.DoesNotExist:
             response_data['partner_pref_details'] = {}  # Return an empty object if not found
 
-        payment_detail = PlanSubscription.objects.filter(profile_id=profile_id).order_by('-payment_date').first()
+        payment_detail = PlanSubscription.objects.filter(profile_id=profile_id).first()
 
-        payment_date = payment_detail.payment_date if payment_detail else None
-        payment_mode = payment_detail.payment_mode if payment_detail else ''
+        payment_date = payment_detail.payment_date if payment_detail.payment_date else None
+        payment_mode = payment_detail.payment_mode if payment_detail.payment_mode else ''
 
+        # print('payment_detail:', payment_detail)
+        print('payment_date:', payment_date)
+        print('payment_mode:', payment_mode)
         
         try:
             profile_plan_features = Profile_PlanFeatureLimit.objects.get(profile_id=profile_id)
@@ -2365,7 +2368,7 @@ class GetProfEditDetailsAPIView(APIView):
                 # "membership_todate": format(profile_plan_features.membership_todate, '0000-0-0') if profile_plan_features.membership_todate else '0000-0-0',
                 "age":calculate_age(login_detail.Profile_dob),
                 "payment_date":payment_date,
-                "payment_smode":payment_mode,
+                "payment_mode":payment_mode,
                 "add_on_pack_name":"",
                 "mobile_otp_verify":login_detail.Otp_verify,
                 #"myself":myself
