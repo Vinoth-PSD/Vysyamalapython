@@ -2230,7 +2230,11 @@ class GetProfEditDetailsAPIView(APIView):
         # Step 1: Fetch LoginDetails based on ProfileId
         try:
             login_detail = LoginDetails.objects.get(ProfileId=profile_id)
-            response_data['login_details'] = LoginDetailsSerializer(login_detail).data
+            # response_data['login_details'] = LoginDetailsSerializer(login_detail).data
+            data = LoginDetailsSerializer(login_detail).data
+            data['about_self'] = login_detail.about_myself or generate_about_myself_summary(login_detail)
+            response_data['login_details'] = data
+
         except LoginDetails.DoesNotExist:
             return Response({'error': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -2326,6 +2330,7 @@ class GetProfEditDetailsAPIView(APIView):
                 "profile_type": edu_detail.profession
             }
 
+        
         myself=generate_about_myself_summary(profile)
 
         response_data['profile_common_details']={
