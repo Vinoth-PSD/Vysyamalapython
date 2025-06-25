@@ -2156,8 +2156,8 @@ class EditProfileAPIView(APIView):
                 profileplan_serializer.save()
             else:
                 return Response({'error': profileplan_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-            
-
+           
+        
         # If there are any validation errors, return them
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
