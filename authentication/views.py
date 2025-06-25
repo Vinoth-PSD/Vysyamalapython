@@ -5693,16 +5693,29 @@ def render_pdf_view(request, user_profile_id, filename="Horoscope_withbirthchart
                 nalikai =  horoscope.nalikai
 
                 # Planet mapping dictionary
+                # planet_mapping = {
+                #     "1": "Sun",
+                #     "2": "Moo",
+                #     "3": "Mar",
+                #     "4": "Mer",
+                #     "5": "Jup",
+                #     "6": "Ven",
+                #     "7": "Sat",
+                #     "8": "Rahu",
+                #     "9": "Kethu",
+                #     "10": "Lagnam",
+                # }
+
                 planet_mapping = {
                     "1": "Sun",
                     "2": "Moo",
-                    "3": "Mar",
-                    "4": "Mer",
-                    "5": "Jup",
+                    "3": "Rahu",
+                    "4": "Kethu",
+                    "5": "Mar",
                     "6": "Ven",
-                    "7": "Sat",
-                    "8": "Rahu",
-                    "9": "Kethu",
+                    "7": "Jup",
+                    "8": "Mer",
+                    "9": "Sat",
                     "10": "Lagnam",
                 }
 
@@ -6322,18 +6335,31 @@ def GetMarsRahuKethuDoshamDetails(raw_input):
                 ]
 
         # Planet mapping dictionary
+        # planet_mapping = {
+        #     1: "Sun",
+        #     2: "Moon",
+        #     3: "Mars",
+        #     4: "Mercury",
+        #     5: "Jupiter",
+        #     6: "Venus",
+        #     7: "Saturn",
+        #     8: "Rahu",
+        #     9: "Kethu",
+        #     10: "Lagnam",
+        # }
+
         planet_mapping = {
-            1: "Sun",
-            2: "Moon",
-            3: "Mars",
-            4: "Mercury",
-            5: "Jupiter",
-            6: "Venus",
-            7: "Saturn",
-            8: "Rahu",
-            9: "Kethu",
-            10: "Lagnam",
-        }
+                    "1": "Sun",
+                    "2": "Moon",
+                    "3": "Rahu",
+                    "4": "Kethu",
+                    "5": "Mars",
+                    "6": "Venus",
+                    "7": "Jupiter",
+                    "8": "Mercury",
+                    "9": "Saturn",
+                    "10": "Lagnam",
+                }
 
         # Create a grid of 12 cells with mapped planet names
         grid = []
@@ -6351,11 +6377,11 @@ def GetMarsRahuKethuDoshamDetails(raw_input):
         lagnam_position = None
 
         for grid_num, planets in rasi_grid_data.items():
-            if 3 in planets:  # Mars
+            if 5 in planets:  # Mars
                 mars_position = int(grid_num.split()[1])
-            if 8 in planets:  # Rahu
+            if 3 in planets:  # Rahu
                 rahu_positions.append(int(grid_num.split()[1]))
-            if 9 in planets:  # Kethu
+            if 4 in planets:  # Kethu
                 kethu_positions.append(int(grid_num.split()[1]))
             if 10 in planets:  # Lagnam
                 lagnam_position = int(grid_num.split()[1])
@@ -11799,16 +11825,29 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     lagnam = "Unknown"
 
                 # Planet mapping dictionary
+                # planet_mapping = {
+                #     "1": "Sun",
+                #     "2": "Moo",
+                #     "3": "Mar",
+                #     "4": "Mer",
+                #     "5": "Jup",
+                #     "6": "Ven",
+                #     "7": "Sat",
+                #     "8": "Rahu",
+                #     "9": "Kethu",
+                #     "10": "Lagnam",
+                # }
+
                 planet_mapping = {
                     "1": "Sun",
                     "2": "Moo",
-                    "3": "Mar",
-                    "4": "Mer",
-                    "5": "Jup",
+                    "3": "Rahu",
+                    "4": "Kethu",
+                    "5": "Mar",
                     "6": "Ven",
-                    "7": "Sat",
-                    "8": "Rahu",
-                    "9": "Kethu",
+                    "7": "Jup",
+                    "8": "Mer",
+                    "9": "Sat",
                     "10": "Lagnam",
                 }
 
@@ -12829,16 +12868,29 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 age = calculate_age(dob)  
 
                 # Planet mapping dictionary
+                # planet_mapping = {
+                #     "1": "Sun",
+                #     "2": "Moo",
+                #     "3": "Mar",
+                #     "4": "Mer",
+                #     "5": "Jup",
+                #     "6": "Ven",
+                #     "7": "Sat",
+                #     "8": "Rahu",
+                #     "9": "Kethu",
+                #     "10": "Lagnam",
+                # }
+
                 planet_mapping = {
                     "1": "Sun",
                     "2": "Moo",
-                    "3": "Mar",
-                    "4": "Mer",
-                    "5": "Jup",
+                    "3": "Rahu",
+                    "4": "Kethu",
+                    "5": "Mar",
                     "6": "Ven",
-                    "7": "Sat",
-                    "8": "Rahu",
-                    "9": "Kethu",
+                    "7": "Jup",
+                    "8": "Mer",
+                    "9": "Sat",
                     "10": "Lagnam",
                 }
 
@@ -14693,18 +14745,30 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
             nalikai =  horoscope.nalikai
             age = calculate_age(dob)  
             # Planet mapping dictionary
+            # planet_mapping = {
+            #     "1": "Sun",
+            #     "2": "Moo",
+            #     "3": "Mar",
+            #     "4": "Mer",
+            #     "5": "Jup",
+            #     "6": "Ven",
+            #     "7": "Sat",
+            #     "8": "Rahu",
+            #     "9": "Kethu",
+            #     "10": "Lagnam",
+            # }
             planet_mapping = {
-                "1": "Sun",
-                "2": "Moo",
-                "3": "Mar",
-                "4": "Mer",
-                "5": "Jup",
-                "6": "Ven",
-                "7": "Sat",
-                "8": "Rahu",
-                "9": "Kethu",
-                "10": "Lagnam",
-            }
+                    "1": "Sun",
+                    "2": "Moo",
+                    "3": "Rahu",
+                    "4": "Kethu",
+                    "5": "Mar",
+                    "6": "Ven",
+                    "7": "Jup",
+                    "8": "Mer",
+                    "9": "Sat",
+                    "10": "Lagnam",
+                }
             # Define a default placeholder for empty values
             default_placeholder = '-'
             def parse_data(data):
@@ -15487,16 +15551,29 @@ class WithoutAddressPrintPDF(APIView):
 default_placeholder = '-'
 
 # Planet mapping dictionary
+# planet_mapping = {
+#     "1": "Sun",
+#     "2": "Moo",
+#     "3": "Mar",
+#     "4": "Mer",
+#     "5": "Jup",
+#     "6": "Ven",
+#     "7": "Sat",
+#     "8": "Rahu",
+#     "9": "Kethu",
+#     "10": "Lagnam",
+# }
+
 planet_mapping = {
     "1": "Sun",
     "2": "Moo",
-    "3": "Mar",
-    "4": "Mer",
-    "5": "Jup",
+    "3": "Rahu",
+    "4": "Kethu",
+    "5": "Mar",
     "6": "Ven",
-    "7": "Sat",
-    "8": "Rahu",
-    "9": "Kethu",
+    "7": "Jup",
+    "8": "Mer",
+    "9": "Sat",
     "10": "Lagnam",
 }
 
