@@ -1731,7 +1731,7 @@ class Partner_pref_registration(APIView):
                     "message": f"Invalid pref_porutham_star input. Error: {str(e)}"
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-        serializer = serializers.PartnerprefSerializer(data=request.data)
+        serializer = serializers.PartnerprefSerializer(data=data)
 
         if serializer.is_valid():
             profile_id = serializer.validated_data.get('profile_id')
@@ -7905,7 +7905,9 @@ class UpdateMyProfilePartner(APIView):
                     "message": f"Invalid pref_porutham_star input. Error: {str(e)}"
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = serializers.ParPrefSerializer(partner_preferences, data=request.data, partial=True)
+        # serializer = serializers.ParPrefSerializer(partner_preferences, data=request.data, partial=True)
+        serializer = serializers.ParPrefSerializer(partner_preferences, data=data, partial=True)
+
 
         if serializer.is_valid():
             serializer.save()  
