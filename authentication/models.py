@@ -1232,7 +1232,8 @@ class Get_profiledata(models.Model):
 
                        
                     # query = base_query.format(operator=age_condition_operator) + height_conditions
-                    query = base_query.format(operator=age_condition_operator) + height_conditions + search_profile_id_cond + search_profession_cond+search_location_cond+orderby_cond
+                    # query = base_query.format(operator=age_condition_operator) + height_conditions + search_profile_id_cond + search_profession_cond+search_location_cond+orderby_cond
+                    query = base_query  + height_conditions + search_profile_id_cond + search_profession_cond+search_location_cond+orderby_cond
                     count_query_params = query_params.copy()
 
                   
@@ -1429,7 +1430,8 @@ class Get_profiledata(models.Model):
             query += orderby_cond
 
             with connection.cursor() as cursor:
-                cursor.execute(query.format(operator=age_condition_operator), query_params)
+                # cursor.execute(query.format(operator=age_condition_operator), query_params)
+                cursor.execute(query, query_params)
                 rows = cursor.fetchall()
 
                 if rows:
