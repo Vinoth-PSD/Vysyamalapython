@@ -2287,12 +2287,16 @@ class GetProfEditDetailsAPIView(APIView):
 
         payment_detail = PlanSubscription.objects.filter(profile_id=profile_id).first()
 
-        payment_date = payment_detail.payment_date if payment_detail.payment_date else None
-        payment_mode = payment_detail.payment_mode if payment_detail.payment_mode else ''
-
+        if payment_detail:
+            payment_date = payment_detail.payment_date if payment_detail.payment_date else None
+            payment_mode = payment_detail.payment_mode if payment_detail.payment_mode else ''
+        else:
+            payment_date = None
+            payment_mode = ''
+            
         # print('payment_detail:', payment_detail)
-        print('payment_date:', payment_date)
-        print('payment_mode:', payment_mode)
+        # print('payment_date:', payment_date)
+        # print('payment_mode:', payment_mode)
         
         try:
             profile_plan_features = Profile_PlanFeatureLimit.objects.get(profile_id=profile_id)
