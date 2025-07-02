@@ -833,12 +833,30 @@ class Newprofile_get(generics.ListAPIView):
             status_id = page_id  # Otherwise, set the status as the page_id
         
         # Base SQL query with JOINs
+        # sql = """
+        #     SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId, 
+        #            ld.Profile_dob, ld.Profile_city, ld.Profile_whatsapp, ld.Profile_alternate_mobile, ld.Plan_id, ld.status, 
+        #            ld.DateOfJoin, ld.Last_login_date, ld.Profile_for, ms.MaritalStatus, cm.complexion_desc, s.name AS state_name, 
+        #            cy.city_name, c.name AS country_name, d.name AS district_name,
+        #            pfd.family_status, ped.highest_education, ped.profession, ped.anual_income, ph.birthstar_name
+        #     FROM logindetails ld
+        #     LEFT JOIN maritalstatusmaster ms ON ld.Profile_marital_status = ms.StatusId
+        #     LEFT JOIN complexionmaster cm ON ld.Profile_complexion = cm.complexion_id
+        #     LEFT JOIN masterstate s ON ld.Profile_state = s.id
+        #     LEFT JOIN mastercity cy ON ld.Profile_city = cy.id
+        #     LEFT JOIN mastercountry c ON ld.Profile_country = c.id
+        #     LEFT JOIN masterdistrict d ON ld.Profile_district = d.name
+        #     LEFT JOIN profile_familydetails pfd ON ld.ProfileId = pfd.profile_id
+        #     LEFT JOIN profile_edudetails ped ON ld.ProfileId = ped.profile_id
+        #     LEFT JOIN profile_horoscope ph ON ld.ProfileId = ph.profile_id  
+        #     """
+
         sql = """
             SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId, 
-                   ld.Profile_dob, ld.Profile_city, ld.Profile_whatsapp, ld.Profile_alternate_mobile, ld.Plan_id, ld.status, 
+                   ld.Profile_dob,  ld.Profile_whatsapp, ld.Profile_alternate_mobile, ld.Plan_id, ld.status, 
                    ld.DateOfJoin, ld.Last_login_date, ld.Profile_for, ms.MaritalStatus, cm.complexion_desc, s.name AS state_name, 
-                   cy.city_name, c.name AS country_name, d.name AS district_name,
-                   pfd.family_status, ped.highest_education, ped.profession, ped.anual_income, ph.birthstar_name
+                   cy.city_name AS Profile_city, c.name AS country_name, d.name AS district_name,
+                   pfd.family_status, ped.highest_education, ped.anual_income, ph.birthstar_name , mp.profession AS profession
             FROM logindetails ld
             LEFT JOIN maritalstatusmaster ms ON ld.Profile_marital_status = ms.StatusId
             LEFT JOIN complexionmaster cm ON ld.Profile_complexion = cm.complexion_id
@@ -848,7 +866,8 @@ class Newprofile_get(generics.ListAPIView):
             LEFT JOIN masterdistrict d ON ld.Profile_district = d.name
             LEFT JOIN profile_familydetails pfd ON ld.ProfileId = pfd.profile_id
             LEFT JOIN profile_edudetails ped ON ld.ProfileId = ped.profile_id
-            LEFT JOIN profile_horoscope ph ON ld.ProfileId = ph.profile_id  
+            LEFT JOIN profile_horoscope ph ON ld.ProfileId = ph.profile_id 
+            LEFT JOIN masterprofession mp ON ped.profession = mp.RowId 
             """
         
         # Add the search query conditions if provided
@@ -2293,7 +2312,7 @@ class GetProfEditDetailsAPIView(APIView):
         else:
             payment_date = None
             payment_mode = ''
-            
+
         # print('payment_detail:', payment_detail)
         # print('payment_date:', payment_date)
         # print('payment_mode:', payment_mode)
