@@ -1074,13 +1074,23 @@ class Get_profiledata(models.Model):
             if search_age:
                 age_difference=int(search_age)
 
+            # if gender.upper() == "MALE":
+            #     matching_age = current_age - age_difference
+            #     age_condition_operator = "<"
+            # else:
+            #     # print('female age cond')
+            #     matching_age = current_age + age_difference
+            #     age_condition_operator = ">"
+
+            age_diff = int(age_difference) if age_difference else 5
+
             if gender.upper() == "MALE":
-                matching_age = current_age - age_difference
-                age_condition_operator = "<"
-            else:
-                # print('female age cond')
-                matching_age = current_age + age_difference
-                age_condition_operator = ">"
+                min_age = current_age - age_diff
+                max_age = current_age
+            elif gender.upper() == "FEMALE":
+                min_age = current_age
+                max_age = current_age + age_diff
+
 
             try:
                     
@@ -1123,12 +1133,13 @@ class Get_profiledata(models.Model):
                     ) AS i ON i.profile_id = a.ProfileId
                     LEFT JOIN profile_visit_logs v ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
                     WHERE a.Status=1 AND a.Plan_id !=16 AND a.gender != %s AND a.ProfileId != %s 
-                    AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {operator} %s
+                    AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
+
                     """
 
 
                     # query_params = [gender, profile_id, matching_age, min_income,max_income, partner_pref_education,partner_pref_porutham_star_rasi]
-                    query_params = [profile_id,gender, profile_id, matching_age]
+                    query_params = [profile_id,gender, profile_id, min_age,max_age]
 
                     if min_income and max_income:
                         base_query += " AND h.income_amount BETWEEN %s AND %s"
@@ -1355,13 +1366,19 @@ class Get_profiledata(models.Model):
                 age_difference = int(age_difference_str)
             except ValueError:
                 return [], 0, {}
-
+            
+            # if gender.upper() == "MALE":
+            #     matching_age = current_age - age_difference
+            #     age_condition_operator = "<"
+            # else:
+            #     matching_age = current_age + age_difference
+            #     age_condition_operator = ">"
             if gender.upper() == "MALE":
-                matching_age = current_age - age_difference
-                age_condition_operator = "<"
-            else:
-                matching_age = current_age + age_difference
-                age_condition_operator = ">"
+                min_age = current_age - age_difference
+                max_age = current_age
+            elif gender.upper() == "FEMALE":
+                min_age = current_age
+                max_age = current_age + age_difference
 
             # Base query to get matching profiles
             query = """
@@ -1378,8 +1395,8 @@ class Get_profiledata(models.Model):
                 WHERE a.status = 1 AND a.gender != %s AND a.ProfileId != %s
                 AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {operator} %s
             """
-
-            query_params = [gender, profile_id, matching_age]
+            
+            query_params = [gender, profile_id, min_age , max_age]
 
             if min_income and max_income:
                 query += " AND h.income_amount BETWEEN %s AND %s"
