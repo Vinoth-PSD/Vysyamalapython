@@ -2017,6 +2017,29 @@ class EditProfileAPIView(APIView):
                 horoscope_detail = ProfileHoroscope.objects.get(profile_id=profile_id)
             except ProfileHoroscope.DoesNotExist:
                 return Response({'error': 'Horoscope details not found.'}, status=status.HTTP_404_NOT_FOUND)
+            
+                        # Get input text
+            rasi_input_text = horoscope_data.get("rasi_input_data")
+            if rasi_input_text:
+                # Update input field
+                horoscope_detail.rasi_input_data = rasi_input_text
+        
+                # Run dosham logic
+                mars_dosham, rahu_kethu_dosham = GetMarsRahuKethuDoshamDetails(rasi_input_text)
+        
+                # Save dosham results directly to model fields
+                horoscope_detail.calc_chevvai_dhosham = "True" if mars_dosham else "False"
+                horoscope_detail.calc_raguketu_dhosham = "True" if rahu_kethu_dosham else "False"
+        
+            # Update other fields in horoscope_data using serializer (excluding the calculated fields)
+            horoscope_data.pop("calc_chevvai_dhosham", None)
+            horoscope_data.pop("calc_raguketu_dhosham", None)
+        
+            horoscope_serializer = ProfileHoroscopeSerializer(
+                instance=horoscope_detail,
+                data=horoscope_data,
+                partial=True
+            )
 
             horoscope_serializer = ProfileHoroscopeSerializer(instance=horoscope_detail, data=horoscope_data, partial=True)
             if horoscope_serializer.is_valid():
