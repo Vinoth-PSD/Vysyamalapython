@@ -437,7 +437,7 @@ class Registrationstep2(APIView):
         
         if serializer.is_valid():
             profile_id = serializer.validated_data.get('ProfileId')  
-            print('profile_id',profile_id)     
+            # print('profile_id',profile_id)     
             
             try:
                 #print('profil id',profile_id)
@@ -520,11 +520,25 @@ class Registrationstep2(APIView):
 
                 plan_features = models.PlanFeatureLimit.objects.filter(plan_id=7)
 
-                profile_feature_objects = [
-                    models.Profile_PlanFeatureLimit(**{**model_to_dict(feature), 'profile_id': new_profile_id,'plan_id':7,'membership_fromdate':membership_fromdate,'membership_todate':membership_todate})
-                    for feature in plan_features
-                ] #by default basic plan
+                # profile_feature_objects = [
+                #     models.Profile_PlanFeatureLimit(**{**model_to_dict(feature), 
+                #                                        'profile_id': new_profile_id,'plan_id':7,'membership_fromdate':membership_fromdate,'membership_todate':membership_todate})
+                #     for feature in plan_features
+                # ] #by default basic plan
                 
+                # models.Profile_PlanFeatureLimit.objects.bulk_create(profile_feature_objects)
+
+                profile_feature_objects = [
+                    models.Profile_PlanFeatureLimit(
+                        **{k: v for k, v in model_to_dict(feature).items() if k != 'id'},  # Exclude 'id'
+                        profile_id=new_profile_id,
+                        plan_id=7,
+                        membership_fromdate=membership_fromdate,
+                        membership_todate=membership_todate
+                    )
+                    for feature in plan_features
+                ]
+
                 models.Profile_PlanFeatureLimit.objects.bulk_create(profile_feature_objects)
 
                 basic_reg = models.Basic_Registration.objects.get(ProfileId=profile_id)
@@ -4124,7 +4138,7 @@ def Get_image_profile(user_profile_id):
 class Get_prof_list_match(APIView):
 
     def post(self, request):
-        print("Execution time when starts ",datetime.now())
+        # print("Execution time when starts ",datetime.now())
         serializer = serializers.GetproflistSerializer(data=request.data)
 
         if serializer.is_valid():            
