@@ -525,8 +525,25 @@ class Registrationstep2(APIView):
                 #                                        'profile_id': new_profile_id,'plan_id':7,'membership_fromdate':membership_fromdate,'membership_todate':membership_todate})
                 #     for feature in plan_features
                 # ] #by default basic plan
+
+                # profile_feature_objects = [
+                #     models.PlanFeatureLimit(
+                #         **{k: v for k, v in model_to_dict(feature).items() if k != 'id'},  # Exclude 'id'
+                #         profile_id=new_profile_id,
+                #         plan_id=7,
+                #         membership_fromdate=membership_fromdate,
+                #         membership_todate=membership_todate
+                #     )
+                #     for feature in plan_features
+                # ]
                 
                 # models.Profile_PlanFeatureLimit.objects.bulk_create(profile_feature_objects)
+
+                # basic_reg = models.Basic_Registration.objects.get(ProfileId=profile_id)
+                # basic_reg.status = 1  # Update status field as needed
+                # basic_reg.save()
+
+                plan_features = models.PlanFeatureLimit.objects.filter(plan_id=7)
 
                 profile_feature_objects = [
                     models.Profile_PlanFeatureLimit(
@@ -544,8 +561,7 @@ class Registrationstep2(APIView):
                 basic_reg = models.Basic_Registration.objects.get(ProfileId=profile_id)
                 basic_reg.status = 1  # Update status field as needed
                 basic_reg.save()
-                
-
+            
                 subject = "Welcome to Vysyamala!"
                 context = {
                     'Profile_name': registration_data['Profile_name'],
