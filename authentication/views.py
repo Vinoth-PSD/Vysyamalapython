@@ -545,11 +545,14 @@ class Registrationstep2(APIView):
 
                 plan_features = models.PlanFeatureLimit.objects.filter(plan_id=7)
 
+                # print(plan_features)
+                print('exit1234')
+
                 profile_feature_objects = [
                     models.Profile_PlanFeatureLimit(
                         **{k: v for k, v in model_to_dict(feature).items() if k != 'id'},  # Exclude 'id'
                         profile_id=new_profile_id,
-                        plan_id=7,
+                        # plan_id=7,
                         membership_fromdate=membership_fromdate,
                         membership_todate=membership_todate
                     )
