@@ -517,7 +517,7 @@ class Registrationstep2(APIView):
 
                 membership_fromdate = date.today()
                 membership_todate = membership_fromdate + timedelta(days=365)
-
+                
                 plan_features = models.PlanFeatureLimit.objects.filter(plan_id=7)
 
                 # profile_feature_objects = [
@@ -546,7 +546,7 @@ class Registrationstep2(APIView):
                 plan_features = models.PlanFeatureLimit.objects.filter(plan_id=7)
 
                 # print(plan_features)
-                print('exit1234')
+                # print('exit1234')
 
                 profile_feature_objects = [
                     models.Profile_PlanFeatureLimit(
@@ -4594,7 +4594,38 @@ class Get_profile_det_match(APIView):
                 current_image_count = models.Image_Upload.objects.filter(profile_id=profile_details[0]['ProfileId']).count()              
                 if current_image_count==0:
                      photo_request=1 
+            
+                try:
+                    lagnam_didi_id = profile_details[0]['lagnam_didi']
+                    if lagnam_didi_id:
+                        lagnam_didi = models.Lagnamdidi.objects.get(id=lagnam_didi_id)
+                        lagnam_didi_name = lagnam_didi.name
+                    else:
+                        lagnam_didi_name = None  # Default value if null or empty
+                except models.Lagnamdidi.DoesNotExist:
+                    lagnam_didi_name = None  # Handle case where object doesn't exist
 
+
+                
+                annual_income_id = profile_details[0]['anual_income']
+                annual_income_name=''
+                try:
+                    if annual_income_id:
+                        annual_income = models.Annualincome.objects.get(id=annual_income_id)
+                        annual_income_name = annual_income.income
+                    else:
+                        annual_income=None
+                        annual_income_name=''
+                except models.Annualincome.DoesNotExist:
+                    annual_income_name = None
+
+
+                def dosham_value_formatter(value):
+                    if isinstance(value, str):
+                        return {"0": "Unknown", "1": "Yes", "2": "No"}.get(value, value)
+                    elif isinstance(value, int):
+                        return {0: "Unknown", 1: "Yes", 2: "No"}.get(value, value)
+                    return value
 
                 profile_data={
                         "basic_details": {
@@ -4651,7 +4682,7 @@ class Get_profile_det_match(APIView):
                             "about_self": profile_details[0]['about_self'],
                             "complexion": Profile_complexion,
                             "hobbies": profile_details[0]['hobbies'],
-                            "physical_status": profile_details[0]['Pysically_changed'],
+                            "physical_status": "No" if profile_details[0]['Pysically_changed'] == 0 else "1" if profile_details[0]['Pysically_changed'] == 1 else profile_details[0]['Pysically_changed'] ,
                             "eye_wear": profile_details[0]['eye_wear'] ,
                             "weight": profile_details[0]['weight'] ,
                             "body_type": profile_details[0]['body_type'] ,
@@ -4666,7 +4697,7 @@ class Get_profile_det_match(APIView):
                             "company_name": profile_details[0]['company_name'],
                             "business_name": profile_details[0]['business_name'],
                             "business_address": profile_details[0]['business_address'],
-                            "annual_income": profile_details[0]['anual_income'],
+                            "annual_income": annual_income_name,
                             "gross_annual_income": profile_details[0]['actual_income'],
                             "place_of_stay": profile_details[0]['Profile_city'],
                         },
@@ -4688,12 +4719,12 @@ class Get_profile_det_match(APIView):
                             "star_name": profile_star_name,
                             "lagnam": profile_details[0]['lagnam_didi'],
                             "nallikai": profile_details[0]['nalikai'],
-                            "didi": profile_details[0]['lagnam_didi'],
+                            "didi": profile_details[0]['didi'],
                             "surya_gothram": profile_details[0]['suya_gothram'],
-                            "dasa_name": profile_details[0]['dasa_name'],
+                            "dasa_name": get_dasa_name(profile_details[0]['dasa_name']),
                             "dasa_balance": profile_details[0]['dasa_balance'],
-                            "chevvai_dosham": profile_details[0]['calc_chevvai_dhosham'],
-                            "sarpadosham": profile_details[0]['calc_raguketu_dhosham'],
+                            "chevvai_dosham": dosham_value_formatter(profile_details[0]['calc_chevvai_dhosham']),
+                            "sarpadosham":  dosham_value_formatter(profile_details[0]['calc_raguketu_dhosham']),
                             # "rasi_kattam":profile_details[0]['rasi_kattam'],
                             # "amsa_kattam":profile_details[0]['amsa_kattam'],
                         }
