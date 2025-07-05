@@ -1938,14 +1938,28 @@ class SubmitProfileAPIView(APIView):
         if horoscope_serializer:
             horoscope_serializer = ProfileHoroscopeSerializer(data=horoscope_data)
             if horoscope_serializer.is_valid():
-                horoscope_serializer.save()
+                horoscope_detail = horoscope_serializer.save()
+
+
+                rasi_input_text = horoscope_data.get("rasi_kattam")
+
+            if rasi_input_text:  # Check if rasi_kattam exists and has value
+            # Run dosham calculation
+                mars_dosham, rahu_kethu_dosham = GetMarsRahuKethuDoshamDetails(rasi_input_text)
+                
+                # Update calculated fields directly on model
+                horoscope_detail.calc_chevvai_dhosham = "True" if mars_dosham else "False"
+                horoscope_detail.calc_raguketu_dhosham = "True" if rahu_kethu_dosham else "False"
+
+                # Save only calculated fields
+                horoscope_detail.save(update_fields=['calc_chevvai_dhosham', 'calc_raguketu_dhosham'])
                 
             else:
                 errors['horoscope_details'] = horoscope_serializer.errors
 
 
-        
-        
+    
+    
         # Save ProfilePartnerPref
         if partner_pref_serializer:
             partner_pref_serializer = ProfilePartnerPrefSerializer(data=partner_pref_data)
