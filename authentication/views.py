@@ -8987,12 +8987,16 @@ def transform_data(original_data,my_profile_id,my_gender,source_rasi_id,source_s
 
     photo_viewing=get_permission_limits(my_profile_id,'photo_viewing')
 
+    print(original_data.get("Photo_protection"),'photo protecion')
+    print(my_gender,'my_gender')
+    print(my_profile_id,'my_profile_id')
+
     if photo_viewing == 1:
                 print("Execution time before image starts ",datetime.now())
-                image_function = lambda detail: get_profile_image_azure_optimized(my_profile_id, my_gender, 1, original_data.get("Photo_protection"))
+                image_function = lambda detail: get_profile_image_azure_optimized(original_data.get("ProfileId"), my_gender, 1, original_data.get("Photo_protection"))
     else:
                 print("Execution time before blur image starts ",datetime.now())
-                image_function = lambda detail: get_profile_image_azure_optimized(my_profile_id, my_gender, 1,1)
+                image_function = lambda detail: get_profile_image_azure_optimized(original_data.get("ProfileId"), my_gender, 1,1)
 
     transformed_data = {
         "profile_id": original_data.get("ProfileId"),
@@ -9000,7 +9004,7 @@ def transform_data(original_data,my_profile_id,my_gender,source_rasi_id,source_s
         "profile_age": calculate_age(original_data.get("Profile_dob")),
         "profile_gender": original_data.get("Gender"),
         # "profile_img": Get_profile_image(original_data.get("ProfileId"),my_gender,1,original_data.get("Photo_protection")),
-        "profile_img":image_function,
+        "profile_img":image_function(original_data),
         "profile_height": original_data.get("Profile_height"),
         "weight": None,  # You need to add this if you have this information
         "degree": original_data.get("EducationLevel"),
