@@ -554,7 +554,8 @@ class Registrationstep2(APIView):
                         profile_id=new_profile_id,
                         # plan_id=7,
                         membership_fromdate=membership_fromdate,
-                        membership_todate=membership_todate
+                        membership_todate=membership_todate,
+                        status=1
                     )
                     for feature in plan_features
                 ]

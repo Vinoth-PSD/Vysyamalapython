@@ -2051,8 +2051,8 @@ class EditProfileAPIView(APIView):
                 horoscope_detail.calc_raguketu_dhosham = "True" if rahu_kethu_dosham else "False"
         
             # Update other fields in horoscope_data using serializer (excluding the calculated fields)
-            horoscope_data.pop("calc_chevvai_dhosham", None)
-            horoscope_data.pop("calc_raguketu_dhosham", None)
+            # horoscope_data.pop("calc_chevvai_dhosham", None)
+            # horoscope_data.pop("calc_raguketu_dhosham", None)
         
             horoscope_serializer = ProfileHoroscopeSerializer(
                 instance=horoscope_detail,
@@ -2316,7 +2316,7 @@ class GetProfEditDetailsAPIView(APIView):
         # print('payment_detail:', payment_detail)
         # print('payment_date:', payment_date)
         # print('payment_mode:', payment_mode)
-        
+
         try:
             profile_plan_features = Profile_PlanFeatureLimit.objects.get(profile_id=profile_id)
             response_data['profile_plan_features'] = ProfileplanSerializer(profile_plan_features).data
