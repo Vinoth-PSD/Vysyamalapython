@@ -3709,7 +3709,10 @@ def get_permission_limits(profile_id, column_name):
         if not limits :
             return None  # No active record found
 
-        if getattr(limits, 'membership_enddate', None) and limits.membership_enddate < date.today():
+        print('expired date',limits.membership_todate)
+        print('Current date',date.today())
+
+        if getattr(limits, 'membership_todate', None) and limits.membership_todate.date() < date.today():
             return 0  # Membership expired
         
         return getattr(limits, column_name, None)
@@ -4592,6 +4595,9 @@ class Get_profile_det_match(APIView):
                    
                 permission_contact_details=get_permission_limits(profile_id, 'contact_details')
                 permission_horosocpegrid_details=get_permission_limits(profile_id, 'horoscope_grid_details')
+
+                print('permission_contact_details',permission_contact_details)
+                print('permission_horosocpegrid_details',permission_horosocpegrid_details)
 
                 
                 eng_print=get_permission_limits(profile_id,'eng_print')  #user uploaded horoscope grid download permision
@@ -11026,7 +11032,7 @@ def can_send_express_interest(profile_id):
     if not plan:
         return 0  # No active plan found
     
-    if getattr(plan, 'membership_enddate', None) and plan.membership_enddate < current_date:
+    if getattr(plan, 'membership_todate', None) and plan.membership_todate.date() < current_date:
         return 0  # Membership expired
 
     # Check if the plan allows sending express interests
@@ -11084,7 +11090,7 @@ def can_send_photoreq(profile_id):
     if not plan:
         return 0  # No active plan found
     
-    if getattr(plan, 'membership_enddate', None) and plan.membership_enddate < current_date:
+    if getattr(plan, 'membership_todate', None) and plan.membership_todate.date() < current_date:
         return 0  # Membership expired
 
 
@@ -11160,7 +11166,7 @@ def can_call_profile(profile_id):
     if not plan:
         return 0  # No active plan found
     
-    if getattr(plan, 'membership_enddate', None) and plan.membership_enddate < current_date:
+    if getattr(plan, 'membership_todate', None) and plan.membership_todate.date() < current_date:
         return 0  # Membership expired
 
 
@@ -11220,7 +11226,7 @@ def can_get_vysassist_profile(profile_id):
     if not plan:
         return 0  # No active plan found
     
-    if getattr(plan, 'membership_enddate', None) and plan.membership_enddate < current_date:
+    if getattr(plan, 'membership_todate', None) and plan.membership_todate.date() < current_date:
         return 0  # Membership expired
 
     
@@ -11357,7 +11363,7 @@ def can_see_compatability_report(profile_id,req_profile_id):
     if not plan:
         return 0  # No active plan found
     
-    if getattr(plan, 'membership_enddate', None) and plan.membership_enddate < current_date:
+    if getattr(plan, 'membership_todate', None) and plan.membership_todate.date() < current_date:
         return 0  # Membership expired
 
 
@@ -11400,7 +11406,7 @@ def can_see_horoscope_report(profile_id,req_profile_id,lang):
     if not plan:
         return 0  # No active plan found
     
-    if getattr(plan, 'membership_enddate', None) and plan.membership_enddate < current_date:
+    if getattr(plan, 'membership_todate', None) and plan.membership_todate.date() < current_date:
         return 0  # Membership expired
     
     if lang is 'english':
