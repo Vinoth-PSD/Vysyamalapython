@@ -6643,7 +6643,9 @@ class Save_plan_package(APIView):
             # Fetch the instances by profile_id
             registration = models.Registration1.objects.get(ProfileId=profile_id)
              # Update the fields
-            registration.Plan_id = plan_id
+            
+            registration.Plan_id = plan_id if plan_id != 0 else registration.Plan_id  #if in case the plan_id come as 0 it shoult update as 0 
+            #registration.Plan_id = plan_id
             registration.secondary_status = 30   # newly registered and the Premium
             registration.plan_status = plan_id
             registration.Addon_package = addon_package_id
@@ -9023,7 +9025,8 @@ class CreateOrderView(APIView):
             amount = int(data.get("amount")) * 100  # Convert to paise
             currency = "INR"
             profile_id=data.get("profile_id")
-            plan_id=data.get("plan_id")
+            plan_id=data.get("plan_id", "")
+            addon_package=data.get("addon_package", "")
 
             order_data = {
                 "amount": amount,
@@ -9039,6 +9042,7 @@ class CreateOrderView(APIView):
                 order_id=order["id"],
                 amount=amount / 100,  # Save in INR
                 plan_id=plan_id,
+                addon_package=addon_package,
                 payment_type='Online',
                 status=1,
                 created_at=timezone.now()

@@ -121,7 +121,7 @@ urlpatterns = [
     path('Save_plan_package/', views.Save_plan_package.as_view(), name='Save_plan_package'),    
 
     #path('profile/update/page1/', views.ProfileUpdateForPage1APIView.as_view(), name='profile-update-page1'),    
-           
+  
 
     path('get_myprofile_family/', views.GetMyProfileFamily.as_view(), name='get_my_profile_family'),
 
