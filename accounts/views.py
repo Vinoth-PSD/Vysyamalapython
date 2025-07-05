@@ -1939,9 +1939,13 @@ class SubmitProfileAPIView(APIView):
             horoscope_serializer = ProfileHoroscopeSerializer(data=horoscope_data)
             if horoscope_serializer.is_valid():
                 horoscope_serializer.save()
+                
             else:
                 errors['horoscope_details'] = horoscope_serializer.errors
 
+
+        
+        
         # Save ProfilePartnerPref
         if partner_pref_serializer:
             partner_pref_serializer = ProfilePartnerPrefSerializer(data=partner_pref_data)

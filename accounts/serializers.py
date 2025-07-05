@@ -649,7 +649,7 @@ class ProfileHoroscopeSerializer(serializers.ModelSerializer):
     dasa_name = serializers.CharField(required=False , allow_null=True) 
     amsa_kattam = serializers.CharField(required=False, allow_null=True)
     rasi_kattam = serializers.CharField(required=False ,allow_null=True)
-    horoscope_file = serializers.FileField(required=False)  
+    horoscope_file = serializers.FileField(required=False)
     class Meta:
         model = ProfileHoroscope
         fields = '__all__'

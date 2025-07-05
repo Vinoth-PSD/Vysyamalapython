@@ -553,10 +553,10 @@ class LoginDetails(models.Model):
     Package_name= models.CharField(max_length=255,blank=True, null=True)  # Changed from CharField to TextField
     Video_url= models.TextField(blank=True, null=True)
     Plan_id= models.CharField(max_length=100,blank=True, null=True)
-    Otp = models.CharField(max_length=10)
+    Otp = models.CharField(max_length=10,blank=True, null=True)
     Otp_verify = models.SmallIntegerField(max_length=10,blank=True, null=True)    
-    Profile_height = models.CharField(max_length=250)
-    Photo_password = models.CharField(max_length=255)
+    Profile_height = models.CharField(max_length=250,blank=True, null=True)
+    Photo_password = models.CharField(max_length=255,blank=True, null=True)
 
 
     class Meta:
