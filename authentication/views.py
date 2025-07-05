@@ -9013,7 +9013,7 @@ class CreateOrderView(APIView):
         try:
             data = json.loads(request.body)
 
-            required_fields = ["profile_id", "amount", "plan_id"]
+            required_fields = ["profile_id", "amount"]
             missing_fields = [field for field in required_fields if field not in data]
 
             if missing_fields:

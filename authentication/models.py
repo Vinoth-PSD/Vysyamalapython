@@ -2012,7 +2012,7 @@ class PaymentTransaction(models.Model):
     id = models.AutoField(primary_key=True)
     profile_id = models.CharField(max_length=255)
     plan_id = models.IntegerField(max_length=50)
-    addon_package = models.IntegerField(max_length=255)
+    addon_package = models.CharField(max_length=255)
     order_id = models.CharField(max_length=255)
     payment_id =  models.CharField(max_length=255)  
     payment_type = models.CharField(max_length=255)  
