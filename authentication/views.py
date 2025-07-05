@@ -8984,12 +8984,23 @@ def transform_data(original_data,my_profile_id,my_gender,source_rasi_id,source_s
     # print('original_data',original_data)
     # print('birthstar_name',original_data.get("birthstar_name"))
     # print('birth_rasi_name',original_data.get("birth_rasi_name"))
+
+    photo_viewing=get_permission_limits(my_profile_id,'photo_viewing')
+
+    if photo_viewing == 1:
+                print("Execution time before image starts ",datetime.now())
+                image_function = lambda detail: get_profile_image_azure_optimized(my_profile_id, my_gender, 1, original_data.get("Photo_protection"))
+    else:
+                print("Execution time before blur image starts ",datetime.now())
+                image_function = lambda detail: get_profile_image_azure_optimized(my_profile_id, my_gender, 1,1)
+
     transformed_data = {
         "profile_id": original_data.get("ProfileId"),
         "profile_name": original_data.get("Profile_name"),
         "profile_age": calculate_age(original_data.get("Profile_dob")),
         "profile_gender": original_data.get("Gender"),
-        "profile_img": Get_profile_image(original_data.get("ProfileId"),my_gender,1,original_data.get("Photo_protection")),
+        # "profile_img": Get_profile_image(original_data.get("ProfileId"),my_gender,1,original_data.get("Photo_protection")),
+        "profile_img":image_function,
         "profile_height": original_data.get("Profile_height"),
         "weight": None,  # You need to add this if you have this information
         "degree": original_data.get("EducationLevel"),
