@@ -11023,6 +11023,12 @@ def can_send_express_interest(profile_id):
 
     # print(plan)
 
+    if not plan:
+        return 0  # No active plan found
+    
+    if getattr(plan, 'membership_enddate', None) and plan.membership_enddate < current_date:
+        return 0  # Membership expired
+
     # Check if the plan allows sending express interests
     if plan and plan.exp_int_lock and plan.express_int_count is not None:
         # print('123456')
@@ -11074,6 +11080,13 @@ def can_send_photoreq(profile_id):
     # current_date = now().date()
     current_time = timezone.now()
     current_date = current_time.date()
+
+    if not plan:
+        return 0  # No active plan found
+    
+    if getattr(plan, 'membership_enddate', None) and plan.membership_enddate < current_date:
+        return 0  # Membership expired
+
 
     # Check if the plan allows sending express interests
     if plan and plan.photo_req is not None:
@@ -11144,6 +11157,13 @@ def can_call_profile(profile_id):
     current_time = timezone.now()
     current_date = current_time.date()
 
+    if not plan:
+        return 0  # No active plan found
+    
+    if getattr(plan, 'membership_enddate', None) and plan.membership_enddate < current_date:
+        return 0  # Membership expired
+
+
     # print('current_datetime',timezone.now())
     # print('current_date',current_date)
 
@@ -11196,6 +11216,13 @@ def can_get_vysassist_profile(profile_id):
     # current_date = now().date()
     current_time = timezone.now()
     current_date = current_time.date()
+
+    if not plan:
+        return 0  # No active plan found
+    
+    if getattr(plan, 'membership_enddate', None) and plan.membership_enddate < current_date:
+        return 0  # Membership expired
+
     
     # print('current_datetime',timezone.now())
     # print('current_date',current_date)
@@ -11324,6 +11351,16 @@ def can_see_compatability_report(profile_id,req_profile_id):
     
     plan = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,plan_id=plan_id,status=1).first()
 
+    current_time = timezone.now()
+    current_date = current_time.date()
+
+    if not plan:
+        return 0  # No active plan found
+    
+    if getattr(plan, 'membership_enddate', None) and plan.membership_enddate < current_date:
+        return 0  # Membership expired
+
+
     # Check if the plan allows sending express interests
     if plan and plan.compatability_report is not None:
         if plan.compatability_report == 0:
@@ -11356,6 +11393,15 @@ def can_see_horoscope_report(profile_id,req_profile_id,lang):
     plan = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,plan_id=plan_id,status=1).first()
 
     # Check if the plan allows sending express interests
+    
+    current_time = timezone.now()
+    current_date = current_time.date()
+    
+    if not plan:
+        return 0  # No active plan found
+    
+    if getattr(plan, 'membership_enddate', None) and plan.membership_enddate < current_date:
+        return 0  # Membership expired
     
     if lang is 'english':
         if plan and plan.eng_print is not None:
