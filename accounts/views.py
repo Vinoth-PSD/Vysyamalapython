@@ -1899,7 +1899,7 @@ class SubmitProfileAPIView(APIView):
         numeric_part = content_id
         profile_id = f'VM{numeric_part}' if login_detail.Gender.lower() == 'male' else f'VF{numeric_part}'
         login_detail.ProfileId = profile_id
-
+        login_detail.status = 0  
         login_detail.save()
 
         profile_idproof_file = request.FILES.get('Profile_idproof')
@@ -1911,8 +1911,8 @@ class SubmitProfileAPIView(APIView):
         if profile_divorceproof_file:
              login_detail.Profile_divorceproof = profile_divorceproof_file
 
-        login_detail['status']=0
-        login_detail.save()
+        # login_detail['status']=0
+        # login_detail.save()
         family_data['profile_id'] = profile_id
         edu_data['profile_id'] = profile_id 
         horoscope_data['profile_id'] = profile_id
