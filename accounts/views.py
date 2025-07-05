@@ -1989,6 +1989,9 @@ class EditProfileAPIView(APIView):
         suggested_pref_data = request.data.get('suggested_pref_details', {})
         profile_common_data = request.data.get('profile_common_details', {})
 
+
+        print(horoscope_data,'123456')
+
         # Initialize error tracking
         errors = {}
 
@@ -2032,20 +2035,23 @@ class EditProfileAPIView(APIView):
 
         # Step 4: Retrieve and update ProfileHoroscope
         if horoscope_data:
+            # print('1234567890')
             try:
                 horoscope_detail = ProfileHoroscope.objects.get(profile_id=profile_id)
             except ProfileHoroscope.DoesNotExist:
                 return Response({'error': 'Horoscope details not found.'}, status=status.HTTP_404_NOT_FOUND)
             
-                        # Get input text
-            rasi_input_text = horoscope_data.get("rasi_input_data")
+            # Get input text
+            rasi_input_text = horoscope_data.get("rasi_kattam")
+            # print(rasi_input_text,'123456')
             if rasi_input_text:
                 # Update input field
-                horoscope_detail.rasi_input_data = rasi_input_text
+                horoscope_detail.rasi_kattam = rasi_input_text
         
                 # Run dosham logic
                 mars_dosham, rahu_kethu_dosham = GetMarsRahuKethuDoshamDetails(rasi_input_text)
-        
+                # print(mars_dosham)
+                # print(rahu_kethu_dosham)
                 # Save dosham results directly to model fields
                 horoscope_detail.calc_chevvai_dhosham = "True" if mars_dosham else "False"
                 horoscope_detail.calc_raguketu_dhosham = "True" if rahu_kethu_dosham else "False"
