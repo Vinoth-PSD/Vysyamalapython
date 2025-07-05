@@ -924,7 +924,40 @@ class PlanDetails(models.Model):
             plan_feature_associations pfa ON pm.id = pfa.plan_id
         JOIN
             plan_features pf ON pfa.feature_id = pf.id
-        '''
+            WHERE pm.id NOT IN (14, 15, 17)  
+        '''   #exclude the Plan id for the renewal customers
+        
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            columns = [col[0] for col in cursor.description]
+            rows = cursor.fetchall()
+            result = [
+                dict(zip(columns, row))
+                for row in rows
+            ]
+
+
+            return result
+
+    @staticmethod
+    def get_plan_details_renewal():
+        query = '''
+        SELECT
+            pm.id AS plan_id,
+            pm.plan_name,
+            CAST(pm.plan_price AS SIGNED) AS plan_price,
+            pm.plan_renewal_cycle,
+            pf.id AS feature_id,
+            pf.feature_name,
+            pf.feature_desc
+        FROM
+            plan_master pm
+        JOIN
+            plan_feature_associations pfa ON pm.id = pfa.plan_id
+        JOIN
+            plan_features pf ON pfa.feature_id = pf.id
+            WHERE pm.id IN (14, 15, 17)  
+        '''   #exclude the Plan id for the renewal customers
         
         with connection.cursor() as cursor:
             cursor.execute(query)

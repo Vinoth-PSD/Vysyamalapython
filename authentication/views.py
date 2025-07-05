@@ -1797,23 +1797,80 @@ class Partner_pref_registration(APIView):
 
 class Get_palns(APIView):
     def post(self, request, *args, **kwargs):
-       try:
-            data = models.PlanDetails.get_plan_details()
-            output_serializer = serializers.PlanSerializer(data, many=True)
+       profile_id = request.data.get('profile_id')
 
-            grouped_data = defaultdict(list)
-            for item in data:
-                    match_count = item['plan_name']
-                    grouped_data[match_count].append(item)
+ 
+       if not profile_id:
+            try:
+                    data = models.PlanDetails.get_plan_details()
+                    output_serializer = serializers.PlanSerializer(data, many=True)
 
-                # Construct the response structure
-            response = {f"{count}": items for count, items in grouped_data.items()}             
+                    grouped_data = defaultdict(list)
+                    for item in data:
+                            match_count = item['plan_name']
+                            grouped_data[match_count].append(item)
+
+                        # Construct the response structure
+                    response = {f"{count}": items for count, items in grouped_data.items()}             
+                        
+                    return JsonResponse({"Status": 1, "message": "fetched data successfully","data":response},status=status.HTTP_201_CREATED)
                 
-            return JsonResponse({"Status": 1, "message": "fetched data successfully","data":response},status=status.HTTP_201_CREATED)
-        
-       except Exception as e:
+            except Exception as e:
 
-         return JsonResponse({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+                return JsonResponse({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+       else:
+        # 📝 Your "else part" logic here
+            
+                registration=models.Registration1.objects.filter(ProfileId=profile_id).first()
+                plan_id = registration.Plan_id    
+                
+                # plan = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,plan_id=plan_id).first()
+
+                plan = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,plan_id__in=[1, 2, 3]).first()
+
+                # current_date = now().date()
+                current_time = timezone.now()
+                current_date = current_time.date()
+               
+                if plan:
+                    if getattr(plan, 'membership_todate', None) and plan.membership_todate.date() < current_date:
+
+                        try:
+                                data = models.PlanDetails.get_plan_details_renewal()
+                                output_serializer = serializers.PlanSerializer(data, many=True)
+
+                                grouped_data = defaultdict(list)
+                                for item in data:
+                                        match_count = item['plan_name']
+                                        grouped_data[match_count].append(item)
+
+                                    # Construct the response structure
+                                response = {f"{count}": items for count, items in grouped_data.items()}             
+                                    
+                                return JsonResponse({"Status": 1, "message": "fetched data successfully","data":response},status=status.HTTP_201_CREATED)
+                            
+                        except Exception as e:
+
+                            return JsonResponse({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+                else :
+                    
+                    try:
+                        data = models.PlanDetails.get_plan_details()
+                        output_serializer = serializers.PlanSerializer(data, many=True)
+
+                        grouped_data = defaultdict(list)
+                        for item in data:
+                                match_count = item['plan_name']
+                                grouped_data[match_count].append(item)
+
+                            # Construct the response structure
+                        response = {f"{count}": items for count, items in grouped_data.items()}             
+                            
+                        return JsonResponse({"Status": 1, "message": "fetched data successfully","data":response},status=status.HTTP_201_CREATED)
+                    
+                    except Exception as e:
+
+                        return JsonResponse({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
         
 class Get_save_details(APIView):
