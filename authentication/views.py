@@ -3696,11 +3696,27 @@ def Get_matching_score(source_star_id, source_rasi_id,dest_star_id,dest_rasi_id,
 
 
 def get_permission_limits(profile_id, column_name):
-    get_limits = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,status=1).first()
+    
+    if column_name == 'photo_viewing':
+    
+        get_limits = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,status=1).first()
 
-    if get_limits and hasattr(get_limits, column_name):  
-        return getattr(get_limits, column_name)  # Dynamically fetch the column value
+        if get_limits and hasattr(get_limits, column_name):  
+            return getattr(get_limits, column_name)  # Dynamically fetch the column value
+    else:
+        limits  = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,status=1).first()
 
+        if not limits :
+            return None  # No active record found
+
+        if getattr(limits, 'membership_enddate', None) and limits.membership_enddate < date.today():
+            return 0  # Membership expired
+        
+        return getattr(limits, column_name, None)
+
+        # if get_limits and hasattr(get_limits, column_name):  
+        #     return getattr(get_limits, column_name)  # Dynamically fetch the column value
+    
     return None  # Return None if no record exists or column is invalid
 
     #return True
@@ -4336,9 +4352,9 @@ class Get_profile_det_match(APIView):
       profile_id = request.data.get('profile_id')
       user_profile_id = request.data.get('user_profile_id')
       page_id = request.data.get('page_id')
-      
+    
     #   print('match_profile_id',user_profile_id)
-      
+    
       serializer = serializers.GetproflistSerializer_details(data=request.data)
       if serializer.is_valid():   
 
