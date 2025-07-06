@@ -69,6 +69,7 @@ from django.views.decorators.csrf import csrf_exempt
 from authentication.models import Horoscope
 import requests
 import re
+from dateutil import parser
 
 # class ModeViewSet(viewsets.ModelViewSet):
 #     queryset = Mode.objects.filter(is_deleted=False)  # Only show non-deleted records
