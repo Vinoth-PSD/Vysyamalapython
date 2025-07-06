@@ -1117,11 +1117,18 @@ class Get_profiledata(models.Model):
 
             age_diff = int(age_difference) if age_difference else 5
 
+            # if gender.upper() == "MALE":
+            #     min_age = current_age - age_diff
+            #     max_age = current_age
+            # elif gender.upper() == "FEMALE":
+            #     min_age = current_age
+            #     max_age = current_age + age_diff
+
             if gender.upper() == "MALE":
-                min_age = current_age - age_diff
+                min_age = max(current_age - age_diff, 18)  # 🛡 Never below 18
                 max_age = current_age
             elif gender.upper() == "FEMALE":
-                min_age = current_age
+                min_age = max(current_age, 18)             # 🛡 Ensure at least 18
                 max_age = current_age + age_diff
 
 
@@ -1407,12 +1414,20 @@ class Get_profiledata(models.Model):
             # else:
             #     matching_age = current_age + age_difference
             #     age_condition_operator = ">"
+            # if gender.upper() == "MALE":
+            #     min_age = current_age - age_difference
+            #     max_age = current_age
+            # elif gender.upper() == "FEMALE":
+            #     min_age = current_age
+            #     max_age = current_age + age_difference
+
             if gender.upper() == "MALE":
-                min_age = current_age - age_difference
+                min_age = max(current_age - age_difference, 18)  # 🛡 Never below 18
                 max_age = current_age
             elif gender.upper() == "FEMALE":
-                min_age = current_age
+                min_age = max(current_age, 18)             # 🛡 Ensure at least 18
                 max_age = current_age + age_difference
+
 
             # Base query to get matching profiles
             query = """
