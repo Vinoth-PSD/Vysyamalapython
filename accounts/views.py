@@ -70,7 +70,7 @@ from authentication.models import Horoscope
 import requests
 import re
 from dateutil import parser
-
+from datetime import datetime, time
 
 # class ModeViewSet(viewsets.ModelViewSet):
 #     queryset = Mode.objects.filter(is_deleted=False)  # Only show non-deleted records
@@ -2025,9 +2025,12 @@ def parse_membership_date(date_str):
     if not date_str:
         return None
     try:
-        # Use dateutil.parser to handle both date & datetime with/without timezone
+        # Parse the incoming date or datetime
         dt = parser.isoparse(date_str)
-        # Make timezone aware if not already
+        # If input had only date (time = 00:00:00), set to end of day
+        if dt.time() == time(0, 0, 0):
+            dt = datetime.combine(dt.date(), time(23, 59, 59))
+        # Make timezone aware if naive
         if timezone.is_naive(dt):
             dt = timezone.make_aware(dt)
         return dt
