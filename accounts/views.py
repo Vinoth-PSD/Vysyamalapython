@@ -2215,7 +2215,8 @@ class EditProfileAPIView(APIView):
                 # "membership_fromdate":profile_common_data.get("membership_fromdate"),
                 # "membership_todate":profile_common_data.get("membership_todate")
                 "membership_fromdate": timezone.make_aware(datetime.strptime(profile_common_data.get("membership_fromdate") + " 23:59:59", "%Y-%m-%d %H:%M:%S")) if profile_common_data.get("membership_fromdate") else None,
-                "membership_todate": timezone.make_aware(datetime.strptime(profile_common_data.get("membership_todate") + "23:59:59", "%Y-%m-%d %H:%M:%S")) if profile_common_data.get("membership_todate") else None,
+                "membership_todate": timezone.make_aware(datetime.strptime(profile_common_data.get("membership_todate") + " 23:59:59", "%Y-%m-%d %H:%M:%S")
+                ) if profile_common_data.get("membership_todate") else None,
 
             })
 
