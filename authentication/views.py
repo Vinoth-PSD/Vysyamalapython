@@ -8278,6 +8278,7 @@ class GetSearchResults(APIView):
         JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
         JOIN mastereducation g ON f.highest_education = g.RowId 
         JOIN masterannualincome h ON h.id = f.anual_income
+        JOIN profile_images  pi ON pi.profile_id=a.ProfileId
         WHERE a.gender != %s AND a.ProfileId != %s
         """
 
@@ -8297,12 +8298,14 @@ class GetSearchResults(APIView):
             
             # Add marital status filter
             if marital_status:
-                base_query += " AND a.Profile_marital_status = %s"
+                # base_query += " AND a.Profile_marital_status = %s"
+                base_query += " AND FIND_IN_SET(%s, a.Profile_marital_status)"
                 query_params.append(marital_status)
 
             # Add profession filter
             if profession:
-                base_query += " AND f.profession = %s"
+                # base_query += " AND f.profession = %s"
+                base_query += " AND FIND_IN_SET(%s, f.profession)"
                 query_params.append(profession)
 
             # Add education filter
@@ -8310,6 +8313,13 @@ class GetSearchResults(APIView):
                 base_query += " AND f.highest_education = %s"
                 query_params.append(education)
 
+            if field_ofstudy:
+                base_query += " AND f.field_ofstudy = %s"
+                query_params.append(field_ofstudy)
+
+            if people_withphoto:
+                base_query += " AND pi.profile_id IS NOT NULL"
+                
             # Add income filter
             if income:
                 base_query += " AND h.income >= %s"
@@ -8336,7 +8346,10 @@ class GetSearchResults(APIView):
                 base_query += " AND f.work_state = %s"
                 query_params.append(search_worklocation)
 
-
+            if min_income and max_income:
+                    base_query += " AND a.anual_income BETWEEN %s AND %s"
+                    query_params.extend([min_income, max_income])
+    
             # Handle height conditions
             if from_height and to_height:
                 base_query += " AND a.Profile_height BETWEEN %s AND %s"
@@ -8375,7 +8388,7 @@ class GetSearchResults(APIView):
 
 
         # print('total_count',total_count)
-
+            print('why not print')
 
             # Add pagination to the query
             # Modify the query to use LIMIT with start and count
@@ -8383,16 +8396,20 @@ class GetSearchResults(APIView):
             query_params.extend([start, per_page])
 
             try:
+                print('iam  print')
                 with connection.cursor() as cursor:
                     cursor.execute(base_query, query_params)
+                    print("Executing SQL:", cursor.mogrify(base_query, query_params))
                     rows = cursor.fetchall()
 
                     if rows:
+                        print('iam  to printing')
                         columns = [col[0] for col in cursor.description]
                         results = [dict(zip(columns, row)) for row in rows]
 
                         # Log or return the full query for debugging
                         full_query = cursor.mogrify(base_query, query_params)
+                        print(full_query,'full_query')
 
                         profilehoro_data =  models.Horoscope.objects.get(profile_id=profile_id)
                 
@@ -8415,12 +8432,15 @@ class GetSearchResults(APIView):
                             'all_profile_ids':profile_with_indices
                         }, status=status.HTTP_200_OK)
                     else:
+                        print('iam  executing')
                         # return JsonResponse({'status': 'failure', 'message': 'No records found.', 'query': full_query}, status=status.HTTP_404_NOT_FOUND)
                         return JsonResponse({'status': 'failure', 'message': 'No records found.'}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
+                print('why print')
                 return JsonResponse({'status': 'failure', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         except Exception as e:
+            print('its print')
             return JsonResponse({'status': 'failure', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
