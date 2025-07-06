@@ -1812,7 +1812,8 @@ from .models import (
     ProfileFamilyDetails,
     ProfileEduDetails,
     ProfileHoroscope,
-    ProfilePartnerPref
+    ProfilePartnerPref,
+    PlanFeatureLimit
 )
 
 from .serializers import (
@@ -1899,7 +1900,14 @@ class SubmitProfileAPIView(APIView):
         numeric_part = content_id
         profile_id = f'VM{numeric_part}' if login_detail.Gender.lower() == 'male' else f'VF{numeric_part}'
         login_detail.ProfileId = profile_id
-        login_detail.status = 0  
+        login_detail.status = 0 
+        login_detail.Plan_id=7
+        login_detail.primary_status=0
+        login_detail.secondary_status=26
+        login_detail.plan_status=7
+
+
+
         login_detail.save()
 
         profile_idproof_file = request.FILES.get('Profile_idproof')
@@ -1974,6 +1982,25 @@ class SubmitProfileAPIView(APIView):
                 suggested_pref_serializer.save()
             else:
                 errors['suggested_pref_details'] = suggested_pref_serializer.errors
+
+        plan_features = PlanFeatureLimit.objects.filter(plan_id=7)
+
+        membership_fromdate = date.today()
+        membership_todate = membership_fromdate + timedelta(days=365)
+
+        profile_feature_objects = [
+                            Profile_PlanFeatureLimit(
+                                **{k: v for k, v in model_to_dict(feature).items() if k != 'id'},  # Exclude 'id'
+                                profile_id=profile_id,
+                                # plan_id=7,
+                                membership_fromdate=membership_fromdate,
+                                membership_todate=membership_todate,
+                                status=1
+                            )
+                            for feature in plan_features
+                        ]
+
+        Profile_PlanFeatureLimit.objects.bulk_create(profile_feature_objects)
 
         # Step to handle multiple image uploads
         images = request.FILES.getlist('images')  # Get the list of uploaded images
@@ -2185,8 +2212,10 @@ class EditProfileAPIView(APIView):
                 "exp_int_lock":profile_common_data.get("exp_int_lock"),
                 "express_int_count":profile_common_data.get("exp_int_count"),
                 "profile_permision_toview":profile_common_data.get("visit_count"),
-                "membership_fromdate":profile_common_data.get("membership_fromdate"),
-                "membership_todate":profile_common_data.get("membership_todate")
+                # "membership_fromdate":profile_common_data.get("membership_fromdate"),
+                # "membership_todate":profile_common_data.get("membership_todate")
+                "membership_fromdate": timezone.make_aware(datetime.strptime(profile_common_data.get("membership_fromdate") + " 23:59:59", "%Y-%m-%d %H:%M:%S")) if profile_common_data.get("membership_fromdate") else None,
+                "membership_todate": timezone.make_aware(datetime.strptime(profile_common_data.get("membership_todate") + "23:59:59", "%Y-%m-%d %H:%M:%S")) if profile_common_data.get("membership_todate") else None,
 
             })
 
