@@ -1820,7 +1820,7 @@ class Get_palns(APIView):
                 return JsonResponse({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
        else:
         # 📝 Your "else part" logic here
-            
+                print('85412')
                 registration=models.Registration1.objects.filter(ProfileId=profile_id).first()
                 plan_id = registration.Plan_id    
                 
@@ -1833,8 +1833,9 @@ class Get_palns(APIView):
                 current_date = current_time.date()
                
                 if plan:
-                    if getattr(plan, 'membership_todate', None) and plan.membership_todate.date() < current_date:
-
+                    # print('123456789')
+                    if getattr(plan, 'membership_todate', None) and plan.membership_todate.date() < current_date: #If plan is expired
+                        # print('123456789')
                         try:
                                 data = models.PlanDetails.get_plan_details_renewal()
                                 output_serializer = serializers.PlanSerializer(data, many=True)
@@ -1852,8 +1853,30 @@ class Get_palns(APIView):
                         except Exception as e:
 
                             return JsonResponse({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
-                else :
+                        
+                    else :  #if the plan still not expired
+                            try:
+                                data = models.PlanDetails.get_plan_details()
+                                output_serializer = serializers.PlanSerializer(data, many=True)
+
+                                grouped_data = defaultdict(list)
+                                for item in data:
+                                        match_count = item['plan_name']
+                                        grouped_data[match_count].append(item)
+
+                                    # Construct the response structure
+                                response = {f"{count}": items for count, items in grouped_data.items()}             
+                                    
+                                return JsonResponse({"Status": 1, "message": "fetched data successfully","data":response},status=status.HTTP_201_CREATED)
+                            
+                            except Exception as e:
+
+                                return JsonResponse({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+                else :  #IF Plan Not exits in the table
                     
+                    
+
                     try:
                         data = models.PlanDetails.get_plan_details()
                         output_serializer = serializers.PlanSerializer(data, many=True)
