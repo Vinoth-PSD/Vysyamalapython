@@ -2018,6 +2018,19 @@ class SubmitProfileAPIView(APIView):
         return Response({"status": "success", "ProfileId": profile_id}, status=status.HTTP_201_CREATED)
 
 
+
+def parse_membership_date(date_str):
+    if not date_str:
+        return None
+    try:
+        # Try parsing ISO format directly
+        dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+    except ValueError:
+        # Fallback: append end-of-day time if it's date-only
+        dt = datetime.strptime(date_str + " 23:59:59", "%Y-%m-%d %H:%M:%S")
+    return timezone.make_aware(dt)
+
+
 class EditProfileAPIView(APIView):
     """
     This API view will allow users to edit and update their profile details based on ProfileId.
@@ -2214,9 +2227,8 @@ class EditProfileAPIView(APIView):
                 "profile_permision_toview":profile_common_data.get("visit_count"),
                 # "membership_fromdate":profile_common_data.get("membership_fromdate"),
                 # "membership_todate":profile_common_data.get("membership_todate")
-                "membership_fromdate": timezone.make_aware(datetime.strptime(profile_common_data.get("membership_fromdate") + " 23:59:59", "%Y-%m-%d %H:%M:%S")) if profile_common_data.get("membership_fromdate") else None,
-                "membership_todate": timezone.make_aware(datetime.strptime(profile_common_data.get("membership_todate") + " 23:59:59", "%Y-%m-%d %H:%M:%S")
-                ) if profile_common_data.get("membership_todate") else None,
+                "membership_fromdate": parse_membership_date(profile_common_data.get("membership_fromdate")),
+                "membership_todate": parse_membership_date(profile_common_data.get("membership_todate")),
 
             })
 
