@@ -2023,13 +2023,15 @@ def parse_membership_date(date_str):
     if not date_str:
         return None
     try:
-        # Try parsing ISO format directly
-        dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
-    except ValueError:
-        # Fallback: append end-of-day time if it's date-only
-        dt = datetime.strptime(date_str + " 23:59:59", "%Y-%m-%d %H:%M:%S")
-    return timezone.make_aware(dt)
-
+        # Use dateutil.parser to handle both date & datetime with/without timezone
+        dt = parser.isoparse(date_str)
+        # Make timezone aware if not already
+        if timezone.is_naive(dt):
+            dt = timezone.make_aware(dt)
+        return dt
+    except Exception as e:
+        raise ValueError(f"Invalid date format: {date_str} ({e})")
+    
 
 class EditProfileAPIView(APIView):
     """
