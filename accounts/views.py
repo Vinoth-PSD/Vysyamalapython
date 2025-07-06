@@ -71,6 +71,7 @@ import requests
 import re
 from dateutil import parser
 
+
 # class ModeViewSet(viewsets.ModelViewSet):
 #     queryset = Mode.objects.filter(is_deleted=False)  # Only show non-deleted records
 #     serializer_class = ModeSerializer
