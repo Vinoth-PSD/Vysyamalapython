@@ -1205,6 +1205,21 @@ class Registration1(models.Model):
         return self.ProfileId
     
 
+class Addonpackages(models.Model):
+    package_id = models.IntegerField(primary_key=True)
+    name = models.CharField(max_length=100)
+    description = models.CharField(max_length=200)
+    amount = models.IntegerField(null=True)
+
+    class Meta:
+        managed = False  # This tells Django not to handle database table creation/migration for this model
+        db_table = 'masteradonpackages'  # Name of the table in your database
+
+    def __str__(self):
+        return f"{self.name} ({self.description})"
+
+
+
 
 class Get_profiledata_Matching(models.Model):
 

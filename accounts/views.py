@@ -2271,7 +2271,22 @@ class EditProfileAPIView(APIView):
                 profileplan_serializer.save()
             else:
                 return Response({'error': profileplan_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-           
+
+            addon_package_ids = profile_common_data.get("Addon_package", "")
+
+            if addon_package_ids:
+                # Split comma-separated string into list of ints
+                addon_package_id_list = [int(pk.strip()) for pk in addon_package_ids.split(",") if pk.strip().isdigit()]
+
+                # Check if ID 1 is in the list
+                if 1 in addon_package_id_list:
+                    # print("Addon Package ID 1 found. Updating Profile_plan_feature...")
+
+                    # Example: update all rows (or filter if needed)
+                    Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(vys_assist=1,vys_assist_count=10)
+
+
+        
         
         # If there are any validation errors, return them
         if errors:
