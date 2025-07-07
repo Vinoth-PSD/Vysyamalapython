@@ -1405,8 +1405,13 @@ class Get_profiledata(models.Model):
 
             try:
                 age_difference = int(age_difference_str)
+                
             except ValueError:
                 return [], 0, {}
+            
+
+            age_difference = int(age_difference) if age_difference else 5
+        
             
             # if gender.upper() == "MALE":
             #     matching_age = current_age - age_difference
@@ -1420,7 +1425,7 @@ class Get_profiledata(models.Model):
             # elif gender.upper() == "FEMALE":
             #     min_age = current_age
             #     max_age = current_age + age_difference
-
+            print(age_difference,'age_difference')
             if gender.upper() == "MALE":
                 min_age = max(current_age - age_difference, 18)  # 🛡 Never below 18
                 max_age = current_age
@@ -1431,18 +1436,16 @@ class Get_profiledata(models.Model):
 
             # Base query to get matching profiles
             query = """
-                SELECT DISTINCT a.ProfileId, a.*, e.birthstar_name, e.birth_rasi_name, 
-                    f.ug_degeree, f.profession, f.highest_education, 
-                    g.EducationLevel, d.star, h.income
-                FROM logindetails a
-                JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
-                JOIN profile_horoscope e ON a.ProfileId = e.profile_id
-                JOIN masterbirthstar d ON d.id = e.birthstar_name
-                JOIN profile_edudetails f ON a.ProfileId = f.profile_id
-                JOIN mastereducation g ON f.highest_education = g.RowId
-                JOIN masterannualincome h ON h.id = f.anual_income
-                WHERE a.status = 1 AND a.gender != %s AND a.ProfileId != %s
-                AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {operator} %s
+                 SELECT DISTINCT a.ProfileId,a.Plan_id ,a.DateOfJoin,a.Photo_protection,a.Profile_city,a.Profile_verified,a.Profile_name,a.Profile_dob,a.Profile_height,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
+                    f.highest_education, g.EducationLevel, d.star, h.income FROM logindetails a 
+                    JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
+                    JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
+                    JOIN masterbirthstar d ON d.id = e.birthstar_name 
+                    JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
+                    JOIN mastereducation g ON f.highest_education = g.RowId 
+                    JOIN masterannualincome h ON h.id = f.anual_income
+                    WHERE a.Status=1 AND a.Plan_id !=16 AND a.gender != %s AND a.ProfileId != %s 
+                    AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
             """
             
             query_params = [gender, profile_id, min_age , max_age]
