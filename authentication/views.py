@@ -2563,7 +2563,10 @@ class Get_dashboard_details(APIView):
             #print('Profile_id',profile_details[0]['ProfileId'])
             plan_id = profile_details[0].get('plan_id', None)  # Safely get plan_id
 
-            if plan_id:
+            if plan_id in (6, 7, 8, 9):
+                plan_name='Free'
+            
+            elif plan_id:
                 try:
                     plan_name = models.PlanDetails.objects.get(id=plan_id).plan_name
                 except models.PlanDetails.DoesNotExist:
@@ -6212,6 +6215,7 @@ class GetMyProfilePersonal(APIView):
             horoscope = models.Horoscope.objects.get(profile_id=profile_id)
             familydetails = models.Familydetails.objects.get(profile_id=profile_id)
             education_details = models.Edudetails.objects.get(profile_id=profile_id)
+            profileplan_details = models.Profile_PlanFeatureLimit.objects.get(profile_id=profile_id,status=1)
             
             # Get the Profile_for value and lookup the corresponding ModeName
             profile_for_mode = models.Profileholder.objects.get(Mode=registration.Profile_for)
@@ -6246,7 +6250,15 @@ class GetMyProfilePersonal(APIView):
 
             plan_id=registration_serializer.data.get("Plan_id")
             # plan_name=models.PlanDetails.objects.get(id=plan_id).plan_name
-            if plan_id:
+            
+            
+            if plan_id in (6, 7, 8, 9):
+                plan_name='Free'
+                valid_upto = profileplan_details.membership_todate.date() if profileplan_details.membership_todate else None
+            
+            
+            
+            elif  plan_id:
                 try:
                     plan_name = models.PlanDetails.objects.get(id=plan_id).plan_name
                     valid_upto=registration_serializer.data.get("PaymentExpire")
@@ -6254,16 +6266,27 @@ class GetMyProfilePersonal(APIView):
                         # if date_of_join is not None:
                             date_of_join=registration_serializer.data.get("DateOfJoin")
                             date_of_join = datetime.strptime(date_of_join, '%Y-%m-%d %H:%M:%S').date()   # Adjust format as needed
-                            valid_upto = date_of_join + timedelta(days=365)  # Add one year
+                            # valid_upto = date_of_join + timedelta(days=365)  # Add one year
+                    valid_upto = profileplan_details.membership_todate.date() if profileplan_details.membership_todate else ''
                         # else :
                         #      valid_upto=None
                         
                 except models.PlanDetails.DoesNotExist:
                     plan_name = ''  # Return empty value if plan not found
-                    valid_upto='No validity on you current plan'
+                    #valid_upto='No validity on you current plan'
+
+                    valid_upto = profileplan_details.membership_todate.date() if profileplan_details.membership_todate else ''
             else:
-                plan_name = ''  # Return empty value if plan_id is empty
-                valid_upto='No validity on you current plan'
+                plan_name = 'Basic'  # Return empty value if plan_id is empty
+                #valid_upto='No validity on you current plan'
+
+                valid_upto = profileplan_details.membership_todate.date() if profileplan_details.membership_todate else ''
+
+
+            
+
+
+
             
             birth_star=horoscope_serializer.data.get("birthstar_name")
             # try:

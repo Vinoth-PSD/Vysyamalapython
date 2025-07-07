@@ -1032,6 +1032,7 @@ class Profile_PlanFeatureLimit(models.Model):
     email_blast = models.IntegerField(null=True, blank=True)
     astro_service = models.IntegerField(null=True, blank=True)
     vys_assist = models.IntegerField(null=True, blank=True)
+    vys_assist_count  = models.IntegerField(null=True, blank=True)
     exp_int_lock = models.IntegerField(null=True, blank=True)
     status = models.IntegerField(null=True, blank=True)
     
@@ -1080,6 +1081,7 @@ class PlanFeatureLimit(models.Model):
     email_blast = models.IntegerField(null=True, blank=True)
     astro_service = models.IntegerField(null=True, blank=True)
     vys_assist = models.IntegerField(null=True, blank=True)
+    vys_assist_count  = models.IntegerField(null=True, blank=True)
 
     class Meta:
         managed = False
