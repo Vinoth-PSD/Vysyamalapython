@@ -1832,13 +1832,13 @@ class Get_palns(APIView):
                 current_time = timezone.now()
                 current_date = current_time.date()
 
-                print(plan.membership_todate,'todate')
-                print(current_date,'current_date')
+                # print(plan.membership_todate,'todate')
+                # print(current_date,'current_date')
                
                 if plan:
-                    print('123456789')
+                    # print('123456789')
                     if getattr(plan, 'membership_todate', None) and plan.membership_todate.date() < current_date: #If plan is expired
-                        print('123456789')
+                        # print('123456789')
                         try:
                                 data = models.PlanDetails.get_plan_details_renewal()
                                 output_serializer = serializers.PlanSerializer(data, many=True)
