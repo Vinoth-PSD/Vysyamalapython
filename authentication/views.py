@@ -2579,13 +2579,15 @@ class Get_dashboard_details(APIView):
             # print("Completion Percentage:", result_percen['completion_percentage'])
             # print("Empty Fields:", result_percen['empty_fields'])
 
+            profile_planfeature = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,status=1).first()
 
             prof_details= {
                             "profile_id": profile_details[0]['ProfileId'],
                             "profile_name": profile_details[0]['Profile_name'],
                             # "package_name": profile_details[0]['Package_name'] if profile_details[0]['Package_name'] else "No package",
                             "package_name":plan_name,
-                            "package_validity":profile_details[0]['PaymentExpire'] if profile_details[0]['PaymentExpire'] else " ",
+                            # "package_validity":profile_details[0]['PaymentExpire'] if profile_details[0]['PaymentExpire'] else " ",
+                            "package_validity":profile_planfeature.membership_todate.date() if profile_planfeature.membership_todate else " ",
                             #"completion_per":result_percen['completion_percentage'],
                             "completion_per":int(result_percen['completion_percentage']),
                             "empty_fields":result_percen['empty_fields'],
