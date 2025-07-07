@@ -1820,7 +1820,7 @@ class Get_palns(APIView):
                 return JsonResponse({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
        else:
         # 📝 Your "else part" logic here
-                print('85412')
+                # print('85412')
                 registration=models.Registration1.objects.filter(ProfileId=profile_id).first()
                 plan_id = registration.Plan_id    
                 
@@ -1831,11 +1831,14 @@ class Get_palns(APIView):
                 # current_date = now().date()
                 current_time = timezone.now()
                 current_date = current_time.date()
+
+                print(plan.membership_todate,'todate')
+                print(current_date,'current_date')
                
                 if plan:
-                    # print('123456789')
+                    print('123456789')
                     if getattr(plan, 'membership_todate', None) and plan.membership_todate.date() < current_date: #If plan is expired
-                        # print('123456789')
+                        print('123456789')
                         try:
                                 data = models.PlanDetails.get_plan_details_renewal()
                                 output_serializer = serializers.PlanSerializer(data, many=True)
@@ -2257,7 +2260,7 @@ class Send_profile_intrests(APIView):
 
                 return JsonResponse({"Status": 1, "message": "Express interests sent successfully"}, status=status.HTTP_200_OK)
             else:
-                return JsonResponse({"Status":0, "message": "Get full access - upgrade your package today!"}, status=status.HTTP_200_OK)
+                return JsonResponse({"Status":0, "message": "Today Limit Reached , Get full access - upgrade your package today!"}, status=status.HTTP_200_OK)
             
         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -11146,7 +11149,7 @@ def can_send_express_interest(profile_id):
     # print('current_datetime',timezone.now())
     # print('current_date',current_date)
 
-    # print(plan)
+    
 
     if not plan:
         return 0  # No active plan found
