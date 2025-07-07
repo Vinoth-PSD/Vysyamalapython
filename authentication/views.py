@@ -11982,6 +11982,19 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
                 login_details = get_object_or_404(models.Registration1, ProfileId=user_profile_id)
                 education_details = get_object_or_404(models.Edudetails, profile_id=user_profile_id)
+
+                address_content = f"""
+                    <p><b>Address:</b></p>
+                    <p>{login_details.Profile_address}</p>
+                    <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
+                    <p>{login_details.Profile_pincode}.</p>
+                    """
+            
+                mobile_email_content = f"""
+                        <p>Mobile: {login_details.Mobile_no or ''}</p>
+                        <p>WhatsApp: {login_details.Profile_whatsapp or ''}</p>
+                        <p>Email: {login_details.EmailId or ''}</p>
+                """
                 
                 # family details
                 family_details = models.Familydetails.objects.filter(profile_id=user_profile_id)
@@ -12714,15 +12727,10 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     <table>
                         <tr>
                             <td>
-                                <p><b>Address:</b></p>
-                                <p>A5, II Floor, Sri Vari Flats,</p>
-                                <p>No.2, Mass Street,</p>
-                                <p>Pondicherry - 636482.</p>
+                                "{address_content}"
                             </td>
                             <td>
-                                <p>Mobile: 7384895930</p>
-                                <p>WhatsApp: 8484895950</p>
-                                <p>Email: myemail@gmail.com</p>
+                                "{mobile_email_content}"
                             </td>
                         </tr>
                     </table>
@@ -13015,6 +13023,20 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
                 login_details = get_object_or_404(models.Registration1, ProfileId=user_profile_id)
                 education_details = get_object_or_404(models.Edudetails, profile_id=user_profile_id)
+
+
+                address_content = f"""
+                    <p><b>Address:</b></p>
+                    <p>{login_details.Profile_address}</p>
+                    <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
+                    <p>{login_details.Profile_pincode}.</p>
+                    """
+                
+                mobile_email_content = f"""
+                        <p>Mobile: {login_details.Mobile_no or ''}</p>
+                        <p>WhatsApp: {login_details.Profile_whatsapp or ''}</p>
+                        <p>Email: {login_details.EmailId or ''}</p>
+                """
                 
                 # family details
                 family_details = models.Familydetails.objects.filter(profile_id=user_profile_id)
@@ -13185,6 +13207,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
 
                 horoscope_data = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
     
+                
                 if horoscope_data.horoscope_file:
                     horoscope_image_url = horoscope_data.horoscope_file.url
 
@@ -13757,7 +13780,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                 </td>
                             </tr>
                         </table>
-                        
+                 
 
 
                 <div>
@@ -13774,15 +13797,10 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                     <table>
                         <tr>
                             <td>
-                                <p><b>Address:</b></p>
-                                <p>A5, II Floor, Sri Vari Flats,</p>
-                                <p>No.2, Mass Street,</p>
-                                <p>Pondicherry - 636482.</p>
+                               "{address_content}"
                             </td>
                             <td>
-                                <p>Mobile: 7384895930</p>
-                                <p>WhatsApp: 8484895950</p>
-                                <p>Email: myemail@gmail.com</p>
+                               "{mobile_email_content}"
                             </td>
                         </tr>
                     </table>
@@ -16534,5 +16552,1829 @@ def parse_data(data):
 #             return Response({'error': str(e)}, status=400)
 
 
+def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horoscope_withbirthchart"):
+
+                # print('1234567')
+                
+                # Retrieve the Horoscope object based on the provided profile_id
+
+                attached_horoscope_enable=get_permission_limits(my_profile_id,'attached_horoscope')
+                contact_enable=get_permission_limits(my_profile_id,'contact_details')
+                print('attached_horoscope_enable',attached_horoscope_enable)
 
 
+                horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
+                login_details = get_object_or_404(models.Registration1, ProfileId=user_profile_id)
+                education_details = get_object_or_404(models.Edudetails, profile_id=user_profile_id)
+                
+
+                address_content = f"""
+                    <p><b>Address:</b></p>
+                    <p>{login_details.Profile_address}</p>
+                    <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
+                    <p>{login_details.Profile_pincode}.</p>
+                    """
+                
+                mobile_email_content = f"""
+                        <p>Mobile: {login_details.Mobile_no or ''}</p>
+                        <p>WhatsApp: {login_details.Profile_whatsapp or ''}</p>
+                        <p>Email: {login_details.EmailId or ''}</p>
+                """
+
+
+                if contact_enable:
+                    address_content
+                    mobile_email_content
+                else:
+                
+                        address_content = f""" Get full access - upgrade your package today """
+                        mobile_email_content = f""" Get full access - upgrade your package today """
+
+
+
+                # family details
+                family_details = models.Familydetails.objects.filter(profile_id=user_profile_id)
+                if family_details.exists():
+                    family_detail = family_details.first()  
+
+                    father_name = family_detail.father_name  
+                    father_occupation = family_detail.father_occupation
+                    family_status = family_detail.family_status
+                    mother_name = family_detail.mother_name
+                    mother_occupation = family_detail.mother_occupation
+                    no_of_sis_married = family_detail.no_of_sis_married
+                    no_of_bro_married = family_detail.no_of_bro_married
+                    suya_gothram = family_detail.suya_gothram
+                else:
+                    # Handle case where no family details are found
+                    father_name = father_occupation = family_status = ""
+                    mother_name = mother_occupation = ""
+                    no_of_sis_married = no_of_bro_married = 0
+
+                # Education and profession details
+                highest_education = education_details.highest_education
+                annual_income = education_details.anual_income
+                profession = education_details.profession
+
+                # personal details
+                name = login_details.Profile_name  # Assuming a Profile_name field exists
+                dob = login_details.Profile_dob
+                complexion = login_details.Profile_complexion
+                user_profile_id = login_details.ProfileId
+                height = login_details.Profile_height 
+
+                complexion_id = login_details.Profile_complexion
+                complexion = models.Profilecomplexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
+
+                highest_education_id = education_details.highest_education
+                highest_education = models.Highesteducation.objects.filter(id=highest_education_id).values_list('degree', flat=True).first() or "Unknown"
+
+                annual_income_id = education_details.anual_income
+                annual_income = models.Annualincome.objects.filter(id=annual_income_id).values_list('income', flat=True).first() or "Unknown"
+
+                profession_id = education_details.profession
+                profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
+
+
+                work_place=education_details.work_place
+                ocupation_title=''
+                ocupation=''
+
+                if profession_id==1:
+                        ocupation_title='Employment Details'
+                        ocupation=education_details.company_name+'/'+education_details.designation
+                if profession_id==2:
+                       ocupation_title='Business Details'
+                       ocupation=education_details.business_name+'/'+education_details.nature_of_business
+                
+                profession_id = education_details.profession
+                profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
+
+
+                #father_occupation_id = family_detail.father_occupation
+                father_occupation = family_detail.father_occupation
+
+                 #mother_occupation_id = family_detail.mother_occupation
+                mother_occupation = family_detail.mother_occupation
+
+                family_status_id = family_detail.family_status
+                family_status = models.Familystatus.objects.filter(id=family_status_id).values_list('status', flat=True).first() or "Unknown"
+
+                # Fetch star name from BirthStar model
+                try:
+                    star = models.Birthstar.objects.get(pk=horoscope.birthstar_name)
+                    star_name = star.star  # Or use star.tamil_series, telugu_series, etc. as per your requirement
+                except models.Birthstar.DoesNotExist:
+                    star_name = "Unknown"
+
+                # Fetch rasi name from Rasi model
+                try:
+                    rasi = models.Rasi.objects.get(pk=horoscope.birth_rasi_name)
+                    rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                except models.Rasi.DoesNotExist:
+                    rasi_name = "Unknown"
+
+                time_of_birth = horoscope.time_of_birth
+                place_of_birth = horoscope.place_of_birth
+                lagnam = horoscope.lagnam_didi
+                didi = horoscope.didi
+                nalikai =  horoscope.nalikai
+
+                
+                age = calculate_age(dob)  
+
+                try:
+                    lagnam = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
+                    lagnam = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                except models.Rasi.DoesNotExist:
+                    lagnam = "Unknown"
+
+                planet_mapping = {
+                    "1": "Sun",
+                    "2": "Moo",
+                    "3": "Rahu",
+                    "4": "Kethu",
+                    "5": "Mar",
+                    "6": "Ven",
+                    "7": "Jup",
+                    "8": "Mer",
+                    "9": "Sat",
+                    "10": "Lagnam",
+                }
+
+                # Define a default placeholder for empty values
+                default_placeholder = '-'
+
+                def parse_data(data):
+                    # Clean up and split data
+                    items = data.strip('{}').split(', ')
+                    parsed_items = []
+                    for item in items:
+                        parts = item.split(':')
+                        if len(parts) > 1:
+                            values = parts[-1].strip()
+                            # Handle multiple values separated by comma
+                            if ',' in values:
+                                values = '/'.join(planet_mapping.get(v.strip(), default_placeholder) for v in values.split(','))
+                            else:
+                                values = planet_mapping.get(values, default_placeholder)
+                        else:
+                            values = default_placeholder
+                        parsed_items.append(values)
+                    return parsed_items
+
+                # Clean up and parse the rasi_kattam and amsa_kattam data
+                if horoscope.rasi_kattam or  horoscope.amsa_kattam:
+                    rasi_kattam_data = parse_data(horoscope.rasi_kattam)
+                    amsa_kattam_data = parse_data(horoscope.amsa_kattam)
+
+                else:
+                    rasi_kattam_data=parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
+                    amsa_kattam_data=parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
+
+
+                # Ensure that we have exactly 12 values for the grid
+                rasi_kattam_data.extend([default_placeholder] * (12 - len(rasi_kattam_data)))
+                amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))
+
+                if attached_horoscope_enable:
+
+
+                    horoscope_data = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
+        
+                    if horoscope_data.horoscope_file:
+                        horoscope_image_url = horoscope_data.horoscope_file.url
+                
+                        if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                            horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
+                        else:
+                            horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
+                    else:
+                        horoscope_content = '<p>No horoscope uploaded</p>'
+                else :
+                    
+                     horoscope_content = '<h2>Get full access - upgrade your package today </h2>'
+
+                # Get matching stars data
+                birth_star_id = horoscope.birthstar_name
+                birth_rasi_id = horoscope.birth_rasi_name
+                gender = login_details.Gender
+                porutham_data = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
+            
+                # Prepare the Porutham sections for the PDF
+                def format_star_names(poruthams):
+                    return ', '.join([item['matching_starname'] for item in poruthams])
+
+                profile_url = f"https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
+
+                dasa_day = dasa_month = dasa_year = 0
+
+                # Try to split if format is correct
+                dasa_date_str=horoscope.dasa_balance
+                if dasa_date_str.count('/') == 2:
+                    parts = dasa_date_str.split('/')
+                    if all(part.isdigit() for part in parts):
+                        dasa_day, dasa_month, dasa_year = map(int, parts)
+                    # Dynamic HTML content including Rasi and Amsam charts
+            
+                html_content = rf"""
+                <html>
+                    <head>
+                        <style>
+                        @page {{
+                                size: A4;
+                                margin: 0;
+                            }}
+                            body {{
+                                background-color: #ffffff;
+                            }}
+
+                            .header {{
+                                margin-bottom: 10px;
+                            }}
+
+                            .header-left img {{
+                                width: 100%;
+                                height: auto;
+                            }}
+                            .logo-text{{
+                                font-size: 18px;
+                                font-weight: 400;
+                                color:  #fbf274;
+                            }}
+                            .header-left {{
+                                width: 100%;
+                            }}
+                            
+                            .header-left p{{
+                                font-size: 18px;
+                                font-weight: 400;
+                                color: #ffffff;
+                            }}
+                            .header-info p {{
+                                color:#fbf274;
+                                font-size:16px;
+                                padding-bottom:5px;
+                                text-align:center;
+                            }}
+                            .score-box {{
+                                float: right;
+                                text-align: center;
+                                background-color: #fffbcc;
+                                border: 1px solid #d4d4d4;
+                                width:100%;
+                               margin-bottom:1.5rem !important;
+                            }}
+
+                             .score-box p {{
+                                font-size: 2rem;
+                                font-weight: bold;
+                                padding: 10px 30px 10px !important;
+                                color: #333;
+                                margin: 0px auto !important;
+                                padding-top:1.3rem !important;
+                            }}
+
+                            p {{
+                                font-size: 10px;
+                                margin: 5px 0;
+                                padding: 0;
+                                color: #333;
+                            }}
+
+                            .details-div {{
+                                margin-bottom: 20px;
+                            }}
+
+                            .details-section p {{
+                                margin: 2px 0;
+                            }}
+
+                            .details-section td {{
+                                  border: none;
+                            }}
+                             .personal-detail-header{{
+                                font-size: 2rem;
+                                font-weight: bold;
+                                margin-bottom: 1rem;
+                            }}
+                            table.outer {{
+                                width: 100%;
+                                text-align: center;
+                                font-family: Arial, sans-serif;
+                                margin:0;
+                                padding:0;
+                                margin-bottom:10px;
+
+                            }}
+                            .outer tr td{{
+                            padding:0 20px;
+                            }}
+                            table.inner {{
+                                width: 45%;
+                                border-collapse: collapse;
+                                text-align: center;
+                                font-family: Arial, sans-serif;
+                                margin: 10px;
+                                display: inline-block;
+                                vertical-align: top;
+                                background-color: #fff9c7;
+                            }}
+                            .inner-tabledata{{
+                                 width:25%;
+                                height:80px;
+                                
+                            }}
+                            .inner td {{
+                                width:25%;
+                                height:80px;
+                                border:2px solid #d6d6d6;
+                                padding: 10px;
+                                color: #008000;
+                                font-weight: bold;
+                                font-size: 12px;
+                                white-space: pre-line; /* Ensures new lines are respected */
+                            }}
+
+                            .inner-table tr td p{{
+                                white-space: pre-line;
+                               word-break: break-all;
+                                word-wrap: normal;
+                                word-wrap: break-word;
+                                overflow:hidden;
+                                
+                            }}
+
+                            .inner .highlight {{
+                                    background-color: #ffffff;
+                                    text-align: center;
+                                    width: 100%;
+                                    height: 100%;
+                                   font-size:24px;
+                                    font-weight: 700;
+                                    color: #008000;
+
+                            }}
+
+                            .inner .highlight p{{
+                                font-size: 16px;
+                                font-weight: 400;
+                                color: #008000;
+                            }}
+
+                            .spacer {{
+                                width: 14%;
+                                display: inline-block;
+                                background-color: transparent;
+                            }}
+
+                            .table-div{{
+                                border-collapse: collapse;
+                                padding:5px 20px;
+                                margin-bottom:2rem;
+                            }}
+                            .table-div tr {{
+                                padding: 10px 10px;
+                            }}
+                            .table-div tr .border-right{{
+                                border-right:1px solid #008000;
+                            }}
+                            .table-div td{{
+                                background-color: #fff9c7;
+                                width:50%;
+                                padding: 10px 10px;
+                                text-align:left;
+                            }}
+                            .table-div p {{
+                                   font-size:14px;
+                                font-weight:400;
+                                color: #008000;
+                            }}
+                            .inner-table tr td{{
+                                padding:0px;
+                                margin-bottom:0px;
+                            }}
+                            .dasa-table td{{
+                                width:100%;
+                                background-color:#fff;
+                                 padding:0px;
+                            }}
+                            .dasa-table td p{{
+                                font-size:14px;
+                                font-weight:400;
+                                text-align:center;
+                            }}
+                            .note-text {{
+                                color: red;
+                                font-size:12px;
+                                font-weight: 500;
+                                margin: 50px auto;
+                            }}
+
+                            .note-text1 {{
+                                color: red;
+                                font-size: 14px;
+                                font-weight: 500;
+                                margin: 30px auto;
+                                text-align: right;
+                            }}
+ 
+                            .add-info tr {{
+                           padding:5px 20px ;
+                            }}
+                        
+                            .add-info td {{
+                                background-color: #fff9c7;
+                                padding: 5px 5px;
+                            }}
+                          .add-info td p{{
+                            font-size: 14px;
+                            font-weight: 400;
+                            color: #008000;
+                            padding:0 10px;
+                           }}
+                           .click-here{{
+                            color:#318f9a;
+                           text-decoration: none;
+
+                           }}
+
+                            .porutham-page{{
+                                padding: 0px 20px;
+                            }}
+                            .porutham-header {{
+                                margin: 20px 0px;
+                            }}
+
+                            .porutham-header img{{
+                                width: 130px;
+                                height: auto;
+                            }}
+                            .porutham-header p {{
+                                font-size:22px;
+                                font-weight: 700;
+                                color:#000000;
+                            }}
+                            h2.porutham-table-title{{
+                                font-size: 24px;
+                                font-weight: 700;
+                                margin-bottom: 20px;
+                                padding:0px 0px;
+                            }}
+                            porutham-table{{
+                                border:1px solid #bcbcbc;
+                                border-collapse: collapse;
+                                margin-bottom: 24px;
+                            }}
+                            .porutham-table td {{
+                                border:1px solid #bcbcbc;
+                            }}
+                            .porutham-table td p{{
+                                color: #000;
+                                font-size:16px;
+                                font-weight:700;
+                                text-align:center;
+                                padding: 10px 0;
+                            }}
+                            .porutham-stars tr td p{{
+                                text-align:left;
+                                padding: 20px 20px;
+                            }}
+                            .porutham-note{{
+                                font-size: 17px;
+                                font-weight:400;
+                                color: #000000;
+                                padding:20px 0px;
+                            }}
+
+
+                            .upload-horo-bg img{{
+                               width:100%;
+                               height:auto;
+                           }}
+                            .upload-horo-image{{
+                                margin: 10px 0px;
+                                text-align: center;
+                                height: 800px;
+                           
+                            }}
+                            .upload-horo-image tr{{
+                                height: 800px;
+                            }}
+                            .upload-horo-image tr td{{
+                                height: 800px;
+                            }}
+                            .upload-horo-image img{{
+                                width:400px;
+                                height:800px;
+                                object-fit: cover;
+                             
+                            }}
+                            
+
+                        </style>
+                    </head>
+
+                    <body>
+
+                        <table class="header">
+                                <tr>
+                                    <td class="header-left">
+                                        <div class="header-logo">
+                                            <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
+                                        </div>
+                                    </td>
+                                </tr>
+                        </table>
+                        
+                    <div class="details-section">
+                    
+                <table class="table-div">
+                            <tr>
+                                <td class="border-right">
+                                <table class="inner-table">
+                                    <tr>
+                                    <td>
+                                    <p><strong>Name </strong></p>
+                                    <p>DOB / POB </p>
+                                    <p>Complexion </p>
+                                    <p>Education </p>
+                                    </td>
+                                    <td>
+                                    <p><strong>{name}</strong></p>
+                                    <p>{dob} / {place_of_birth}</p>
+                                    <p> {complexion}</p>
+                                    <p>{highest_education}</p>
+                                    </td>
+                                    </tr>
+                                    </table>
+                                    
+                                </td>
+                                
+                                <td>
+                                <table class="inner-table">
+                                    <tr>
+                                        <td>
+                                            <p><strong>Vysyamala Id : </strong></p>
+                                            <p>Height / Photos </p>
+                                            <p>Annual Income</p>
+                                            <p>Profession/Place of stay</p>
+                                            <p>{ocupation_title}</p>
+                                        </td> 
+                                        <td>
+                                            <p><strong>{user_profile_id}</strong></p>
+                                            <p> {height} / Not specified</p>
+                                            <p>{annual_income}</p>
+                                            <p>{profession} / {work_place}</p>
+                                            <p>{ocupation}</p>
+                                        </td> 
+                                    </tr>
+                                </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        
+
+
+                        <table class="table-div">
+                            <tr>
+                                <td  class="border-right">
+                                    <table class="inner-table">
+                                        <tr>
+                                            <td>
+                                                <p><strong>Father Name </strong> </p>
+                                                <p>Father Occupation </p>
+                                                <p>Family Status </p>
+                                                <p>Brothers/Married </p>
+                                            </td>
+                                            <td>
+                                                <p><strong>{father_name}</strong></p>
+                                                <p> {father_occupation}</p>
+                                                <p>{family_status}</p>
+                                                <p>{no_of_bro_married}</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    
+                                </td>
+
+                                <td>
+                                    <table class="inner-table">
+                                        <tr>
+                                            <td>
+                                                <p><strong>Mother Name </strong> </p>
+                                                <p>Mother Occupation </p>
+                                                <p>Sisters/Married </p>
+                                            </td>
+                                            <td>
+                                                <p><strong>{mother_name}</strong></p>
+                                                <p>{mother_occupation}</p>
+                                                <p>{no_of_sis_married}</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                               
+
+                                </td>
+                            </tr>
+                        </table>
+                        <table class="table-div">
+                            <tr>
+                                <td  class="border-right">
+                                    <table class="inner-table">
+                                        <tr>
+                                            <td>
+                                                <p><strong>Star/Rasi </strong> </p>
+                                                <p>Lagnam/Didi </p>
+                                                <p>Nalikai </p>
+                                            </td>
+                                            <td>
+                                                <p><strong>{star_name}, {rasi_name}</strong></p>
+                                                <p>{lagnam}/{didi}</p>
+                                                <p>{nalikai}</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    
+                                </td>
+
+                                <td>
+                                    <table class="inner-table">
+                                        <tr>
+                                            <td>
+                                                <p><strong>Surya Gothram : </strong></p>
+                                                <p>Madhulam </p>
+                                                <p>Birth Time </p>
+                                            </td>
+                                            <td>
+                                                <p><strong>{suya_gothram}</strong></p>
+                                                <p>Not Specified</p>
+                                                <p>{time_of_birth}</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    
+                                </td>
+                            </tr>
+                        </table>
+                    
+                    </div>
+                    
+
+
+                            <table class="outer">
+                            <tr>
+                                <td>
+                                    <table class="inner">
+                                        <tr>
+                                            <td class="inner-tabledata">{rasi_kattam_data[0].replace('/', '<br>')}</td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[1].replace('/', '<br>')}</td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[2].replace('/', '<br>')}</td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[3].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="inner-tabledata">{rasi_kattam_data[11].replace('/', '<br>')}</td>
+                                            <td colspan="2" rowspan="2" class="highlight">
+                                            Rasi
+                                            <p>vysyamala.com</p>
+                                            </td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[4].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="inner-tabledata">{rasi_kattam_data[10].replace('/', '<br>')}</td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[5].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="inner-tabledata">{rasi_kattam_data[9].replace('/', '<br>')}</td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[8].replace('/', '<br>')}</td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[7].replace('/', '<br>')}</td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[6].replace('/', '<br>')}</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td class="spacer">
+                                     <table class="table-div dasa-table">
+                                        <tr>
+                                            <td>
+                                                <p><strong>Dasa Name</strong</p>
+                                                <p>Moon</p>
+                                            </td>
+                                        </tr
+                                        <tr>
+                                        <td>
+                                            
+                                                <p><strong>Dasa Balance</strong</p>
+                                                <p>Years: {dasa_year} </p>
+                                                <p>Months: {dasa_month} </p>
+                                                <p>Days: {dasa_day} </p>
+                                            </td>
+                                        </tr>
+                                            
+                                    </table>
+                                </td>
+                                <td>
+                                    <table class="inner">
+                                        <tr>
+                                            <td>{amsa_kattam_data[0].replace('/', '<br>')}</td>
+                                            <td>{amsa_kattam_data[1].replace('/', '<br>')}</td>
+                                            <td>{amsa_kattam_data[2].replace('/', '<br>')}</td>
+                                            <td>{amsa_kattam_data[3].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>{amsa_kattam_data[11].replace('/', '<br>')}</td>
+                                            <td colspan="2" rowspan="2" class="highlight">Amsam
+                                            <p>vysyamala.com</p>
+                                            </td>
+                                            <td>{amsa_kattam_data[4].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>{amsa_kattam_data[10].replace('/', '<br>')}</td>
+                                            <td>{amsa_kattam_data[5].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>{amsa_kattam_data[9].replace('/', '<br>')}</td>
+                                            <td>{amsa_kattam_data[8].replace('/', '<br>')}</td>
+                                            <td>{amsa_kattam_data[7].replace('/', '<br>')}</td>
+                                            <td>{amsa_kattam_data[6].replace('/', '<br>')}</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                       
+
+
+                <div>
+                <table class="add-info"> 
+                    <tr>
+                        <td>
+                            <p><b>Horoscope Hints: </b>Parihara Chevvai based on Vakiya Panchangam.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                    <td>
+                    <table>
+                        <tr>
+                            <td>
+                               {address_content}
+                            </td>
+                            <td>
+                                {mobile_email_content}
+                            </td>
+                        </tr>
+                    </table>
+                    </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <p>Note: Please verify this profile yourself. No hidden charges or commissions if marriage is fixed through Vysyamala. For more details of this profile: <a href="{profile_url}" target="_blank" class="click-here">click here</a></p>
+                        </td>
+                    </tr>
+                </table>
+                </div>
+
+                <table class="porutham-page">
+                <tr>
+                <td>
+                <br>
+                <table class="porutham-header">
+                    <tr>
+                        <td>
+                            <img src="https://vysyamala.com/img/newlogo.png">
+                        </td>
+                        <td>
+                            <p>www.vysyamala.com</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <h2 class="porutham-table-title">Matching Stars Report</h2>
+                <table class="porutham-table">
+                     <tr>
+                        <td><p>Name</p></td>
+                        <td><p>{name}</p></td>
+                        <td><p>Vysyamala ID</p></td>
+                        <td><p>{user_profile_id}</p></td>
+                    </tr>
+                    <tr>
+                        <td><p>Birth Star</p></td>
+                        <td><p>{star_name}</p></td>
+                        <td><p>Age</p></td>
+                        <td><p>{age}</p></td>
+                    </tr>
+                </table>
+
+                <h2 class="porutham-table-title">Matching Stars (9 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["9 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (8 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["8 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (7 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["7 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (6 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["6 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (5 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["5 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <p class="porutham-note">Note: This is system generated report, please confirm the same with your astrologer.</p>
+                </td>
+                </tr>
+                </table>
+
+
+                <div class="upload-horo-bg" >
+                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
+                </div>
+
+                <table class="upload-horo-image">
+                <tr>
+                <td>
+                         {horoscope_content}
+ 
+                </td>
+                </tr>
+                </table>
+                
+                <div class="upload-horo-bg" >
+                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png" >
+                </div>
+
+                    </body>
+                </html>
+                """
+                
+                # Create a Django response object and specify content_type as pdf
+                response = HttpResponse(content_type='application/pdf')
+                response['Content-Disposition'] = f' inline; filename="{filename}"'
+
+
+                # Create the PDF using xhtml2pdf
+                pisa_status = pisa.CreatePDF(html_content, dest=response)
+
+                # If there's an error, log it and return an HTML response with an error message
+                if pisa_status.err:
+                    logger.error(f"PDF generation error: {pisa_status.err}")
+                    return HttpResponse('We had some errors <pre>' + html_content + '</pre>')
+
+                return response
+
+def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Horoscope_withbirthchart"):
+
+                #print('1234567')
+  
+                # Retrieve the Horoscope object based on the provided profile_id
+                horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
+                login_details = get_object_or_404(models.Registration1, ProfileId=user_profile_id)
+                education_details = get_object_or_404(models.Edudetails, profile_id=user_profile_id)
+
+
+                attached_horoscope_enable=get_permission_limits(my_profile_id,'attached_horoscope')
+                contact_enable=get_permission_limits(my_profile_id,'contact_details')
+
+
+                address_content = f"""
+                    <p><b>Address:</b></p>
+                    <p>{login_details.Profile_address}</p>
+                    <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
+                    <p>{login_details.Profile_pincode}.</p>
+                    """
+                
+                mobile_email_content = f"""
+                        <p>Mobile: {login_details.Mobile_no or ''}</p>
+                        <p>WhatsApp: {login_details.Profile_whatsapp or ''}</p>
+                        <p>Email: {login_details.EmailId or ''}</p>
+                """
+
+                if contact_enable:
+                    address_content
+                    mobile_email_content
+                else:
+                    address_content = f""" Get full access - upgrade your package today """
+                    mobile_email_content = f""" Get full access - upgrade your package today """
+                
+                # family details
+                family_details = models.Familydetails.objects.filter(profile_id=user_profile_id)
+                if family_details.exists():
+                    family_detail = family_details.first()  
+
+                    father_name = family_detail.father_name  
+                    father_occupation = family_detail.father_occupation
+                    family_status = family_detail.family_status
+                    mother_name = family_detail.mother_name
+                    mother_occupation = family_detail.mother_occupation
+                    no_of_sis_married = family_detail.no_of_sis_married
+                    no_of_bro_married = family_detail.no_of_bro_married
+                    suya_gothram = family_detail.suya_gothram
+                else:
+                    # Handle case where no family details are found
+                    father_name = father_occupation = family_status = ""
+                    mother_name = mother_occupation = ""
+                    no_of_sis_married = no_of_bro_married = 0
+
+                # Education and profession details
+                highest_education = education_details.highest_education
+                annual_income = education_details.anual_income
+                profession = education_details.profession
+
+                # personal details
+                name = login_details.Profile_name  # Assuming a Profile_name field exists
+                dob = login_details.Profile_dob
+                complexion = login_details.Profile_complexion
+                user_profile_id = login_details.ProfileId
+                height = login_details.Profile_height 
+
+                complexion_id = login_details.Profile_complexion
+                complexion = models.Profilecomplexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
+
+                highest_education_id = education_details.highest_education
+                highest_education = models.Highesteducation.objects.filter(id=highest_education_id).values_list('degree', flat=True).first() or "Unknown"
+
+                annual_income_id = education_details.anual_income
+                annual_income = models.Annualincome.objects.filter(id=annual_income_id).values_list('income', flat=True).first() or "Unknown"
+
+                profession_id = education_details.profession
+                profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
+
+                work_place=education_details.work_place
+                ocupation_title=''
+                ocupation=''
+
+                if profession_id==1:
+                        ocupation_title='Employment Details'
+                        ocupation=education_details.company_name+'/'+education_details.designation
+                if profession_id==2:
+                       ocupation_title='Business Details'
+                       ocupation=education_details.business_name+'/'+education_details.nature_of_business
+                
+                profession_id = education_details.profession
+                profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
+
+                
+                dasa_day = dasa_month = dasa_year = 0
+
+                # Try to split if format is correct
+                dasa_date_str=horoscope.dasa_balance
+                if dasa_date_str.count('/') == 2:
+                    parts = dasa_date_str.split('/')
+                    if all(part.isdigit() for part in parts):
+                        dasa_day, dasa_month, dasa_year = map(int, parts)
+                
+
+                #father_occupation_id = family_detail.father_occupation
+                father_occupation = family_detail.father_occupation
+
+                 #mother_occupation_id = family_detail.mother_occupation
+                mother_occupation = family_detail.mother_occupation
+
+                family_status_id = family_detail.family_status
+                family_status = models.Familystatus.objects.filter(id=family_status_id).values_list('status', flat=True).first() or "Unknown"
+
+                # Fetch star name from BirthStar model
+                try:
+                    star = models.Birthstar.objects.get(pk=horoscope.birthstar_name)
+                    star_name = star.star  # Or use star.tamil_series, telugu_series, etc. as per your requirement
+                except models.Birthstar.DoesNotExist:
+                    star_name = "Unknown"
+
+                # Fetch rasi name from Rasi model
+                try:
+                    rasi = models.Rasi.objects.get(pk=horoscope.birth_rasi_name)
+                    rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                except models.Rasi.DoesNotExist:
+                    rasi_name = "Unknown"
+                    
+
+                time_of_birth = horoscope.time_of_birth
+                place_of_birth = horoscope.place_of_birth
+                
+                try:
+                    lagnam = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
+                    lagnam = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                except models.Rasi.DoesNotExist:
+                    lagnam = "Unknown"
+
+                didi = horoscope.didi
+                nalikai =  horoscope.nalikai
+
+                age = calculate_age(dob)  
+
+                # Planet mapping dictionary
+                # planet_mapping = {
+                #     "1": "Sun",
+                #     "2": "Moo",
+                #     "3": "Mar",
+                #     "4": "Mer",
+                #     "5": "Jup",
+                #     "6": "Ven",
+                #     "7": "Sat",
+                #     "8": "Rahu",
+                #     "9": "Kethu",
+                #     "10": "Lagnam",
+                # }
+
+                planet_mapping = {
+                    "1": "Sun",
+                    "2": "Moo",
+                    "3": "Rahu",
+                    "4": "Kethu",
+                    "5": "Mar",
+                    "6": "Ven",
+                    "7": "Jup",
+                    "8": "Mer",
+                    "9": "Sat",
+                    "10": "Lagnam",
+                }
+
+                # Define a default placeholder for empty values
+                default_placeholder = '-'
+
+                def parse_data(data):
+                    # Clean up and split data
+                    items = data.strip('{}').split(', ')
+                    parsed_items = []
+                    for item in items:
+                        parts = item.split(':')
+                        if len(parts) > 1:
+                            values = parts[-1].strip()
+                            # Handle multiple values separated by comma
+                            if ',' in values:
+                                values = '/'.join(planet_mapping.get(v.strip(), default_placeholder) for v in values.split(','))
+                            else:
+                                values = planet_mapping.get(values, default_placeholder)
+                        else:
+                            values = default_placeholder
+                        parsed_items.append(values)
+                    return parsed_items
+
+                # Clean up and parse the rasi_kattam and amsa_kattam data
+                if horoscope.rasi_kattam or  horoscope.amsa_kattam:
+                    rasi_kattam_data = parse_data(horoscope.rasi_kattam)
+                    amsa_kattam_data = parse_data(horoscope.amsa_kattam)
+
+                else:
+                    rasi_kattam_data=parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
+                    amsa_kattam_data=parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
+
+                # Ensure that we have exactly 12 values for the grid
+                rasi_kattam_data.extend([default_placeholder] * (12 - len(rasi_kattam_data)))
+                amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))
+
+                horoscope_data = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
+    
+                
+                
+                if attached_horoscope_enable is True :
+                
+                    if horoscope_data.horoscope_file:
+                        horoscope_image_url = horoscope_data.horoscope_file.url
+
+                        print(horoscope_image_url)
+
+                        if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                            horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
+                        else:
+                            horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
+                    else:
+                        horoscope_content = '<p>No horoscope uploaded</p>'
+                else :
+                    
+                     horoscope_content = '<h2>Get full access - upgrade your package today </h2>'
+
+                # Get matching stars data
+                birth_star_id = horoscope.birthstar_name
+                birth_rasi_id = horoscope.birth_rasi_name
+                gender = login_details.Gender
+                porutham_data = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
+            
+                # Prepare the Porutham sections for the PDF
+                def format_star_names(poruthams):
+                    return ', '.join([item['matching_starname'] for item in poruthams])
+                
+                profile_url = f"https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
+
+                
+
+                    # Dynamic HTML content including Rasi and Amsam charts
+
+                html_content = rf"""
+                <html>
+                    <head>
+                        <style>
+                        @page {{
+                                size: A4;
+                                margin: 0;
+                            }}
+                            body {{
+                                background-color: #ffffff;
+                            }}
+
+                            .header {{
+                                margin-bottom: 10px;
+                            }}
+
+                            .header-left img {{
+                                width: 100%;
+                                height: 300px;
+                            }}
+                            .logo-text{{
+                                font-size: 18px;
+                                font-weight: 400;
+                                color:  #fbf274;
+                            }}
+                            .header-left {{
+                                width: 100%;
+                            }}
+                            
+                            .header-left p{{
+                                font-size: 18px;
+                                font-weight: 400;
+                                color: #ffffff;
+                            }}
+                            .header-info p {{
+                                color:#fbf274;
+                                font-size:16px;
+                                padding-bottom:5px;
+                                text-align:center;
+                            }}
+                            .score-box {{
+                                float: right;
+                                text-align: center;
+                                background-color: #fffbcc;
+                                border: 1px solid #d4d4d4;
+                                width:100%;
+                               margin-bottom:1.5rem !important;
+                            }}
+
+                             .score-box p {{
+                                font-size: 2rem;
+                                font-weight: bold;
+                                padding: 10px 30px 10px !important;
+                                color: #333;
+                                margin: 0px auto !important;
+                                padding-top:1.3rem !important;
+                            }}
+
+                            p {{
+                                font-size: 10px;
+                                margin: 5px 0;
+                                padding: 0;
+                                color: #333;
+                            }}
+
+                            .details-div {{
+                                margin-bottom: 20px;
+                            }}
+
+                            .details-section p {{
+                                margin: 2px 0;
+                            }}
+
+                            .details-section td {{
+                                  border: none;
+                            }}
+                             .personal-detail-header{{
+                                font-size: 2rem;
+                                font-weight: bold;
+                                margin-bottom: 1rem;
+                            }}
+                            table.outer {{
+                                width: 100%;
+                                text-align: center;
+                                font-family: Arial, sans-serif;
+                                margin:0;
+                                padding:0;
+                            margin-bottom:10px;
+
+
+                            }}
+                            .outer tr td{{
+                            padding:0 20px;
+                            }}
+                            table.inner {{
+                                width: 45%;
+                                border-collapse: collapse;
+                                text-align: center;
+                                font-family: Arial, sans-serif;
+                                margin: 10px;
+                                display: inline-block;
+                                vertical-align: top;
+                                background-color: #fff;
+                            }}
+                            .inner-tabledata{{
+                                 width:25%;
+                                height:80px;
+                                
+                            }}
+                            .inner td {{
+                                width:25%;
+                                height:80px;
+                                border:2px solid #d6d6d6;
+                                padding: 10px;
+                                color: #000000;
+                                font-weight: bold;
+                                font-size: 12px;
+                                white-space: pre-line; /* Ensures new lines are respected */
+                            }}
+
+                            .inner .highlight {{
+                                    background-color: #ffffff;
+                                    text-align: center;
+                                    width: 100%;
+                                    height: 100%;
+                                    font-size:24px;
+                                    font-weight: 700;
+                                    color: #000000;
+
+                            }}
+                            .inner-table tr td p{{
+                                white-space: pre-line;
+                               word-break: break-all;
+                                word-wrap: normal;
+                                word-wrap: break-word;
+                                overflow:hidden;
+                                
+                            }}
+                            .inner .highlight p{{
+                                font-size: 16px;
+                                font-weight: 400;
+                                color: #000;
+                            }}
+
+                           
+                            .table-div{{
+                                padding: 5px 10px;
+                                border-collapse: collapse;
+                                padding:5px 20px;
+                                margin-bottom:15px;
+                            }}
+                            .table-div tr {{
+                                padding: 0px 10px;
+                            }}
+                            .table-div tr .border-right{{
+                                border-right:1px solid #000000;
+                            }}
+                            .table-div td{{
+                                background-color: #ffffff;
+                                width:50%;
+                                padding: 10x  20px;
+                                text-align:left;
+                            }}
+                            .table-div p {{
+                                   font-size:16px;
+                                font-weight:400;
+                                color: #000;
+                            }}
+                            .divider{{
+                            margin:10px 0 !important;
+                            }}
+                            .inner-table tr td{{
+                                padding:0px;
+                                margin-bottom:0px;
+                            }}
+                             .spacer {{
+                                width: 14%;
+                                display: inline-block;
+                                background-color: transparent;
+                                padding:0px 0px !important;
+                                margin:0px 0px !important;
+                            }}
+                            .dasa-table {{
+                                width: 100%;
+                                padding:0px;
+                            }}
+                            .dasa-table td{{
+                                width:100%;
+                                background-color:#fff;
+                                padding:0px;
+                            }}
+                            .dasa-table td p{{
+                                width: 100%;
+                                font-size:12px;
+                                font-weight:400;
+                                text-align:center;
+                                color:#000000;
+                            }}
+                            .note-text {{
+                                color: red;
+                                font-size: 14px;
+                                font-weight: 500;
+                                margin: 50px auto;
+                            }}
+
+                            .note-text1 {{
+                                color: red;
+                                font-size: 14px;
+                                font-weight: 500;
+                                margin: 30px auto;
+                                text-align: right;
+                            }}
+
+                             .add-info tr {{
+                            padding:5px 20px ;
+                            }}
+                        
+                            .add-info td {{
+                                background-color: #ffffff;
+                                padding: 5px 5px;
+                            }}
+                          .add-info td p{{
+                            font-size: 14px;
+                            font-weight: 400;
+                            color: #000000;
+                            padding:0 10px;
+                           }}
+                          
+                           .click-here{{
+                            color:#000;
+                            font-weight:700 ;
+                           text-decoration: none;
+
+                           }}
+
+                            .porutham-page{{
+                                padding: 0px 20px;
+                            }}
+                            .porutham-header {{
+                                margin: 20px 0px;
+                            }}
+
+                            .porutham-header img{{
+                                width: 130px;
+                                height: auto;
+                            }}
+                            .porutham-header p {{
+                                font-size:22px;
+                                font-weight: 700;
+                                color:#000000;
+                            }}
+                            h2.porutham-table-title{{
+                                font-size: 24px;
+                                font-weight: 700;
+                                margin-bottom: 20px;
+                                padding:0px 0px;
+                            }}
+                            porutham-table{{
+                                border:1px solid #bcbcbc;
+                                border-collapse: collapse;
+                                margin-bottom: 24px;
+                            }}
+                            .porutham-table td {{
+                                border:1px solid #bcbcbc;
+                            }}
+                            .porutham-table td p{{
+                                color: #000;
+                                font-size:16px;
+                                font-weight:700;
+                                text-align:center;
+                                padding: 10px 0;
+                            }}
+                            .porutham-stars tr td p{{
+                                text-align:left;
+                                padding: 20px 20px;
+                            }}
+                            .porutham-note{{
+                                font-size: 17px;
+                                font-weight:400;
+                                color: #000000;
+                                padding:20px 0px;
+                            }}
+
+
+
+                           .upload-horo-bg img{{
+                               width:100%;
+                               height:auto;
+                           }}
+                            .upload-horo-image{{
+                                margin: 10px 0px;
+                                text-align: center;
+                                height: 800px;
+                           
+                            }}
+                            .upload-horo-image tr{{
+                                height: 800px;
+                            }}
+                            .upload-horo-image tr td{{
+                                height: 800px;
+                            }}
+                            .upload-horo-image img{{
+                                width:400px;
+                                height:800px;
+                                object-fit: cover;
+                             
+                            }}
+                            
+
+                        </style>
+                    </head>
+
+                    <body>
+
+                        <table class="header">
+                                <tr>
+                                    <td class="header-left">
+                                        <div class="header-logo">
+                                            <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader-bg-white.png" alt="Vysyamala Logo">
+                                        </div>
+                                    </td>
+                                </tr>
+                        </table>
+                        
+                    <div class="details-section">
+                    
+                <table class="table-div">
+                            <tr>
+                                <td class="border-right">
+                                <table class="inner-table">
+                                    <tr>
+                                    <td>
+                                    <p><strong>Name </strong></p>
+                                    <p>DOB / POB </p>
+                                    <p>Complexion </p>
+                                    <p>Education </p>
+                                    </td>
+                                    <td>
+                                    <p><strong>{name}</strong></p>
+                                    <p>{dob} / {place_of_birth}</p>
+                                    <p> {complexion}</p>
+                                    <p>{highest_education}</p>
+                                    </td>
+                                    </tr>
+                                    </table>
+                                    
+                                </td>
+                                
+                                <td>
+                                <table class="inner-table">
+                                    <tr>
+                                        <td>
+                                            <p><strong>Vysyamala Id : </strong></p>
+                                            <p>Height / Photos </p>
+                                            <p>Annual Income</p>
+                                            <p>Profession/Place of stay</p>
+                                            <p>{ocupation_title}</p>
+                                        </td> 
+                                        <td>
+                                            <p><strong>{user_profile_id}</strong></p>
+                                            <p> {height} / Not specified</p>
+                                            <p>{annual_income}</p>
+                                            <p>{profession} / {work_place}</p>
+                                            <p>{ocupation}</p>
+                                        </td> 
+                                    </tr>
+                                </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                       <hr class="divider">
+
+
+                        <table class="table-div">
+                            <tr>
+                                <td  class="border-right">
+                                    <table class="inner-table">
+                                        <tr>
+                                            <td>
+                                                <p><strong>Father Name </strong> </p>
+                                                <p>Father Occupation </p>
+                                                <p>Family Status </p>
+                                                <p>Brothers/Married </p>
+                                            </td>
+                                            <td>
+                                                <p><strong>{father_name}</strong></p>
+                                                <p> {father_occupation}</p>
+                                                <p>{family_status}</p>
+                                                <p>{no_of_bro_married}</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    
+                                </td>
+
+                                <td>
+                                    <table class="inner-table">
+                                        <tr>
+                                            <td>
+                                                <p><strong>Mother Name </strong> </p>
+                                                <p>Mother Occupation </p>
+                                                <p>Sisters/Married </p>
+                                            </td>
+                                            <td>
+                                                <p><strong>{mother_name}</strong></p>
+                                                <p>{mother_occupation}</p>
+                                                <p>{no_of_sis_married}</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                               
+
+                                </td>
+                            </tr>
+                        </table>
+
+                       <hr class="divider">
+
+
+                        <table class="table-div">
+                            <tr>
+                                <td  class="border-right">
+                                    <table class="inner-table">
+                                        <tr>
+                                            <td>
+                                                <p><strong>Star/Rasi </strong> </p>
+                                                <p>Lagnam/Didi </p>
+                                                <p>Nalikai </p>
+                                            </td>
+                                            <td>
+                                                <p><strong>{star_name}/{rasi_name}</strong></p>
+                                                <p>{lagnam}/{didi}</p>
+                                                <p>{nalikai}</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    
+                                </td>
+
+                                <td>
+                                    <table class="inner-table">
+                                        <tr>
+                                            <td>
+                                                <p><strong>Surya Gothram : </strong></p>
+                                                <p>Madhulam </p>
+                                                <p>Birth Time </p>
+                                            </td>
+                                            <td>
+                                                <p><strong>{suya_gothram}</strong></p>
+                                                <p>Not Specified</p>
+                                                <p>{time_of_birth}</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    
+                                </td>
+                            </tr>
+                        </table>
+                    
+                    </div>
+                    
+
+
+                            <table class="outer">
+                            <tr>
+                                <td>
+                                    <table class="inner">
+                                        <tr>
+                                            <td class="inner-tabledata">{rasi_kattam_data[0].replace('/', '<br>')}</td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[1].replace('/', '<br>')}</td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[2].replace('/', '<br>')}</td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[3].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="inner-tabledata">{rasi_kattam_data[11].replace('/', '<br>')}</td>
+                                            <td colspan="2" rowspan="2" class="highlight">
+                                            Rasi
+                                            <p>vysyamala.com</p>
+                                            </td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[4].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="inner-tabledata">{rasi_kattam_data[10].replace('/', '<br>')}</td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[5].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="inner-tabledata">{rasi_kattam_data[9].replace('/', '<br>')}</td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[8].replace('/', '<br>')}</td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[7].replace('/', '<br>')}</td>
+                                            <td class="inner-tabledata">{rasi_kattam_data[6].replace('/', '<br>')}</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td class="spacer">
+                                     <table class="table-div dasa-table">
+                                        <tr>
+                                            <td>
+                                                <p><b>Dasa Name</b></p>
+                                                <p>Moon</p>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                        <td>
+                                            
+                                                <p><b>Dasa Balance</b></p>
+                                                <p>Years: {dasa_year}</p>
+                                                <p>Months: {dasa_month}</p>
+                                                <p>Days: {dasa_day}</p>
+                                            </td>
+                                        </tr>
+                                            
+                                    </table>
+                                </td>
+                                <td>
+                                    <table class="inner">
+                                        <tr>
+                                            <td>{amsa_kattam_data[0].replace('/', '<br>')}</td>
+                                            <td>{amsa_kattam_data[1].replace('/', '<br>')}</td>
+                                            <td>{amsa_kattam_data[2].replace('/', '<br>')}</td>
+                                            <td>{amsa_kattam_data[3].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>{amsa_kattam_data[11].replace('/', '<br>')}</td>
+                                            <td colspan="2" rowspan="2" class="highlight">
+                                            Amsam
+                                            <p>vysyamala.com</p>
+                                            </td>
+                                            <td>{amsa_kattam_data[4].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>{amsa_kattam_data[10].replace('/', '<br>')}</td>
+                                            <td>{amsa_kattam_data[5].replace('/', '<br>')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>{amsa_kattam_data[9].replace('/', '<br>')}</td>
+                                            <td>{amsa_kattam_data[8].replace('/', '<br>')}</td>
+                                            <td>{amsa_kattam_data[7].replace('/', '<br>')}</td>
+                                            <td>{amsa_kattam_data[6].replace('/', '<br>')}</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                 
+
+
+                <div>
+                <table class="add-info"> 
+                    <tr>
+                        <td>
+                            <p><b>Horoscope Hints: </b>Parihara Chevvai based on Vakiya Panchangam.</p>
+                       <hr class="divider">
+
+                        </td>
+                    </tr>
+                    <tr>
+                    <td>
+                    <table>
+                        <tr>
+                            <td>
+                               {address_content}
+                            </td>
+                            <td>
+                               {mobile_email_content}
+                            </td>
+                        </tr>
+                    </table>
+                    </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <p>Note: Please verify this profile yourself. No hidden charges or commissions if marriage is fixed through Vysyamala. For more details of this profile: <a href="{profile_url}" target="_blank" class="click-here">click here</a></p>
+                        </td>
+                    </tr>
+                </table>
+                </div>
+
+                <table class="porutham-page">
+                <tr>
+                <td>
+                <br>
+                <table class="porutham-header">
+                    <tr>
+                        <td>
+                            <img src="https://vysyamala.com/img/newlogo.png">
+                        </td>
+                        <td>
+                            <p>www.vysyamala.com</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <h2 class="porutham-table-title">Matching Stars Report</h2>
+                <table class="porutham-table">
+                                        <tr>
+                            <td><p>Name</p></td>
+                            <td><p>{name}</p></td>
+                            <td><p>Vysyamala ID</p></td>
+                            <td><p>{user_profile_id}</p></td>
+                        </tr>
+                        <tr>
+                            <td><p>Birth Star</p></td>
+                            <td><p>{star_name}</p></td>
+                            <td><p>Age</p></td>
+                            <td><p>{age}</p></td>
+                        </tr>
+                </table>
+
+                <h2 class="porutham-table-title">Matching Stars (9 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["9 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (8 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["8 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (7 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["7 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (6 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["6 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (5 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["5 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <p class="porutham-note">Note: This is system generated report, please confirm the same with your astrologer.</p>
+                </td>
+                </tr>
+                </table>
+
+
+                <div class="upload-horo-bg" >
+                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
+                </div>
+
+               <table class="upload-horo-image">
+                <tr>
+                <td>
+                         {horoscope_content}
+ 
+                </td>
+                </tr>
+                </table>
+                <div class="upload-horo-bg" >
+                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png" >
+                </div>
+
+
+                   
+
+                    </body>
+                </html>
+                """
+
+                # Create a Django response object and specify content_type as pdf
+                response = HttpResponse(content_type='application/pdf')
+                response['Content-Disposition'] = f'inline; filename="{filename}"'
+
+                # Create the PDF using xhtml2pdf
+                pisa_status = pisa.CreatePDF(html_content, dest=response)
+
+                # If there's an error, log it and return an HTML response with an error message
+                if pisa_status.err:
+                    logger.error(f"PDF generation error: {pisa_status.err}")
+                    return HttpResponse('We had some errors <pre>' + html_content + '</pre>')
+
+                return response

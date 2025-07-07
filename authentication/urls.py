@@ -221,12 +221,17 @@ urlpatterns = [
      path('generate-porutham-pdf/', views.generate_porutham_pdf, name='generate_porutham_pdf'),
      path('generate-porutham-pdf-mobile/<str:profile_from>/<str:profile_to>/',views.generate_porutham_pdf_mobile,name='generate_porutham_pdf_mobile'
     ),
-      
+
      path('My_horoscope_pdf_color/<str:user_profile_id>/',  views.My_horoscope_generate, name='horoscope_pdf'),
 
-    path('My_horoscope_black/<str:user_profile_id>/',  views.My_horoscope, name='horoscope_pdf'),
+     path('My_horoscope_black/<str:user_profile_id>/',  views.My_horoscope, name='horoscope_pdf'),
+
+
+     path('New_horoscope_color/<str:user_profile_id>/<str:my_profile_id>/',  views.New_horoscope_color, name='horoscope_pdf'),
+
+     path('New_horoscope_black/<str:user_profile_id>/<str:my_profile_id>/',  views.New_horoscope_black, name='horoscope_pdf'),
     
-    path('without-address-send-email/', views.WithoutAddressSendEmailAPI.as_view(), name='without_address_send_email'),
+     path('without-address-send-email/', views.WithoutAddressSendEmailAPI.as_view(), name='without_address_send_email'),
     # path('horoscope/kattam/', HoroscopeKattamAPI.as_view(), name='horoscope_kattam'),
     
 
