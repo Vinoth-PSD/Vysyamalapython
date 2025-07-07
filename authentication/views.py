@@ -6679,6 +6679,20 @@ class Save_plan_package(APIView):
             registration.Addon_package = addon_package_id
             registration.Payment= total_amount
 
+            addon_package_ids = addon_package_id
+
+            #update vysassist in profilePlanfeatiretable
+            if addon_package_ids:
+                # Split comma-separated string into list of ints
+                addon_package_id_list = [int(pk.strip()) for pk in addon_package_ids.split(",") if pk.strip().isdigit()]
+
+                # Check if ID 1 is in the list
+                if 1 in addon_package_id_list:
+                    # print("Addon Package ID 1 found. Updating Profile_plan_feature...")
+
+                    # Example: update all rows (or filter if needed)
+                    models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(vys_assist=1,vys_assist_count=10)
+
             # Save the changes
             registration.save() 
 
