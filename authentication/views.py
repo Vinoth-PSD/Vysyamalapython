@@ -6791,15 +6791,18 @@ class Save_plan_package(APIView):
                 birth_rasi_id=horodetails.birth_rasi_name
 
             if profile_images:
-                profile_icon=profile_images.image.url
+                # profile_icon=profile_images.image.url
+                #  profile_icon=profile_images
+                profile_image = profile_images
             #default image icon
             else:
-                
+            
                 profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
-                
-                
-            base_url = settings.MEDIA_URL
-            profile_image = base_url+profile_icon
+                base_url = settings.MEDIA_URL
+                profile_image = base_url+profile_icon
+
+            # base_url = settings.MEDIA_URL
+            # profile_image = profile_icon
 
 
             logindetails_exists = models.Registration1.objects.filter(ProfileId=profile_id).filter(Profile_address__isnull=False).exclude(Profile_address__exact='').first()
@@ -6811,7 +6814,7 @@ class Save_plan_package(APIView):
 
             #check the address is exists for the contact s page contact us details stored in the logindetails page only
             if not logindetails_exists:
-                
+            
                 profile_completion=1     #contact details not exists   
 
             elif not family_details_exists:
