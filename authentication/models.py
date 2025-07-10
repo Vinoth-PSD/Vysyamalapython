@@ -1172,7 +1172,7 @@ class Get_profiledata(models.Model):
                         WHERE rn = 1
                     ) AS i ON i.profile_id = a.ProfileId
                     LEFT JOIN profile_visit_logs v ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
-                    WHERE a.Status=1 AND a.Plan_id !=16 AND a.gender != %s AND a.ProfileId != %s 
+                    WHERE a.Status=1 AND a.Plan_id NOT IN (16, 18, 3) AND a.gender != %s AND a.ProfileId != %s 
                     AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
 
                     """
@@ -1444,7 +1444,7 @@ class Get_profiledata(models.Model):
                     JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
                     JOIN mastereducation g ON f.highest_education = g.RowId 
                     JOIN masterannualincome h ON h.id = f.anual_income
-                    WHERE a.Status=1 AND a.Plan_id !=16 AND a.gender != %s AND a.ProfileId != %s 
+                    WHERE a.Status=1 AND a.Plan_id NOT IN (16, 18, 3) AND a.gender != %s AND a.ProfileId != %s 
                     AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
             """
             
@@ -2173,7 +2173,7 @@ class SentWithoutAddressPrintwpPDFLog(models.Model):
 
     def __str__(self):
         return f"Without Address Print PDF Log {self.id} - Profile {self.profile_id} to {self.to_ids}"
-    
+
 
 class ProfileSuggestedPref(models.Model):
     profile_id = models.CharField(max_length=50, unique=True, primary_key=True)
