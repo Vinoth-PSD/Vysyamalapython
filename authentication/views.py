@@ -6793,7 +6793,7 @@ class Save_plan_package(APIView):
             if profile_images:
                 # profile_icon=profile_images.image.url
                 #  profile_icon=profile_images
-                profile_image = profile_images
+                profile_image = profile_images.image.url
             #default image icon
             else:
             
