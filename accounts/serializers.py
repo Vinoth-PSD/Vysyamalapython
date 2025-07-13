@@ -1,6 +1,6 @@
 # serializers.py
 from rest_framework import serializers
-from .models import BirthStar, ProfileHoroscope, ProfilePartnerPref, Rasi, Lagnam, DasaBalance, LoginDetailsTemp, FamilyType, FamilyStatus, FamilyValue, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, Country, State, District ,City, Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , Homepage ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1, Get_profiledata , Express_interests , Get_profiledata_Matching , ProfileSubStatus , PlanDetails , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref
+from .models import BirthStar, ProfileHoroscope, ProfilePartnerPref, Rasi, Lagnam, DasaBalance, LoginDetailsTemp, FamilyType, FamilyStatus, FamilyValue, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, Country, State, District ,City, Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , Homepage ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1, Get_profiledata , Express_interests , Get_profiledata_Matching , ProfileSubStatus , PlanDetails , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref ,ProfileVisibility
 
 from datetime import datetime, date
 
@@ -326,6 +326,9 @@ class ProfilePartnerPrefSerializer(serializers.ModelSerializer):
     pref_porutham_star_rasi = serializers.CharField(required=False , allow_null=True)
     pref_porutham_star = serializers.CharField(required=False, allow_null=True)
     pref_height_to =  serializers.CharField(required=True)
+    
+    pref_family_status =  serializers.CharField(required=False, allow_null=True)
+    pref_state =  serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = ProfilePartnerPref
         fields = '__all__'
@@ -335,9 +338,34 @@ class ProfileSuggestedPrefSerializer(serializers.ModelSerializer):
     pref_porutham_star_rasi = serializers.CharField(required=False , allow_null=True)
     pref_porutham_star = serializers.CharField(required=False, allow_null=True)
     pref_height_to =  serializers.CharField(required=True)
+
+    pref_family_status =  serializers.CharField(required=False, allow_null=True)
+    pref_state =  serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = ProfileSuggestedPref
         fields = '__all__'
+
+class ProfileVisibilitySerializer(serializers.ModelSerializer):
+    visibility_age_from = serializers.CharField(required=False , allow_null=True)
+    visibility_age_to = serializers.CharField(required=False , allow_null=True)
+    visibility_height_from = serializers.CharField(required=False , allow_null=True)
+    visibility_height_to = serializers.CharField(required=False , allow_null=True)
+
+    visibility_profession = serializers.CharField(required=False , allow_null=True)
+    visibility_education = serializers.CharField(required=False , allow_null=True)
+    visibility_anual_income = serializers.CharField(required=False , allow_null=True)
+    visibility_family_status = serializers.CharField(required=False , allow_null=True)
+    visibility_chevvai = serializers.CharField(required=False , allow_null=True)
+    visibility_ragukethu = serializers.CharField(required=False , allow_null=True)
+    visibility_foreign_interest = serializers.CharField(required=False , allow_null=True)
+    status = serializers.CharField(required=False , allow_null=True)
+   
+    
+    class Meta:
+        model = ProfileVisibility
+        fields = ('profile_id', 'visibility_age_from', 'visibility_age_to' ,'visibility_height_from', 'visibility_height_to', 
+                  'visibility_profession', 'visibility_education', 'visibility_anual_income', 'visibility_family_status','visibility_chevvai',
+                  'visibility_ragukethu', 'visibility_foreign_interest','status')
 
 class ProfileplanSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False , allow_null=True) 

@@ -5,9 +5,9 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .serializers import ChangePasswordSerializer, ProfileEduDetailsSerializer, ProfileFamilyDetailsSerializer, ProfileHoroscopeSerializer, ProfilePartnerPrefSerializer 
 from rest_framework import viewsets
-from .models import Country, ProfileEduDetails, ProfileFamilyDetails, ProfilePartnerPref, State, District, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, BirthStar, Rasi, Lagnam, DasaBalance, FamilyType, FamilyStatus, FamilyValue, LoginDetailsTemp ,Get_profiledata , Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , City , Express_interests , Profile_visitors, Profile_wishlists , Photo_request , PlanDetails , Image_Upload  ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1 , Get_profiledata_Matching , Profespref , Profile_vysassist , Homepage,ProfileLoginLogs,ProfileSendFromAdmin , ProfileSubStatus , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref , Profile_callogs , ProfileHoroscope , MasterhighestEducation ,PlanSubscription
+from .models import Country, ProfileEduDetails, ProfileFamilyDetails, ProfilePartnerPref, State, District, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, BirthStar, Rasi, Lagnam, DasaBalance, FamilyType, FamilyStatus, FamilyValue, LoginDetailsTemp ,Get_profiledata , Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , City , Express_interests , Profile_visitors, Profile_wishlists , Photo_request , PlanDetails , Image_Upload  ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1 , Get_profiledata_Matching , Profespref , Profile_vysassist , Homepage,ProfileLoginLogs,ProfileSendFromAdmin , ProfileSubStatus , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref , Profile_callogs , ProfileHoroscope , MasterhighestEducation ,PlanSubscription , ProfileVisibility
 
-from .serializers import CountrySerializer, StateSerializer, DistrictSerializer,ProfileHolderSerializer, MaritalStatusSerializer, HeightSerializer, ComplexionSerializer, ParentsOccupationSerializer, HighestEducationSerializer, UgDegreeSerializer, AnnualIncomeSerializer,BirthStarSerializer, RasiSerializer, LagnamSerializer, DasaBalanceSerializer, FamilyTypeSerializer, FamilyStatusSerializer, FamilyValueSerializer, LoginDetailsTempSerializer,Getnewprofiledata , ModeSerializer, PropertySerializer , GothramSerializer , EducationLevelSerializer ,ProfessionSerializer , MatchSerializer ,MasterStatePrefSerializer , CitySerializer , Getnewprofiledata_new , QuickUploadSerializer , ProfileStatusSerializer , LoginEditSerializer , GetproflistSerializer , ImageGetSerializer , MatchingscoreSerializer , HomepageSerializer, Profile_idValidationSerializer , UpdateAdminComments_Serializer , ProfileSubStatusSerializer , PlandetailsSerializer ,ProfileplanSerializer , ProfileVysAssistFollowupSerializer , VysassistSerializer , ProfileSuggestedPrefSerializer  , AdminUserDropdownSerializer
+from .serializers import CountrySerializer, StateSerializer, DistrictSerializer,ProfileHolderSerializer, MaritalStatusSerializer, HeightSerializer, ComplexionSerializer, ParentsOccupationSerializer, HighestEducationSerializer, UgDegreeSerializer, AnnualIncomeSerializer,BirthStarSerializer, RasiSerializer, LagnamSerializer, DasaBalanceSerializer, FamilyTypeSerializer, FamilyStatusSerializer, FamilyValueSerializer, LoginDetailsTempSerializer,Getnewprofiledata , ModeSerializer, PropertySerializer , GothramSerializer , EducationLevelSerializer ,ProfessionSerializer , MatchSerializer ,MasterStatePrefSerializer , CitySerializer , Getnewprofiledata_new , QuickUploadSerializer , ProfileStatusSerializer , LoginEditSerializer , GetproflistSerializer , ImageGetSerializer , MatchingscoreSerializer , HomepageSerializer, Profile_idValidationSerializer , UpdateAdminComments_Serializer , ProfileSubStatusSerializer , PlandetailsSerializer ,ProfileplanSerializer , ProfileVysAssistFollowupSerializer , VysassistSerializer , ProfileSuggestedPrefSerializer  , AdminUserDropdownSerializer , ProfileVisibilitySerializer
 from rest_framework.decorators import action
 from rest_framework import generics, filters
 from rest_framework.pagination import PageNumberPagination
@@ -72,8 +72,8 @@ import re
 from dateutil import parser
 from datetime import datetime, time
 
-from authentication.models import ProfileVisibility
-from authentication.serializers import ProfileVisibilityListSerializer
+# from authentication.models import ProfileVisibility
+# from authentication.serializers import ProfileVisibilityListSerializer
 
 
 # class ModeViewSet(viewsets.ModelViewSet):
@@ -2057,10 +2057,10 @@ class EditProfileAPIView(APIView):
         partner_pref_data = request.data.get('partner_pref_details', {})
         suggested_pref_data = request.data.get('suggested_pref_details', {})
         profile_common_data = request.data.get('profile_common_details', {})
-        profile_visibility_data=request.data.get('profile_visibility_data', {})
+        profile_visibility_data=request.data.get('profile_visibility_details', {})
 
 
-        print(horoscope_data,'123456')
+        print(profile_visibility_data,'123456')
 
         # Initialize error tracking
         errors = {}
@@ -2203,7 +2203,32 @@ class EditProfileAPIView(APIView):
             else:
                 errors['suggested_pref_details'] = suggested_pref_serializer.errors
          
-         #common data to be update code is below
+         
+
+        # Step 7: Retrieve and update ProfileEduDetails
+        if profile_visibility_data:
+            print('inside profile visibility')
+            try:
+                print('update the existing record')
+                profvis_detail = ProfileVisibility.objects.get(profile_id=profile_id)
+                provis_serializer = ProfileVisibilitySerializer(instance=profvis_detail, data=profile_visibility_data, partial=True)
+
+            except ProfileVisibility.DoesNotExist:
+                print('insert the new record')
+                # return Response({'error': 'Profile Visibility details not found.'}, status=status.HTTP_404_NOT_FOUND)
+                profile_visibility_data['profile_id'] = profile_id
+                provis_serializer = ProfileVisibilitySerializer(data=profile_visibility_data)
+                
+                #Insert if data not exists
+        
+            if provis_serializer.is_valid():
+                provis_serializer.save()
+            else:
+                errors['profile_visibility_details'] = provis_serializer.errors
+
+
+        #common data to be update code is below
+
 
         if profile_common_data:
             # Only include the common data keys that are available in the request
@@ -2289,32 +2314,7 @@ class EditProfileAPIView(APIView):
 
                     # Example: update all rows (or filter if needed)
                     Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(vys_assist=1,vys_assist_count=10)
-
-
-            # Step 7: Update profile visibility settings
-            if profile_visibility_data:
-                for visibility in profile_visibility_data:
-                    visibility_id = visibility.get("id")
-                    if not visibility_id:
-                        errors.setdefault("profile_visibility", []).append({"error": "Missing 'id' in one of the visibility records."})
-                        continue
-                    
-                    try:
-                        visibility_instance = ProfileVisibility.objects.get(id=visibility_id, profile_id=profile_id)
-                    except ProfileVisibility.DoesNotExist:
-                        errors.setdefault("profile_visibility", []).append({"id": visibility_id, "error": "Visibility record not found."})
-                        continue
-                    
-                    visibility_serializer = ProfileVisibilityListSerializer(instance=visibility_instance, data=visibility, partial=True)
-                    if visibility_serializer.is_valid():
-                        visibility_serializer.save()
-                    else:
-                        errors.setdefault("profile_visibility", []).append({
-                            "id": visibility_id,
-                            "errors": visibility_serializer.errors
-                        })
-
-        
+     
         # If there are any validation errors, return them
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
@@ -2611,7 +2611,7 @@ class GetProfEditDetailsAPIView(APIView):
         try:
             profile_visibility_qs = ProfileVisibility.objects.filter(profile_id=profile_id)
             if profile_visibility_qs.exists():
-                visibility_serializer = ProfileVisibilityListSerializer(profile_visibility_qs, many=True)
+                visibility_serializer = ProfileVisibilitySerializer(profile_visibility_qs, many=True)
                 response_data['profile_visibility'] = visibility_serializer.data
             else:
                 response_data['profile_visibility'] = []
