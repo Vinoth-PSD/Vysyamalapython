@@ -822,6 +822,7 @@ class Familydetails(models.Model):
     weight = models.CharField(max_length=100, null=True)
     eye_wear = models.CharField(max_length=100, null=True)
     body_type = models.CharField(max_length=100, null=True)
+    no_of_children = models.IntegerField(max_length=10 , null=True)
 
 
     class Meta:

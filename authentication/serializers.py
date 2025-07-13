@@ -692,11 +692,12 @@ class FamilydetaiSerializer(serializers.ModelSerializer):
     no_of_sis_married = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     family_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     mother_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    no_of_children = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
 
     class Meta:
         model = models.Familydetails
-        fields = ('profile_id','father_name', 'father_occupation', 'mother_name','mother_occupation','family_name','about_self','hobbies','blood_group','Pysically_changed','no_of_brother','no_of_sister','no_of_bro_married','no_of_sis_married','family_type','family_value','family_status','property_details','property_worth','suya_gothram','uncle_gothram','ancestor_origin','about_family','weight','eye_wear','body_type')
+        fields = ('profile_id','father_name', 'father_occupation', 'mother_name','mother_occupation','family_name','about_self','hobbies','blood_group','Pysically_changed','no_of_brother','no_of_sister','no_of_bro_married','no_of_sis_married','family_type','family_value','family_status','property_details','property_worth','suya_gothram','uncle_gothram','ancestor_origin','about_family','weight','eye_wear','body_type','no_of_children')
                
 class EdudetailSerializer(serializers.ModelSerializer):
 
@@ -1305,10 +1306,10 @@ class PersonalFamilySerializer(serializers.ModelSerializer):
     uncle_gothram = serializers.CharField(required=False, allow_blank=True , allow_null=True)
     family_type = serializers.CharField(required=False, allow_blank=True , allow_null=True)
     family_value = serializers.CharField(required=False, allow_blank=True , allow_null=True)
-    
+    no_of_children = serializers.CharField(required=False, allow_blank=True , allow_null=True)
     class Meta:
         model = models.Familydetails
-        fields = ['father_name','father_occupation','mother_name','mother_occupation','family_status','no_of_sister','no_of_sis_married','no_of_brother','no_of_bro_married','property_details','property_worth','about_family','ancestor_origin','uncle_gothram','family_type','family_value']
+        fields = ['father_name','father_occupation','mother_name','mother_occupation','family_status','no_of_sister','no_of_sis_married','no_of_brother','no_of_bro_married','property_details','property_worth','about_family','ancestor_origin','uncle_gothram','family_type','family_value','no_of_children']
 
 class FamilyStatusSerializer(serializers.ModelSerializer):
     class Meta:

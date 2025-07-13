@@ -7116,6 +7116,7 @@ class GetMyProfileFamily(APIView):
                 "personal_family_value":serializer.data.get("family_value"),
                 "personal_family_type":serializer.data.get("family_type"),
                 "personal_uncle_gothram":serializer.data.get("uncle_gothram"),
+                "personal_no_of_children":serializer.data.get("no_of_children"),
             }
 
             response = {
