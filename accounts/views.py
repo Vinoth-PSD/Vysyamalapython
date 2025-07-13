@@ -72,6 +72,10 @@ import re
 from dateutil import parser
 from datetime import datetime, time
 
+from authentication.models import ProfileVisibility
+from authentication.serializers import ProfileVisibilityListSerializer
+
+
 # class ModeViewSet(viewsets.ModelViewSet):
 #     queryset = Mode.objects.filter(is_deleted=False)  # Only show non-deleted records
 #     serializer_class = ModeSerializer
@@ -2053,6 +2057,7 @@ class EditProfileAPIView(APIView):
         partner_pref_data = request.data.get('partner_pref_details', {})
         suggested_pref_data = request.data.get('suggested_pref_details', {})
         profile_common_data = request.data.get('profile_common_details', {})
+        profile_visibility_data=request.data.get('profile_visibility_data', {})
 
 
         print(horoscope_data,'123456')
@@ -2286,7 +2291,29 @@ class EditProfileAPIView(APIView):
                     Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(vys_assist=1,vys_assist_count=10)
 
 
-        
+            # Step 7: Update profile visibility settings
+            if profile_visibility_data:
+                for visibility in profile_visibility_data:
+                    visibility_id = visibility.get("id")
+                    if not visibility_id:
+                        errors.setdefault("profile_visibility", []).append({"error": "Missing 'id' in one of the visibility records."})
+                        continue
+                    
+                    try:
+                        visibility_instance = ProfileVisibility.objects.get(id=visibility_id, profile_id=profile_id)
+                    except ProfileVisibility.DoesNotExist:
+                        errors.setdefault("profile_visibility", []).append({"id": visibility_id, "error": "Visibility record not found."})
+                        continue
+                    
+                    visibility_serializer = ProfileVisibilityListSerializer(instance=visibility_instance, data=visibility, partial=True)
+                    if visibility_serializer.is_valid():
+                        visibility_serializer.save()
+                    else:
+                        errors.setdefault("profile_visibility", []).append({
+                            "id": visibility_id,
+                            "errors": visibility_serializer.errors
+                        })
+
         
         # If there are any validation errors, return them
         if errors:
@@ -2576,18 +2603,23 @@ class GetProfEditDetailsAPIView(APIView):
 
         try:
             suggests_pref_detail = ProfileSuggestedPref.objects.get(profile_id=profile_id)
-            response_data['suggests_pref_details'] = ProfileSuggestedPrefSerializer(suggests_pref_detail).data
         except ProfileSuggestedPref.DoesNotExist:
-            
-            suggests_pref_detail = ProfileSuggestedPref.objects.create(
-                    profile_id=profile_id
-                )                        
-            
-            response_data['suggests_pref_details'] = ProfileSuggestedPrefSerializer(suggests_pref_detail).data  # Return an empty object if not found
-    
-        # Return all the gathered data
-        return Response(response_data, status=status.HTTP_200_OK)
+            suggests_pref_detail = ProfileSuggestedPref.objects.create(profile_id=profile_id)
+        response_data['suggests_pref_details'] = ProfileSuggestedPrefSerializer(suggests_pref_detail).data
 
+        # Profile Visibility
+        try:
+            profile_visibility_qs = ProfileVisibility.objects.filter(profile_id=profile_id)
+            if profile_visibility_qs.exists():
+                visibility_serializer = ProfileVisibilityListSerializer(profile_visibility_qs, many=True)
+                response_data['profile_visibility'] = visibility_serializer.data
+            else:
+                response_data['profile_visibility'] = []
+        except Exception as e:
+            response_data['profile_visibility'] = []
+            response_data['profile_visibility_error'] = str(e)
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
 def safe_get_by_id(model, pk_value, return_field):
     if not pk_value:
@@ -6057,92 +6089,81 @@ def parse_data(data):
 
 class ShortProfilePDFView(APIView):
     def post(self, request):
-        profile_ids = request.data.get('profile_id')  # Retrieve profile_id(s) from the request data
+        profile_ids = request.data.get('profile_id')
 
         if not profile_ids:
             return Response({"error": "profile_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Split the profile_ids if they are comma-separated
         profile_ids_list = [pid.strip() for pid in profile_ids.split(',')]
-
-        # Prepare to gather all profiles' details
         profiles_html = ""
 
         for profile_id in profile_ids_list:
-            # Fetching the details for each profile_id
-            login_details = get_object_or_404(LoginDetails, ProfileId=profile_id)
-            family_details = get_object_or_404(ProfileFamilyDetails, profile_id=profile_id)
-            edu_details = get_object_or_404(ProfileEduDetails, profile_id=profile_id)
-            horoscope_details = get_object_or_404(ProfileHoroscope, profile_id=profile_id)
+            # Fetch related models
+            try:
+                login_details = get_object_or_404(LoginDetails, ProfileId=profile_id)
+                family_details = get_object_or_404(ProfileFamilyDetails, profile_id=profile_id)
+                edu_details = get_object_or_404(ProfileEduDetails, profile_id=profile_id)
+                horoscope_details = get_object_or_404(ProfileHoroscope, profile_id=profile_id)
+            except Exception:
+                continue
 
-        # Other existing logic for fetching complexion, birthstar, etc.
-        # Complexion
-        complexion_desc = default_placeholder
-        try:
+            # Get optional fields
+            complexion_desc = default_placeholder
             if login_details.Profile_complexion:
-                complexion_instance = Complexion.objects.get(complexion_id=login_details.Profile_complexion)
-                complexion_desc = complexion_instance.complexion_desc
-        except Complexion.DoesNotExist:
-            pass
+                try:
+                    complexion_instance = Complexion.objects.get(complexion_id=login_details.Profile_complexion)
+                    complexion_desc = complexion_instance.complexion_desc
+                except Complexion.DoesNotExist:
+                    pass
 
-        # Birthstar
-        birthstar_name = default_placeholder
-        try:
+            birthstar_name = default_placeholder
             if horoscope_details.birthstar_name:
-                birthstar_instance = BirthStar.objects.get(id=horoscope_details.birthstar_name)
-                birthstar_name = birthstar_instance.star
-        except BirthStar.DoesNotExist:
-            pass
+                try:
+                    birthstar_instance = BirthStar.objects.get(id=horoscope_details.birthstar_name)
+                    birthstar_name = birthstar_instance.star
+                except BirthStar.DoesNotExist:
+                    pass
 
-        # Highest Education
-        highest_education = default_placeholder
-        try:
+            highest_education = default_placeholder
             if edu_details.highest_education:
-                education_instance = EducationLevel.objects.get(row_id=edu_details.highest_education)
-                highest_education = education_instance.EducationLevel
-        except EducationLevel.DoesNotExist:
-            pass
+                try:
+                    education_instance = EducationLevel.objects.get(row_id=edu_details.highest_education)
+                    highest_education = education_instance.EducationLevel
+                except EducationLevel.DoesNotExist:
+                    pass
 
-        # Profession
-        profession = default_placeholder
-        try:
+            profession = default_placeholder
             if edu_details.profession:
-                profession_instance = Profession.objects.get(row_id=edu_details.profession)
-                profession = profession_instance.profession
-        except Profession.DoesNotExist:
-            pass
+                try:
+                    profession_instance = Profession.objects.get(row_id=edu_details.profession)
+                    profession = profession_instance.profession
+                except Profession.DoesNotExist:
+                    pass
 
-        # Annual Income
-        annual_income = default_placeholder
-        try:
+            annual_income = default_placeholder
             if edu_details.anual_income:
-                income_instance = AnnualIncome.objects.get(id=edu_details.anual_income)
-                annual_income = income_instance.income
-        except AnnualIncome.DoesNotExist:
-            pass
+                try:
+                    income_instance = AnnualIncome.objects.get(id=edu_details.anual_income)
+                    annual_income = income_instance.income
+                except AnnualIncome.DoesNotExist:
+                    pass
 
-        # State Name
-        state_name = default_placeholder
-        try:
+            state_name = default_placeholder
             if login_details.Profile_state:
-                state_instance = State.objects.get(id=login_details.Profile_state)
-                state_name = state_instance.name
-        except State.DoesNotExist:
-            pass
-        
-            # Process rasi_kattam
-            if horoscope_details.rasi_kattam:
-                rasi_kattam = parse_data(horoscope_details.rasi_kattam)
-            else:
-                rasi_kattam = parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
+                try:
+                    state_instance = State.objects.get(id=login_details.Profile_state)
+                    state_name = state_instance.name
+                except State.DoesNotExist:
+                    pass
 
-            # Ensure that we have exactly 12 values for the grid
+            # Rasi Kattam
+            rasi_kattam = parse_data(horoscope_details.rasi_kattam or '')
             rasi_kattam.extend([default_placeholder] * (12 - len(rasi_kattam)))
 
-            # Append the profile details to the profiles_html string
+            # HTML Block for One Profile
             profiles_html += f"""
             <div class="profile">
-                  <table class="vysyamala-flex">
+                <table class="vysyamala-flex">
                     <tr>
                         <td>Vysyamala  https://www.vysyamala.com  |  {login_details.Mobile_no}  |  UserId: {login_details.ProfileId}</td>
                     </tr>
@@ -6183,7 +6204,7 @@ class ShortProfilePDFView(APIView):
             </div>
             """
 
-        # HTML structure for the PDF
+        # Full HTML Content
         html_content = f"""
         <html>
         <head>
@@ -6194,67 +6215,49 @@ class ShortProfilePDFView(APIView):
                     text-align: center;
                     margin-bottom: 0em;
                 }}
-    
-                .vysyamala-flex{{
-                        border-collapse: collapse;
-                        border: none; 
+                .vysyamala-flex {{
+                    border-collapse: collapse;
+                    border: none; 
                 }}
-    
                 .vysyamala-flex td {{
                     font-size: 20px;
                     font-weight: bold;
                 }}
-    
                 .details p {{
                     font-size: 14px;
+                    margin: 5px 0;
                 }}
-    
                 .rasi-heading {{
                     font-size: 14px;
                 }}
-    
-                .rasi-kattam table {{
-                    width: 300px !important;
-                    border: 1px solid #ddd !important;
+                .rasi-kattam {{
+                    width: 300px;
+                    border-collapse: collapse;
                 }}
-    
                 .rasi-kattam td {{
-                        font-size: 12px;
-                        background-color: #fff !important; 
-                        border: 1px solid #000 !important;
-                        width: 75px;
-                        height: 50px; 
-                        text-align: center;
-                        vertical-align: middle;
+                    font-size: 12px;
+                    background-color: #fff;
+                    border: 1px solid #000;
+                    width: 75px;
+                    height: 50px;
+                    text-align: center;
+                    vertical-align: middle;
                 }}
-                   
-                    .highlight {{
-                        background-color: #ffe9a6; 
-                    }}
-                    .header {{
-                        margin-bottom: 20px;
-                    }}
-                    .details p {{
-                        margin: 5px 0;
-                    }}
             </style>
         </head>
         <body>
             <div class="header">
-                <h1 class="print-heading">
-                    <strong>Print Short Profiles</strong>
-                </h1>
-                <br>
+                <h1 class="print-heading">Print Short Profiles</h1>
+                <br/>
             </div>
             {profiles_html}
         </body>
         </html>
         """
 
-        # Convert XHTML to PDF
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="Profiles_{",".join(profile_ids_list)}.pdf"'
-        pisa_status = pisa.CreatePDF(html_content, dest=response)
+        pisa_status = pisa.CreatePDF(io.StringIO(html_content), dest=response)
 
         if pisa_status.err:
             return Response({"error": "Error generating PDF"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
