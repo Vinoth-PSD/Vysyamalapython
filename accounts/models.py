@@ -661,6 +661,8 @@ class ProfileFamilyDetails(models.Model):
     property_worth = models.CharField(max_length=100, null=True)
     suya_gothram = models.CharField(max_length=100, null=True)
     uncle_gothram = models.CharField(max_length=100, null=True)
+    suya_gothram_admin = models.CharField(max_length=200, null=True)
+    uncle_gothram_admin = models.CharField(max_length=200, null=True)
     ancestor_origin = models.TextField(null=True , blank=True)
     about_family = models.TextField(null=True)
 
@@ -2453,7 +2455,7 @@ class ProfileVisibility(models.Model):
     visibility_height_to = models.CharField(max_length=50)
     visibility_profession = models.CharField(max_length=50)  
     visibility_education = models.CharField(max_length=50)
-    visibility_anual_income = models.CharField(max_length=50)
+    visibility_anual_income = models.CharField(max_length=255)
     visibility_family_status = models.CharField(max_length=50)
     visibility_chevvai = models.CharField(max_length=20)  
     visibility_ragukethu = models.CharField(max_length=20)

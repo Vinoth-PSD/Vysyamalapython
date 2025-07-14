@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .serializers import ChangePasswordSerializer, ProfileEduDetailsSerializer, ProfileFamilyDetailsSerializer, ProfileHoroscopeSerializer, ProfilePartnerPrefSerializer 
 from rest_framework import viewsets
-from .models import Country, ProfileEduDetails, ProfileFamilyDetails, ProfilePartnerPref, State, District, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, BirthStar, Rasi, Lagnam, DasaBalance, FamilyType, FamilyStatus, FamilyValue, LoginDetailsTemp ,Get_profiledata , Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , City , Express_interests , Profile_visitors, Profile_wishlists , Photo_request , PlanDetails , Image_Upload  ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1 , Get_profiledata_Matching , Profespref , Profile_vysassist , Homepage,ProfileLoginLogs,ProfileSendFromAdmin , ProfileSubStatus , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref , Profile_callogs , ProfileHoroscope , MasterhighestEducation ,PlanSubscription , ProfileVisibility
+from .models import Country, ProfileEduDetails, ProfileFamilyDetails, ProfilePartnerPref, State, District, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, BirthStar, Rasi, Lagnam, DasaBalance, FamilyType, FamilyStatus, FamilyValue, LoginDetailsTemp ,Get_profiledata , Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , City , Express_interests , Profile_visitors, Profile_wishlists , Photo_request , PlanDetails , Image_Upload  ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1 , Get_profiledata_Matching , Profespref , Profile_vysassist , Homepage,ProfileLoginLogs,ProfileSendFromAdmin , ProfileSubStatus , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref , Profile_callogs , ProfileHoroscope , MasterhighestEducation ,PlanSubscription , ProfileVisibility ,Addonpackages
 
 from .serializers import CountrySerializer, StateSerializer, DistrictSerializer,ProfileHolderSerializer, MaritalStatusSerializer, HeightSerializer, ComplexionSerializer, ParentsOccupationSerializer, HighestEducationSerializer, UgDegreeSerializer, AnnualIncomeSerializer,BirthStarSerializer, RasiSerializer, LagnamSerializer, DasaBalanceSerializer, FamilyTypeSerializer, FamilyStatusSerializer, FamilyValueSerializer, LoginDetailsTempSerializer,Getnewprofiledata , ModeSerializer, PropertySerializer , GothramSerializer , EducationLevelSerializer ,ProfessionSerializer , MatchSerializer ,MasterStatePrefSerializer , CitySerializer , Getnewprofiledata_new , QuickUploadSerializer , ProfileStatusSerializer , LoginEditSerializer , GetproflistSerializer , ImageGetSerializer , MatchingscoreSerializer , HomepageSerializer, Profile_idValidationSerializer , UpdateAdminComments_Serializer , ProfileSubStatusSerializer , PlandetailsSerializer ,ProfileplanSerializer , ProfileVysAssistFollowupSerializer , VysassistSerializer , ProfileSuggestedPrefSerializer  , AdminUserDropdownSerializer , ProfileVisibilitySerializer
 from rest_framework.decorators import action
@@ -2511,7 +2511,7 @@ class GetProfEditDetailsAPIView(APIView):
                 "horoscope_hints": horoscope_detail.horoscope_hints,
                 "family_status":family_detail.family_status,
                 "Admin_comments":login_detail.Admin_comments,
-                "suya_gothram":family_detail.suya_gothram,
+                "suya_gothram": family_detail.suya_gothram_admin if family_detail.suya_gothram_admin is not None else family_detail.suya_gothram,
                 "profile_completion":int(result_percen['completion_percentage']),
                 "exp_int_lock": getattr(profile_plan_features, "exp_int_lock", None),
                 "exp_int_count": getattr(profile_plan_features, "express_int_count", None),
@@ -2520,7 +2520,8 @@ class GetProfEditDetailsAPIView(APIView):
                 "secondary_status":login_detail.secondary_status,
                 "plan_status":login_detail.plan_status,
                 "profile_image":Get_profile_image(profile_id,gender,1,0,is_admin=True),
-                "valid_till":getattr(profile_plan_features, "membership_todate", None),
+                #"valid_till":getattr(profile_plan_features, "membership_todate", None),
+                "valid_till":membership_todate.strftime("%d-%m-%Y") if (membership_todate := getattr(profile_plan_features, "membership_todate", None)) else None,
                 "created_date":login_detail.DateOfJoin,
                 "idle_days":"",
                 "membership_fromdate":getattr(profile_plan_features, "membership_fromdate", None),
@@ -2531,7 +2532,11 @@ class GetProfEditDetailsAPIView(APIView):
                 # "payment_date":payment_date,
                 "payment_date": payment_date.strftime("%d-%m-%Y") if payment_date else None ,
                 "payment_mode":payment_mode,
-                "add_on_pack_name":"",
+                "add_on_pack_name":", ".join(
+    Addonpackages.objects.filter(
+        package_id__in=[package_id.strip() for package_id in login_detail.Addon_package.split(",")] if login_detail.Addon_package else []
+    ).values_list("name", flat=True)
+),
                 "mobile_otp_verify":login_detail.Otp_verify,
                 #"myself":myself
                 }

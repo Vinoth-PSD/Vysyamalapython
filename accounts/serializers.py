@@ -307,6 +307,10 @@ class ProfileFamilyDetailsSerializer(serializers.ModelSerializer):
     mother_occupation = serializers.CharField(required=True)
     weight = serializers.CharField(required=False , allow_null=True)
     eye_wear = serializers.CharField(required=False , allow_null=True)
+    suya_gothram = serializers.CharField(required=False , allow_null=True)
+    uncle_gothram = serializers.CharField(required=False , allow_null=True)
+    suya_gothram_admin = serializers.CharField(required=False , allow_null=True)
+    uncle_gothram_admin = serializers.CharField(required=False , allow_null=True)
     class Meta:
         model = ProfileFamilyDetails
         fields = '__all__'
