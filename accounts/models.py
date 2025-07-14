@@ -716,8 +716,8 @@ class ProfilePartnerPref(models.Model):
    
     pref_porutham_star = models.CharField(max_length=1000, null=True, blank=True)
     pref_porutham_star_rasi	 = models.TextField(null=True, blank=True)
-    pref_family_status  = models.CharField(null=True, blank=True)
-    pref_state  = models.CharField(null=True, blank=True)
+    pref_family_status  = models.CharField(max_length=100,null=True, blank=True)
+    pref_state  = models.CharField(max_length=100,null=True, blank=True)
     
     # pref_education = models.CharField(max_length=100)
     # pref_profession = models.CharField(max_length=100)
@@ -747,8 +747,8 @@ class ProfileSuggestedPref(models.Model):
     pref_porutham_star = models.CharField(max_length=1000, null=True, blank=True)
     pref_porutham_star_rasi	 = models.TextField(null=True, blank=True)
 
-    pref_family_status  = models.CharField(null=True, blank=True)
-    pref_state  = models.CharField(null=True, blank=True)
+    pref_family_status  = models.CharField(max_length=100,null=True, blank=True)
+    pref_state  = models.CharField(max_length=100,null=True, blank=True)
     
     # pref_education = models.CharField(max_length=100)
     # pref_profession = models.CharField(max_length=100)

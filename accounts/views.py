@@ -2609,14 +2609,14 @@ class GetProfEditDetailsAPIView(APIView):
 
         # Profile Visibility
         try:
-            profile_visibility_qs = ProfileVisibility.objects.filter(profile_id=profile_id)
-            if profile_visibility_qs.exists():
-                visibility_serializer = ProfileVisibilitySerializer(profile_visibility_qs, many=True)
+            profile_visibility_qs = ProfileVisibility.objects.filter(profile_id=profile_id).first()
+            if profile_visibility_qs:
+                visibility_serializer = ProfileVisibilitySerializer(profile_visibility_qs)
                 response_data['profile_visibility'] = visibility_serializer.data
             else:
-                response_data['profile_visibility'] = []
+                response_data['profile_visibility'] = {}
         except Exception as e:
-            response_data['profile_visibility'] = []
+            response_data['profile_visibility'] = {}
             response_data['profile_visibility_error'] = str(e)
 
         return Response(response_data, status=status.HTTP_200_OK)
