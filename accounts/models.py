@@ -1243,7 +1243,10 @@ class Get_profiledata_Matching(models.Model):
     #updated by vinoth 1908-2024
 
     @staticmethod
-    def get_profile_list(gender,profile_id,start,per_page,search_profile_id,order_by,search_profession,search_age,search_location,complexion):
+    def get_profile_list(gender, profile_id, start, per_page, search_profile_id, order_by, search_profession, search_age, search_location, complexion,
+                     city=None, state=None, education=None, foreign_intrest=None, has_photos=None, height_from=None, height_to=None,
+                     matching_stars=None, min_anual_income=None, max_anual_income=None, membership=None):
+
 
         # print
 
@@ -1262,23 +1265,11 @@ class Get_profiledata_Matching(models.Model):
 
             # print('pref_anual_income',pref_annual_income)
             
-            
-            
             pref_marital_status = partner_pref.pref_marital_status
-
-           
             partner_pref_education = partner_pref.pref_education
-            # print('pref_annual_income',pref_annual_income)
-            # print('partner_pref_education',partner_pref_education)
-
             partner_pref_height_from = partner_pref.pref_height_from
             partner_pref_height_to = partner_pref.pref_height_to
             partner_pref_porutham_star_rasi= partner_pref.pref_porutham_star_rasi
-
-
-
-            partner_pref_porutham_star_rasi= partner_pref.pref_porutham_star_rasi
-
 
             min_max_query = """
                 SELECT MIN(income_amount) AS min_income, 
@@ -1286,239 +1277,189 @@ class Get_profiledata_Matching(models.Model):
                 FROM masterannualincome
                 WHERE FIND_IN_SET(id, %s) > 0  """
 
-
-        
             with connection.cursor() as cursor:
                 cursor.execute(min_max_query, [pref_annual_income])
                 min_max_income = cursor.fetchone()
-            
+
             if min_max_income:
                 min_income, max_income = min_max_income
-                # print('min_income', min_income)
-                # print('max_income', max_income)
-            #else:
-                # print('No income data found for the provided IDs.')
-
 
             print('partner_pref_porutham_star_rasi',partner_pref_porutham_star_rasi)
 
             try:
                 age_difference = int(age_difference_str)
             except ValueError:
-                
-                #return JsonResponse({'status': 'failure', 'message': 'Invalid age difference value.'}, status=status.HTTP_400_BAD_REQUEST)
                 return [], 0, {}           
-            
-                #exit
+
             print('inside count3')
             if search_age:
                 age_difference=int(search_age)
-
+            age_diff = int(age_difference) if age_difference else 5
             if gender.upper() == "MALE":
-                matching_age = current_age - age_difference
-                age_condition_operator = "<"
-            else:
-                # print('female age cond')
-                matching_age = current_age + age_difference
-                age_condition_operator = ">"
+                min_age = max(current_age - age_diff, 18)  
+                max_age = current_age
+            elif gender.upper() == "FEMALE":
+                min_age = max(current_age, 18)           
+                max_age = current_age + age_diff
 
             try:
-                    
-                    # print('34i7678sdd')
-                    # base_query = """
-                    # SELECT a.*,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
-                    # f.highest_education, g.EducationLevel, d.star, h.income
-                    # FROM logindetails a 
-                    # JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
-                    # JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
-                    # JOIN masterbirthstar d ON d.id = e.birthstar_name 
-                    # JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
-                    # JOIN mastereducation g ON f.highest_education = g.RowId 
-                    # JOIN masterannualincome h ON h.id = f.anual_income
-                    # WHERE a.gender != %s AND a.ProfileId != %s
-                    # AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {operator} %s
-                    # AND h.income_amount BETWEEN %s AND %s
-                    # AND FIND_IN_SET(g.RowId,  %s) > 0
-                    # AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0
-                    # """
-                    base_query = """
-                    SELECT DISTINCT a.ProfileId,a.*,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
-                    f.highest_education, g.EducationLevel, d.star, h.income
-                    FROM logindetails a 
-                    JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
-                    JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
-                    JOIN masterbirthstar d ON d.id = e.birthstar_name 
-                    JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
-                    JOIN mastereducation g ON f.highest_education = g.RowId 
-                    JOIN masterannualincome h ON h.id = f.anual_income
-                    WHERE a.Status=1 AND a.gender != %s AND a.ProfileId != %s 
-                    AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {operator} %s
-                    """
+                base_query = """
+                SELECT DISTINCT a.ProfileId,a.Plan_id ,a.DateOfJoin,a.Photo_protection,a.Profile_city,a.Profile_verified,a.Profile_name,a.Profile_dob,a.Profile_height,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
+                f.highest_education, g.EducationLevel, d.star, h.income ,  v.viewed_profile , i.image
+                FROM logindetails a 
+                JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
+                JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
+                JOIN masterbirthstar d ON d.id = e.birthstar_name 
+                JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
+                JOIN mastereducation g ON f.highest_education = g.RowId 
+                JOIN masterannualincome h ON h.id = f.anual_income
+                LEFT JOIN (
+                    SELECT *
+                    FROM (
+                        SELECT *,
+                            ROW_NUMBER() OVER (PARTITION BY profile_id ORDER BY id ASC) AS rn
+                        FROM profile_images
+                        WHERE image_approved = 1 AND is_deleted = 0
+                    ) AS ranked_images
+                    WHERE rn = 1
+                ) AS i ON i.profile_id = a.ProfileId
+                LEFT JOIN profile_visit_logs v ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
+                WHERE a.Status=1 AND a.Plan_id NOT IN (16, 18, 3) AND a.gender != %s AND a.ProfileId != %s 
+                AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
+                """
 
-                   
+                query_params = [profile_id,gender, profile_id, min_age,max_age]
 
-                    # query_params = [gender, profile_id, matching_age, min_income,max_income, partner_pref_education,partner_pref_porutham_star_rasi]
-                    query_params = [gender, profile_id, matching_age]
+                if education:
+                    base_query += " AND FIND_IN_SET(g.RowId, %s) > 0"
+                    query_params.append(education)
+                else:
+                    base_query += " AND FIND_IN_SET(g.RowId, %s) > 0"
+                    query_params.append(partner_pref_education)
 
-                    if min_income and max_income:
-                        base_query += " AND h.income_amount BETWEEN %s AND %s"
-                        query_params.extend([min_income, max_income])
+                if min_income and max_income:
+                    base_query += " AND h.income_amount BETWEEN %s AND %s"
+                    query_params.extend([min_income, max_income])
+                if matching_stars:
+                    base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
+                    query_params.append(matching_stars)
+                elif partner_pref_porutham_star_rasi:
+                    base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
+                    query_params.append(partner_pref_porutham_star_rasi)
 
-                    if partner_pref_education:
-                        base_query += " AND FIND_IN_SET(g.RowId, %s) > 0"
-                        query_params.append(partner_pref_education)
+                if pref_marital_status:
+                    base_query += " AND FIND_IN_SET(a.Profile_marital_status, %s) > 0"
+                    query_params.append(pref_marital_status)
 
-                    # Append porutham star-rasi condition only if partner_pref_porutham_star_rasi exists
-                    if partner_pref_porutham_star_rasi:
-                        base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
-                        query_params.append(partner_pref_porutham_star_rasi)
+                height_conditions = ""
+                final_height_from = height_from or partner_pref_height_from
+                final_height_to = height_to or partner_pref_height_to
 
-                    # Append marital status condition only if pref_marital_status exists
-                    if pref_marital_status:
-                        base_query += " AND FIND_IN_SET(a.Profile_marital_status, %s) > 0"
-                        query_params.append(pref_marital_status)
+                if final_height_from and final_height_to:
+                    height_conditions = " AND a.Profile_height BETWEEN %s AND %s"
+                    query_params.extend([final_height_from, final_height_to])
+                elif final_height_from:
+                    height_conditions = " AND a.Profile_height >= %s"
+                    query_params.append(final_height_from)
+                elif final_height_to:
+                    height_conditions = " AND a.Profile_height <= %s"
+                    query_params.append(final_height_to)
 
-                    height_conditions = ""
+                search_profile_id_cond = ''
+                if search_profile_id:
+                    search_profile_id_cond = " AND (a.ProfileId = %s OR a.Profile_name LIKE %s)"
+                    query_params.append(search_profile_id)
+                    query_params.append(f"%{search_profile_id}%")
 
-                    if partner_pref_height_from and partner_pref_height_to:
-                        height_conditions = " AND a.Profile_height BETWEEN  %s AND  %s "
-                        query_params.extend([partner_pref_height_from, partner_pref_height_to])
-                    elif partner_pref_height_from:
-                        height_conditions = " AND a.Profile_height >= %s"
-                        query_params.append(partner_pref_height_from)
-                    elif partner_pref_height_to:
-                        height_conditions = " AND a.Profile_height <= %s"
-                        query_params.append(partner_pref_height_to)
+                search_profession_cond=''
+                if search_profession:
+                    search_profession_cond = " AND f.profession = %s"
+                    query_params.append(search_profession)
 
-                    
-                    search_profile_id_cond = ''
-                    if search_profile_id:
-                        # Condition to check both ProfileId and Profile_name fields
-                        search_profile_id_cond = " AND (a.ProfileId = %s OR a.Profile_name LIKE %s)"
-                        # Append search_profile_id twice as individual entries for both placeholders
-                        query_params.append(search_profile_id)
-                        query_params.append(f"%{search_profile_id}%")
-                        # query_params.append(search_profile_id)
+                search_location_cond=''
+                if search_location:
+                    search_location_cond = " AND a.Profile_state = %s"
+                    query_params.append(search_location)
 
+                search_complexion_cond = ''
+                if complexion:
+                    search_complexion_cond = " AND a.Profile_complexion = %s"
+                    query_params.append(complexion)
 
-                        # Add profession filter
-                    search_profession_cond=''
-                    if search_profession:
-                        search_profession_cond = " AND f.profession = %s"
-                        query_params.append(search_profession)
+                search_city_cond = ''
+                if 'city' in locals() and city:
+                    search_city_cond = " AND a.Profile_city = %s"
+                    query_params.append(city)
 
-                    search_location_cond=''
-                    if search_location:
-                        search_location_cond = " AND a.Profile_state = %s"
-                        query_params.append(search_location)
-                        #print('search_location',search_location)
+                search_state_cond = ''
+                if 'state' in locals() and state:
+                    search_state_cond = " AND a.Profile_state = %s"
+                    query_params.append(state)
 
+                search_foreign_intrest_cond = ''
+                if 'foreign_intrest' in locals() and foreign_intrest:
+                    search_foreign_intrest_cond = " AND a.foreign_interest = %s"
+                    query_params.append(foreign_intrest)
 
-                    # orderby_cond ='ORDER BY a.DateOfJoin DESC'
-                    # if order_by:
-                    #     orderby_cond = "ORDER BY a.DateOfJoin " + order_by
-                    # print('order_by',order_by)
-                    try:
-                        order_by = int(order_by)  # Convert order_by to integer
-                    except (ValueError, TypeError):
-                        order_by = None  # Handle invalid cases
-                    
-                    if order_by == 1:
-                            # print('order by 123456',order_by)
-                            
-                            orderby_cond = " ORDER BY a.DateOfJoin ASC "
-                    elif order_by == 2:
-                            # print('order by 123456',order_by)
-                            orderby_cond = " ORDER BY a.DateOfJoin DESC "
+                search_has_photos_cond = ''
+                if 'has_photos' in locals() and has_photos == "Yes":
+                    search_has_photos_cond = " AND i.image IS NOT NULL"
+
+                search_membership_cond = ''
+                if 'membership' in locals() and membership:
+                    search_membership_cond = " AND a.Plan_id = %s"
+                    query_params.append(membership)
+
+                search_income_range_cond = ''
+                if 'min_anual_income' in locals() and 'max_anual_income' in locals() and min_anual_income and max_anual_income:
+                    search_income_range_cond = " AND h.income_amount BETWEEN %s AND %s"
+                    query_params.extend([min_anual_income, max_anual_income])
+
+                try:
+                    order_by = int(order_by)
+                except (ValueError, TypeError):
+                    order_by = None
+
+                if order_by == 1:
+                    orderby_cond = " ORDER BY a.DateOfJoin ASC "
+                elif order_by == 2:
+                    orderby_cond = " ORDER BY a.DateOfJoin DESC "
+                else:
+                    orderby_cond = ""
+
+                query = base_query + height_conditions + search_profile_id_cond + search_profession_cond + search_complexion_cond + search_city_cond + search_state_cond + search_foreign_intrest_cond + search_has_photos_cond + search_membership_cond + search_income_range_cond + orderby_cond
+
+                count_query_params = query_params.copy()
+
+                with connection.cursor() as cursor1:
+                    cursor1.execute(query, query_params)
+                    all_profile_ids = [row1[0] for row1 in cursor1.fetchall()]
+                    total_count = len(all_profile_ids)
+                    profile_with_indices={str(i + 1): profile_id for i, profile_id in enumerate(all_profile_ids)}
+
+                query += " LIMIT %s, %s"
+                query_params.extend([start, per_page])
+
+                formatted_query = query % tuple(query_params)
+                print('formatted_query',formatted_query)
+
+                with connection.cursor() as cursor:
+                    cursor.execute(query, query_params)
+                    rows = cursor.fetchall()
+
+                    if rows:
+                        columns = [col[0] for col in cursor.description]
+                        results = [dict(zip(columns, row)) for row in rows]
+                        return results , total_count, profile_with_indices
                     else:
-                            # print('esg')
-                            orderby_cond = ""  # Default case if no valid order_by is provided
-
-                       
-                    # query = base_query.format(operator=age_condition_operator) + height_conditions
-                    query = base_query.format(operator=age_condition_operator) + height_conditions + search_profile_id_cond + search_profession_cond+search_location_cond+orderby_cond
-                    count_query_params = query_params.copy()
-
-                  
-                    
-                    #count_query = f"SELECT COUNT(*) FROM ({query}) AS count_query"
-
-                   
-                    # Execute the COUNT query to get the total number of records
-                    
-                    #try:
-                    # print('query',query)
-                    
-                    with connection.cursor() as cursor1:
-                        cursor1.execute(query, query_params)
-                        all_profile_ids = [row1[0] for row1 in cursor1.fetchall()]
-
-                        total_count = len(all_profile_ids)
-
-                        profile_with_indices={str(i + 1): profile_id for i, profile_id in enumerate(all_profile_ids)}
-
-                    # Format the query for logging/debugging
-
-                    # print('all_profile_ids',all_profile_ids)
-                    
-                    query += " LIMIT %s, %s"
-
-                    #print(query)
-
-                   
-                    
-                    query_params.extend([start, per_page])     
-
-                    cleaned_query = query.replace('\n', ' ').replace('  ', ' ').strip()
-                    formatted_query = query % tuple(query_params)
-                    
-                    print('formatted_query')
-
-                    print('formatted_query',formatted_query)
-
-                    cleaned_query1 = formatted_query.replace('\n', ' ').replace('  ', ' ').strip()
-
-                    with connection.cursor() as cursor:
-                        cursor.execute(query, query_params)
-                        rows = cursor.fetchall()
-
-                        if rows:
-                            columns = [col[0] for col in cursor.description]
-                            results = [dict(zip(columns, row)) for row in rows]
-
-                            # print('results',results)
-                            # print('total_count',total_count)
-                            # print('profile_with_indices',profile_with_indices)
-
-                            return results , total_count , profile_with_indices
-                            #return [], 0, {}
-                        else:
-                            print('123')
-                            # return JsonResponse({'status': 'failure', 'message': 'No records found.', 'query': cleaned_query}, status=status.HTTP_404_NOT_FOUND)
-                            # return None , 0 , None
-                            return [], 0, {}
-
-                    # except Exception as e:
-                    #     # Log the exception
-                    #     #print(f"An error occurred: {str(e)}")
-                    #     return None ,0 ,None # Return 0 as the total count in case of an error
+                        return [], 0, {}
 
             except Exception as e:
-                print(str(e),'weegger')
-                print('5678900')
-                # return JsonResponse({'status': 'failure1', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                # return None , 0 , None
                 return [], 0, {}
 
         except Exception as e:
-                print('12357576')
+            return [], 0, {}
 
-                # print(str(e))
-
-                # return JsonResponse({'status': 'failure2', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                # return None , 0 , None
-                return [], 0, {}
-        
     @staticmethod
     def get_suggest_profile_list(gender,profile_id,start, per_page , search_profile_id , order_by,search_profession,search_age,search_location):
         

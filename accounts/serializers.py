@@ -316,14 +316,28 @@ class ProfileFamilyDetailsSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ProfileEduDetailsSerializer(serializers.ModelSerializer):
-    profile_id = serializers.CharField(required=False , allow_null=True)
-    work_state = serializers.CharField(required=False , allow_null=True) 
-    work_city = serializers.CharField(required=False , allow_null=True)
-    work_district = serializers.CharField(required=False , allow_null=True)
-    #ug_degeree = serializers.CharField(required=False , allow_null=True) 
+    profile_id = serializers.CharField(required=False, allow_null=True)
+    work_state = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    work_city = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    work_district = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
     class Meta:
         model = ProfileEduDetails
         fields = '__all__'
+
+    def validate(self, data):
+        work_country = data.get('work_country')
+
+        if work_country == '1':
+            if not data.get('work_state'):
+                raise serializers.ValidationError({'work_state': 'This field is required when work_country is 1.'})
+            if not data.get('work_district'):
+                raise serializers.ValidationError({'work_district': 'This field is required when work_country is 1.'})
+        else:
+            data['work_state'] = None
+            data['work_district'] = None
+
+        return data
 
 class ProfilePartnerPrefSerializer(serializers.ModelSerializer):
     profile_id = serializers.CharField(required=False , allow_null=True) 

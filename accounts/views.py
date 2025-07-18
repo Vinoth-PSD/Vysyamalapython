@@ -3577,132 +3577,85 @@ class Get_prof_list_match(APIView):
 
     def post(self, request):
         serializer = GetproflistSerializer(data=request.data)
+        if not serializer.is_valid():
+            return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        #print('Testing','123456')
+        profile_id = serializer.validated_data['profile_id']
+        try:
+            profile_data = Registration1.objects.get(ProfileId=profile_id)
+        except Registration1.DoesNotExist:
+            return JsonResponse({"Status": 0, "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        if serializer.is_valid():            
-            
-            profile_id = serializer.validated_data['profile_id']
-            profile_data =  Registration1.objects.get(ProfileId=profile_id) 
-            
-            search_profile_id = request.data.get('search_profile_id')
+        gender = profile_data.Gender
 
-            search_profession= request.data.get('search_profession')
-            search_age= request.data.get('search_age')
-            search_location= request.data.get('search_location')
-            father_live= request.data.get('father_live')
-            mother_live= request.data.get('mother_live')
-            complexion= request.data.get('complexion')
-            family_status= request.data.get('family_status')
-            education= request.data.get('education')
-            height_from= request.data.get('height_from')
-            height_to= request.data.get('height_to')
-            min_anual_income= request.data.get('min_anual_income')
-            max_anual_income= request.data.get('max_anual_income')
-            matching_stars= request.data.get('matching_stars')
-            foreign_intrest= request.data.get('foreign_intrest')
-            state= request.data.get('state')
-            city= request.data.get('city')
-            membership= request.data.get('membership')
-            has_photos= request.data.get('has_photos')
+        # Pagination
+        per_page = int(request.data.get("per_page", 10))
+        page_number = int(request.data.get("page_number", 1))
+        start = (page_number - 1) * per_page
 
-            order_by = request.data.get('order_by')
-            
-            gender=profile_data.Gender
+        # Fetch profiles
+        profile_details, total_count, profile_with_indices = Get_profiledata_Matching.get_profile_list(
+            gender=gender,
+            profile_id=profile_id,
+            start=start,
+            per_page=per_page,
+            search_profile_id=request.data.get('search_profile_id'),
+            order_by=request.data.get('order_by'),
+            search_profession=request.data.get('search_profession'),
+            search_age=request.data.get('search_age'),
+            search_location=request.data.get('search_location'),
+            complexion=request.data.get('complexion'),
+            city=request.data.get('city'),
+            state=request.data.get('state'),
+            education=request.data.get('education'),
+            foreign_intrest=request.data.get('foreign_intrest'),
+            has_photos=request.data.get('has_photos'),
+            height_from=request.data.get('height_from'),
+            height_to=request.data.get('height_to'),
+            matching_stars=request.data.get('matching_stars'),
+            min_anual_income=request.data.get('min_anual_income'),
+            max_anual_income=request.data.get('max_anual_income'),
+            membership=request.data.get('membership')
+        )
 
+        if not profile_details:
+            return JsonResponse({"Status": 0, "message": "No matching records", "search_result": "1"}, status=status.HTTP_200_OK)
 
-            #psgination code
+        my_profile_details = get_profile_details([profile_id])[0]
+        my_star_id = my_profile_details['birthstar_name']
+        my_rasi_id = my_profile_details['birth_rasi_name']
 
-            received_per_page = request.data.get('per_page')
-            received_page_number = request.data.get('page_number')
+        result_profiles = []
+        for detail in profile_details:
+            result_profiles.append({
+                "profile_id": detail.get("ProfileId"),
+                "profile_name": detail.get("Profile_name"),
+                "profile_img": Get_profile_image(detail.get("ProfileId"), gender, 1, 0, is_admin=True),
+                "profile_age": calculate_age(detail.get("Profile_dob")),
+                "profile_gender": detail.get("Gender"),
+                "height": detail.get("Profile_height"),
+                "weight": detail.get("weight"),
+                "degree": get_degree(detail.get("ug_degeree")),
+                "star": detail.get("star"),
+                "profession": getprofession(detail.get("profession")),
+                "location": detail.get("Profile_city"),
+                "photo_protection": detail.get("Photo_protection"),
+                "matching_score": Get_matching_score(my_star_id, my_rasi_id, detail.get("birthstar_name"), detail.get("birth_rasi_name"), gender),
+                "wish_list": Get_wishlist(profile_id, detail.get("ProfileId")),
+                "verified": detail.get('Profile_verified'),
+                "action_score": self.get_action_score(profile_id, detail.get("ProfileId")),
+            })
 
-                # Set default values if not provided
-            if received_per_page is None:
-                    per_page = 10
-            else:
-                    try:
-                        per_page = int(received_per_page)
-                    except (ValueError, TypeError):
-                        per_page = 10  # Fall back to default if conversion fails
-
-            if received_page_number is None:
-                    page_number = 1
-            else:
-                    try:
-                        page_number = int(received_page_number)
-                    except (ValueError, TypeError):
-                        page_number = 1  # Fall back to default if conversion fails
-
-                # Ensure valid values for pagination
-            per_page = max(1, per_page)
-            page_number = max(1, page_number)
-
-                # Calculate the starting record for the SQL LIMIT clause
-            start = (page_number - 1) * per_page
-
-            # print('params names567',gender,'  ',profile_id,'  ',start,'  ',per_page,'  ',search_profile_id,'  ',order_by,'  ',search_profession,'  ',search_age,'  ',search_location,'  ')
-
-
-            profile_details , total_count ,profile_with_indices = Get_profiledata_Matching.get_profile_list(gender,profile_id,start,per_page,search_profile_id,order_by,search_profession,search_age,search_location,complexion)
-
-            my_profile_id = [profile_id]   
-
-            # print(my_profile_id,'my_profile_id')
-           
-            my_profile_details = get_profile_details(my_profile_id)
-
-            my_gender=my_profile_details[0]['Gender']
-            my_star_id=my_profile_details[0]['birthstar_name']
-            my_rasi_id=my_profile_details[0]['birth_rasi_name']
-
-            if profile_details:
-            
-
-            # (user_profile_id, gender, no_of_image, photo_protection, is_admin=False):
-
-                restricted_profile_details = [
-                            {
-                                "profile_id": detail.get("ProfileId"),
-                                "profile_name": detail.get("Profile_name"),
-                                "profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,0,is_admin=True),
-                                "profile_age": calculate_age(detail.get("Profile_dob")),
-                                "profile_gender":detail.get("Gender"),
-                                "height": detail.get("Profile_height"),
-                                "weight": detail.get("weight"),
-                                "degree": get_degree(detail.get("ug_degeree")),
-                                "star":detail.get("star"),
-                                "profession": getprofession(detail.get("profession")),
-                                "location":detail.get("Profile_city"),
-                                "photo_protection":detail.get("Photo_protection"),
-                                "matching_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
-                                #"profile_image":"http://matrimonyapp.rainyseasun.com/assets/Bride-BEuOb3-D.png",
-                                "wish_list":Get_wishlist(profile_id,detail.get("ProfileId")),
-                                "verified":detail.get('Profile_verified'),
-                                "action_score": self.get_action_score(profile_id, detail.get("ProfileId")),
-                            }
-                            for detail in profile_details
-                        ]
-            
-                combined_data = {
-                            #"interests": serialized_fetch_data,
-                            "profiles": restricted_profile_details
-                        }
-                
-                return JsonResponse({"Status": 1, "message": "Matching records fetched successfully","profiles": restricted_profile_details,"total_count":total_count,
-                            'received_per_page': received_per_page,
-                            'received_page_number': received_page_number,
-                            'calculated_per_page': per_page,
-                            'calculated_page_number': page_number,
-                            'all_profile_ids':profile_with_indices,
-                            'search_result':"1"
-
-                            }, status=status.HTTP_200_OK)
-            else:
-                return JsonResponse({"Status": 0, "message": "No matching records ","search_result": "1" }, status=status.HTTP_200_OK)
-        
-
-        
-        return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({
+            "Status": 1,
+            "message": "Matching records fetched successfully",
+            "profiles": result_profiles,
+            "total_count": total_count,
+            "received_per_page": per_page,
+            "received_page_number": page_number,
+            "all_profile_ids": profile_with_indices,
+            "search_result": "1"
+        }, status=status.HTTP_200_OK)
     
 
 class Get_suggest_list_match(APIView):
