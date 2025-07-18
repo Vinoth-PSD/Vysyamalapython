@@ -277,9 +277,9 @@ class LoginEditSerializer(serializers.ModelSerializer):
     Profile_complexion = serializers.CharField(required=True)
     Profile_address = serializers.CharField(required=True)
     Profile_country = serializers.CharField(required=True)
-    Profile_state = serializers.CharField(required=True)
+    Profile_state = serializers.CharField(required=True,allow_null=True, allow_blank=True)
     Profile_city = serializers.CharField(required=True)
-    Profile_district = serializers.CharField(required=True)
+    Profile_district = serializers.CharField(required=True,allow_null=True, allow_blank=True)
     Gender = serializers.CharField(required=False,allow_null=True)
     Profile_pincode = serializers.CharField(required=True)
 
@@ -293,7 +293,19 @@ class LoginEditSerializer(serializers.ModelSerializer):
     class Meta:
         model = LoginDetails
         fields = '__all__'
+    def validate(self, data):
+        profile_country = str(data.get('Profile_country')).strip()
 
+        if profile_country == '1':
+            if not data.get('Profile_state'):
+                raise serializers.ValidationError({'Profile_state': 'This field is required when Profile_country is 1.'})
+            if not data.get('Profile_district'):
+                raise serializers.ValidationError({'Profile_district': 'This field is required when Profile_country is 1.'})
+        else:
+            data['Profile_state'] = None
+            data['Profile_district'] = None
+
+        return data
 
 class ProfileFamilyDetailsSerializer(serializers.ModelSerializer):
     profile_id = serializers.CharField(required=False , allow_null=True)
