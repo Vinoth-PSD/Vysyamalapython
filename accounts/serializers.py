@@ -696,10 +696,18 @@ class ProfileHoroscopeSerializer(serializers.ModelSerializer):
     amsa_kattam = serializers.CharField(required=False, allow_null=True)
     rasi_kattam = serializers.CharField(required=False ,allow_null=True)
     horoscope_file = serializers.FileField(required=False)
+    star_name = serializers.SerializerMethodField()
+    
     class Meta:
         model = ProfileHoroscope
         fields = '__all__'
 
+    def get_star_name(self, obj):
+        try:
+            birthstar = BirthStar.objects.get(id=obj.birthstar_name, is_deleted=False)
+            return birthstar.star
+        except BirthStar.DoesNotExist:
+            return None
 
 class HomepageSerializer(serializers.ModelSerializer):
     class Meta:
