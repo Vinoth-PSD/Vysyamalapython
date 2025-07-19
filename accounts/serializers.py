@@ -715,11 +715,14 @@ class ProfileHoroscopeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_star_name(self, obj):
+        if not obj.birthstar_name:
+            return None  # Or return '' if you prefer blank
         try:
             birthstar = BirthStar.objects.get(id=obj.birthstar_name, is_deleted=False)
             return birthstar.star
         except BirthStar.DoesNotExist:
             return None
+
 
 class HomepageSerializer(serializers.ModelSerializer):
     class Meta:
