@@ -33,7 +33,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from PyPDF2 import PdfMerger
 import tempfile
 from . import models
-from authentication.views import My_horoscope_generate,WithoutAddressSendEmailAPI,WithoutAddressPrintPDF
+from authentication.views import My_horoscope_generate,WithoutAddressSendEmailAPI,WithoutAddressPrintPDF,generate_pdf_without_address
 from rest_framework.views import APIView
 from django.http import JsonResponse
 from rest_framework.test import APIRequestFactory  # Helps to create a request object
@@ -2547,13 +2547,11 @@ class GetProfEditDetailsAPIView(APIView):
         # print('profile_common_details',response_data['profile_common_details'])
         
        
-        match_profile_details = Get_profiledata_Matching.get_profile_match_count(gender,profile_id)
         suggest_profile_details=Get_profiledata_Matching.get_suggest_match_count(gender,profile_id)
-            
-        if not isinstance(match_profile_details, list):  # Ensure it is a list
-            match_profile_details = []
-
-        matching_profile_count = len(match_profile_details)  # This will not cause an error
+        matching_profile_count = (
+            Get_profiledata_Matching.get_profile_match_count(gender, profile_id)
+            or 0
+        ) # This will not cause an error
 
         if not isinstance(suggest_profile_details, list):  # Ensure it is a list
             suggest_profile_details = []
@@ -6047,179 +6045,108 @@ def parse_data(data):
 
 class ShortProfilePDFView(APIView):
     def post(self, request):
-        profile_ids = request.data.get('profile_id')
+        profile_id = request.data.get('profile_id')
+        format_type = request.data.get('format') or "shortprofile"
 
-        if not profile_ids:
-            return Response({"error": "profile_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not format_type:
+            return JsonResponse({"status": "error", "message": "format is required"}, status=400)
 
-        profile_ids_list = [pid.strip() for pid in profile_ids.split(',')]
-        profiles_html = ""
+        if not profile_id:
+            return JsonResponse({"status": "error", "message": "profile_id is required"}, status=400)
 
-        for profile_id in profile_ids_list:
-            # Fetch related models
-            try:
-                login_details = get_object_or_404(LoginDetails, ProfileId=profile_id)
-                family_details = get_object_or_404(ProfileFamilyDetails, profile_id=profile_id)
-                edu_details = get_object_or_404(ProfileEduDetails, profile_id=profile_id)
-                horoscope_details = get_object_or_404(ProfileHoroscope, profile_id=profile_id)
-            except Exception:
-                continue
+        try:
+            if format_type == "shortprofile":
+                return self.generate_short_profile_pdf(profile_id)
 
-            # Get optional fields
-            complexion_desc = default_placeholder
-            if login_details.Profile_complexion:
-                try:
-                    complexion_instance = Complexion.objects.get(complexion_id=login_details.Profile_complexion)
-                    complexion_desc = complexion_instance.complexion_desc
-                except Complexion.DoesNotExist:
-                    pass
+            elif format_type == "fullprofile":
+                return My_horoscope_generate(request, profile_id, filename=f"fullprofile_{profile_id}.pdf")
 
-            birthstar_name = default_placeholder
-            if horoscope_details.birthstar_name:
-                try:
-                    birthstar_instance = BirthStar.objects.get(id=horoscope_details.birthstar_name)
-                    birthstar_name = birthstar_instance.star
-                except BirthStar.DoesNotExist:
-                    pass
+            elif format_type == "withoutaddress":
+                return generate_pdf_without_address(request, profile_id,filename=f"profile_withoutaddress_{profile_id}.pdf")
 
-            highest_education = default_placeholder
-            if edu_details.highest_education:
-                try:
-                    education_instance = EducationLevel.objects.get(row_id=edu_details.highest_education)
-                    highest_education = education_instance.EducationLevel
-                except EducationLevel.DoesNotExist:
-                    pass
+            else:
+                return JsonResponse({"status": "error", "message": "Invalid format"}, status=400)
 
-            profession = default_placeholder
-            if edu_details.profession:
-                try:
-                    profession_instance = Profession.objects.get(row_id=edu_details.profession)
-                    profession = profession_instance.profession
-                except Profession.DoesNotExist:
-                    pass
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
-            annual_income = default_placeholder
-            if edu_details.anual_income:
-                try:
-                    income_instance = AnnualIncome.objects.get(id=edu_details.anual_income)
-                    annual_income = income_instance.income
-                except AnnualIncome.DoesNotExist:
-                    pass
+    def generate_short_profile_pdf(self, profile_id):
+        login = get_object_or_404(LoginDetails, ProfileId=profile_id)
+        family = get_object_or_404(ProfileFamilyDetails, profile_id=profile_id)
+        edu = get_object_or_404(ProfileEduDetails, profile_id=profile_id)
+        horoscope = get_object_or_404(ProfileHoroscope, profile_id=profile_id)
 
-            state_name = default_placeholder
-            if login_details.Profile_state:
-                try:
-                    state_instance = State.objects.get(id=login_details.Profile_state)
-                    state_name = state_instance.name
-                except State.DoesNotExist:
-                    pass
+        def get_safe_value(model, lookup_field, id_value, return_field, default="N/A"):
+            if not id_value:
+                return default
+            return model.objects.filter(**{lookup_field: id_value}).values_list(return_field, flat=True).first() or default
 
-            # Rasi Kattam
-            rasi_kattam = parse_data(horoscope_details.rasi_kattam or '')
-            rasi_kattam.extend([default_placeholder] * (12 - len(rasi_kattam)))
+        complexion = get_safe_value(Complexion, 'complexion_id', login.Profile_complexion, 'complexion_desc')
+        birthstar = get_safe_value(BirthStar, 'id', horoscope.birthstar_name, 'star')
 
-            # HTML Block for One Profile
-            profiles_html += f"""
-            <div class="profile">
-                <table class="vysyamala-flex">
-                    <tr>
-                        <td>Vysyamala  https://www.vysyamala.com  |  {login_details.Mobile_no}  |  UserId: {login_details.ProfileId}</td>
-                    </tr>
-                </table>
-                <div class="details">
-                    <p><strong>Name:</strong> {login_details.Profile_name} <strong>S/o</strong> {family_details.father_name} DOB: {login_details.Profile_dob}</p>
-                    <p><strong>Height:</strong> {login_details.Profile_height} cm | <strong>Complexion:</strong> {complexion_desc} | <strong>Birth Star:</strong> {birthstar_name} | <strong>Gothram:</strong> {family_details.suya_gothram}</p>
-                    <p><strong>Education:</strong> {highest_education} | <strong>State:</strong> {state_name}</p>
-                    <p><strong>Profession:</strong> {profession}</p>
-                    <p><strong>Annual Income:</strong> {annual_income}</p>
-                    <p><strong>Dasa Balance:</strong> {horoscope_details.dasa_balance}</p>
-                </div>
-                <h1 class="rasi-heading">Rasi Kattam</h1>
-                <table class="rasi-kattam">
-                    <tr>
-                        <td>{rasi_kattam[0].replace('/', '<br>')}</td>
-                        <td>{rasi_kattam[1].replace('/', '<br>')}</td>
-                        <td>{rasi_kattam[2].replace('/', '<br>')}</td>
-                        <td>{rasi_kattam[3].replace('/', '<br>')}</td>
-                    </tr>
-                    <tr>
-                        <td>{rasi_kattam[11].replace('/', '<br>')}</td>
-                        <td colspan="2" rowspan="2" class=""> Rasi</td>
-                        <td>{rasi_kattam[4].replace('/', '<br>')}</td>
-                    </tr>
-                    <tr>
-                        <td>{rasi_kattam[10].replace('/', '<br>')}</td>
-                        <td>{rasi_kattam[5].replace('/', '<br>')}</td>
-                    </tr>
-                    <tr>
-                        <td>{rasi_kattam[9].replace('/', '<br>')}</td>
-                        <td>{rasi_kattam[8].replace('/', '<br>')}</td>
-                        <td>{rasi_kattam[7].replace('/', '<br>')}</td>
-                        <td>{rasi_kattam[6].replace('/', '<br>')}</td>
-                    </tr>
-                </table>
-                <hr/>
-            </div>
-            """
+        rasi_kattam = parse_data(horoscope.rasi_kattam or '') + ['N/A'] * 12
+        rasi_kattam = rasi_kattam[:12]  # ensure exactly 12 elements
 
-        # Full HTML Content
         html_content = f"""
         <html>
         <head>
-            <style>
-                .print-heading {{
-                    font-size: 28px;
-                    font-weight: bold;
-                    text-align: center;
-                    margin-bottom: 0em;
-                }}
-                .vysyamala-flex {{
-                    border-collapse: collapse;
-                    border: none; 
-                }}
-                .vysyamala-flex td {{
-                    font-size: 20px;
-                    font-weight: bold;
-                }}
-                .details p {{
-                    font-size: 14px;
-                    margin: 5px 0;
-                }}
-                .rasi-heading {{
-                    font-size: 14px;
-                }}
-                .rasi-kattam {{
-                    width: 300px;
-                    border-collapse: collapse;
-                }}
-                .rasi-kattam td {{
-                    font-size: 12px;
-                    background-color: #fff;
-                    border: 1px solid #000;
-                    width: 75px;
-                    height: 50px;
-                    text-align: center;
-                    vertical-align: middle;
-                }}
-            </style>
+          <style>
+            body {{ font-family: Arial, sans-serif; }}
+            .details p {{ font-size: 14px; margin: 5px 0; }}
+            .rasi-kattam td {{
+                width: 60px; height: 50px; text-align: center; border: 1px solid #000;
+            }}
+            table.rasi-kattam {{
+                border-collapse: collapse;
+            }}
+          </style>
         </head>
         <body>
-            <div class="header">
-                <h1 class="print-heading">Print Short Profiles</h1>
-                <br/>
-            </div>
-            {profiles_html}
+          <h2>Short Profile PDF</h2>
+          <p><strong>Profile ID:</strong> {profile_id}</p>
+          <div class="details">
+            <p><strong>Name:</strong> {login.Profile_name}</p>
+            <p><strong>DOB:</strong> {login.Profile_dob}</p>
+            <p><strong>Father's Name:</strong> {family.father_name}</p>
+            <p><strong>Complexion:</strong> {complexion}</p>
+            <p><strong>Birth Star:</strong> {birthstar}</p>
+          </div>
+          <h4>Rasi Kattam</h4>
+          <table class="rasi-kattam">
+            <tr><td>{rasi_kattam[0]}</td><td>{rasi_kattam[1]}</td><td>{rasi_kattam[2]}</td><td>{rasi_kattam[3]}</td></tr>
+            <tr><td>{rasi_kattam[11]}</td><td colspan="2" rowspan="2">Rasi</td><td>{rasi_kattam[4]}</td></tr>
+            <tr><td>{rasi_kattam[10]}</td><td>{rasi_kattam[5]}</td></tr>
+            <tr><td>{rasi_kattam[9]}</td><td>{rasi_kattam[8]}</td><td>{rasi_kattam[7]}</td><td>{rasi_kattam[6]}</td></tr>
+          </table>
         </body>
         </html>
         """
 
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="Profiles_{",".join(profile_ids_list)}.pdf"'
-        pisa_status = pisa.CreatePDF(io.StringIO(html_content), dest=response)
+        return self.render_pdf(html_content, f"short_profile_{profile_id}.pdf")
+
+    def generate_full_profile_pdf(self, profile_id):
+        # Reuse short profile template or add more fields for full profile
+        html_content = f"""
+        <html><body><h2>Full Profile</h2><p>Profile ID: {profile_id}</p>
+        <p>This is a placeholder for full profile generation logic.</p></body></html>"""
+        return self.render_pdf(html_content, f"full_profile_{profile_id}.pdf")
+
+    def generate_profile_without_address(self, profile_id):
+        html_content = f"""
+        <html><body><h2>Profile Without Address</h2><p>Profile ID: {profile_id}</p>
+        <p>This PDF is generated without sensitive address information.</p></body></html>"""
+        return self.render_pdf(html_content, f"without_address_profile_{profile_id}.pdf")
+
+    def render_pdf(self, html, filename):
+        pdf_file = io.BytesIO()
+        pisa_status = pisa.CreatePDF(io.StringIO(html), dest=pdf_file)
 
         if pisa_status.err:
-            return Response({"error": "Error generating PDF"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return JsonResponse({"status": "error", "message": "Error generating PDF."}, status=500)
 
+        pdf_file.seek(0)
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
 
 
