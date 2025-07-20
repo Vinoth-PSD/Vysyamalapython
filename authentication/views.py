@@ -6231,8 +6231,11 @@ class GetMyProfilePersonal(APIView):
                 marital_status_name = None
 
             try:
-                complexion = models.Profilecomplexion.objects.get(complexion_id=registration.Profile_complexion)
-                complexion_name = complexion.complexion_desc
+                if registration.Profile_complexion not in (None, '', 0):
+                    complexion = models.Profilecomplexion.objects.get(complexion_id=registration.Profile_complexion)
+                    complexion_name = complexion.complexion_desc
+                else:
+                    complexion_name = None
             except models.Profilecomplexion.DoesNotExist:
                 complexion_name = None
             
