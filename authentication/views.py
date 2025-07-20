@@ -5324,11 +5324,13 @@ class User_change_password(APIView):
                 user = models.Registration1.objects.get(ProfileId=profile_id)
                 
                 # if not check_password(old_password,user.Password):
-		if old_password != user.Password:
+                if old_password != user.Password:
+
+                
                     return JsonResponse({"status": "error", "message": "Incorrect current password"}, status=status.HTTP_400_BAD_REQUEST)
 
                 # user.Password = make_password(new_password)
-		user.Password = new_password
+                user.Password = new_password
                 user.save()
                 return JsonResponse({"status": "success", "message": "Password updated successfully"})
             except models.Registration1.DoesNotExist:
