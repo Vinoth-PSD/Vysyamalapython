@@ -127,8 +127,8 @@ class LoginView(APIView):
             # print('ency_password', ency_password)
             auth_user = models.Registration1.objects.get(ProfileId=username, Status__in=[0,1,2,3])
                       
-            if check_password(password,auth_user.Password):
-            
+            # if check_password(password,auth_user.Password):
+            if password == auth_user.Password:
                 user, created = User.objects.get_or_create(username=auth_user.ProfileId)
                 if created:
                     # Handle user creation logic if needed
@@ -5323,11 +5323,12 @@ class User_change_password(APIView):
             try:
                 user = models.Registration1.objects.get(ProfileId=profile_id)
                 
-                if not check_password(old_password,user.Password):
-                #if user.Password != make_password(old_password):
+                # if not check_password(old_password,user.Password):
+		if old_password != user.Password:
                     return JsonResponse({"status": "error", "message": "Incorrect current password"}, status=status.HTTP_400_BAD_REQUEST)
 
-                user.Password = make_password(new_password)
+                # user.Password = make_password(new_password)
+		user.Password = new_password
                 user.save()
                 return JsonResponse({"status": "success", "message": "Password updated successfully"})
             except models.Registration1.DoesNotExist:
