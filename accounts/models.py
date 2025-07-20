@@ -544,8 +544,8 @@ class LoginDetails(models.Model):
     Admin_comments= models.TextField(null=True)
     Admin_comment_date= models.DateTimeField(null=True, blank=True)
     PaymentExpire = models.DateTimeField(max_length=15,blank=True, null=True)  # Changed from CharField to TextField
-    membership_startdate = models.DateField(max_length=15,blank=True, null=True)  # Changed from CharField to TextField
-    membership_enddate = models.DateField(max_length=15,blank=True, null=True)  # Changed from CharField to TextField
+    membership_startdate = models.DateTimeField(max_length=15,blank=True, null=True)  # Changed from CharField to TextField
+    membership_enddate = models.DateTimeField(max_length=15,blank=True, null=True)  # Changed from CharField to TextField
     primary_status = models.IntegerField(blank=True, null=True)
     secondary_status =  models.IntegerField(blank=True, null=True)
     plan_status =  models.IntegerField(blank=True, null=True)
