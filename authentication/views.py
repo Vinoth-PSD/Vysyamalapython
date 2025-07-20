@@ -6318,7 +6318,11 @@ class GetMyProfilePersonal(APIView):
                 Profile_high_edu = None
             
             try:
-                Profile_prosession = models.Profespref.objects.get(RowId=education_details_serializer.data.get('profession')).profession
+                    
+                if education_details_serializer.data.get('profession'):
+                    Profile_prosession = models.Profespref.objects.get(RowId=education_details_serializer.data.get('profession')).profession
+                else:
+                    Profile_prosession=None
             except models.Profespref.DoesNotExist:
                 Profile_prosession = None
             
