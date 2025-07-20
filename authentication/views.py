@@ -3729,18 +3729,33 @@ def get_degree(degeree):
     return Profile_ug_degree
 
 
-def getprofession(profession):
+# def getprofession(profession):
 
-    # print('degeree',degeree)
+#     # print('degeree',degeree)
 
-    try:
+#     try:
         
-        Profile_profession = models.Profespref.objects.get(RowId=profession).profession
+#         Profile_profession = models.Profespref.objects.get(RowId=profession).profession
     
-    except models.Profespref.DoesNotExist:
-                Profile_profession = None 
+#     except models.Profespref.DoesNotExist:
+#                 Profile_profession = None 
     
-    return Profile_profession
+#     return Profile_profession
+
+def getprofession(profession):
+    try:
+        if not profession:  # handles None, '', 0
+            return None
+
+        # Fetch profession description
+        profile_profession = models.Profespref.objects.get(RowId=profession).profession
+
+    except (models.Profespref.DoesNotExist, ValueError, TypeError):
+        # Return None if not found or invalid ID
+        profile_profession = None
+
+    return profile_profession
+
 
 
 
