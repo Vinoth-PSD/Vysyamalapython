@@ -72,6 +72,13 @@ import re
 from dateutil import parser
 from datetime import datetime, time
 from .serializers import CommonProfileSearchSerializer
+from azure.storage.blob import BlobServiceClient, ContentSettings
+from PIL import Image, ImageFilter
+from io import BytesIO
+import os
+import logging
+
+
 # from authentication.models import ProfileVisibility
 # from authentication.serializers import ProfileVisibilityListSerializer
 
@@ -6860,6 +6867,29 @@ class GenerateInvoicePDF(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+def process_and_blur_image(image_bytes):
+    """Process image bytes and return blurred image bytes"""
+    try:
+        with Image.open(BytesIO(image_bytes)) as img:
+            # Convert to RGB if needed (for PNGs with alpha channel)
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Resize (optional, improves performance)
+            img = img.resize((img.width // 2, img.height // 2))
+            
+            # Apply blur effect
+            blurred_img = img.filter(ImageFilter.GaussianBlur(radius=10))
+            
+            # Save to bytes
+            output = BytesIO()
+            blurred_img.save(output, format='JPEG', quality=85)
+            return output.getvalue()
+    
+    except Exception as e:
+        logger.error(f"Image processing failed: {e}")
+        raise
+
 
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
@@ -6933,8 +6963,45 @@ def GetPhotoProofDetails(request):
                         image.image_approved = bool(image_approved_vals[idx])
                         image.save()
                         updated_images.append(image.id)
+
+                        try:
+                            container_name = 'vysyamala'
+                            connection_string = 'DefaultEndpointsProtocol=https;AccountName=vysyamaladev2025;AccountKey=1mdfx0CBr1DTTNuVVK0qL5JXEpRNQnyWVEbIzndIPPlHXNERQIYGjsGWf3zXcX1EpRyCSu/hegkp+AStd8nkfQ==;EndpointSuffix=core.windows.net'
+                            source_folder = "profile_images/"  # from where image is fetched
+                            dest_folder = "blurred_images/"    # where blurred image is saved
+
+                            file_name = os.path.basename(image.image.name)  # replace this with your image field name
+                            source_blob_name = f"{source_folder}{file_name}"
+                            dest_blob_name = f"{dest_folder}{file_name}"
+
+                            blob_service = BlobServiceClient.from_connection_string(connection_string)
+                            container_client = blob_service.get_container_client(container_name)
+
+                            # Download original image from blob storage
+                            blob_client = container_client.get_blob_client(source_blob_name)
+
+                            if blob_client.exists():
+                                image_data = blob_client.download_blob().readall()
+
+                                # Apply blur
+                                blurred_img = process_and_blur_image(image_data)
+
+                                # Upload blurred image
+                                container_client.get_blob_client(dest_blob_name).upload_blob(
+                                    blurred_img,
+                                    overwrite=True,
+                                    content_settings=ContentSettings(content_type="image/jpeg")
+                                )
+
+                                update_summary.setdefault('blurred_images_uploaded', []).append(file_name)
+                            else:
+                                update_summary.setdefault('blurred_images_skipped', []).append(file_name)
+
+                        except Exception as blur_e:
+                            update_summary.setdefault('blur_errors', []).append({'image_id': image.id, 'error': str(blur_e)})
+
                     except Image_Upload.DoesNotExist:
-                        continue  # You can also collect skipped IDs if needed
+                        continue
                     
                 update_summary['images_updated'] = updated_images
     

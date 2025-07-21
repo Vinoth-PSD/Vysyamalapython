@@ -8,6 +8,7 @@ from rest_framework.views import status
 from django.conf import settings
 from .storages import AzureMediaStorage
 from django.core.mail import EmailMessage
+from datetime import date, timedelta
 
 
 class ProfileStatus(models.Model):
@@ -1946,12 +1947,12 @@ class Get_profiledata_Matching(models.Model):
 
     @staticmethod
     def get_common_profile_list(start, per_page, 
-                                search_profile_id=None, order_by=None,
-                                search_profession=None, search_age=None, search_location=None,
+                                search_profile_id=None, order_by=None,chevvai_dosham=None, ragu_dosham=None,
+                                search_profession=None, age_from=None,age_to=None, search_location=None,
                                 complexion=None, city=None, state=None, education=None,
                                 foreign_intrest=None, has_photos=None, height_from=None, height_to=None,
                                 matching_stars=None, min_anual_income=None, max_anual_income=None,
-                                membership=None):
+                                membership=None,profile_name=None):
 
         try:
             base_query = """
@@ -1965,7 +1966,7 @@ class Get_profiledata_Matching(models.Model):
                 LEFT JOIN profile_edudetails f ON a.ProfileId = f.profile_id
                 LEFT JOIN mastereducation g ON f.highest_education = g.RowId
                 LEFT JOIN masterannualincome h ON f.anual_income = h.id
-
+                LEFT JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
                 LEFT JOIN (
                     SELECT *
                     FROM (
@@ -1976,62 +1977,145 @@ class Get_profiledata_Matching(models.Model):
                     ) ranked_images
                     WHERE rn = 1
                 ) i ON i.profile_id = a.ProfileId
-
                 WHERE a.Status = 1
             """
 
             query_params = []
 
-            # Optional filters
+            # profile_id and name search
             if search_profile_id:
                 base_query += " AND (a.ProfileId = %s OR a.Profile_name LIKE %s)"
                 query_params.append(search_profile_id)
                 query_params.append(f"%{search_profile_id}%")
 
+            # Profession filter (multiple IDs support)
             if search_profession:
-                base_query += " AND f.profession = %s"
-                query_params.append(search_profession)
+                try:
+                    profession_ids = tuple(map(int, search_profession.split(',')))
+                    if profession_ids:
+                        base_query += " AND f.profession IN %s"
+                        query_params.append(profession_ids)
+                except:
+                    pass
 
+            # Age filter
+            today = date.today()
+
+            if 'age_from' in locals() or 'age_to' in locals():
+                if age_from and age_to:
+                    dob_from = today - timedelta(days=(age_to * 365.25))  # older date
+                    dob_to = today - timedelta(days=(age_from * 365.25))  # newer date
+                    base_query += " AND a.Profile_dob BETWEEN %s AND %s"
+                    query_params.extend([dob_from, dob_to])
+                elif age_from:
+                    dob_to = today - timedelta(days=(age_from * 365.25))
+                    base_query += " AND a.Profile_dob <= %s"
+                    query_params.append(dob_to)
+                elif age_to:
+                    dob_from = today - timedelta(days=(age_to * 365.25))
+                    base_query += " AND a.Profile_dob >= %s"
+                    query_params.append(dob_from)
+
+            # Location filter (if separate from state)
             if search_location:
                 base_query += " AND a.Profile_state = %s"
                 query_params.append(search_location)
 
-            if complexion:
+            # Complexion
+            if complexion and complexion != "0":
                 base_query += " AND a.Profile_complexion = %s"
                 query_params.append(complexion)
 
-            if city:
+            if profile_name:
+                base_query += " AND a.Profile_name LIKE %s"
+                query_params.append(f"%{profile_name}%")
+            
+            # City
+            if city and city != "0":
                 base_query += " AND a.Profile_city = %s"
                 query_params.append(city)
 
-            if state:
+            # State
+            if state and state != "0":
                 base_query += " AND a.Profile_state = %s"
                 query_params.append(state)
 
+            # Education (multi IDs)
             if education:
-                base_query += " AND FIND_IN_SET(g.RowId, %s) > 0"
-                query_params.append(education)
+                try:
+                    education_ids = tuple(map(int, education.split(',')))
+                    if education_ids:
+                        base_query += " AND g.RowId IN %s"
+                        query_params.append(education_ids)
+                except:
+                    pass
 
+            # Matching stars (as comma-separated star-rasi strings)
             if matching_stars:
-                base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
-                query_params.append(matching_stars)
+                matching_stars = matching_stars.strip()
+                if matching_stars and matching_stars != "0":
+                    try:
+                        star_ids = tuple(map(int, matching_stars.split(',')))
+                        if star_ids:
+                            base_query += " AND e.birthstar_name IN %s"
+                            query_params.append(star_ids)
+                    except ValueError:
+                        pass
 
-            if foreign_intrest:
-                base_query += " AND a.foreign_interest = %s"
+            # Foreign interest
+            if foreign_intrest and foreign_intrest != "0":
+                base_query += " AND b.pref_foreign_intrest = %s"
                 query_params.append(foreign_intrest)
 
+            # Has photos
             if has_photos and has_photos.lower() == "yes":
                 base_query += " AND i.image IS NOT NULL"
 
+            # Membership plan filter
             if membership:
                 base_query += " AND a.Plan_id = %s"
                 query_params.append(membership)
 
-            if min_anual_income and max_anual_income:
-                base_query += " AND h.income_amount BETWEEN %s AND %s"
-                query_params.extend([min_anual_income, max_anual_income])
+            def normalize_dosham(val):
+                val = str(val).strip().lower()
+                return "1" if val in ["yes", "true", "1"] else "0"
 
+            if chevvai_dosham:
+                base_query += " AND e.chevvai_dosaham = %s"
+                query_params.append(normalize_dosham(chevvai_dosham))
+
+            if ragu_dosham:
+                base_query += " AND e.ragu_dosham = %s"
+                query_params.append(normalize_dosham(ragu_dosham))
+
+            # Income range
+            if min_anual_income and max_anual_income:
+                try:
+                    with connection.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT income_amount 
+                            FROM masterannualincome 
+                            WHERE id IN (%s, %s)
+                            ORDER BY id
+                        """, [min_anual_income, max_anual_income])
+                        income_rows = cursor.fetchall()
+
+                        amounts = [row[0] for row in income_rows if row[0] is not None]
+
+                        if len(amounts) >= 2:
+                            income_min = min(amounts)
+                            income_max = max(amounts)
+                            base_query += " AND h.income_amount BETWEEN %s AND %s"
+                            query_params.extend([income_min, income_max])
+                        elif len(amounts) == 1:
+                            base_query += " AND h.income_amount >= %s"
+                            query_params.append(amounts[0])
+                except Exception as e:
+                    print("[Income Filter Error]", str(e))
+            # Height range
             if height_from and height_to:
+                if height_from > height_to:
+                    height_from, height_to = height_to, height_from
                 base_query += " AND a.Profile_height BETWEEN %s AND %s"
                 query_params.extend([height_from, height_to])
             elif height_from:
@@ -2041,7 +2125,7 @@ class Get_profiledata_Matching(models.Model):
                 base_query += " AND a.Profile_height <= %s"
                 query_params.append(height_to)
 
-            # Order By
+            # Order by clause
             if order_by:
                 try:
                     order_by = int(order_by)
@@ -2058,7 +2142,7 @@ class Get_profiledata_Matching(models.Model):
                 cursor.execute(count_query, query_params)
                 total_count = cursor.fetchone()[0]
 
-            # Add limit/offset for page
+            # Limit and offset
             base_query += " LIMIT %s OFFSET %s"
             query_params.extend([per_page, start])
 
@@ -2077,7 +2161,6 @@ class Get_profiledata_Matching(models.Model):
         except Exception as ex:
             print(f"[get_common_profile_list] ERROR: {str(ex)}")
             return [], 0, {}
-
 
 
 class MatchingStarPartner(models.Model):
