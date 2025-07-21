@@ -17,7 +17,7 @@ from .views import MarriageSettleDetailsCreateView, MarriageSettleDetailsListVie
 from .views import PaymentTransactionCreateView, PaymentTransactionListView
 from .views import GenerateInvoicePDF
 from . import views
-
+from .views import CommonProfileSearchAPIView
 
 router = DefaultRouter()
 
@@ -183,4 +183,5 @@ urlpatterns = [
     path('send_mobile_otp/', views.SendmobileOtp.as_view(), name='send_mobile_otp'),
     path('verify_mobile_otp/', views.VerifymobileOtp.as_view(), name='verify_mobile_otp'),
     path('admin-users/list/', AdminUserDropdownAPIView.as_view(), name='admin-user-dropdown'),
+    path('common-search/',CommonProfileSearchAPIView.as_view(),name='common-search'),
 ]

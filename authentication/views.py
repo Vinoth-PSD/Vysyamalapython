@@ -12040,8 +12040,6 @@ class HomepageListView(APIView):
         else:
             return JsonResponse({'status': 'error', 'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-
-
 def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirthchart"):
 
                 # print('1234567')
@@ -12095,71 +12093,84 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 user_profile_id = login_details.ProfileId
                 height = login_details.Profile_height 
 
+                                # Safely convert to integer only if value is digit and non-empty
+                def safe_get_value(model, pk_field, value, name_field='name', default='N/A'):
+                    try:
+                        if value and str(value).isdigit():
+                            return model.objects.filter(**{pk_field: value}).values_list(name_field, flat=True).first() or default
+                    except Exception:
+                        pass
+                    return default
+
+                # Complexion
                 complexion_id = login_details.Profile_complexion
-                complexion = models.Profilecomplexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
+                complexion = safe_get_value(models.Profilecomplexion, 'complexion_id', complexion_id, 'complexion_desc')
 
+                # Highest Education
                 highest_education_id = education_details.highest_education
-                highest_education = models.Highesteducation.objects.filter(id=highest_education_id).values_list('degree', flat=True).first() or "Unknown"
+                highest_education = safe_get_value(models.Highesteducation, 'id', highest_education_id, 'degree')
 
+                # Annual Income
                 annual_income_id = education_details.anual_income
-                annual_income = models.Annualincome.objects.filter(id=annual_income_id).values_list('income', flat=True).first() or "Unknown"
+                annual_income = safe_get_value(models.Annualincome, 'id', annual_income_id, 'income')
 
+                # Profession
                 profession_id = education_details.profession
-                profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
+                profession = safe_get_value(models.Profespref, 'RowId', profession_id, 'profession')
 
+                # Work place and occupation details
+                work_place = education_details.work_place or "Not specified"
+                occupation_title = ''
+                occupation = ''
 
-                work_place=education_details.work_place
-                ocupation_title=''
-                ocupation=''
+                try:
+                    prof_id_int = int(profession_id)
+                    if prof_id_int == 1:
+                        occupation_title = 'Employment Details'
+                        occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                    elif prof_id_int == 2:
+                        occupation_title = 'Business Details'
+                        occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                except (ValueError, TypeError):
+                    occupation_title = 'Other'
+                    occupation = ''
 
-                if profession_id==1:
-                        ocupation_title='Employment Details'
-                        ocupation=education_details.company_name+'/'+education_details.designation
-                if profession_id==2:
-                       ocupation_title='Business Details'
-                       ocupation=education_details.business_name+'/'+education_details.nature_of_business
-                
-                profession_id = education_details.profession
-                profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
-
-
-                #father_occupation_id = family_detail.father_occupation
-                father_occupation = family_detail.father_occupation
-
-                 #mother_occupation_id = family_detail.mother_occupation
-                mother_occupation = family_detail.mother_occupation
+                # Family fields
+                father_occupation = family_detail.father_occupation or "N/A"
+                mother_occupation = family_detail.mother_occupation or "N/A"
 
                 family_status_id = family_detail.family_status
-                family_status = models.Familystatus.objects.filter(id=family_status_id).values_list('status', flat=True).first() or "Unknown"
+                family_status = safe_get_value(models.Familystatus, 'id', family_status_id, 'status')
 
-                # Fetch star name from BirthStar model
+                # Star name
                 try:
                     star = models.Birthstar.objects.get(pk=horoscope.birthstar_name)
-                    star_name = star.star  # Or use star.tamil_series, telugu_series, etc. as per your requirement
+                    star_name = star.star
                 except models.Birthstar.DoesNotExist:
-                    star_name = "Unknown"
+                    star_name = "N/A"
 
-                # Fetch rasi name from Rasi model
+                # Rasi name
                 try:
                     rasi = models.Rasi.objects.get(pk=horoscope.birth_rasi_name)
-                    rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                    rasi_name = rasi.name
                 except models.Rasi.DoesNotExist:
-                    rasi_name = "Unknown"
+                    rasi_name = "N/A"
 
-                time_of_birth = horoscope.time_of_birth
-                place_of_birth = horoscope.place_of_birth
-                lagnam = horoscope.lagnam_didi
-                didi = horoscope.didi
-                nalikai =  horoscope.nalikai
+                # Time & location
+                time_of_birth = horoscope.time_of_birth or "Not specified"
+                place_of_birth = horoscope.place_of_birth or "Not specified"
+                didi = horoscope.didi or "Not specified"
+                nalikai = horoscope.nalikai or "Not specified"
 
-                age = calculate_age(dob)  
-
+                # Lagnam
                 try:
-                    lagnam = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
-                    lagnam = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                    lagnam_obj = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
+                    lagnam = lagnam_obj.name
                 except models.Rasi.DoesNotExist:
-                    lagnam = "Unknown"
+                    lagnam = "N/A"
 
+                # Age calculation
+                age = calculate_age(dob) if dob else "Not specified"
                 # Planet mapping dictionary
                 # planet_mapping = {
                 #     "1": "Sun",
@@ -12597,14 +12608,14 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                             <p>Height / Photos </p>
                                             <p>Annual Income</p>
                                             <p>Profession/Place of stay</p>
-                                            <p>{ocupation_title}</p>
+                                            <p>{occupation_title}</p>
                                         </td> 
                                         <td>
                                             <p><strong>{user_profile_id}</strong></p>
                                             <p> {height} / Not specified</p>
                                             <p>{annual_income}</p>
                                             <p>{profession} / {work_place}</p>
-                                            <p>{ocupation}</p>
+                                            <p>{occupation}</p>
                                         </td> 
                                     </tr>
                                 </table>
@@ -15022,70 +15033,92 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
 
             print('1234567')
 
-            # Retrieve the Horoscope object based on the provided profile_id
+            # Retrieve main objects
             horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
             login_details = get_object_or_404(models.Registration1, ProfileId=user_profile_id)
             education_details = get_object_or_404(models.Edudetails, profile_id=user_profile_id)
-            
-            # family details
-            family_details = models.Familydetails.objects.filter(profile_id=user_profile_id)
-            if family_details.exists():
-                family_detail = family_details.first()  
-                father_name = family_detail.father_name  
-                father_occupation = family_detail.father_occupation
-                family_status = family_detail.family_status
-                mother_name = family_detail.mother_name
-                mother_occupation = family_detail.mother_occupation
-                no_of_sis_married = family_detail.no_of_sis_married
-                no_of_bro_married = family_detail.no_of_bro_married
-                suya_gothram = family_detail.suya_gothram
-            else:
-                # Handle case where no family details are found
-                father_name = father_occupation = family_status = ""
-                mother_name = mother_occupation = ""
-                no_of_sis_married = no_of_bro_married = 0
-            # Education and profession details
-            highest_education = education_details.highest_education
-            annual_income = education_details.anual_income
-            profession = education_details.profession
-            # personal details
-            name = login_details.Profile_name  # Assuming a Profile_name field exists
-            dob = login_details.Profile_dob
-            complexion = login_details.Profile_complexion
+
+            # === Helper functions ===
+            def safe_get_value(model, pk_field, value, name_field='name', default='N/A'):
+                try:
+                    if value and str(value).isdigit():
+                        return model.objects.filter(**{pk_field: value}).values_list(name_field, flat=True).first() or default
+                except Exception:
+                    pass
+                return default
+
+            def clean_value(value):
+                """Convert blank/null/'null' to 'N/A'."""
+                if value and str(value).strip().lower() not in ['none', 'null', '']:
+                    return str(value).strip()
+                return "N/A"
+
+            # === Personal details ===
+            name = clean_value(login_details.Profile_name)
+            dob = clean_value(login_details.Profile_dob)
+            height = clean_value(login_details.Profile_height)
             user_profile_id = login_details.ProfileId
-            height = login_details.Profile_height 
             complexion_id = login_details.Profile_complexion
-            complexion = models.Profilecomplexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
+            complexion = clean_value(safe_get_value(models.Profilecomplexion, 'complexion_id', complexion_id, 'complexion_desc'))
+
+            # === Education and income/profession ===
             highest_education_id = education_details.highest_education
-            highest_education = models.Highesteducation.objects.filter(id=highest_education_id).values_list('degree', flat=True).first() or "Unknown"
+            highest_education = clean_value(safe_get_value(models.Highesteducation, 'id', highest_education_id, 'degree'))
+
             annual_income_id = education_details.anual_income
-            annual_income = models.Annualincome.objects.filter(id=annual_income_id).values_list('income', flat=True).first() or "Unknown"
+            annual_income = clean_value(safe_get_value(models.Annualincome, 'id', annual_income_id, 'income'))
+
             profession_id = education_details.profession
-            profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
-            #father_occupation_id = family_detail.father_occupation
-            father_occupation = family_detail.father_occupation
-             #mother_occupation_id = family_detail.mother_occupation
-            mother_occupation = family_detail.mother_occupation
-            family_status_id = family_detail.family_status
-            family_status = models.Familystatus.objects.filter(id=family_status_id).values_list('status', flat=True).first() or "Unknown"
-            # Fetch star name from BirthStar model
+            profession = clean_value(safe_get_value(models.Profespref, 'RowId', profession_id, 'profession'))
+
+            # === Occupation title & text ===
+            occupation = "N/A"
+            occupation_title = "N/A"
+            try:
+                prof_id = int(profession_id)
+                if prof_id == 1:
+                    occupation_title = "Employment Details"
+                    occupation = f"{clean_value(education_details.company_name)} / {clean_value(education_details.designation)}"
+                elif prof_id == 2:
+                    occupation_title = "Business Details"
+                    occupation = f"{clean_value(education_details.business_name)} / {clean_value(education_details.nature_of_business)}"
+                else:
+                    occupation_title = "Other"
+            except (ValueError, TypeError):
+                occupation_title = "Unknown"
+                occupation = "Unknown"
+
+            # === Family details ===
+            family_detail = models.Familydetails.objects.filter(profile_id=user_profile_id).first()
+
+            father_name = clean_value(family_detail.father_name if family_detail else "")
+            father_occupation = clean_value(family_detail.father_occupation if family_detail else "")
+            mother_name = clean_value(family_detail.mother_name if family_detail else "")
+            mother_occupation = clean_value(family_detail.mother_occupation if family_detail else "")
+            family_status_id = family_detail.family_status if family_detail else ""
+            family_status = clean_value(safe_get_value(models.Familystatus, 'id', family_status_id, 'status'))
+            suya_gothram = clean_value(family_detail.suya_gothram if family_detail else "")
+            no_of_sis_married = clean_value(family_detail.no_of_sis_married if family_detail else "0")
+            no_of_bro_married = clean_value(family_detail.no_of_bro_married if family_detail else "0")
+
+            # === Horoscopic Details ===
             try:
                 star = models.Birthstar.objects.get(pk=horoscope.birthstar_name)
-                star_name = star.star  # Or use star.tamil_series, telugu_series, etc. as per your requirement
+                star_name = clean_value(star.star)
             except models.Birthstar.DoesNotExist:
                 star_name = "Unknown"
-            # Fetch rasi name from Rasi model
+
             try:
                 rasi = models.Rasi.objects.get(pk=horoscope.birth_rasi_name)
-                rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                rasi_name = clean_value(rasi.name)
             except models.Rasi.DoesNotExist:
                 rasi_name = "Unknown"
-            time_of_birth = horoscope.time_of_birth
-            place_of_birth = horoscope.place_of_birth
-            lagnam_didi = horoscope.lagnam_didi
-            nalikai =  horoscope.nalikai
-            age = calculate_age(dob)  
-            # Planet mapping dictionary
+
+            time_of_birth = clean_value(horoscope.time_of_birth)
+            place_of_birth = clean_value(horoscope.place_of_birth)
+            lagnam_didi = clean_value(horoscope.lagnam_didi)
+            nalikai = clean_value(horoscope.nalikai)
+            age = calculate_age(login_details.Profile_dob) if login_details.Profile_dob else "N/A"            # Planet mapping dictionary
             # planet_mapping = {
             #     "1": "Sun",
             #     "2": "Moo",
@@ -15470,6 +15503,8 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
                                         <p> {height} / Not specified</p>
                                         <p>{annual_income}</p>
                                         <p>{profession}</p>
+                                        <p>{occupation_title}</p>
+                                        <p>{occupation}</p>
                                     </td> 
                                 </tr>
                             </table>
@@ -15739,7 +15774,7 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
                 logger.error(f"PDF generation error: {pisa_status.err}")
                 return HttpResponse('We had some errors <pre>' + html_content + '</pre>')
             return response
-    
+   
 
 
 class WithoutAddressSendEmailAPI(APIView):

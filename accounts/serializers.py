@@ -1022,3 +1022,24 @@ class AdminUserDropdownSerializer(serializers.ModelSerializer):
     class Meta:
         model = AdminUser
         fields = ['id', 'username']
+        
+class CommonProfileSearchSerializer(serializers.Serializer):
+    search_profile_id = serializers.CharField(required=False)
+    search_profession = serializers.CharField(required=False)
+    search_age = serializers.IntegerField(required=False)
+    search_location = serializers.CharField(required=False)
+    complexion = serializers.CharField(required=False)
+    city = serializers.CharField(required=False)
+    state = serializers.CharField(required=False)
+    education = serializers.CharField(required=False)
+    foreign_intrest = serializers.CharField(required=False)
+    has_photos = serializers.CharField(required=False)
+    height_from = serializers.IntegerField(required=False)
+    height_to = serializers.IntegerField(required=False)
+    matching_stars = serializers.CharField(required=False)
+    min_anual_income = serializers.IntegerField(required=False)
+    max_anual_income = serializers.IntegerField(required=False)
+    membership = serializers.IntegerField(required=False)
+    per_page = serializers.IntegerField(default=10)
+    page_number = serializers.IntegerField(default=1)
+

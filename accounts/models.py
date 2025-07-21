@@ -1944,6 +1944,141 @@ class Get_profiledata_Matching(models.Model):
         return result
 
 
+    @staticmethod
+    def get_common_profile_list(start, per_page, 
+                                search_profile_id=None, order_by=None,
+                                search_profession=None, search_age=None, search_location=None,
+                                complexion=None, city=None, state=None, education=None,
+                                foreign_intrest=None, has_photos=None, height_from=None, height_to=None,
+                                matching_stars=None, min_anual_income=None, max_anual_income=None,
+                                membership=None):
+
+        try:
+            base_query = """
+                SELECT DISTINCT a.ProfileId, a.Gender, a.Photo_protection, a.Profile_city, a.Profile_verified,
+                    a.Profile_name, a.Profile_dob, a.Profile_height,
+                    e.birthstar_name, e.birth_rasi_name,
+                    f.ug_degeree, f.profession, g.EducationLevel, 
+                    h.income, i.image
+                FROM logindetails a
+                LEFT JOIN profile_horoscope e ON a.ProfileId = e.profile_id
+                LEFT JOIN profile_edudetails f ON a.ProfileId = f.profile_id
+                LEFT JOIN mastereducation g ON f.highest_education = g.RowId
+                LEFT JOIN masterannualincome h ON f.anual_income = h.id
+
+                LEFT JOIN (
+                    SELECT *
+                    FROM (
+                        SELECT *,
+                            ROW_NUMBER() OVER (PARTITION BY profile_id ORDER BY id ASC) AS rn
+                        FROM profile_images
+                        WHERE image_approved = 1 AND is_deleted = 0
+                    ) ranked_images
+                    WHERE rn = 1
+                ) i ON i.profile_id = a.ProfileId
+
+                WHERE a.Status = 1
+            """
+
+            query_params = []
+
+            # Optional filters
+            if search_profile_id:
+                base_query += " AND (a.ProfileId = %s OR a.Profile_name LIKE %s)"
+                query_params.append(search_profile_id)
+                query_params.append(f"%{search_profile_id}%")
+
+            if search_profession:
+                base_query += " AND f.profession = %s"
+                query_params.append(search_profession)
+
+            if search_location:
+                base_query += " AND a.Profile_state = %s"
+                query_params.append(search_location)
+
+            if complexion:
+                base_query += " AND a.Profile_complexion = %s"
+                query_params.append(complexion)
+
+            if city:
+                base_query += " AND a.Profile_city = %s"
+                query_params.append(city)
+
+            if state:
+                base_query += " AND a.Profile_state = %s"
+                query_params.append(state)
+
+            if education:
+                base_query += " AND FIND_IN_SET(g.RowId, %s) > 0"
+                query_params.append(education)
+
+            if matching_stars:
+                base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
+                query_params.append(matching_stars)
+
+            if foreign_intrest:
+                base_query += " AND a.foreign_interest = %s"
+                query_params.append(foreign_intrest)
+
+            if has_photos and has_photos.lower() == "yes":
+                base_query += " AND i.image IS NOT NULL"
+
+            if membership:
+                base_query += " AND a.Plan_id = %s"
+                query_params.append(membership)
+
+            if min_anual_income and max_anual_income:
+                base_query += " AND h.income_amount BETWEEN %s AND %s"
+                query_params.extend([min_anual_income, max_anual_income])
+
+            if height_from and height_to:
+                base_query += " AND a.Profile_height BETWEEN %s AND %s"
+                query_params.extend([height_from, height_to])
+            elif height_from:
+                base_query += " AND a.Profile_height >= %s"
+                query_params.append(height_from)
+            elif height_to:
+                base_query += " AND a.Profile_height <= %s"
+                query_params.append(height_to)
+
+            # Order By
+            if order_by:
+                try:
+                    order_by = int(order_by)
+                    if order_by == 1:
+                        base_query += " ORDER BY a.DateOfJoin ASC"
+                    elif order_by == 2:
+                        base_query += " ORDER BY a.DateOfJoin DESC"
+                except:
+                    pass
+
+            # Count total
+            count_query = f"""SELECT COUNT(*) FROM ({base_query}) AS total"""
+            with connection.cursor() as cursor:
+                cursor.execute(count_query, query_params)
+                total_count = cursor.fetchone()[0]
+
+            # Add limit/offset for page
+            base_query += " LIMIT %s OFFSET %s"
+            query_params.extend([per_page, start])
+
+            # Execute final query
+            with connection.cursor() as cursor:
+                cursor.execute(base_query, query_params)
+                rows = cursor.fetchall()
+                columns = [col[0] for col in cursor.description]
+                results = [dict(zip(columns, row)) for row in rows]
+
+                all_profile_ids = [row["ProfileId"] for row in results]
+                profile_with_indices = {str(i + 1): pid for i, pid in enumerate(all_profile_ids)}
+
+                return results, total_count, profile_with_indices
+
+        except Exception as ex:
+            print(f"[get_common_profile_list] ERROR: {str(ex)}")
+            return [], 0, {}
+
+
 
 class MatchingStarPartner(models.Model):
     # Define your model fields here
