@@ -1686,8 +1686,8 @@ class Get_profiledata_Matching(models.Model):
             try:
                 age_difference = int(age_difference_str)
             except ValueError:
-                return JsonResponse({'status': 'failure', 'message': 'Invalid age difference value.'}, status=status.HTTP_400_BAD_REQUEST)
-
+                return []  # or raise an exception if needed
+            
             if gender.upper() == "MALE":
                 matching_age = current_age - age_difference
                 age_condition_operator = "<"
