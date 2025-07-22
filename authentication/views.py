@@ -6701,7 +6701,6 @@ def GetMarsRahuKethuDoshamDetails(raw_input):
         return mars_dosham, rahu_kethu_dosham
 
 
-
 class Save_plan_package(APIView):
     def post(self, request):
         profile_id = request.data.get('profile_id')
@@ -6768,7 +6767,7 @@ class Save_plan_package(APIView):
             logindetails.Last_login_date=timezone.now()
             logindetails.save()
 
-            
+        
             horodetails=models.Horoscope.objects.filter(profile_id=profile_id).first()
             
             #get first image for the profile icon
@@ -6794,15 +6793,26 @@ class Save_plan_package(APIView):
             status=1,   
             payment_by='user_self',                             # e.g., 1 for success, or your own logic
             payment_date=datetime.now(),          # current timestamp
-            order_id=order_id
-        )
+            order_id=order_id  )
 
-            models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(
-                plan_id=plan_id,
-                membership_fromdate=membership_fromdate,
-                membership_todate=membership_todate
-            )
+            plan_features = models.PlanFeatureLimit.objects.filter(plan_id=plan_id).values().first()
 
+            if plan_features:
+                # Remove the 'id' field if present
+                plan_features.pop('id', None)
+                plan_features.pop('plan_id', None)  # optional, if you don't want to override plan_id
+
+                # Add membership dates
+                plan_features.update({
+                    'plan_id': plan_id,
+                    'membership_fromdate': membership_fromdate,
+                    'membership_todate': membership_todate,
+                    'status':1
+                })
+
+                # Update the profile_plan_features row for profile_id
+                models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(**plan_features)
+    
             gender = logindetails.Gender
             height = logindetails.Profile_height
             marital_status=logindetails.Profile_marital_status
@@ -6819,8 +6829,6 @@ class Save_plan_package(APIView):
                 birth_rasi_id=horodetails.birth_rasi_name
 
             if profile_images:
-                # profile_icon=profile_images.image.url
-                #  profile_icon=profile_images
                 profile_image = profile_images.image.url
             #default image icon
             else:
@@ -6828,9 +6836,6 @@ class Save_plan_package(APIView):
                 profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
                 base_url = settings.MEDIA_URL
                 profile_image = base_url+profile_icon
-
-            # base_url = settings.MEDIA_URL
-            # profile_image = profile_icon
 
 
             logindetails_exists = models.Registration1.objects.filter(ProfileId=profile_id).filter(Profile_address__isnull=False).exclude(Profile_address__exact='').first()
@@ -12138,6 +12143,13 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     occupation_title = 'Other'
                     occupation = ''
 
+                def get_model_instance_name(model, pk, field="name", default="N/A"):
+                    try:
+                        if pk and str(pk).isdigit():
+                            return getattr(model.objects.get(pk=int(pk)), field)
+                    except (model.DoesNotExist, ValueError, TypeError):
+                        pass
+                    return default
                 # Family fields
                 father_occupation = family_detail.father_occupation or "N/A"
                 mother_occupation = family_detail.mother_occupation or "N/A"
@@ -12145,32 +12157,15 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 family_status_id = family_detail.family_status
                 family_status = safe_get_value(models.Familystatus, 'id', family_status_id, 'status')
 
-                # Star name
-                try:
-                    star = models.Birthstar.objects.get(pk=horoscope.birthstar_name)
-                    star_name = star.star
-                except models.Birthstar.DoesNotExist:
-                    star_name = "N/A"
-
-                # Rasi name
-                try:
-                    rasi = models.Rasi.objects.get(pk=horoscope.birth_rasi_name)
-                    rasi_name = rasi.name
-                except models.Rasi.DoesNotExist:
-                    rasi_name = "N/A"
+                star_name = get_model_instance_name(models.Birthstar, horoscope.birthstar_name, "star")
+                rasi_name = get_model_instance_name(models.Rasi, horoscope.birth_rasi_name, "name")
+                lagnam = get_model_instance_name(models.Rasi, horoscope.lagnam_didi, "name")
 
                 # Time & location
                 time_of_birth = horoscope.time_of_birth or "Not specified"
                 place_of_birth = horoscope.place_of_birth or "Not specified"
                 didi = horoscope.didi or "Not specified"
                 nalikai = horoscope.nalikai or "Not specified"
-
-                # Lagnam
-                try:
-                    lagnam_obj = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
-                    lagnam = lagnam_obj.name
-                except models.Rasi.DoesNotExist:
-                    lagnam = "N/A"
 
                 # Age calculation
                 age = calculate_age(dob) if dob else "Not specified"
@@ -15104,18 +15099,14 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
             no_of_sis_married = clean_value(family_detail.no_of_sis_married if family_detail else "0")
             no_of_bro_married = clean_value(family_detail.no_of_bro_married if family_detail else "0")
 
+            def get_model_display_name(model, pk, field_name='star', default='Unknown'):
+                try:
+                    return getattr(model.objects.get(pk=int(pk)), field_name)
+                except (model.DoesNotExist, ValueError, TypeError):
+                    return default
             # === Horoscopic Details ===
-            try:
-                star = models.Birthstar.objects.get(pk=horoscope.birthstar_name)
-                star_name = clean_value(star.star)
-            except models.Birthstar.DoesNotExist:
-                star_name = "Unknown"
-
-            try:
-                rasi = models.Rasi.objects.get(pk=horoscope.birth_rasi_name)
-                rasi_name = clean_value(rasi.name)
-            except models.Rasi.DoesNotExist:
-                rasi_name = "Unknown"
+            star_name = get_model_display_name(models.Birthstar, horoscope.birthstar_name, 'star')
+            rasi_name = get_model_display_name(models.Rasi, horoscope.birth_rasi_name, 'name')
 
             time_of_birth = clean_value(horoscope.time_of_birth)
             place_of_birth = clean_value(horoscope.place_of_birth)

@@ -6165,7 +6165,7 @@ class ShortProfilePDFView(APIView):
 
         pdf_file.seek(0)
         response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Disposition'] = 'inline'
         return response
 
 class SendShortProfilePDFEmail(APIView):
@@ -7126,13 +7126,16 @@ class VerifymobileOtp(APIView):
         except models.Registration1.DoesNotExist:
             return JsonResponse({"status": "error", "message": "Invalid otp for the profile id"}, status=status.HTTP_200_OK)
 
-
-
 class AdminUserDropdownAPIView(APIView):
     def get(self, request):
         users = AdminUser.objects.filter(deleted=False)
         serializer = AdminUserDropdownSerializer(users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+def get_star_lookup():
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT id, star FROM masterbirthstar WHERE is_deleted = 0")
+        return {str(row[0]): row[1] for row in cursor.fetchall()}
     
 class CommonProfileSearchAPIView(APIView):
 
@@ -7151,16 +7154,18 @@ class CommonProfileSearchAPIView(APIView):
             per_page=per_page,
             **filters
         )
-
+        
         if not profile_details:
             return JsonResponse({
                 "Status": 0,
                 "message": "No profiles found for the given criteria.",
                 "search_result": "0"
             }, status=200)
-
+        star_lookup = get_star_lookup()
         profiles = []
-        for detail in profile_details:
+        for detail in profile_details: 
+            star_id = str(detail.get("birthstar_name", "")).strip()
+            star_name = star_lookup.get(star_id, "")
             profiles.append({
                 "profile_id": detail["ProfileId"],
                 "profile_name": detail["Profile_name"],
@@ -7172,8 +7177,8 @@ class CommonProfileSearchAPIView(APIView):
                 "profession": getprofession(detail.get("profession")),
                 "location": detail["Profile_city"],
                 "photo_protection": detail["Photo_protection"],
-                "verified": detail.get('Profile_verified')
-                # You can skip action_score and matching_score here if profile_id is not provided
+                "verified": detail.get('Profile_verified'),
+                "star": star_name
             })
 
         return JsonResponse({
