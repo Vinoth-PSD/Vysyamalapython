@@ -666,7 +666,8 @@ class ProfileFamilyDetails(models.Model):
     uncle_gothram_admin = models.CharField(max_length=200, null=True)
     ancestor_origin = models.TextField(null=True , blank=True)
     about_family = models.TextField(null=True)
-
+    no_of_children = models.IntegerField(max_length=10 , null=True)
+    
     class Meta:
         db_table = 'profile_familydetails'
 
