@@ -3556,9 +3556,14 @@ class Get_personal_notes(APIView):
 
 
 
-                    personal_notes = fetch_data.values_list('profile_id','notes','datetime')
+                    # personal_notes = fetch_data.values_list('profile_id','notes','datetime')
 
-                    notes_mapping = {profile_id: (notes, datetime) for profile_id, notes, datetime in personal_notes}
+                    personal_notes = fetch_data.values_list('profile_to','notes','datetime')
+
+
+
+                    notes_mapping = {profile_to: (notes, datetime) for profile_to, notes, datetime in personal_notes}
+
                    
 
                     # personal_notes_condition={'status': 1,'profile_id':profile_id}
@@ -3611,8 +3616,6 @@ class Get_personal_notes(APIView):
                 return JsonResponse({"Status": 0, "message": "No Noteslists found for the given profile ID"}, status=status.HTTP_404_NOT_FOUND)
         else:
             return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 
 def calculate_age(dob):
     """

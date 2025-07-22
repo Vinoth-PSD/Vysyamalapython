@@ -100,7 +100,8 @@ class Registration1Serializer(serializers.ModelSerializer):
     def validate(self, data):
      
      #data['Otp']='142024'
-     data['Password']=make_password(data['Password'])
+    #  data['Password']=make_password(data['Password'])
+     data['Password']=data['Password']
      #key = generate_key()
      #print('ferkey',key.decode())
      #data['Password']=encrypt_password(data['Password'])
