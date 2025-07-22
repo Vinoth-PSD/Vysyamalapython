@@ -4756,6 +4756,17 @@ class Get_profile_det_match(APIView):
                         return {0: "Unknown", 1: "Yes", 2: "No"}.get(value, value)
                     return value
 
+                try:
+                    lagnam_didi_id = profile_details[0]['lagnam_didi']
+                    if lagnam_didi_id:
+                        lagnam_didi = models.Lagnamdidi.objects.get(id=lagnam_didi_id)
+                        lagnam_didi_name = lagnam_didi.name
+                    else:
+                        lagnam_didi_name = None  # Default value if null or empty
+                except models.Lagnamdidi.DoesNotExist:
+                    lagnam_didi_name = None  # Handle case where object doesn't exist
+
+
                 profile_data={
                         "basic_details": {
                             "profile_id": profile_details[0]['ProfileId'],
@@ -4846,7 +4857,7 @@ class Get_profile_det_match(APIView):
                         "horoscope_details": {
                             "rasi": profile_rasi_name,
                             "star_name": profile_star_name,
-                            "lagnam": profile_details[0]['lagnam_didi'],
+                            "lagnam": lagnam_didi_name,
                             "nallikai": profile_details[0]['nalikai'],
                             "didi": profile_details[0]['didi'],
                             "surya_gothram": profile_details[0]['suya_gothram'],
