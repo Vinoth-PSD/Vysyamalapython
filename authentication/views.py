@@ -12933,7 +12933,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 
                 # Create a Django response object and specify content_type as pdf
                 response = HttpResponse(content_type='application/pdf')
-                response['Content-Disposition'] = 'inline'
+                response['Content-Disposition'] = f'inline; filename="{filename}"'
 
 
                 # Create the PDF using xhtml2pdf
@@ -15771,7 +15771,7 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
             """
             # Create a Django response object and specify content_type as pdf
             response = HttpResponse(content_type='application/pdf')
-            response['Content-Disposition'] = 'inline'
+            response['Content-Disposition'] = f'inline; filename="{filename}"'
             # Create the PDF using xhtml2pdf
             pisa_status = pisa.CreatePDF(html_content, dest=response)
             # If there's an error, log it and return an HTML response with an error message
