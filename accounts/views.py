@@ -248,7 +248,22 @@ class PropertyViewSet(viewsets.ModelViewSet):
 class GothramViewSet(viewsets.ModelViewSet):
     queryset = Gothram.objects.filter(is_deleted=False)  # Filter out soft-deleted entries
     serializer_class = GothramSerializer
-
+   
+    def list(self, request, *args, **kwargs):
+        # Custom flattened response
+        flattened_data = []
+        queryset = self.get_queryset()
+        for gothram in queryset:
+            sankethas = [s.strip() for s in gothram.sanketha_namam.split('-')]
+            for sanketha in sankethas:
+                flattened_data.append({
+                    "id": gothram.id,
+                    "gothram_name": gothram.gothram_name,
+                    "rishi": gothram.rishi,
+                    "sanketha_namam": sanketha
+                })
+        return Response(flattened_data)
+   
     def perform_destroy(self, instance):
         """Override delete behavior to implement soft delete."""
         instance.is_deleted = True
