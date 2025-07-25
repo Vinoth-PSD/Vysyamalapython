@@ -4671,7 +4671,7 @@ class Get_profile_det_match(APIView):
 
                 Profile_horoscope=0
                 Profile_horoscope_txt='Not available'
-                Profile_horoscope_file = profile_details[0]['horoscope_file']
+                Profile_horoscope_file = profile_details[0]['horoscope_file_admin']
                 Profile_horoscope_file_link=''
                 if(Profile_horoscope_file):
                                     
@@ -15197,8 +15197,8 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
             amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))
             horoscope_data = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
 
-            if horoscope_data.horoscope_file:
-                horoscope_image_url = horoscope_data.horoscope_file.url
+            if horoscope_data.horoscope_file_admin:
+                horoscope_image_url = horoscope_data.horoscope_file_admin.url
         
                 if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
                     horoscope_content = f'<img src="{settings.IMAGE_BASEURL}{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
@@ -16868,8 +16868,8 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
 
                     horoscope_data = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
         
-                    if horoscope_data.horoscope_file:
-                        horoscope_image_url = horoscope_data.horoscope_file.url
+                    if horoscope_data.horoscope_file_admin:
+                        horoscope_image_url = horoscope_data.horoscope_file_admin.url
                 
                         if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
                             horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
@@ -17783,7 +17783,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                     if horoscope_data.horoscope_file_admin:
                         horoscope_image_url = horoscope_data.horoscope_file_admin.url
 
-                        print(horoscope_image_url)
+                        # print(horoscope_image_url)
 
                         if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
                             horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
