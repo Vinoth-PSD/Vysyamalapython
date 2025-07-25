@@ -760,6 +760,10 @@ class Profespref(models.Model):
 
     def __str__(self):
         return self.RowId
+
+def upload_to_profile_horoscope_admin(instance, filename):
+    # return os.path.join('profile_{0}'.format(instance.ProfileId), filename)
+    return f"profile_horoscope/horoscope/{filename}"
     
 class Horoscope(models.Model):
     id    =  models.AutoField(primary_key=True)
@@ -784,7 +788,7 @@ class Horoscope(models.Model):
 
     calc_chevvai_dhosham = models.CharField(max_length=100,null=True, blank=True)
     calc_raguketu_dhosham = models.CharField(max_length=100,null=True, blank=True)
-
+    horoscope_file_admin = models.FileField(upload_to=upload_to_profile_horoscope_admin,storage=AzureMediaStorage())
 
     class Meta:
         managed = False  # This tells Django not to handle database table creation/migration for this model

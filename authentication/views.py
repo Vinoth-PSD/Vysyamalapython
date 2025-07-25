@@ -12170,8 +12170,19 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
 
                 star_name = get_model_instance_name(models.Birthstar, horoscope.birthstar_name, "star")
                 rasi_name = get_model_instance_name(models.Rasi, horoscope.birth_rasi_name, "name")
-                lagnam = get_model_instance_name(models.Rasi, horoscope.lagnam_didi, "name")
+                # lagnam = get_model_instance_name(models.Rasi, horoscope.lagnam_didi, "name")
 
+                try:
+                    rasi = models.Rasi.objects.get(pk=horoscope.birth_rasi_name)
+                    rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                except models.Rasi.DoesNotExist:
+                    rasi_name = "Unknown"
+
+                try:
+                    lagnam = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
+                    lagnam = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                except models.Rasi.DoesNotExist:
+                    lagnam = "Unknown"
                 # Time & location
                 time_of_birth = horoscope.time_of_birth or "Not specified"
                 place_of_birth = horoscope.place_of_birth or "Not specified"
@@ -12240,6 +12251,11 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 # Ensure that we have exactly 12 values for the grid
                 rasi_kattam_data.extend([default_placeholder] * (12 - len(rasi_kattam_data)))
                 amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))
+                
+                def is_grid_data_empty(grid_data):
+                    return all(cell == default_placeholder for cell in grid_data)
+
+                hide_charts = is_grid_data_empty(rasi_kattam_data) and is_grid_data_empty(amsa_kattam_data)
 
                 horoscope_data = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
     
@@ -12274,7 +12290,91 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     if all(part.isdigit() for part in parts):
                         dasa_day, dasa_month, dasa_year = map(int, parts)
                     # Dynamic HTML content including Rasi and Amsam charts
-            
+                    
+                    
+                charts_html = ""
+
+                if not hide_charts:
+                    charts_html = f"""
+                    <table class="outer">
+                        <tr>
+                            <td>
+                                <table class="inner">
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[0].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[1].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[2].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[3].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[11].replace('/', '<br>')}</td>
+                                        <td colspan="2" rowspan="2" class="highlight">
+                                            Rasi
+                                            <p>vysyamala.com</p>
+                                        </td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[4].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[10].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[5].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[9].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[8].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[7].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[6].replace('/', '<br>')}</td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td class="spacer">
+                                <table class="table-div dasa-table">
+                                    <tr>
+                                        <td>
+                                            <p><strong>Dasa Name</strong></p>
+                                            <p>Moon</p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <p><strong>Dasa Balance</strong></p>
+                                            <p>Years: {dasa_year}</p>
+                                            <p>Months: {dasa_month}</p>
+                                            <p>Days: {dasa_day}</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td>
+                                <table class="inner">
+                                    <tr>
+                                        <td>{amsa_kattam_data[0].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[1].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[2].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[3].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{amsa_kattam_data[11].replace('/', '<br>')}</td>
+                                        <td colspan="2" rowspan="2" class="highlight">Amsam
+                                            <p>vysyamala.com</p>
+                                        </td>
+                                        <td>{amsa_kattam_data[4].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{amsa_kattam_data[10].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[5].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{amsa_kattam_data[9].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[8].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[7].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[6].replace('/', '<br>')}</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    """
+
                 html_content = rf"""
                 <html>
                     <head>
@@ -12718,89 +12818,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                         </table>
                     
                     </div>
-                    
-
-
-                            <table class="outer">
-                            <tr>
-                                <td>
-                                    <table class="inner">
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[0].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[1].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[2].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[3].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[11].replace('/', '<br>')}</td>
-                                            <td colspan="2" rowspan="2" class="highlight">
-                                            Rasi
-                                            <p>vysyamala.com</p>
-                                            </td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[4].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[10].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[5].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[9].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[8].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[7].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[6].replace('/', '<br>')}</td>
-                                        </tr>
-                                    </table>
-                                </td>
-                                <td class="spacer">
-                                     <table class="table-div dasa-table">
-                                        <tr>
-                                            <td>
-                                                <p><strong>Dasa Name</strong</p>
-                                                <p>Moon</p>
-                                            </td>
-                                        </tr
-                                        <tr>
-                                        <td>
-                                            
-                                                <p><strong>Dasa Balance</strong</p>
-                                                <p>Years: {dasa_year} </p>
-                                                <p>Months: {dasa_month} </p>
-                                                <p>Days: {dasa_day} </p>
-                                            </td>
-                                        </tr>
-                                            
-                                    </table>
-                                </td>
-                                <td>
-                                    <table class="inner">
-                                        <tr>
-                                            <td>{amsa_kattam_data[0].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[1].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[2].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[3].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{amsa_kattam_data[11].replace('/', '<br>')}</td>
-                                            <td colspan="2" rowspan="2" class="highlight">Amsam
-                                            <p>vysyamala.com</p>
-                                            </td>
-                                            <td>{amsa_kattam_data[4].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{amsa_kattam_data[10].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[5].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{amsa_kattam_data[9].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[8].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[7].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[6].replace('/', '<br>')}</td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-                        </table>
-                       
+                    {charts_html}
 
 
                 <div>
@@ -17757,14 +17775,13 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 rasi_kattam_data.extend([default_placeholder] * (12 - len(rasi_kattam_data)))
                 amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))
 
+                
                 horoscope_data = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
-    
                 
                 
                 if attached_horoscope_enable is True :
-                
-                    if horoscope_data.horoscope_file:
-                        horoscope_image_url = horoscope_data.horoscope_file.url
+                    if horoscope_data.horoscope_file_admin:
+                        horoscope_image_url = horoscope_data.horoscope_file_admin.url
 
                         print(horoscope_image_url)
 
