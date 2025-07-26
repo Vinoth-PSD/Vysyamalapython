@@ -57,10 +57,6 @@ def upload_to_profile_horoscope(instance, filename):
     # return os.path.join('profile_{0}'.format(instance.ProfileId), filename)
     return f"profile_horoscope_original/HoroscopeOriginal/{filename}"
 
-def upload_to_profile_horoscope_admin(instance, filename):
-    # return os.path.join('profile_{0}'.format(instance.ProfileId), filename)
-    return f"profile_horoscope/horoscope/{filename}"
-
 def upload_to_profile_divorce(instance, filename):
     # return os.path.join('profile_{0}'.format(instance.ProfileId), filename)
     return f"profile_divorce/{filename}"
@@ -764,6 +760,10 @@ class Profespref(models.Model):
 
     def __str__(self):
         return self.RowId
+
+def upload_to_profile_horoscope_admin(instance, filename):
+    # return os.path.join('profile_{0}'.format(instance.ProfileId), filename)
+    return f"profile_horoscope/horoscope/{filename}"
     
 class Horoscope(models.Model):
     id    =  models.AutoField(primary_key=True)
@@ -784,12 +784,12 @@ class Horoscope(models.Model):
     amsa_kattam = models.CharField(max_length=1000)  # Changed from CharField to TextField
    # horoscope_file = models.TextField()
     horoscope_file = models.FileField(upload_to=upload_to_profile_horoscope,storage=AzureMediaStorage())
-    
-    horoscope_file_admin = models.FileField(upload_to=upload_to_profile_horoscope_admin,storage=AzureMediaStorage())
     horo_file_updated = models.CharField(max_length=100,null=True, blank=True)
 
     calc_chevvai_dhosham = models.CharField(max_length=100,null=True, blank=True)
     calc_raguketu_dhosham = models.CharField(max_length=100,null=True, blank=True)
+    horoscope_file_admin = models.FileField(upload_to=upload_to_profile_horoscope_admin,storage=AzureMediaStorage())
+
     class Meta:
         managed = False  # This tells Django not to handle database table creation/migration for this model
         db_table = 'profile_horoscope'  # Name of the table in your database
@@ -827,7 +827,7 @@ class Familydetails(models.Model):
     eye_wear = models.CharField(max_length=100, null=True)
     body_type = models.CharField(max_length=100, null=True)
     no_of_children = models.IntegerField(max_length=10 , null=True)
-
+    madulamn = models.CharField(max_length=10 ,null=True,blank=True)
 
     class Meta:
         managed = False  # This tells Django not to handle database table creation/migration for this model
@@ -1066,12 +1066,6 @@ class Get_profiledata(models.Model):
 
            
             partner_pref_education = partner_pref.pref_education
-
-            # if search_profession:
-            
-            #     search_profession=search_profession
-            # else :
-            #     search_profession = partner_pref.pref_profession
             # print('pref_annual_income',pref_annual_income)
             # print('partner_pref_education',partner_pref_education)
 
@@ -1144,7 +1138,24 @@ class Get_profiledata(models.Model):
 
 
             try:
-                
+                    
+                    # print('34i7678sdd')
+                    # base_query = """
+                    # SELECT a.*,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
+                    # f.highest_education, g.EducationLevel, d.star, h.income
+                    # FROM logindetails a 
+                    # JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
+                    # JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
+                    # JOIN masterbirthstar d ON d.id = e.birthstar_name 
+                    # JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
+                    # JOIN mastereducation g ON f.highest_education = g.RowId 
+                    # JOIN masterannualincome h ON h.id = f.anual_income
+                    # WHERE a.gender != %s AND a.ProfileId != %s
+                    # AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {operator} %s
+                    # AND h.income_amount BETWEEN %s AND %s
+                    # AND FIND_IN_SET(g.RowId,  %s) > 0
+                    # AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0
+                    # """
                     base_query = """
                     SELECT DISTINCT a.ProfileId,a.Plan_id ,a.DateOfJoin,a.Photo_protection,a.Profile_city,a.Profile_verified,a.Profile_name,a.Profile_dob,a.Profile_height,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
                     f.highest_education, g.EducationLevel, d.star, h.income ,  v.viewed_profile , i.image
@@ -1217,23 +1228,15 @@ class Get_profiledata(models.Model):
 
 
                         # Add profession filter
-                    # search_profession_cond=''
-                    # if search_profession:
-                    #     search_profession_cond = " AND f.profession = %s"
-                    #     query_params.append(search_profession)
-
                     search_profession_cond=''
                     if search_profession:
-                        search_profession_cond = " AND FIND_IN_SET(f.profession, %s)"
+                        search_profession_cond = " AND f.profession = %s"
                         query_params.append(search_profession)
 
-                    search_location_cond = ''
-                    if search_location == '6':
-                        search_location_cond = " AND a.Profile_state NOT IN (1,2,3,4,5)"
-                    elif search_location is not None and search_location != '':
+                    search_location_cond=''
+                    if search_location:
                         search_location_cond = " AND a.Profile_state = %s"
                         query_params.append(search_location)
-
                         #print('search_location',search_location)
 
 
@@ -1260,19 +1263,19 @@ class Get_profiledata(models.Model):
                             
                             #orderby_cond = " ORDER BY a.DateOfJoin ASC "
                             # orderby_cond = f" ORDER BY {plan_priority_order}, a.DateOfJoin ASC "
-                            orderby_cond = f" ORDER BY {plan_priority},{photo_priority},{view_priority}, a.DateOfJoin DESC"
+                            orderby_cond = f" ORDER BY {plan_priority},{photo_priority},{view_priority}, a.DateOfJoin ASC"
                     elif order_by == 2:
                             # print('order by 123456',order_by)
                             # orderby_cond = " ORDER BY a.DateOfJoin DESC "
                             # orderby_cond = f" ORDER BY {plan_priority_order}, a.DateOfJoin DESC "
-                            orderby_cond = f" ORDER BY {plan_priority},{photo_priority},{view_priority}, a.DateOfJoin ASC"
+                            orderby_cond = f" ORDER BY {plan_priority},{photo_priority},{view_priority}, a.DateOfJoin DESC"
                     else:
                             # print('esg')
                             # orderby_cond = ""  # Default case if no valid order_by is provided
                             orderby_cond = f" ORDER BY {plan_priority},{photo_priority},{view_priority}, a.DateOfJoin DESC"
 
 
-                    
+                       
                     # query = base_query.format(operator=age_condition_operator) + height_conditions
                     # query = base_query.format(operator=age_condition_operator) + height_conditions + search_profile_id_cond + search_profession_cond+search_location_cond+orderby_cond
                     query = base_query  + height_conditions + search_profile_id_cond + search_profession_cond+search_location_cond+orderby_cond
@@ -1539,7 +1542,7 @@ class Get_profiledata(models.Model):
                 dict(zip(columns, row))
                 for row in rows
             ]
-        #print("Query result:", result)
+        print("Query result:", result)
         return result
 
 
@@ -1997,7 +2000,7 @@ class ProfileVisibility(models.Model):
     visibility_height_to = models.CharField(max_length=50)
     visibility_profession = models.CharField(max_length=50)  
     visibility_education = models.CharField(max_length=50)
-    visibility_anual_income = models.CharField(max_length=255)
+    visibility_anual_income = models.CharField(max_length=50)
     visibility_chevvai = models.CharField(max_length=20)  
     visibility_ragukethu = models.CharField(max_length=20)
     visibility_foreign_interest = models.CharField(max_length=20)
@@ -2186,8 +2189,8 @@ class ProfileSuggestedPref(models.Model):
     pref_profession = models.CharField(max_length=100, null=True, blank=True)
 
     pref_education = models.CharField(max_length=100, null=True, blank=True)
-    pref_anual_income = models.CharField(max_length=255, null=True, blank=True)
-    pref_anual_income_max = models.CharField(max_length=255, null=True, blank=True)
+    pref_anual_income = models.CharField(max_length=100, null=True, blank=True)
+    pref_anual_income_max = models.CharField(max_length=100, null=True, blank=True)
 
     pref_chevvai = models.CharField(max_length=10)
     

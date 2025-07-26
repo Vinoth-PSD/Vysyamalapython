@@ -698,7 +698,7 @@ class FamilydetaiSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Familydetails
-        fields = ('profile_id','father_name', 'father_occupation', 'mother_name','mother_occupation','family_name','about_self','hobbies','blood_group','Pysically_changed','no_of_brother','no_of_sister','no_of_bro_married','no_of_sis_married','family_type','family_value','family_status','property_details','property_worth','suya_gothram','uncle_gothram','ancestor_origin','about_family','weight','eye_wear','body_type','no_of_children')
+        fields = ('profile_id','father_name', 'father_occupation', 'mother_name','mother_occupation','family_name','about_self','hobbies','blood_group','Pysically_changed','no_of_brother','no_of_sister','no_of_bro_married','no_of_sis_married','family_type','family_value','family_status','property_details','property_worth','suya_gothram','uncle_gothram','ancestor_origin','about_family','weight','eye_wear','body_type','no_of_children','madulamn')
                
 class EdudetailSerializer(serializers.ModelSerializer):
 
