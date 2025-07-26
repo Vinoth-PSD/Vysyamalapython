@@ -147,13 +147,29 @@ WSGI_APPLICATION = 'user_api.wsgi.application'
 #     }
 # }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'vysamala_livedata',
+#         'USER': 'vysyadev2025',
+#         'PASSWORD': 'DevVy@2025',
+#         'HOST': 'vysyadev.mysql.database.azure.com',  # e.g., 'localhost' or an IP address
+#         'PORT': '3306'  # default MySQL port
+#         # 'OPTIONS': {
+#         #     'init_command': 'SET SESSION wait_timeout=28800',
+#         #     'connect_timeout': 10
+#         # }
+#     }
+# }
+
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'vysamala_livedata',
-        'USER': 'vysyadev2025',
+        'USER': 'vysyamala_new25',
         'PASSWORD': 'DevVy@2025',
-        'HOST': 'vysyadev.mysql.database.azure.com',  # e.g., 'localhost' or an IP address
+        'HOST': 'vysyamat.mysql.database.azure.com',  # e.g., 'localhost' or an IP address
         'PORT': '3306'  # default MySQL port
         # 'OPTIONS': {
         #     'init_command': 'SET SESSION wait_timeout=28800',
@@ -161,7 +177,6 @@ DATABASES = {
         # }
     }
 }
-
 
 #Build paths inside the project like this: BASE_DIR / 'subdir'.
 # BASE_DIR = Path(__file__).resolve().parent.parent
@@ -249,9 +264,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://white-pebble-02665321e.6.azurestaticapps.net",
     "https://polite-sea-09bf2e91e.6.azurestaticapps.net",
     "https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net",
-    "https://lemon-stone-015f4361e.6.azurestaticapps.net",
-    "https://polite-pond-0783ff91e.1.azurestaticapps.net",
-    "https://calm-moss-0d969331e.2.azurestaticapps.net"
+    "https://lemon-stone-015f4361e.6.azurestaticapps.net"
 ]
 
 
