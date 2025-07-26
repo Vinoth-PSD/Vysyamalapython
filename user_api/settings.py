@@ -37,14 +37,19 @@ DEFAULT_FILE_STORAGE = 'storages.backends.azure_storage.AzureStorage'
 
 
 
-AZURE_ACCOUNT_NAME = 'vysyamaladev2025'  # Get from Azure Portal
-AZURE_ACCOUNT_KEY = '1mdfx0CBr1DTTNuVVK0qL5JXEpRNQnyWVEbIzndIPPlHXNERQIYGjsGWf3zXcX1EpRyCSu/hegkp+AStd8nkfQ=='  # Get from Azure Portal
+# AZURE_ACCOUNT_NAME = 'vysyamaladev2025'  # Get from Azure Portal
+# AZURE_ACCOUNT_KEY = '1mdfx0CBr1DTTNuVVK0qL5JXEpRNQnyWVEbIzndIPPlHXNERQIYGjsGWf3zXcX1EpRyCSu/hegkp+AStd8nkfQ=='  # Get from Azure Portal
+# AZURE_CONTAINER = 'vysyamala'  # The name of your blob container
+# AZURE_URL_EXPIRATION_SECS = None  # Optional: set expiry for signed URLs
+
+# AZURE_CONNECTION_STRING = f'DefaultEndpointsProtocol=https;AccountName={AZURE_ACCOUNT_NAME};AccountKey={AZURE_ACCOUNT_KEY};EndpointSuffix=core.windows.net'
+
+AZURE_ACCOUNT_NAME = 'vysyamat'  # Get from Azure Portal
+AZURE_ACCOUNT_KEY = 'dDhUbtjX5Cp7RR30jOKQiHaPeAxjCEL85/uua4QEXzeDreSSThKsCGK98lr/Cl/KCvd3d5R1jACv+ASttEzBBg=='  # Get from Azure Portal
 AZURE_CONTAINER = 'vysyamala'  # The name of your blob container
 AZURE_URL_EXPIRATION_SECS = None  # Optional: set expiry for signed URLs
-
+ 
 AZURE_CONNECTION_STRING = f'DefaultEndpointsProtocol=https;AccountName={AZURE_ACCOUNT_NAME};AccountKey={AZURE_ACCOUNT_KEY};EndpointSuffix=core.windows.net'
-
-
 
 
 
@@ -264,7 +269,9 @@ CORS_ALLOWED_ORIGINS = [
     "https://white-pebble-02665321e.6.azurestaticapps.net",
     "https://polite-sea-09bf2e91e.6.azurestaticapps.net",
     "https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net",
-    "https://lemon-stone-015f4361e.6.azurestaticapps.net"
+    "https://lemon-stone-015f4361e.6.azurestaticapps.net",
+    "https://polite-pond-0783ff91e.1.azurestaticapps.net",
+    "https://calm-moss-0d969331e.2.azurestaticapps.net",
 ]
 
 
@@ -327,8 +334,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #     },
 # }
 
-AZURE_REDIS_HOST = 'vysyamala-redis.redis.cache.windows.net'
-AZURE_REDIS_KEY = 'MRum39q8JRawJ3lBM9Dd7qbSPmrdgZPC1AzCaGwflN8='  # Replace with your actual key
+# AZURE_REDIS_HOST = 'vysyamala-redis.redis.cache.windows.net'
+# AZURE_REDIS_KEY = 'MRum39q8JRawJ3lBM9Dd7qbSPmrdgZPC1AzCaGwflN8='  # Replace with your actual key
+
+AZURE_REDIS_HOST = 'vysyamalamat.redis.cache.windows.net'
+AZURE_REDIS_KEY = '3rD01MGuA9RO7XtSGp5PkwsMHOiMIKc6rAzCaPJd3BA='
 
 
 CHANNEL_LAYERS = {
