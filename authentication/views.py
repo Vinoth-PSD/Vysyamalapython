@@ -6430,7 +6430,8 @@ class GetMyProfilePersonal(APIView):
                 "uncle_gothram":familydetails_serializer.data.get("uncle_gothram"),
                 # "heightest_education":Profile_high_edu,
                 "heightest_education": f"{Profile_high_edu} {Profile_field_edu}",
-                "prosession":Profile_prosession
+                "prosession":Profile_prosession,
+                "mobile_no":registration.Mobile_no
             }
 
             response = {
@@ -7627,7 +7628,7 @@ class UpdateMyProfileEducation(APIView):
                             
                             #  print('education.highest_education',education.highest_education)
                             #  print('highest_education_id',highest_education_id)
-                             if int(education.highest_education) != highest_education_id:
+                            if not education.highest_education or not str(education.highest_education).isdigit() or int(education.highest_education) != highest_education_id:
 
                                 # print('Not eaual is true')
 
@@ -12116,12 +12117,18 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     no_of_sis_married = family_detail.no_of_sis_married
                     no_of_bro_married = family_detail.no_of_bro_married
                     suya_gothram = family_detail.suya_gothram
+                    madulamn = family_detail.madulamn
                 else:
                     # Handle case where no family details are found
                     father_name = father_occupation = family_status = ""
                     mother_name = mother_occupation = ""
                     no_of_sis_married = no_of_bro_married = 0
+                    
+                if int(no_of_sis_married) == 0:
+                    no_of_sis_married = "No"
 
+                if  int(no_of_bro_married) == 0:
+                    no_of_bro_married="No"
                 # Education and profession details
                 highest_education = education_details.highest_education
                 if not education_details.actual_income:
@@ -12152,7 +12159,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
 
                 # Highest Education
                 highest_education_id = education_details.highest_education
-                highest_education = safe_get_value(models.Highesteducation, 'id', highest_education_id, 'degree')
+                highest_education = safe_get_value(models.Edupref, 'id', highest_education_id, 'EducationLevel')
 
                 # Annual Income
                 annual_income_id = education_details.anual_income
@@ -12214,7 +12221,14 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 place_of_birth = horoscope.place_of_birth or "Not specified"
                 didi = horoscope.didi or "Not specified"
                 nalikai = horoscope.nalikai or "Not specified"
-
+                def format_time_am_pm(time_str):
+                    try:
+                        time_obj = datetime.strptime(time_str, "%H:%M:%S")
+                        return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
+                    except ValueError:
+                        return time_str
+                    
+                birth_time=format_time_am_pm(time_of_birth)
                 # Age calculation
                 age = calculate_age(dob) if dob else "Not specified"
                 # Planet mapping dictionary
@@ -12285,8 +12299,8 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
 
                 horoscope_data = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
     
-                if horoscope_data.horoscope_file:
-                    horoscope_image_url = horoscope_data.horoscope_file.url
+                if horoscope_data.horoscope_file_admin:
+                    horoscope_image_url = horoscope_data.horoscope_file_admin.url
             
                     if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
                         horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
@@ -12308,15 +12322,21 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 profile_url = f"https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
 
                 dasa_day = dasa_month = dasa_year = 0
-
                 # Try to split if format is correct
-                dasa_date_str=horoscope.dasa_balance
-                if dasa_date_str.count('/') == 2:
-                    parts = dasa_date_str.split('/')
-                    if all(part.isdigit() for part in parts):
-                        dasa_day, dasa_month, dasa_year = map(int, parts)
+                dasa_date_str = horoscope.dasa_balance.strip()
+                if dasa_date_str.startswith("day:") and "," in dasa_date_str:
+                    # Split and extract numbers
+                    try:
+                        day_str, month_str, year_str = dasa_date_str.split(',')
+                        dasa_day = int(day_str.split(':')[1].strip())
+                        dasa_month = int(month_str.split(':')[1].strip())
+                        dasa_year = int(year_str.split(':')[1].strip())
+                    except (ValueError, IndexError):
+                        dasa_day = dasa_month = dasa_year = 0
+
+                dasa_name = get_dasa_name(horoscope_data.dasa_name)
                     # Dynamic HTML content including Rasi and Amsam charts
-                    
+                print(f"dasa_date_str: {repr(dasa_date_str)}") 
                 image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
                 print("Image_status",image_status)
                 charts_html = ""
@@ -12358,7 +12378,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                     <tr>
                                         <td>
                                             <p><strong>Dasa Name</strong></p>
-                                            <p>Moon</p>
+                                            <p>{dasa_name}</p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -12834,8 +12854,8 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                             </td>
                                             <td>
                                                 <p><strong>{suya_gothram}</strong></p>
-                                                <p>Not Specified</p>
-                                                <p>{time_of_birth}</p>
+                                                <p>{madulamn}</p>
+                                                <p>{birth_time}</p>
                                             </td>
                                         </tr>
                                     </table>
@@ -13067,8 +13087,8 @@ def fetch_porutham_details(profile_from, profile_to):
         dest_rasi_id = horoscope_to.birth_rasi_name or ''
 
         # Fetch the gender from the Registration1 model
-        profile_to_details = models.Registration1.objects.get(ProfileId=profile_to)
-        gender_to = profile_to_details.Gender.lower() if profile_to_details.Gender else 'unknown'
+        profile_from_details = models.Registration1.objects.get(ProfileId=profile_from)
+        gender_to = profile_from_details.Gender.lower() if profile_from_details.Gender else 'unknown'
 
         # Check porutham match from MatchingStarPartner
         matching_star_partner = models.MatchingStarPartner.objects.filter(
@@ -13184,15 +13204,25 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                     no_of_sis_married = family_detail.no_of_sis_married
                     no_of_bro_married = family_detail.no_of_bro_married
                     suya_gothram = family_detail.suya_gothram
+                    madulamn = family_detail.madulamn
                 else:
                     # Handle case where no family details are found
                     father_name = father_occupation = family_status = ""
                     mother_name = mother_occupation = ""
                     no_of_sis_married = no_of_bro_married = 0
+                    
+                if int(no_of_sis_married) == 0:
+                    no_of_sis_married = "No"
 
+                if  int(no_of_bro_married) == 0:
+                    no_of_bro_married="No"
                 # Education and profession details
                 highest_education = education_details.highest_education
-                annual_income = education_details.anual_income
+                
+                if not education_details.actual_income:
+                    annual_income = education_details.anual_income
+                else:
+                    annual_income = education_details.actual_income
                 profession = education_details.profession
 
                 # personal details
@@ -13206,7 +13236,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 complexion = models.Profilecomplexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
 
                 highest_education_id = education_details.highest_education
-                highest_education = models.Highesteducation.objects.filter(id=highest_education_id).values_list('degree', flat=True).first() or "Unknown"
+                highest_education = models.Edupref.objects.filter(RowId=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
 
                 annual_income_id = education_details.anual_income
                 annual_income = models.Annualincome.objects.filter(id=annual_income_id).values_list('income', flat=True).first() or "Unknown"
@@ -13214,7 +13244,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 profession_id = education_details.profession
                 profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
-                work_place=education_details.work_place
+                work_place=education_details.work_city
                 ocupation_title=''
                 ocupation=''
 
@@ -13228,17 +13258,20 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 profession_id = education_details.profession
                 profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
-                
                 dasa_day = dasa_month = dasa_year = 0
-
                 # Try to split if format is correct
-                dasa_date_str=horoscope.dasa_balance
-                if dasa_date_str.count('/') == 2:
-                    parts = dasa_date_str.split('/')
-                    if all(part.isdigit() for part in parts):
-                        dasa_day, dasa_month, dasa_year = map(int, parts)
+                dasa_date_str = horoscope.dasa_balance.strip()
+                if dasa_date_str.startswith("day:") and "," in dasa_date_str:
+                    # Split and extract numbers
+                    try:
+                        day_str, month_str, year_str = dasa_date_str.split(',')
+                        dasa_day = int(day_str.split(':')[1].strip())
+                        dasa_month = int(month_str.split(':')[1].strip())
+                        dasa_year = int(year_str.split(':')[1].strip())
+                    except (ValueError, IndexError):
+                        dasa_day = dasa_month = dasa_year = 0
                 
-
+                
                 #father_occupation_id = family_detail.father_occupation
                 father_occupation = family_detail.father_occupation
 
@@ -13272,10 +13305,18 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 except models.Rasi.DoesNotExist:
                     lagnam = "Unknown"
 
-                didi = horoscope.didi
-                nalikai =  horoscope.nalikai
-
-                age = calculate_age(dob)  
+                didi = horoscope.didi or "Not specified"
+                nalikai =  horoscope.nalikai or "Not specified"
+                
+                def format_time_am_pm(time_str):
+                    try:
+                        time_obj = datetime.strptime(time_str, "%H:%M:%S")
+                        return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
+                    except ValueError:
+                        return time_str
+                birth_time=format_time_am_pm(time_of_birth)
+                # Age calculation
+                age = calculate_age(dob) or "Not specified"
 
                 # Planet mapping dictionary
                 # planet_mapping = {
@@ -13341,8 +13382,8 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 horoscope_data = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
     
                 
-                if horoscope_data.horoscope_file:
-                    horoscope_image_url = horoscope_data.horoscope_file.url
+                if horoscope_data.horoscope_file_admin:
+                    horoscope_image_url = horoscope_data.horoscope_file_admin.url
 
                     print(horoscope_image_url)
 
@@ -13352,22 +13393,112 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                         horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                 else:
                     horoscope_content = '<p>No horoscope uploaded</p>'
-
+                dasa_name = get_dasa_name(horoscope_data.dasa_name)
+                # image status
+                image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
                 # Get matching stars data
                 birth_star_id = horoscope.birthstar_name
                 birth_rasi_id = horoscope.birth_rasi_name
                 gender = login_details.Gender
                 porutham_data = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
-            
+                print("fathername:",father_name)
                 # Prepare the Porutham sections for the PDF
                 def format_star_names(poruthams):
                     return ', '.join([item['matching_starname'] for item in poruthams])
                 
                 profile_url = f"https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
-
+                
+                def is_grid_data_empty(grid_data):
+                    return all(cell == default_placeholder for cell in grid_data)
+                
+                hide_charts = is_grid_data_empty(rasi_kattam_data) and is_grid_data_empty(amsa_kattam_data)
                 
 
                     # Dynamic HTML content including Rasi and Amsam charts
+                    
+                    
+                charts_html = ""
+                print("hide",hide_charts)
+                if not hide_charts:
+                    charts_html = f"""
+                    <table class="outer">
+                        <tr>
+                            <td>
+                                <table class="inner">
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[0].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[1].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[2].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[3].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[11].replace('/', '<br>')}</td>
+                                        <td colspan="2" rowspan="2" class="highlight">
+                                            Rasi
+                                            <p>vysyamala.com</p>
+                                        </td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[4].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[10].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[5].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[9].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[8].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[7].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[6].replace('/', '<br>')}</td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td class="spacer">
+                                <table class="table-div dasa-table">
+                                    <tr>
+                                        <td>
+                                            <p><strong>Dasa Name</strong></p>
+                                            <p>{dasa_name}</p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <p><strong>Dasa Balance</strong></p>
+                                            <p>Years: {dasa_year}</p>
+                                            <p>Months: {dasa_month}</p>
+                                            <p>Days: {dasa_day}</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td>
+                                <table class="inner">
+                                    <tr>
+                                        <td>{amsa_kattam_data[0].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[1].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[2].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[3].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{amsa_kattam_data[11].replace('/', '<br>')}</td>
+                                        <td colspan="2" rowspan="2" class="highlight">Amsam
+                                            <p>vysyamala.com</p>
+                                        </td>
+                                        <td>{amsa_kattam_data[4].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{amsa_kattam_data[10].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[5].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{amsa_kattam_data[9].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[8].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[7].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[6].replace('/', '<br>')}</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    """
 
                 html_content = rf"""
                 <html>
@@ -13729,7 +13860,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                         </td> 
                                         <td>
                                             <p><strong>{user_profile_id}</strong></p>
-                                            <p> {height} / Not specified</p>
+                                            <p> {height} / {image_status}</p>
                                             <p>{annual_income}</p>
                                             <p>{profession} / {work_place}</p>
                                             <p>{ocupation}</p>
@@ -13756,7 +13887,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                             </td>
                                             <td>
                                                 <p><strong>{father_name}</strong></p>
-                                                <p> {father_occupation}</p>
+                                                <p style="font-size:14px"> {father_occupation}</p>
                                                 <p>{family_status}</p>
                                                 <p>{no_of_bro_married}</p>
                                             </td>
@@ -13819,8 +13950,8 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                             </td>
                                             <td>
                                                 <p><strong>{suya_gothram}</strong></p>
-                                                <p>Not Specified</p>
-                                                <p>{time_of_birth}</p>
+                                                <p>{madulamn}</p>
+                                                <p>{birth_time}</p>
                                             </td>
                                         </tr>
                                     </table>
@@ -13831,91 +13962,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                     
                     </div>
                     
-
-
-                            <table class="outer">
-                            <tr>
-                                <td>
-                                    <table class="inner">
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[0].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[1].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[2].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[3].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[11].replace('/', '<br>')}</td>
-                                            <td colspan="2" rowspan="2" class="highlight">
-                                            Rasi
-                                            <p>vysyamala.com</p>
-                                            </td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[4].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[10].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[5].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[9].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[8].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[7].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[6].replace('/', '<br>')}</td>
-                                        </tr>
-                                    </table>
-                                </td>
-                                <td class="spacer">
-                                     <table class="table-div dasa-table">
-                                        <tr>
-                                            <td>
-                                                <p><b>Dasa Name</b></p>
-                                                <p>Moon</p>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                        <td>
-                                            
-                                                <p><b>Dasa Balance</b></p>
-                                                <p>Years: {dasa_year}</p>
-                                                <p>Months: {dasa_month}</p>
-                                                <p>Days: {dasa_day}</p>
-                                            </td>
-                                        </tr>
-                                            
-                                    </table>
-                                </td>
-                                <td>
-                                    <table class="inner">
-                                        <tr>
-                                            <td>{amsa_kattam_data[0].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[1].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[2].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[3].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{amsa_kattam_data[11].replace('/', '<br>')}</td>
-                                            <td colspan="2" rowspan="2" class="highlight">
-                                            Amsam
-                                            <p>vysyamala.com</p>
-                                            </td>
-                                            <td>{amsa_kattam_data[4].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{amsa_kattam_data[10].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[5].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{amsa_kattam_data[9].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[8].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[7].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[6].replace('/', '<br>')}</td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-                        </table>
-                 
-
-
+                    {charts_html}
                 <div>
                 <table class="add-info"> 
                     <tr>
@@ -16758,12 +16805,18 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                     no_of_sis_married = family_detail.no_of_sis_married
                     no_of_bro_married = family_detail.no_of_bro_married
                     suya_gothram = family_detail.suya_gothram
+                    madulamn = family_detail.madulamn
                 else:
                     # Handle case where no family details are found
                     father_name = father_occupation = family_status = ""
                     mother_name = mother_occupation = ""
                     no_of_sis_married = no_of_bro_married = 0
 
+                if int(no_of_sis_married) == 0:
+                    no_of_sis_married = "No"
+
+                if  int(no_of_bro_married) == 0:
+                    no_of_bro_married="No"
                 # Education and profession details
                 highest_education = education_details.highest_education
                 annual_income = education_details.anual_income
@@ -16780,16 +16833,22 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 complexion = models.Profilecomplexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
 
                 highest_education_id = education_details.highest_education
-                highest_education = models.Highesteducation.objects.filter(id=highest_education_id).values_list('degree', flat=True).first() or "Unknown"
+                highest_education = models.Edupref.objects.filter(RowId=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
 
                 annual_income_id = education_details.anual_income
+                print("edu actual",education_details.actual_income)
                 annual_income = models.Annualincome.objects.filter(id=annual_income_id).values_list('income', flat=True).first() or "Unknown"
+                if not education_details.actual_income or str(education_details.actual_income).strip() in ["", "~"]:
+                    annual_income_id = education_details.anual_income
+                    annual_income = models.Annualincome.objects.filter(id=annual_income_id).values_list('income', flat=True).first() or "Unknown"
+                else:
+                    annual_income = education_details.actual_income
 
                 profession_id = education_details.profession
                 profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
 
-                work_place=education_details.work_place
+                work_place=education_details.work_city
                 ocupation_title=''
                 ocupation=''
 
@@ -16829,16 +16888,23 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
 
                 time_of_birth = horoscope.time_of_birth
                 place_of_birth = horoscope.place_of_birth
-                lagnam = horoscope.lagnam_didi
-                didi = horoscope.didi
-                nalikai =  horoscope.nalikai
+                lagnam = horoscope.lagnam_didi 
+                didi = horoscope.didi  or "Not specified"
+                nalikai =  horoscope.nalikai  or "Not specified"
 
-                
-                age = calculate_age(dob)  
+                def format_time_am_pm(time_str):
+                    try:
+                        time_obj = datetime.strptime(time_str, "%H:%M:%S")
+                        return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
+                    except ValueError:
+                        return time_str
+
+                birth_time=format_time_am_pm(time_of_birth)
+                age = calculate_age(dob)   or "Not specified"
 
                 try:
                     lagnam = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
-                    lagnam = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                    lagnam = lagnam.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
                 except models.Rasi.DoesNotExist:
                     lagnam = "Unknown"
 
@@ -16914,6 +16980,11 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 gender = login_details.Gender
                 porutham_data = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
             
+                def is_grid_data_empty(grid_data):
+                    return all(cell == default_placeholder for cell in grid_data)
+
+                hide_charts = is_grid_data_empty(rasi_kattam_data) and is_grid_data_empty(amsa_kattam_data)
+            
                 # Prepare the Porutham sections for the PDF
                 def format_star_names(poruthams):
                     return ', '.join([item['matching_starname'] for item in poruthams])
@@ -16921,15 +16992,107 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 profile_url = f"https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
 
                 dasa_day = dasa_month = dasa_year = 0
-
                 # Try to split if format is correct
-                dasa_date_str=horoscope.dasa_balance
-                if dasa_date_str.count('/') == 2:
-                    parts = dasa_date_str.split('/')
-                    if all(part.isdigit() for part in parts):
-                        dasa_day, dasa_month, dasa_year = map(int, parts)
-                    # Dynamic HTML content including Rasi and Amsam charts
-            
+                dasa_date_str = horoscope.dasa_balance.strip()
+                if dasa_date_str.startswith("day:") and "," in dasa_date_str:
+                    # Split and extract number
+                    try:
+                        day_str, month_str, year_str = dasa_date_str.split(',')
+                        dasa_day = int(day_str.split(':')[1].strip())
+                        dasa_month = int(month_str.split(':')[1].strip())
+                        dasa_year = int(year_str.split(':')[1].strip())
+                    except (ValueError, IndexError):
+                        dasa_day = dasa_month = dasa_year = 0
+                dasa_name = get_dasa_name(horoscope_data.dasa_name)
+                image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
+
+                print("Image_status",image_status)
+
+                charts_html = ""
+
+
+
+                if not hide_charts:
+
+                    charts_html = f"""
+                    <table class="outer">
+                        <tr>
+                            <td>
+                                <table class="inner">
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[0].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[1].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[2].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[3].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[11].replace('/', '<br>')}</td>
+                                        <td colspan="2" rowspan="2" class="highlight">
+                                            Rasi
+                                            <p>vysyamala.com</p>
+                                        </td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[4].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[10].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[5].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[9].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[8].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[7].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[6].replace('/', '<br>')}</td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td class="spacer">
+                                <table class="table-div dasa-table">
+                                    <tr>
+                                        <td>
+                                            <p><strong>Dasa Name</strong></p>
+                                            <p>{dasa_name}</p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <p><strong>Dasa Balance</strong></p>
+                                            <p>Years: {dasa_year}</p>
+                                            <p>Months: {dasa_month}</p>
+                                            <p>Days: {dasa_day}</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td>
+                                <table class="inner">
+                                    <tr>
+                                        <td>{amsa_kattam_data[0].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[1].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[2].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[3].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{amsa_kattam_data[11].replace('/', '<br>')}</td>
+                                        <td colspan="2" rowspan="2" class="highlight">Amsam
+                                            <p>vysyamala.com</p>
+                                        </td>
+                                        <td>{amsa_kattam_data[4].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{amsa_kattam_data[10].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[5].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{amsa_kattam_data[9].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[8].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[7].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[6].replace('/', '<br>')}</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    """  
                 html_content = rf"""
                 <html>
                     <head>
@@ -17276,7 +17439,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                         </td> 
                                         <td>
                                             <p><strong>{user_profile_id}</strong></p>
-                                            <p> {height} / Not specified</p>
+                                            <p> {height} / {image_status}</p>
                                             <p>{annual_income}</p>
                                             <p>{profession} / {work_place}</p>
                                             <p>{ocupation}</p>
@@ -17362,8 +17525,8 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                             </td>
                                             <td>
                                                 <p><strong>{suya_gothram}</strong></p>
-                                                <p>Not Specified</p>
-                                                <p>{time_of_birth}</p>
+                                                <p>{madulamn}</p>
+                                                <p>{birth_time}</p>
                                             </td>
                                         </tr>
                                     </table>
@@ -17374,88 +17537,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                     
                     </div>
                     
-
-
-                            <table class="outer">
-                            <tr>
-                                <td>
-                                    <table class="inner">
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[0].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[1].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[2].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[3].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[11].replace('/', '<br>')}</td>
-                                            <td colspan="2" rowspan="2" class="highlight">
-                                            Rasi
-                                            <p>vysyamala.com</p>
-                                            </td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[4].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[10].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[5].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[9].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[8].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[7].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[6].replace('/', '<br>')}</td>
-                                        </tr>
-                                    </table>
-                                </td>
-                                <td class="spacer">
-                                     <table class="table-div dasa-table">
-                                        <tr>
-                                            <td>
-                                                <p><strong>Dasa Name</strong</p>
-                                                <p>Moon</p>
-                                            </td>
-                                        </tr
-                                        <tr>
-                                        <td>
-                                            
-                                                <p><strong>Dasa Balance</strong</p>
-                                                <p>Years: {dasa_year} </p>
-                                                <p>Months: {dasa_month} </p>
-                                                <p>Days: {dasa_day} </p>
-                                            </td>
-                                        </tr>
-                                            
-                                    </table>
-                                </td>
-                                <td>
-                                    <table class="inner">
-                                        <tr>
-                                            <td>{amsa_kattam_data[0].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[1].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[2].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[3].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{amsa_kattam_data[11].replace('/', '<br>')}</td>
-                                            <td colspan="2" rowspan="2" class="highlight">Amsam
-                                            <p>vysyamala.com</p>
-                                            </td>
-                                            <td>{amsa_kattam_data[4].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{amsa_kattam_data[10].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[5].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{amsa_kattam_data[9].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[8].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[7].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[6].replace('/', '<br>')}</td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-                        </table>
-                       
+                    {charts_html}   
 
 
                 <div>
@@ -17613,7 +17695,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
 
                 attached_horoscope_enable=get_permission_limits(my_profile_id,'attached_horoscope')
                 contact_enable=get_permission_limits(my_profile_id,'contact_details')
-
+                print("attached_horoscope_enable",attached_horoscope_enable)
 
                 address_content = f"""
                     <p><b>Address:</b></p>
@@ -17648,12 +17730,17 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                     no_of_sis_married = family_detail.no_of_sis_married
                     no_of_bro_married = family_detail.no_of_bro_married
                     suya_gothram = family_detail.suya_gothram
+                    madulamn = family_detail.madulamn
                 else:
                     # Handle case where no family details are found
                     father_name = father_occupation = family_status = ""
                     mother_name = mother_occupation = ""
                     no_of_sis_married = no_of_bro_married = 0
 
+                if int(no_of_sis_married) == 0:
+                    no_of_sis_married = "No"
+                if  int(no_of_bro_married) == 0:
+                    no_of_bro_married="No"
                 # Education and profession details
                 highest_education = education_details.highest_education
                 annual_income = education_details.anual_income
@@ -17670,15 +17757,21 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 complexion = models.Profilecomplexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
 
                 highest_education_id = education_details.highest_education
-                highest_education = models.Highesteducation.objects.filter(id=highest_education_id).values_list('degree', flat=True).first() or "Unknown"
+                highest_education = models.Edupref.objects.filter(RowId=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
 
                 annual_income_id = education_details.anual_income
                 annual_income = models.Annualincome.objects.filter(id=annual_income_id).values_list('income', flat=True).first() or "Unknown"
 
+                if not education_details.actual_income or str(education_details.actual_income).strip() in ["", "~"]:
+                    annual_income_id = education_details.anual_income
+                    annual_income = models.Annualincome.objects.filter(id=annual_income_id).values_list('income', flat=True).first() or "Unknown"
+                else:
+                    annual_income = education_details.actual_income
+                
                 profession_id = education_details.profession
                 profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
-                work_place=education_details.work_place
+                work_place=education_details.work_city
                 ocupation_title=''
                 ocupation=''
 
@@ -17692,15 +17785,19 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 profession_id = education_details.profession
                 profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
-                
+            
                 dasa_day = dasa_month = dasa_year = 0
-
                 # Try to split if format is correct
-                dasa_date_str=horoscope.dasa_balance
-                if dasa_date_str.count('/') == 2:
-                    parts = dasa_date_str.split('/')
-                    if all(part.isdigit() for part in parts):
-                        dasa_day, dasa_month, dasa_year = map(int, parts)
+                dasa_date_str = horoscope.dasa_balance.strip()
+                if dasa_date_str.startswith("day:") and "," in dasa_date_str:
+                    # Split and extract numbers
+                    try:
+                        day_str, month_str, year_str = dasa_date_str.split(',')
+                        dasa_day = int(day_str.split(':')[1].strip())
+                        dasa_month = int(month_str.split(':')[1].strip())
+                        dasa_year = int(year_str.split(':')[1].strip())
+                    except (ValueError, IndexError):
+                        dasa_day = dasa_month = dasa_year = 0
                 
 
                 #father_occupation_id = family_detail.father_occupation
@@ -17729,17 +17826,26 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
 
                 time_of_birth = horoscope.time_of_birth
                 place_of_birth = horoscope.place_of_birth
+            
+                def format_time_am_pm(time_str):
+                    try:
+                        time_obj = datetime.strptime(time_str, "%H:%M:%S")
+                        return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
+                    except ValueError:
+                        return time_str
+                    
+                birth_time=format_time_am_pm(time_of_birth)
                 
                 try:
                     lagnam = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
-                    lagnam = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                    lagnam = lagnam.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
                 except models.Rasi.DoesNotExist:
                     lagnam = "Unknown"
 
-                didi = horoscope.didi
-                nalikai =  horoscope.nalikai
+                didi = horoscope.didi or "Not specified"
+                nalikai =  horoscope.nalikai  or "Not specified"
 
-                age = calculate_age(dob)  
+                age = calculate_age(dob)  or "Not specified" 
 
                 # Planet mapping dictionary
                 # planet_mapping = {
@@ -17806,7 +17912,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 horoscope_data = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
                 
                 
-                if attached_horoscope_enable is True :
+                if attached_horoscope_enable:
                     if horoscope_data.horoscope_file_admin:
                         horoscope_image_url = horoscope_data.horoscope_file_admin.url
 
@@ -17834,10 +17940,101 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 
                 profile_url = f"https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
 
-                
+                def is_grid_data_empty(grid_data):
+                    return all(cell == default_placeholder for cell in grid_data)
 
+                hide_charts = is_grid_data_empty(rasi_kattam_data) and is_grid_data_empty(amsa_kattam_data)
+                dasa_name = get_dasa_name(horoscope_data.dasa_name)
                     # Dynamic HTML content including Rasi and Amsam charts
+                image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
 
+                print("Image_status",image_status)
+
+                charts_html = ""
+
+
+
+                if not hide_charts:
+
+                    charts_html = f"""
+                    <table class="outer">
+                        <tr>
+                            <td>
+                                <table class="inner">
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[0].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[1].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[2].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[3].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[11].replace('/', '<br>')}</td>
+                                        <td colspan="2" rowspan="2" class="highlight">
+                                            Rasi
+                                            <p>vysyamala.com</p>
+                                        </td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[4].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[10].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[5].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-tabledata">{rasi_kattam_data[9].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[8].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[7].replace('/', '<br>')}</td>
+                                        <td class="inner-tabledata">{rasi_kattam_data[6].replace('/', '<br>')}</td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td class="spacer">
+                                <table class="table-div dasa-table">
+                                    <tr>
+                                        <td>
+                                            <p><strong>Dasa Name</strong></p>
+                                            <p>{dasa_name}</p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <p><strong>Dasa Balance</strong></p>
+                                            <p>Years: {dasa_year}</p>
+                                            <p>Months: {dasa_month}</p>
+                                            <p>Days: {dasa_day}</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td>
+                                <table class="inner">
+                                    <tr>
+                                        <td>{amsa_kattam_data[0].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[1].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[2].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[3].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{amsa_kattam_data[11].replace('/', '<br>')}</td>
+                                        <td colspan="2" rowspan="2" class="highlight">Amsam
+                                            <p>vysyamala.com</p>
+                                        </td>
+                                        <td>{amsa_kattam_data[4].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{amsa_kattam_data[10].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[5].replace('/', '<br>')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{amsa_kattam_data[9].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[8].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[7].replace('/', '<br>')}</td>
+                                        <td>{amsa_kattam_data[6].replace('/', '<br>')}</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    """
                 html_content = rf"""
                 <html>
                     <head>
@@ -18198,7 +18395,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                         </td> 
                                         <td>
                                             <p><strong>{user_profile_id}</strong></p>
-                                            <p> {height} / Not specified</p>
+                                            <p> {height} / {image_status}</p>
                                             <p>{annual_income}</p>
                                             <p>{profession} / {work_place}</p>
                                             <p>{ocupation}</p>
@@ -18225,7 +18422,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                             </td>
                                             <td>
                                                 <p><strong>{father_name}</strong></p>
-                                                <p> {father_occupation}</p>
+                                                <p style="font-size:12px"> {father_occupation}</p>
                                                 <p>{family_status}</p>
                                                 <p>{no_of_bro_married}</p>
                                             </td>
@@ -18288,8 +18485,8 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                             </td>
                                             <td>
                                                 <p><strong>{suya_gothram}</strong></p>
-                                                <p>Not Specified</p>
-                                                <p>{time_of_birth}</p>
+                                                <p>{madulamn}</p>
+                                                <p>{birth_time}</p>
                                             </td>
                                         </tr>
                                     </table>
@@ -18300,89 +18497,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                     
                     </div>
                     
-
-
-                            <table class="outer">
-                            <tr>
-                                <td>
-                                    <table class="inner">
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[0].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[1].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[2].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[3].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[11].replace('/', '<br>')}</td>
-                                            <td colspan="2" rowspan="2" class="highlight">
-                                            Rasi
-                                            <p>vysyamala.com</p>
-                                            </td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[4].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[10].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[5].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="inner-tabledata">{rasi_kattam_data[9].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[8].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[7].replace('/', '<br>')}</td>
-                                            <td class="inner-tabledata">{rasi_kattam_data[6].replace('/', '<br>')}</td>
-                                        </tr>
-                                    </table>
-                                </td>
-                                <td class="spacer">
-                                     <table class="table-div dasa-table">
-                                        <tr>
-                                            <td>
-                                                <p><b>Dasa Name</b></p>
-                                                <p>Moon</p>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                        <td>
-                                            
-                                                <p><b>Dasa Balance</b></p>
-                                                <p>Years: {dasa_year}</p>
-                                                <p>Months: {dasa_month}</p>
-                                                <p>Days: {dasa_day}</p>
-                                            </td>
-                                        </tr>
-                                            
-                                    </table>
-                                </td>
-                                <td>
-                                    <table class="inner">
-                                        <tr>
-                                            <td>{amsa_kattam_data[0].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[1].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[2].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[3].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{amsa_kattam_data[11].replace('/', '<br>')}</td>
-                                            <td colspan="2" rowspan="2" class="highlight">
-                                            Amsam
-                                            <p>vysyamala.com</p>
-                                            </td>
-                                            <td>{amsa_kattam_data[4].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{amsa_kattam_data[10].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[5].replace('/', '<br>')}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>{amsa_kattam_data[9].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[8].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[7].replace('/', '<br>')}</td>
-                                            <td>{amsa_kattam_data[6].replace('/', '<br>')}</td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-                        </table>
-                 
+                 {charts_html}
 
 
                 <div>

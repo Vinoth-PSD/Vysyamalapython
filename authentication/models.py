@@ -537,7 +537,16 @@ class Image_Upload(models.Model):
     class Meta:
         managed = False  # Assuming this model is managed externally
         db_table = 'profile_images'
-        
+    
+    def get_image_status(profile_id):
+        approved_images_exist = Image_Upload.objects.filter(
+            profile_id=profile_id,
+            image_approved=1,
+            is_deleted__in=[None, 0]
+        ).exists()
+    
+        return "Specified" if approved_images_exist else "Not Specified"
+  
 
 
 # class profile_images(models.Model):

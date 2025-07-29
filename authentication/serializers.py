@@ -1354,7 +1354,7 @@ class PersonalEdudetailsSerializer(serializers.ModelSerializer):
 class Registration1ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Registration1
-        fields = ['Profile_address','Profile_district','Profile_city', 'Profile_state', 'Profile_country', 'Profile_pincode', 'Profile_alternate_mobile', 'Profile_mobile_no', 'Profile_whatsapp', 'EmailId']
+        fields = ['Profile_address','Profile_district','Profile_city', 'Profile_state', 'Profile_country', 'Profile_pincode', 'Profile_alternate_mobile', 'Profile_mobile_no', 'Profile_whatsapp', 'EmailId','Profile_emailid']
 
 
 
