@@ -6408,13 +6408,13 @@ class GetMyProfilePersonal(APIView):
                 "personal_profile_complexion_name": complexion_name,
                 "personal_hobbies": familydetails_serializer.data.get("hobbies"),
                 # "personal_pysically_changed": familydetails_serializer.data.get("Pysically_changed"),
-                "personal_pysically_changed":'Yes' if familydetails_serializer.data.get("Pysically_changed") == 1 else 'No' if familydetails_serializer.data.get("Pysically_changed") == 0 else familydetails_serializer.data.get("Pysically_changed"),
+                "personal_pysically_changed":'Yes' if familydetails_serializer.data.get("Pysically_changed") == 1 else 'No' if familydetails_serializer.data.get("Pysically_changed") == "0" else familydetails_serializer.data.get("Pysically_changed") ,
                 "personal_profile_for_id":  registration_serializer.data.get("Profile_for"),
                 "personal_video_url":  registration_serializer.data.get("Video_url"),
                 "personal_profile_for_name": profile_for_name,
                 "personal_weight": familydetails_serializer.data.get("weight"),
                 # "personal_eye_wear":  familydetails_serializer.data.get("eye_wear"),
-                "personal_eye_wear":'Yes' if familydetails_serializer.data.get("eye_wear") == 1 else 'No' if familydetails_serializer.data.get("eye_wear") == 0 else familydetails_serializer.data.get("eye_wear"),
+                "personal_eye_wear":'Yes' if familydetails_serializer.data.get("eye_wear") == "1" else 'No' if familydetails_serializer.data.get("eye_wear") == "0" else familydetails_serializer.data.get("eye_wear"),
                 "personal_body_type": familydetails_serializer.data.get("body_type"),
                 "personal_verify":registration_serializer.data.get("Profile_verified"),
                 "package_name":plan_name,
@@ -6506,8 +6506,6 @@ def safe_get_by_id(model, pk_value, return_field):
     except Exception as e:
         print(f"[ERROR] {e}")
         return ""
-
-
 
 class UpdateMyProfilePersonal(APIView):
     def post(self, request):
@@ -7237,7 +7235,9 @@ class UpdateMyProfileFamily(APIView):
                     # print('12345')
                        #notify_related_profiles(profile_id,'Profile_update',notification_titile,notification_message)
                         addto_notification_queue(profile_id,'Profile_update',notification_titile,notification_message)
-
+                serializer.save()
+                family_details.save()
+                
                 response = {
                     "status": "success",
                     "message": "Family details updated successfully"
@@ -8068,6 +8068,7 @@ class GetMyProfileContact(APIView):
             "personal_prof_mob_no": contact_serializer.data.get("Profile_mobile_no"),
             "personal_prof_whats": contact_serializer.data.get("Profile_whatsapp"),
             "personal_email": contact_serializer.data.get("EmailId"),
+            "admin_use_email":contact_serializer.data.get("Profile_emailid")
         }
 
         return JsonResponse({
@@ -12123,7 +12124,10 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
 
                 # Education and profession details
                 highest_education = education_details.highest_education
-                annual_income = education_details.anual_income
+                if not education_details.actual_income:
+                    annual_income = education_details.anual_income
+                else:
+                    annual_income = education_details.actual_income
                 profession = education_details.profession
 
                 # personal details
@@ -12159,7 +12163,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 profession = safe_get_value(models.Profespref, 'RowId', profession_id, 'profession')
 
                 # Work place and occupation details
-                work_place = education_details.work_place or "Not specified"
+                work_place = education_details.work_city or "Not specified"
                 occupation_title = ''
                 occupation = ''
 
@@ -12198,10 +12202,11 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
                 except models.Rasi.DoesNotExist:
                     rasi_name = "Unknown"
-
+                lagnam="Unknown"
                 try:
-                    lagnam = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
-                    lagnam = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                    if horoscope.lagnam_didi and str(horoscope.lagnam_didi).isdigit():
+                        lagnam = models.Rasi.objects.filter(pk=int(horoscope.lagnam_didi)).first()
+                        lagnam= lagnam.name
                 except models.Rasi.DoesNotExist:
                     lagnam = "Unknown"
                 # Time & location
@@ -12312,7 +12317,8 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                         dasa_day, dasa_month, dasa_year = map(int, parts)
                     # Dynamic HTML content including Rasi and Amsam charts
                     
-                    
+                image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
+                print("Image_status",image_status)
                 charts_html = ""
 
                 if not hide_charts:
@@ -12742,7 +12748,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                         </td> 
                                         <td>
                                             <p><strong>{user_profile_id}</strong></p>
-                                            <p> {height} / Not specified</p>
+                                            <p> {height} / {image_status}</p>
                                             <p>{annual_income}</p>
                                             <p>{profession} / {work_place}</p>
                                             <p>{occupation}</p>
