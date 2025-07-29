@@ -6347,6 +6347,16 @@ class GetMyProfilePersonal(APIView):
                     Profile_high_edu=None                    
             except models.Edupref.DoesNotExist:
                 Profile_high_edu = None
+
+            
+            #field_ofstudy
+            try:
+                if education_details_serializer.data.get('field_ofstudy'):
+                    Profile_field_edu = models.Profilefieldstudy.objects.get(id=education_details_serializer.data.get('field_ofstudy')).field_of_study
+                else:
+                    Profile_field_edu=None                    
+            except models.Profilefieldstudy.DoesNotExist:
+                Profile_field_edu = None
             
             try:
                     
@@ -6387,6 +6397,7 @@ class GetMyProfilePersonal(APIView):
                 "personal_profile_dob": registration_serializer.data.get("Profile_dob"),
                 "personal_place_of_birth": horoscope_serializer.data.get("place_of_birth"),
                 "personal_time_of_birth": horoscope_serializer.data.get("time_of_birth"),
+                "personal_time_of_birth_str": format_time_am_pm(horoscope_serializer.data.get("time_of_birth")),
                 "personal_profile_height": registration_serializer.data.get("Profile_height"),
                 "personal_profile_marital_status_id": registration_serializer.data.get("Profile_marital_status"),
                 "personal_profile_marital_status_name": marital_status_name,
@@ -6396,12 +6407,14 @@ class GetMyProfilePersonal(APIView):
                 "personal_profile_complexion_id": registration_serializer.data.get("Profile_complexion"),
                 "personal_profile_complexion_name": complexion_name,
                 "personal_hobbies": familydetails_serializer.data.get("hobbies"),
-                "personal_pysically_changed": familydetails_serializer.data.get("Pysically_changed"),
+                # "personal_pysically_changed": familydetails_serializer.data.get("Pysically_changed"),
+                "personal_pysically_changed":'Yes' if familydetails_serializer.data.get("Pysically_changed") == 1 else 'No' if familydetails_serializer.data.get("Pysically_changed") == 0 else familydetails_serializer.data.get("Pysically_changed"),
                 "personal_profile_for_id":  registration_serializer.data.get("Profile_for"),
                 "personal_video_url":  registration_serializer.data.get("Video_url"),
                 "personal_profile_for_name": profile_for_name,
                 "personal_weight": familydetails_serializer.data.get("weight"),
-                "personal_eye_wear":  familydetails_serializer.data.get("eye_wear"),
+                # "personal_eye_wear":  familydetails_serializer.data.get("eye_wear"),
+                "personal_eye_wear":'Yes' if familydetails_serializer.data.get("eye_wear") == 1 else 'No' if familydetails_serializer.data.get("eye_wear") == 0 else familydetails_serializer.data.get("eye_wear"),
                 "personal_body_type": familydetails_serializer.data.get("body_type"),
                 "personal_verify":registration_serializer.data.get("Profile_verified"),
                 "package_name":plan_name,
@@ -6412,8 +6425,11 @@ class GetMyProfilePersonal(APIView):
                 "empty_fields":result_percen['empty_fields'],
                 "profile_id":registration_serializer.data.get("ProfileId"),
                 "star":birth_starname,
-                "gothram":registration_serializer.data.get("Profile_gothras"),
-                "heightest_education":Profile_high_edu,
+                # "gothram":registration_serializer.data.get("Profile_gothras"),
+                "gothram":familydetails_serializer.data.get("suya_gothram"),
+                "uncle_gothram":familydetails_serializer.data.get("uncle_gothram"),
+                # "heightest_education":Profile_high_edu,
+                "heightest_education": f"{Profile_high_edu} {Profile_field_edu}",
                 "prosession":Profile_prosession
             }
 
@@ -7236,11 +7252,14 @@ class UpdateMyProfileFamily(APIView):
 
         except models.Familystatus.DoesNotExist:
             return JsonResponse({"status": "error", "message": "Family status not found"}, status=status.HTTP_404_NOT_FOUND)
-        
 
 
-
-
+def format_time_am_pm(time_str):
+    try:
+        time_obj = datetime.strptime(time_str, "%H:%M:%S")
+        return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
+    except ValueError:
+        return time_str  # Return original if parsing fails
 
 
 

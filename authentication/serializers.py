@@ -1275,12 +1275,12 @@ class PersonalHoroscopeSerializer(serializers.ModelSerializer):
         fields = ['place_of_birth', 'time_of_birth','birth_rasi_name','birthstar_name']
 
 class PersonalFamilydetailsSerializer(serializers.ModelSerializer):
-    weight = serializers.CharField(required=True, allow_blank=True , allow_null=True)
-    eye_wear = serializers.CharField(required=True, allow_blank=True, allow_null=True)
-    body_type = serializers.CharField(required=True, allow_blank=True, allow_null=True)
+    weight = serializers.CharField(required=False, allow_blank=True , allow_null=True)
+    eye_wear = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    body_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     class Meta:
         model = models.Familydetails
-        fields = ['blood_group', 'about_self', 'hobbies', 'Pysically_changed','weight','eye_wear','body_type']
+        fields = ['blood_group', 'about_self', 'hobbies', 'Pysically_changed','weight','eye_wear','body_type','suya_gothram','uncle_gothram']
 
 
 class PersHoroscopeSerializer(serializers.ModelSerializer):
