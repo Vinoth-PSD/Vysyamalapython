@@ -7364,6 +7364,7 @@ class GetMyProfileHoroscope(APIView):
                 "personal_ragu_dos": dosham_value_formatter(horoscope_serializer.data.get("ragu_dosham")),
                 "personal_nalikai": horoscope_serializer.data.get("nalikai"),
                 "personal_surya_goth": family_serializer.data.get("suya_gothram"),
+                "personal_madhulam": family_serializer.data.get("madhulamn"),
                 "personal_dasa": get_dasa_name(horoscope_serializer.data.get("dasa_name")),
                 "personal_dasa_bal": self.dasa_format_date(horoscope_serializer.data.get("dasa_balance")),
                 "personal_rasi_katt": horoscope_serializer.data.get("rasi_kattam"),

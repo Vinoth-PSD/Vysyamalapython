@@ -1322,7 +1322,7 @@ class FamilyStatusSerializer(serializers.ModelSerializer):
 class PersonalFamSerilizer(serializers.ModelSerializer):
     class Meta:
         model = models.Familydetails
-        fields =['suya_gothram']
+        fields =['suya_gothram','madulamn']
 
 
 class PersonalEdudetailsSerializer(serializers.ModelSerializer):
