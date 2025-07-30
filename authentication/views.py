@@ -13329,11 +13329,12 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 
                 
                 #father_occupation_id = family_detail.father_occupation
-                father_occupation = family_detail.father_occupation
+                father_occupation = family_detail.father_occupation or "N/A"
 
                  #mother_occupation_id = family_detail.mother_occupation
-                mother_occupation = family_detail.mother_occupation
-
+                mother_occupation = family_detail.mother_occupation or "N/A"
+                father_name = family_detail.father_name or "N/A"
+                mother_name = family_detail.mother_name or "N/A"
                 family_status = "Unknown"
                 family_status_id = family_detail.family_status
 
@@ -16856,8 +16857,8 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                     mobile_email_content
                 else:
                 
-                        address_content = f""" Get full access - upgrade your package today """
-                        mobile_email_content = f""" Get full access - upgrade your package today """
+                        address_content = f"""<p> Get full access - upgrade your package today </p>"""
+                        mobile_email_content = f"""<p> Get full access - upgrade your package today </p>"""
 
 
 
@@ -16908,23 +16909,30 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 height = login_details.Profile_height 
 
                 complexion_id = login_details.Profile_complexion
-                complexion = models.Profilecomplexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
+                complexion = "Unknown"
+                if complexion_id:
+                    complexion = models.Profilecomplexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
 
+                # Safely handle education level
                 highest_education_id = education_details.highest_education
-                highest_education = models.Edupref.objects.filter(RowId=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
-
+                highest_education = "Unknown"
+                if highest_education_id:
+                    highest_education = models.Edupref.objects.filter(RowId=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
+                annual_income = "Unknown"
+                actual_income = str(education_details.actual_income).strip()
                 annual_income_id = education_details.anual_income
-                print("edu actual",education_details.actual_income)
-                annual_income = models.Annualincome.objects.filter(id=annual_income_id).values_list('income', flat=True).first() or "Unknown"
-                if not education_details.actual_income or str(education_details.actual_income).strip() in ["", "~"]:
-                    annual_income_id = education_details.anual_income
-                    annual_income = models.Annualincome.objects.filter(id=annual_income_id).values_list('income', flat=True).first() or "Unknown"
+
+                if not actual_income or actual_income in ["", "~"]:
+                    if annual_income_id and str(annual_income_id).isdigit():
+                        annual_income = models.Annualincome.objects.filter(id=int(annual_income_id)).values_list('income', flat=True).first() or "Unknown"
                 else:
-                    annual_income = education_details.actual_income
+                    annual_income = actual_income
+
 
                 profession_id = education_details.profession
-                profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
-
+                profession = "Unknown"
+                if profession_id:
+                    profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
                 work_place=education_details.work_city
                 ocupation_title=''
@@ -16937,32 +16945,40 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                        ocupation_title='Business Details'
                        ocupation=education_details.business_name+'/'+education_details.nature_of_business
                 
-                profession_id = education_details.profession
-                profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
-
+          
 
                 #father_occupation_id = family_detail.father_occupation
-                father_occupation = family_detail.father_occupation
+                father_occupation = family_detail.father_occupation or "N/A"
 
                  #mother_occupation_id = family_detail.mother_occupation
-                mother_occupation = family_detail.mother_occupation
-
+                mother_occupation = family_detail.mother_occupation or "N/A"
+                father_name = family_detail.father_name or "N/A"
+                mother_name = family_detail.mother_name or "N/A"
+                family_status = "Unknown"
                 family_status_id = family_detail.family_status
-                family_status = models.Familystatus.objects.filter(id=family_status_id).values_list('status', flat=True).first() or "Unknown"
+
+                if family_status_id:
+                    family_status = models.Familystatus.objects.filter(id=family_status_id).values_list('status', flat=True).first() or "Unknown"
 
                 # Fetch star name from BirthStar model
-                try:
-                    star = models.Birthstar.objects.get(pk=horoscope.birthstar_name)
-                    star_name = star.star  # Or use star.tamil_series, telugu_series, etc. as per your requirement
-                except models.Birthstar.DoesNotExist:
-                    star_name = "Unknown"
+                def get_model_instance(model, pk):
+                    if not pk or not str(pk).isdigit():
+                        return None
+                    try:
+                        return model.objects.get(pk=pk)
+                    except model.DoesNotExist:
+                        return None
+                    except ValueError:
+                        return None
 
-                # Fetch rasi name from Rasi model
-                try:
-                    rasi = models.Rasi.objects.get(pk=horoscope.birth_rasi_name)
-                    rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
-                except models.Rasi.DoesNotExist:
-                    rasi_name = "Unknown"
+                star_obj = get_model_instance(models.Birthstar, horoscope.birthstar_name)
+                star_name = star_obj.star if star_obj else "Unknown"
+
+                rasi_obj = get_model_instance(models.Rasi, horoscope.birth_rasi_name)
+                rasi_name = rasi_obj.name if rasi_obj else "Unknown"
+
+                lagnam_obj = get_model_instance(models.Rasi, horoscope.lagnam_didi)
+                lagnam = lagnam_obj.name if lagnam_obj else "Unknown"
 
                 time_of_birth = horoscope.time_of_birth
                 place_of_birth = horoscope.place_of_birth
@@ -16980,11 +16996,6 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 birth_time=format_time_am_pm(time_of_birth)
                 age = calculate_age(dob)   or "Not specified"
 
-                try:
-                    lagnam = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
-                    lagnam = lagnam.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
-                except models.Rasi.DoesNotExist:
-                    lagnam = "Unknown"
 
                 planet_mapping = {
                     "1": "Sun",
@@ -17050,7 +17061,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                         horoscope_content = '<p>No horoscope uploaded</p>'
                 else :
                     
-                     horoscope_content = '<h2>Get full access - upgrade your package today </h2>'
+                     horoscope_content = '<p>Get full access - upgrade your package today </p>'
 
                 # Get matching stars data
                 birth_star_id = horoscope.birthstar_name
@@ -17081,7 +17092,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                         dasa_year = int(year_str.split(':')[1].strip())
                     except (ValueError, IndexError):
                         dasa_day = dasa_month = dasa_year = 0
-                dasa_name = get_dasa_name(horoscope_data.dasa_name)
+                dasa_name = get_dasa_name(horoscope.dasa_name)
                 image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
 
                 print("Image_status",image_status)
@@ -17852,22 +17863,30 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 height = login_details.Profile_height 
 
                 complexion_id = login_details.Profile_complexion
-                complexion = models.Profilecomplexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
+                complexion="Not specified"
+                if complexion_id:
+                    complexion = models.Profilecomplexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
 
                 highest_education_id = education_details.highest_education
-                highest_education = models.Edupref.objects.filter(RowId=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
+                highest_education="Not Specified"
+                if highest_education_id:
+                    highest_education = models.Edupref.objects.filter(RowId=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
 
                 annual_income_id = education_details.anual_income
-                annual_income = models.Annualincome.objects.filter(id=annual_income_id).values_list('income', flat=True).first() or "Unknown"
-
+                annual_income = "Not specified"
+                
                 if not education_details.actual_income or str(education_details.actual_income).strip() in ["", "~"]:
                     annual_income_id = education_details.anual_income
-                    annual_income = models.Annualincome.objects.filter(id=annual_income_id).values_list('income', flat=True).first() or "Unknown"
+                    if annual_income_id:
+                        annual_income = models.Annualincome.objects.filter(id=annual_income_id).values_list('income', flat=True).first() or "Unknown"
+
                 else:
                     annual_income = education_details.actual_income
                 
                 profession_id = education_details.profession
-                profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
+                profession="Not Specified"
+                if profession_id:
+                    profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
                 work_place=education_details.work_city
                 ocupation_title=''
@@ -17880,9 +17899,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                        ocupation_title='Business Details'
                        ocupation=education_details.business_name+'/'+education_details.nature_of_business
                 
-                profession_id = education_details.profession
-                profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
-
+               
             
                 dasa_day = dasa_month = dasa_year = 0
                 # Try to split if format is correct
@@ -17899,13 +17916,16 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 
 
                 #father_occupation_id = family_detail.father_occupation
-                father_occupation = family_detail.father_occupation
+                father_occupation = family_detail.father_occupation or "N/A"
 
                  #mother_occupation_id = family_detail.mother_occupation
-                mother_occupation = family_detail.mother_occupation
-
-                family_status_id = family_detail.family_status
-                family_status = models.Familystatus.objects.filter(id=family_status_id).values_list('status', flat=True).first() or "Unknown"
+                mother_occupation = family_detail.mother_occupation or "N/A"
+                father_name = family_detail.father_name or "N/A"
+                mother_name = family_detail.mother_name or "N/A"
+                family_status_id = family_detail.family_status 
+                family_status="N/A"
+                if family_status_id:
+                    family_status = models.Familystatus.objects.filter(id=family_status_id).values_list('status', flat=True).first() or "Unknown"
 
                 # Fetch star name from BirthStar model
                 try:
@@ -17935,8 +17955,11 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 birth_time=format_time_am_pm(time_of_birth)
                 
                 try:
-                    lagnam = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
-                    lagnam = lagnam.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                    if horoscope.lagnam_didi:
+                        lagnam = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
+                        lagnam = lagnam.name 
+                    else:
+                        lagnam="Unknown"
                 except models.Rasi.DoesNotExist:
                     lagnam = "Unknown"
 
