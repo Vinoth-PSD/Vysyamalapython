@@ -1259,7 +1259,7 @@ class PersonalRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Registration1
-        fields = ['ProfileId','Profile_name', 'Gender', 'Profile_dob', 'Profile_height', 'Profile_marital_status', 'Profile_complexion', 'Profile_for', 'age','Profile_verified','PaymentExpire','Plan_id','DateOfJoin','Profile_gothras','Video_url']
+        fields = ['ProfileId','Profile_name', 'Gender', 'Profile_dob', 'Profile_height', 'Profile_marital_status', 'Profile_complexion', 'Profile_for', 'age','Profile_verified','PaymentExpire','Plan_id','DateOfJoin','Profile_gothras','Video_url','Mobile_no']
 
     def get_age(self, obj):
         if obj.Profile_dob:
