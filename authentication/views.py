@@ -12349,7 +12349,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 def format_star_names(poruthams):
                     return ', '.join([item['matching_starname'] for item in poruthams])
 
-                profile_url = f"https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
+                profile_url = f"https://polite-pond-0783ff91e.1.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
 
                 dasa_day = dasa_month = dasa_year = 0
                 # Try to split if format is correct
@@ -13466,7 +13466,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 def format_star_names(poruthams):
                     return ', '.join([item['matching_starname'] for item in poruthams])
                 
-                profile_url = f"https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
+                profile_url = f"https://polite-pond-0783ff91e.1.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
                 
                 def is_grid_data_empty(grid_data):
                     return all(cell == default_placeholder for cell in grid_data)
@@ -17078,7 +17078,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 def format_star_names(poruthams):
                     return ', '.join([item['matching_starname'] for item in poruthams])
 
-                profile_url = f"https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
+                profile_url = f"https://polite-pond-0783ff91e.1.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
 
                 dasa_day = dasa_month = dasa_year = 0
                 # Try to split if format is correct
@@ -18059,7 +18059,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 def format_star_names(poruthams):
                     return ', '.join([item['matching_starname'] for item in poruthams])
                 
-                profile_url = f"https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
+                profile_url = f"https://polite-pond-0783ff91e.1.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
 
                 def is_grid_data_empty(grid_data):
                     return all(cell == default_placeholder for cell in grid_data)
