@@ -1827,7 +1827,8 @@ class Get_palns(APIView):
                 # plan = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,plan_id=plan_id).first()
 
                 plan = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,plan_id__in=[1, 2, 3]).first()
-
+                print("plan",plan)
+                print("plan_id",plan_id)
                 # current_date = now().date()
                 current_time = timezone.now()
                 current_date = current_time.date()
@@ -7509,6 +7510,8 @@ class GetMyProfileEducation(APIView):
                 "personal_work_coun_name": work_country_name,
                 "personal_work_sta_id": work_state_id,
                 "personal_work_sta_name": work_state_name,
+                "personal_work_district": get_district_name(education_serializer.data.get("work_district")),
+                "personal_work_district_id":education_serializer.data.get("work_district"),
                 "personal_work_city_name": get_city_name(education_serializer.data.get("work_city")),
                 "personal_work_city_id": education_serializer.data.get("work_city"),
                 "personal_work_place": education_serializer.data.get("work_place"),
@@ -12091,12 +12094,23 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 login_details = get_object_or_404(models.Registration1, ProfileId=user_profile_id)
                 education_details = get_object_or_404(models.Edudetails, profile_id=user_profile_id)
 
-                address_content = f"""
-                    <p><b>Address:</b></p>
-                    <p>{login_details.Profile_address}</p>
-                    <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
-                    <p>{login_details.Profile_pincode}.</p>
+                if all(not str(val).strip() for val in [
+                    login_details.Profile_address,
+                    get_district_name(login_details.Profile_district),
+                    get_city_name(login_details.Profile_city),
+                    login_details.Profile_pincode
+                ]):
+                    address_content = f"""
+                        <p><b>Address:</b></p>
+                        <p>Not Specified</p>"""
+                else:
+                    address_content = f"""
+                        <p><b>Address:</b></p>
+                        <p>{login_details.Profile_address}</p>
+                        <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
+                        <p>{login_details.Profile_pincode}.</p>
                     """
+
             
                 mobile_email_content = f"""
                         <p>Mobile: {login_details.Mobile_no or ''}</p>
@@ -12112,22 +12126,31 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     father_name = family_detail.father_name  
                     father_occupation = family_detail.father_occupation
                     family_status = family_detail.family_status
-                    mother_name = family_detail.mother_name
+                    mother_name = family_detail.mother_name 
                     mother_occupation = family_detail.mother_occupation
                     no_of_sis_married = family_detail.no_of_sis_married
                     no_of_bro_married = family_detail.no_of_bro_married
                     suya_gothram = family_detail.suya_gothram
-                    madulamn = family_detail.madulamn
+                    madulamn = family_detail.madulamn if family_detail.madulamn != None else "N/A" 
                 else:
                     # Handle case where no family details are found
-                    father_name = father_occupation = family_status = ""
-                    mother_name = mother_occupation = ""
+                    father_name = father_occupation = family_status = " "
+                    mother_name = mother_occupation = " "
                     no_of_sis_married = no_of_bro_married = 0
-                    
-                if int(no_of_sis_married) == 0:
+                
+                try:
+                    num_sisters_married = int(no_of_sis_married)
+                except ValueError:
+                    num_sisters_married = 0     
+            
+                try:
+                    num_brothers_married = int(no_of_bro_married)
+                except ValueError:
+                    num_brothers_married = 0   
+                if int(num_sisters_married) == 0:
                     no_of_sis_married = "No"
 
-                if  int(no_of_bro_married) == 0:
+                if  int(num_brothers_married) == 0:
                     no_of_bro_married="No"
                 # Education and profession details
                 highest_education = education_details.highest_education
@@ -12159,8 +12182,11 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
 
                 # Highest Education
                 highest_education_id = education_details.highest_education
-                highest_education = safe_get_value(models.Edupref, 'id', highest_education_id, 'EducationLevel')
+                highest_education = "Unknown"
+                if highest_education_id:
+                    highest_education = models.Edupref.objects.filter(RowId=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
 
+                
                 # Annual Income
                 annual_income_id = education_details.anual_income
                 annual_income = safe_get_value(models.Annualincome, 'id', annual_income_id, 'income')
@@ -12196,7 +12222,8 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 # Family fields
                 father_occupation = family_detail.father_occupation or "N/A"
                 mother_occupation = family_detail.mother_occupation or "N/A"
-
+                father_name = family_detail.father_name or "N/A"
+                mother_name = family_detail.mother_name or "N/A"
                 family_status_id = family_detail.family_status
                 family_status = safe_get_value(models.Familystatus, 'id', family_status_id, 'status')
 
@@ -12307,8 +12334,11 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     else:
                         horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                 else:
-                    horoscope_content = '<p>No horoscope uploaded</p>'
-
+                    horoscope_content = 'empty'
+                    
+                show_horo_file = "yes"
+                if horoscope_content == 'empty':
+                    show_horo_file="No"
                 # Get matching stars data
                 birth_star_id = horoscope.birthstar_name
                 birth_rasi_id = horoscope.birth_rasi_name
@@ -12335,11 +12365,27 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                         dasa_day = dasa_month = dasa_year = 0
 
                 dasa_name = get_dasa_name(horoscope_data.dasa_name)
-                    # Dynamic HTML content including Rasi and Amsam charts
-                print(f"dasa_date_str: {repr(dasa_date_str)}") 
                 image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
-                print("Image_status",image_status)
+                
                 charts_html = ""
+                horo_file=""
+                if show_horo_file == "yes":
+                    horo_file = f"""
+                    
+
+                        <div class="upload-horo-bg" >
+                            <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
+                        </div>
+
+               
+                             <table class="upload-horo-image">
+                                <tr>
+                                <td>
+                                    {horoscope_content}
+                                </td>
+                                </tr>
+                                </table>
+                    """
 
                 if not hide_charts:
                     charts_html = f"""
@@ -12880,10 +12926,10 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     <table>
                         <tr>
                             <td>
-                                "{address_content}"
+                                {address_content}
                             </td>
                             <td>
-                                "{mobile_email_content}"
+                                {mobile_email_content}
                             </td>
                         </tr>
                     </table>
@@ -12974,20 +13020,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 </tr>
                 </table>
 
-
-                <div class="upload-horo-bg" >
-                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
-                </div>
-
-                <table class="upload-horo-image">
-                <tr>
-                <td>
-                         {horoscope_content}
- 
-                </td>
-                </tr>
-                </table>
-                
+                {horo_file}
                 <div class="upload-horo-bg" >
                     <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png" >
                 </div>
@@ -13178,11 +13211,21 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 education_details = get_object_or_404(models.Edudetails, profile_id=user_profile_id)
 
 
-                address_content = f"""
-                    <p><b>Address:</b></p>
-                    <p>{login_details.Profile_address}</p>
-                    <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
-                    <p>{login_details.Profile_pincode}.</p>
+                if all(not str(val).strip() for val in [
+                    login_details.Profile_address,
+                    get_district_name(login_details.Profile_district),
+                    get_city_name(login_details.Profile_city),
+                    login_details.Profile_pincode
+                ]):
+                    address_content = f"""
+                        <p><b>Address:</b></p>
+                        <p>Not Specified</p>"""
+                else:
+                    address_content = f"""
+                        <p><b>Address:</b></p>
+                        <p>{login_details.Profile_address}</p>
+                        <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
+                        <p>{login_details.Profile_pincode}.</p>
                     """
                 
                 mobile_email_content = f"""
@@ -13204,17 +13247,26 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                     no_of_sis_married = family_detail.no_of_sis_married
                     no_of_bro_married = family_detail.no_of_bro_married
                     suya_gothram = family_detail.suya_gothram
-                    madulamn = family_detail.madulamn
+                    madulamn = family_detail.madulamn if family_detail.madulamn != None else "N/A" 
                 else:
                     # Handle case where no family details are found
                     father_name = father_occupation = family_status = ""
                     mother_name = mother_occupation = ""
                     no_of_sis_married = no_of_bro_married = 0
                     
-                if int(no_of_sis_married) == 0:
+                try:
+                    num_sisters_married = int(no_of_sis_married)
+                except ValueError:
+                    num_sisters_married = 0     
+            
+                try:
+                    num_brothers_married = int(no_of_bro_married)
+                except ValueError:
+                    num_brothers_married = 0   
+                if int(num_sisters_married) == 0:
                     no_of_sis_married = "No"
 
-                if  int(no_of_bro_married) == 0:
+                if  int(num_brothers_married) == 0:
                     no_of_bro_married="No"
                 # Education and profession details
                 highest_education = education_details.highest_education
@@ -13232,31 +13284,35 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 user_profile_id = login_details.ProfileId
                 height = login_details.Profile_height 
 
+                # Safely handle complexion
                 complexion_id = login_details.Profile_complexion
-                complexion = models.Profilecomplexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
+                complexion = "Unknown"
+                if complexion_id:
+                    complexion = models.Profilecomplexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
 
+                # Safely handle education level
                 highest_education_id = education_details.highest_education
-                highest_education = models.Edupref.objects.filter(RowId=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
+                highest_education = "Unknown"
+                if highest_education_id:
+                    highest_education = models.Edupref.objects.filter(RowId=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
 
-                annual_income_id = education_details.anual_income
-                annual_income = models.Annualincome.objects.filter(id=annual_income_id).values_list('income', flat=True).first() or "Unknown"
-
+                # Safely handle profession
                 profession_id = education_details.profession
-                profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
+                profession = "Unknown"
+                if profession_id:
+                    profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
-                work_place=education_details.work_city
-                ocupation_title=''
-                ocupation=''
+                # Workplace logic
+                work_place = education_details.work_city or ""
+                occupation_title = ''
+                occupation = ''
 
-                if profession_id==1:
-                        ocupation_title='Employment Details'
-                        ocupation=education_details.company_name+'/'+education_details.designation
-                if profession_id==2:
-                       ocupation_title='Business Details'
-                       ocupation=education_details.business_name+'/'+education_details.nature_of_business
-                
-                profession_id = education_details.profession
-                profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
+                if profession_id == 1:
+                    occupation_title = 'Employment Details'
+                    occupation = f"{education_details.company_name or ''}/{education_details.designation or ''}"
+                elif profession_id == 2:
+                    occupation_title = 'Business Details'
+                    occupation = f"{education_details.business_name or ''}/{education_details.nature_of_business or ''}"
 
                 dasa_day = dasa_month = dasa_year = 0
                 # Try to split if format is correct
@@ -13278,32 +13334,35 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                  #mother_occupation_id = family_detail.mother_occupation
                 mother_occupation = family_detail.mother_occupation
 
+                family_status = "Unknown"
                 family_status_id = family_detail.family_status
-                family_status = models.Familystatus.objects.filter(id=family_status_id).values_list('status', flat=True).first() or "Unknown"
+
+                if family_status_id:
+                    family_status = models.Familystatus.objects.filter(id=family_status_id).values_list('status', flat=True).first() or "Unknown"
 
                 # Fetch star name from BirthStar model
-                try:
-                    star = models.Birthstar.objects.get(pk=horoscope.birthstar_name)
-                    star_name = star.star  # Or use star.tamil_series, telugu_series, etc. as per your requirement
-                except models.Birthstar.DoesNotExist:
-                    star_name = "Unknown"
+                def get_model_instance(model, pk):
+                    if not pk or not str(pk).isdigit():
+                        return None
+                    try:
+                        return model.objects.get(pk=pk)
+                    except model.DoesNotExist:
+                        return None
+                    except ValueError:
+                        return None
 
-                # Fetch rasi name from Rasi model
-                try:
-                    rasi = models.Rasi.objects.get(pk=horoscope.birth_rasi_name)
-                    rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
-                except models.Rasi.DoesNotExist:
-                    rasi_name = "Unknown"
-                    
+                star_obj = get_model_instance(models.Birthstar, horoscope.birthstar_name)
+                star_name = star_obj.star if star_obj else "Unknown"
+
+                rasi_obj = get_model_instance(models.Rasi, horoscope.birth_rasi_name)
+                rasi_name = rasi_obj.name if rasi_obj else "Unknown"
+
+                lagnam_obj = get_model_instance(models.Rasi, horoscope.lagnam_didi)
+                lagnam = lagnam_obj.name if lagnam_obj else "Unknown"
 
                 time_of_birth = horoscope.time_of_birth
                 place_of_birth = horoscope.place_of_birth
-                
-                try:
-                    lagnam = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
-                    lagnam = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
-                except models.Rasi.DoesNotExist:
-                    lagnam = "Unknown"
+
 
                 didi = horoscope.didi or "Not specified"
                 nalikai =  horoscope.nalikai or "Not specified"
@@ -13856,14 +13915,14 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                             <p>Height / Photos </p>
                                             <p>Annual Income</p>
                                             <p>Profession/Place of stay</p>
-                                            <p>{ocupation_title}</p>
+                                            <p>{occupation_title}</p>
                                         </td> 
                                         <td>
                                             <p><strong>{user_profile_id}</strong></p>
                                             <p> {height} / {image_status}</p>
                                             <p>{annual_income}</p>
                                             <p>{profession} / {work_place}</p>
-                                            <p>{ocupation}</p>
+                                            <p>{occupation}</p>
                                         </td> 
                                     </tr>
                                 </table>
@@ -13977,10 +14036,10 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                     <table>
                         <tr>
                             <td>
-                               "{address_content}"
+                               {address_content}
                             </td>
                             <td>
-                               "{mobile_email_content}"
+                               {mobile_email_content}
                             </td>
                         </tr>
                     </table>
@@ -16768,11 +16827,21 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 education_details = get_object_or_404(models.Edudetails, profile_id=user_profile_id)
                 
 
-                address_content = f"""
-                    <p><b>Address:</b></p>
-                    <p>{login_details.Profile_address}</p>
-                    <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
-                    <p>{login_details.Profile_pincode}.</p>
+                if all(not str(val).strip() for val in [
+                    login_details.Profile_address,
+                    get_district_name(login_details.Profile_district),
+                    get_city_name(login_details.Profile_city),
+                    login_details.Profile_pincode
+                ]):
+                    address_content = f"""
+                        <p><b>Address:</b></p>
+                        <p>Not Specified</p>"""
+                else:
+                    address_content = f"""
+                        <p><b>Address:</b></p>
+                        <p>{login_details.Profile_address}</p>
+                        <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
+                        <p>{login_details.Profile_pincode}.</p>
                     """
                 
                 mobile_email_content = f"""
@@ -16805,17 +16874,26 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                     no_of_sis_married = family_detail.no_of_sis_married
                     no_of_bro_married = family_detail.no_of_bro_married
                     suya_gothram = family_detail.suya_gothram
-                    madulamn = family_detail.madulamn
+                    madulamn = family_detail.madulamn if family_detail.madulamn != None else "N/A" 
                 else:
                     # Handle case where no family details are found
                     father_name = father_occupation = family_status = ""
                     mother_name = mother_occupation = ""
                     no_of_sis_married = no_of_bro_married = 0
 
-                if int(no_of_sis_married) == 0:
+                try:
+                    num_sisters_married = int(no_of_sis_married)
+                except ValueError:
+                    num_sisters_married = 0     
+            
+                try:
+                    num_brothers_married = int(no_of_bro_married)
+                except ValueError:
+                    num_brothers_married = 0   
+                if int(num_sisters_married) == 0:
                     no_of_sis_married = "No"
 
-                if  int(no_of_bro_married) == 0:
+                if  int(num_brothers_married) == 0:
                     no_of_bro_married="No"
                 # Education and profession details
                 highest_education = education_details.highest_education
@@ -17697,11 +17775,21 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 contact_enable=get_permission_limits(my_profile_id,'contact_details')
                 print("attached_horoscope_enable",attached_horoscope_enable)
 
-                address_content = f"""
-                    <p><b>Address:</b></p>
-                    <p>{login_details.Profile_address}</p>
-                    <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
-                    <p>{login_details.Profile_pincode}.</p>
+                if all(not str(val).strip() for val in [
+                    login_details.Profile_address,
+                    get_district_name(login_details.Profile_district),
+                    get_city_name(login_details.Profile_city),
+                    login_details.Profile_pincode
+                ]):
+                    address_content = f"""
+                        <p><b>Address:</b></p>
+                        <p>Not Specified</p>"""
+                else:
+                    address_content = f"""
+                        <p><b>Address:</b></p>
+                        <p>{login_details.Profile_address}</p>
+                        <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
+                        <p>{login_details.Profile_pincode}.</p>
                     """
                 
                 mobile_email_content = f"""
@@ -17730,16 +17818,26 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                     no_of_sis_married = family_detail.no_of_sis_married
                     no_of_bro_married = family_detail.no_of_bro_married
                     suya_gothram = family_detail.suya_gothram
-                    madulamn = family_detail.madulamn
+                    madulamn = family_detail.madulamn if family_detail.madulamn != None else "N/A" 
                 else:
                     # Handle case where no family details are found
                     father_name = father_occupation = family_status = ""
                     mother_name = mother_occupation = ""
                     no_of_sis_married = no_of_bro_married = 0
 
-                if int(no_of_sis_married) == 0:
+                try:
+                    num_sisters_married = int(no_of_sis_married)
+                except ValueError:
+                    num_sisters_married = 0     
+            
+                try:
+                    num_brothers_married = int(no_of_bro_married)
+                except ValueError:
+                    num_brothers_married = 0   
+                if int(num_sisters_married) == 0:
                     no_of_sis_married = "No"
-                if  int(no_of_bro_married) == 0:
+
+                if  int(num_brothers_married) == 0:
                     no_of_bro_married="No"
                 # Education and profession details
                 highest_education = education_details.highest_education
