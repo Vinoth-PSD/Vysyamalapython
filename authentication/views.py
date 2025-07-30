@@ -8107,12 +8107,11 @@ class UpdateMyProfileContact(APIView):
                 else:
                     return JsonResponse({"status": "error", "message": "Invalid country ID"}, status=status.HTTP_400_BAD_REQUEST)
 
-            if state_id is not None:
+            if state_id:
                 if models.Profilestate.objects.filter(id=state_id).exists():
                     contact_details.Profile_state = state_id
                 else:
                     return JsonResponse({"status": "error", "message": "Invalid state ID"}, status=status.HTTP_400_BAD_REQUEST)
-
             contact_serializer.save()
 
             return JsonResponse({
