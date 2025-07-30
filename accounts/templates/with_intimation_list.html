@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Intimation List</title>
+    <style>
+        body {
+            font-family: DejaVu Sans, sans-serif;
+            margin: 40px;
+            font-size: 13px;.html",
+                    "match_wtihout_contact": "with_s
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 20px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #999;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .footer-note {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #555;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Intimation List</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Sl. No</th>
+                <th>Profile ID</th>
+                <th>Name</th>
+                <th>Gender</th>
+                <th>Age</th>
+                <th>Contact</th>
+                <th>Location</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in intimation_list %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ entry.profile_id }}</td>
+                <td>{{ entry.name }}</td>
+                <td>{{ entry.gender }}</td>
+                <td>{{ entry.age }}</td>
+                <td>{{ entry.contact }}</td>
+                <td>{{ entry.location }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" style="text-align:center;">No entries found</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer-note">
+        This is an auto-generated intimation list. Please review and contact the profiles accordingly.
+    </div>
+
+</body>
+</html>

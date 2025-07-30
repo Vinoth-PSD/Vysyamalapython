@@ -7268,17 +7268,17 @@ def format_time_am_pm(time_str):
 class GetMyProfileHoroscope(APIView):
     
     def dasa_format_date(self, value):
-                    """
-                    Format the date based on the input format.
-                    If input is like "12/7/5", convert to "day:12, month:7, year:5".
-                    If already in desired format, return as-is.
-                    """
-                    if isinstance(value, str) and '/' in value:
-                        parts = value.split('/')
-                        if len(parts) == 3:
-                            day, month, year = parts
-                            return f"day:{day}, month:{month}, year:{year}"
-                    return value
+        """
+        Format the date based on the input format.
+        If input is like "12/7/5", convert to "day:12, month:7, year:5".
+        If already in desired format, return as-is.
+        """
+        if isinstance(value, str) and '/' in value:
+            parts = value.split('/')
+            if len(parts) == 3:
+                day, month, year = parts
+                return f"{day} Days, {month} Months , {year} Years"
+        return value
     
     def post(self, request):
         profile_id = request.data.get('profile_id')

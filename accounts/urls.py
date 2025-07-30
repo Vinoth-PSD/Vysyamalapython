@@ -184,4 +184,6 @@ urlpatterns = [
     path('verify_mobile_otp/', views.VerifymobileOtp.as_view(), name='verify_mobile_otp'),
     path('admin-users/list/', AdminUserDropdownAPIView.as_view(), name='admin-user-dropdown'),
     path('common-search/',CommonProfileSearchAPIView.as_view(),name='common-search'),
+    path('admin-pdf-with-format/',views.AdminProfilePDFView.as_view(),name="admin-pdf-with-format"),
+    path('admin-match-pdf-with-format/',views.AdminMatchProfilePDFView.as_view(),name='admin-match-pdf-with-format')
 ]

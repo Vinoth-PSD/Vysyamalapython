@@ -9,6 +9,7 @@ from django.conf import settings
 from .storages import AzureMediaStorage
 from django.core.mail import EmailMessage
 from datetime import date, timedelta
+from collections import defaultdict
 
 
 class ProfileStatus(models.Model):
@@ -617,6 +618,14 @@ class Image_Upload(models.Model):
         managed = False  # Assuming this model is managed externally
         db_table = 'profile_images'
         
+    def get_image_status(profile_id):
+        approved_images_exist = Image_Upload.objects.filter(
+            profile_id=profile_id,
+            image_approved=1,
+            is_deleted__in=[None, 0]
+        ).exists()
+    
+        return "Specified" if approved_images_exist else "Not Specified"
 # class LoginDetails_1(models.Model):
 #     ContentId = models.AutoField(primary_key=True)
 #     ProfileId = models.CharField(max_length=50, unique=True)
@@ -667,7 +676,7 @@ class ProfileFamilyDetails(models.Model):
     ancestor_origin = models.TextField(null=True , blank=True)
     about_family = models.TextField(null=True)
     no_of_children = models.IntegerField(max_length=10 , null=True)
-    
+    madulamn = models.CharField(max_length=10 ,null=True,blank=True)
     class Meta:
         db_table = 'profile_familydetails'
 
@@ -927,7 +936,9 @@ class Testimonial(models.Model):
     def __str__(self):
         return f"Testimonial by {self.profile_id} - Rating: {self.rating}"
     
-    
+def upload_to_profile_horoscope_admin(instance, filename):
+    # return os.path.join('profile_{0}'.format(instance.ProfileId), filename)
+    return f"profile_horoscope/horoscope/{filename}"  
     
         
 class ProfileHoroscope(models.Model):
@@ -951,6 +962,7 @@ class ProfileHoroscope(models.Model):
     horo_file_updated = models.CharField(max_length=100 , null=True, blank=True)    
     calc_chevvai_dhosham = models.CharField(max_length=100, null=True, blank=True)  # Added missing field
     calc_raguketu_dhosham = models.CharField(max_length=100, null=True, blank=True)  # Added missing field
+    horoscope_file_admin = models.FileField(upload_to=upload_to_profile_horoscope_admin,storage=AzureMediaStorage())
 
     class Meta:
         db_table = 'profile_horoscope'
@@ -2175,6 +2187,61 @@ class MatchingStarPartner(models.Model):
         #print("Query result:", result)
         return result
     
+    @staticmethod
+    def get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender):
+        query = '''
+            SELECT 
+                sp.id,
+                sp.source_star_id,
+                sp.matching_porutham,
+                sp.dest_rasi_id,
+                sp.dest_star_id,
+                sp.match_count,
+                sd.star as matching_starname, 
+                rd.name as matching_rasiname,  
+                GROUP_CONCAT(pn.protham_name) AS protham_names 
+            FROM 
+                matching_stars_partner sp 
+                LEFT JOIN masterbirthstar sd ON sd.id = sp.dest_star_id 
+                LEFT JOIN masterrasi rd ON rd.id = sp.dest_rasi_id
+                LEFT JOIN matching_porutham_names pn ON FIND_IN_SET(pn.id, sp.matching_porutham) 
+            WHERE 
+                sp.gender = %s 
+                AND sp.source_star_id = %s 
+                AND sp.source_rasi_id = %s 
+            GROUP BY 
+                sp.id, sp.gender, sp.source_star_id, 
+                sp.matching_porutham, sp.dest_rasi_id, 
+                sp.dest_star_id, sp.match_count, 
+                sd.star, rd.name
+            '''
+
+        with connection.cursor() as cursor:
+            cursor.execute(query, [gender, birth_star_id , birth_rasi_id])
+            columns = [col[0] for col in cursor.description]
+            rows = cursor.fetchall()
+            result = [
+                dict(zip(columns, row))
+                for row in rows
+            ]
+        
+        # Group the results by Porutham count
+        grouped_data = defaultdict(list)
+        for item in result:
+            match_count = item['match_count']
+            grouped_data[match_count].append(item)
+
+        # Separate by Porutham counts 9, 8, 7, 6, 5
+        porutham_data = {
+            "9 Poruthams": grouped_data.get(9, []),
+            "8 Poruthams": grouped_data.get(8, []),
+            "7 Poruthams": grouped_data.get(7, []),
+            "6 Poruthams": grouped_data.get(6, []),
+            "5 Poruthams": grouped_data.get(5, [])
+        }
+        
+        return porutham_data
+
 
 
 class Partnerpref(models.Model):

@@ -1,0 +1,60 @@
+{% include 'pdf_templates/header.html' %}
+    <!-- <div class="section">
+        <h2>Profile Summary</h2>
+        <p><strong>Profile ID:</strong> {{ profile_id }}</p>
+        <p><strong>Name:</strong> {{ name }}</p>
+        <p><strong>Date of Birth:</strong> {{ dob }}</p>
+        <p><strong>Father's Name:</strong> {{ father_name }}</p>
+        <p><strong>Complexion:</strong> {{ complexion }}</p>
+    </div> -->
+    <table class="table-div">
+                            <tr>
+                                <td class="border-right">
+                                <table class="inner-table">
+                                    <tr>
+                                    <td>
+                                    <p><strong>Profile ID: </strong></p>
+                                    <p>Name:</p>
+                                    <p>DOB / POB </p>
+                                    </td>
+                                    <td>
+                                    <p><strong>{{ profile_id|default:"N/A" }}</strong></p>
+                                    <p>{{ name|default:"N/A" }}</p>
+                                    <p>{{ dob|default:"N/A" }}</p>
+                                    
+                                    </td>
+                                    </tr>
+                                    </table>
+                                    
+                                </td>
+                                
+                                <td>
+                                <table class="inner-table">
+                                    <tr>
+                                        <td>
+                                            <p><strong>Father's Name: </strong></p>
+                                            <p>Complexion: </p>
+                                            
+                                            
+                                        </td> 
+                                        <td>
+                                            <p><strong>{{ father_name|default:"N/A" }}</strong></p>
+                                            <p> {{ complexion|default:"N/A" }}</p>
+                                           
+                                        </td> 
+                                    </tr>
+                                </table>
+                                </td>
+                            </tr>
+                        </table>
+    <div class="section">
+        {% include 'pdf_templates/matching_star_list.html' %}
+
+
+        <p class="note">Note: This is a system-generated list. Please consult with your astrologer before making decisions.</p>
+    </div>
+    <div class="upload-horo-bg">
+    <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
+  </div>
+</body>
+</html>

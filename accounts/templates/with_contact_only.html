@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            background-color: #ffffff;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .details p {
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .rasi-kattam td {
+            width: 60px;
+            height: 50px;
+            text-align: center;
+            border: 1px solid #000;
+        }
+
+        table.rasi-kattam {
+            border-collapse: collapse;
+        }
+
+        .header {
+            margin-bottom: 10px;
+        }
+
+        .header-left img {
+            width: 100%;
+            height: auto;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 400;
+            color: #fbf274;
+        }
+
+        .header-left {
+            width: 100%;
+        }
+
+        .header-left p {
+            font-size: 18px;
+            font-weight: 400;
+            color: #ffffff;
+        }
+
+        .header-info p {
+            color: #fbf274;
+            font-size: 16px;
+            padding-bottom: 5px;
+            text-align: center;
+        }
+
+        .score-box {
+            float: right;
+            text-align: center;
+            background-color: #fffbcc;
+            border: 1px solid #d4d4d4;
+            width: 100%;
+            margin-bottom: 1.5rem !important;
+        }
+
+        .score-box p {
+            font-size: 2rem;
+            font-weight: bold;
+            padding: 10px 30px 10px !important;
+            color: #333;
+            margin: 0px auto !important;
+            padding-top: 1.3rem !important;
+        }
+
+        p {
+            font-size: 10px;
+            margin: 5px 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .details-div {
+            margin-bottom: 20px;
+        }
+
+        .details-section p {
+            margin: 2px 0;
+        }
+
+        .details-section td {
+            border: none;
+        }
+
+        .personal-detail-header {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        table.outer {
+            width: 100%;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            margin-bottom: 10px;
+
+        }
+
+        .outer tr td {
+            padding: 0 20px;
+        }
+
+        table.inner {
+            width: 45%;
+            border-collapse: collapse;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            margin: 10px;
+            display: inline-block;
+            vertical-align: top;
+            background-color: #fff9c7;
+        }
+
+        .inner-tabledata {
+            width: 25%;
+            height: 80px;
+
+        }
+
+        .inner td {
+            width: 25%;
+            height: 80px;
+            border: 2px solid #d6d6d6;
+            padding: 10px;
+            color: #008000;
+            font-weight: bold;
+            font-size: 12px;
+            white-space: pre-line;
+            /* Ensures new lines are respected */
+        }
+
+        .inner-table tr td p {
+            white-space: pre-line;
+            word-break: break-all;
+            word-wrap: normal;
+            word-wrap: break-word;
+            overflow: hidden;
+
+        }
+
+        .inner .highlight {
+            background-color: #ffffff;
+            text-align: center;
+            width: 100%;
+            height: 100%;
+            font-size: 24px;
+            font-weight: 700;
+            color: #008000;
+
+        }
+
+        .inner .highlight p {
+            font-size: 16px;
+            font-weight: 400;
+            color: #008000;
+        }
+
+        .spacer {
+            width: 14%;
+            display: inline-block;
+            background-color: transparent;
+        }
+
+        .table-div {
+            border-collapse: collapse;
+            padding: 5px 20px;
+            margin-bottom: 2rem;
+        }
+
+        .table-div tr {
+            padding: 10px 10px;
+        }
+
+        .table-div tr .border-right {
+            border-right: 1px solid #008000;
+        }
+
+        .table-div td {
+            background-color: #fff9c7;
+            width: 50%;
+            padding: 10px 10px;
+            text-align: left;
+        }
+
+        .table-div p {
+            font-size: 14px;
+            font-weight: 400;
+            color: #008000;
+        }
+
+        .inner-table tr td {
+            padding: 0px;
+            margin-bottom: 0px;
+        }
+
+        .dasa-table td {
+            width: 100%;
+            background-color: #fff;
+            padding: 0px;
+        }
+
+        .dasa-table td p {
+            font-size: 14px;
+            font-weight: 400;
+            text-align: center;
+        }
+
+        .note-text {
+            color: red;
+            font-size: 12px;
+            font-weight: 500;
+            margin: 50px auto;
+        }
+
+        .note-text1 {
+            color: red;
+            font-size: 14px;
+            font-weight: 500;
+            margin: 30px auto;
+            text-align: right;
+        }
+
+        .add-info tr {
+            padding: 5px 20px;
+        }
+
+        .add-info td {
+            background-color: #fff9c7;
+            padding: 5px 5px;
+        }
+
+        .add-info td p {
+            font-size: 14px;
+            font-weight: 400;
+            color: #008000;
+            padding: 0 10px;
+        }
+
+        .click-here {
+            color: #318f9a;
+            text-decoration: none;
+
+        }
+
+        .porutham-page {
+            padding: 0px 20px;
+        }
+
+        .porutham-header {
+            margin: 20px 0px;
+        }
+
+        .porutham-header img {
+            width: 130px;
+            height: auto;
+        }
+
+        .porutham-header p {
+            font-size: 22px;
+            font-weight: 700;
+            color: #000000;
+        }
+
+        h2.porutham-table-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding: 0px 0px;
+        }
+
+        porutham-table {
+            border: 1px solid #bcbcbc;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+
+        .porutham-table td {
+            border: 1px solid #bcbcbc;
+        }
+
+        .porutham-table td p {
+            color: #000;
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .porutham-stars tr td p {
+            text-align: left;
+            padding: 20px 20px;
+        }
+
+        .porutham-note {
+            font-size: 17px;
+            font-weight: 400;
+            color: #000000;
+            padding: 20px 0px;
+        }
+
+
+        .upload-horo-bg img {
+            width: 100%;
+            height: auto;
+        }
+
+        .upload-horo-image {
+            margin: 10px 0px;
+            text-align: center;
+            height: 800px;
+
+        }
+
+        .upload-horo-image tr {
+            height: 800px;
+        }
+
+        .upload-horo-image tr td {
+            height: 800px;
+        }
+
+        .upload-horo-image img {
+            width: 400px;
+            height: 800px;
+            object-fit: cover;
+        }
+
+        .text-wrap {
+            text-wrap: wrap;
+            white-space: wrap;
+        }
+    </style>
+</head>
+<body>
+    <table class="header">
+    <tr>
+      <td class="header-left">
+        <div class="header-logo">
+          <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
+        </div>
+      </td>
+    </tr>
+  </table>
+    <!-- <h2>Profile With Contact</h2>
+
+    <div class="profile-section">
+        <p><span class="label">Profile ID:</span> {{ profile_id }}</p>
+        <p><span class="label">Name:</span> {{ name }}</p>
+        <p><span class="label">DOB:</span> {{ dob }}</p>
+        <p><span class="label">Father's Name:</span> {{ father_name }}</p>
+        <p><span class="label">Contact Number:</span> {{ contact }}</p>
+        <p><span class="label">Complexion:</span> {{ complexion }}</p>
+        <p><span class="label">Birth Star:</span> {{ birth_star }}</p>
+        <p><span class="label">Address:</span> {{ address|safe }}</p>
+    </div> -->
+    <table class="table-div">
+        <tr>
+            <td class="border-right">
+            <table class="inner-table">
+                <tr>
+                <td>
+                <p><strong>Name </strong></p>
+                <p>DOB / POB </p>
+                <p>Complexion </p>
+                <p>Education </p>
+                </td>
+                <td>
+                <p><strong>{{name}}</strong></p>
+                <p>{{dob}} / {{birth_place}}</p>
+                <p> {{complexion}}</p>
+                <p>{{highest_education}}</p>
+                </td>
+                </tr>
+                </table>
+                
+            </td>
+            
+            <td>
+            <table class="inner-table">
+                <tr>
+                    <td>
+                        <p><strong>Vysyamala Id : </strong></p>
+                        <p>Height / Photos </p>
+                        <p>Annual Income</p>
+                        <p>Profession/Place of stay</p>
+                        <p>{{occupation_title}}</p>
+                    </td> 
+                    <td>
+                        <p><strong>{{profile_id}}</strong></p>
+                        <p> {{height}} / {{image_status}}</p>
+                        <p>{{annual_income}}</p>
+                        <p>{{profession}} / {{work_place}}</p>
+                        <p>{{occupation}}</p>
+                    </td> 
+                </tr>
+            </table>
+            </td>
+        </tr>
+        </table>
+
+
+
+
+        <table class="table-div">
+        <tr>
+            <td  class="border-right">
+                <table class="inner-table">
+                    <tr>
+                        <td>
+                            <p><strong>Father Name </strong> </p>
+                            <p>Father Occupation </p>
+                            <p>Family Status </p>
+                            <p>Brothers/Married </p>
+                        </td>
+                        <td>
+                            <p><strong>{{father_name}}</strong></p>
+                            <p> {{father_occupation}}</p>
+                            <p>{{family_status}}</p>
+                            <p>{{no_of_brother_married}}</p>
+                        </td>
+                    </tr>
+                </table>
+                
+            </td>
+
+            <td>
+                <table class="inner-table">
+                    <tr>
+                        <td>
+                            <p><strong>Mother Name </strong> </p>
+                            <p>Mother Occupation </p>
+                            <p>Sisters/Married </p>
+                        </td>
+                        <td>
+                            <p><strong>{{mother_name}}</strong></p>
+                            <p>{{mother_occupation}}</p>
+                            <p>{{no_of_sister_married}}</p>
+                        </td>
+                    </tr>
+                </table>
+            
+
+            </td>
+        </tr>
+        </table>
+        <table class="table-div">
+        <tr>
+            <td  class="border-right">
+                <table class="inner-table">
+                    <tr>
+                        <td>
+                            <p><strong>Star/Rasi </strong> </p>
+                            <p>Lagnam/Didi </p>
+                            <p>Nalikai </p>
+                        </td>
+                        <td>
+                            <p><strong>{{birth_star}}, {{birth_rasi}}</strong></p>
+                            <p>{{lagnam}}</p>
+                            <p>{{nalikai}}</p>
+                        </td>
+                    </tr>
+                </table>
+                
+            </td>
+
+            <td>
+                <table class="inner-table">
+                    <tr>
+                        <td>
+                            <p><strong>Surya Gothram : </strong></p>
+                            <p>Madhulam </p>
+                            <p>Birth Time </p>
+                        </td>
+                        <td>
+                            <p><strong>{{suya_gothram}}</strong></p>
+                            <p>{{madulamn}}</p>
+                            <p>{{birth_start}}</p>
+                        </td>
+                    </tr>
+                </table>
+                
+            </td>
+        </tr>
+        </table>
+
+                        <table class="table-div">
+                            <tr>
+                                <td class="border-right">
+                                
+                                <table class="inner-table">
+                                    <tr>
+                                        <td>
+                                            <p><strong>Address: </strong></p>
+                                            <!-- <p>Rasi Kattam:  </p> -->
+                                            
+                                        </td> 
+                                        <td>
+                                            <p><strong> {{ address|safe }}</strong></p>
+                                        
+                                            
+                                        </td> 
+                                    </tr>
+                                </table>
+                                    
+                                </td>
+                                
+                                <td>
+                                    <table class="inner-table">
+                                    <tr>
+                                    <td>
+                                    <p><strong>Mobile :</strong></p>
+                                    <p>Whatsapp: </p>
+                                    <p>Email:</p>
+                                   
+                                    </td>
+                                    <td>
+                                    <p><strong>{{ contact }}</strong></p>
+                                    <p>{{ whatsapp }}</p>
+                                    <p>{{ email }}</p>
+                                    
+                                    </td>
+                                    </tr>
+                                    </table>
+                                
+                                </td>
+                            </tr>
+                        </table>
+    <div class="upload-horo-bg">
+        <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
+  </div>
+</body>
+</html>

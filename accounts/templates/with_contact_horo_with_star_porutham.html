@@ -1,0 +1,21 @@
+{% include 'pdf_templates/header.html' %}
+  {% include 'pdf_templates/with_contact.html' %}
+  {% include 'pdf_templates/horoscope_without_contact.html' %}
+  {% include 'pdf_templates/matching_star_list.html' %}
+  {% comment %} {% include 'pdf_templates/matching_star_list.html' %} {% endcomment %}
+  <!-- Footer -->
+<style>
+  @page{
+    size: A4;
+    margin: 0;
+  }
+  .mt{
+    margin-top: 2rem;
+  }
+</style>
+  <div class="upload-horo-bg mt">
+    <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
+  </div>
+  
+</body>
+</html>
