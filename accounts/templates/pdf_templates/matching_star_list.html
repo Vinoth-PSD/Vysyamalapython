@@ -1,12 +1,15 @@
 
+<style>
+  .porutham-star tr td p {
+    text-align: left !important;
+  }
 
+</style>
 
-<div class="section porutham-match">
+<div class=" porutham-match">
   <!-- <h2>Matching Stars</h2> -->
 
-     <table class="porutham-page">
-                <tr>
-                <td>
+     <table class="porutham-page mt-5">
                 <br>
                 <table class="porutham-header">
                     <tr>
@@ -21,7 +24,7 @@
 
   {% for porutham_count, stars in porutham_stars.items %}
     <h2 class="porutham-table-title">Matching Stars ({{ porutham_count }} Poruthams)</h2>
-    <table class="porutham-table porutham-stars">
+    <table class="porutham-table porutham-star">
       <tr>
         <td><p>{{ stars|default:"N/A" }}</p></td>
       </tr>
