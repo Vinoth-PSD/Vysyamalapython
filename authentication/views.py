@@ -12233,8 +12233,8 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
 
                 
                 # Annual Income
-                annual_income_id = education_details.anual_income
-                annual_income = safe_get_value(models.Annualincome, 'id', annual_income_id, 'income')
+                # annual_income_id = education_details.anual_income
+                # annual_income = safe_get_value(models.Annualincome, 'id', annual_income_id, 'income')
 
                 # Profession
                 profession_id = education_details.profession
