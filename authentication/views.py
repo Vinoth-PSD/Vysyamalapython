@@ -4864,7 +4864,7 @@ class Get_profile_det_match(APIView):
                             "didi": profile_details[0]['didi'],
                             "surya_gothram": profile_details[0]['suya_gothram'],
                             "dasa_name": get_dasa_name(profile_details[0]['dasa_name']),
-                            "dasa_balance": profile_details[0]['dasa_balance'],
+                            "dasa_balance": dasa_format_date(profile_details[0]['dasa_balance']),
                             "chevvai_dosham": dosham_value_formatter(profile_details[0]['calc_chevvai_dhosham']),
                             "sarpadosham":  dosham_value_formatter(profile_details[0]['calc_raguketu_dhosham']),
                             "madulamn": profile_details[0]['madulamn'],                           
@@ -5888,14 +5888,17 @@ def render_pdf_view(request, user_profile_id, filename="Horoscope_withbirthchart
                     star = models.Birthstar.objects.get(pk=horoscope.birthstar_name)
                     star_name = star.star  # Or use star.tamil_series, telugu_series, etc. as per your requirement
                 except models.Birthstar.DoesNotExist:
-                    star_name = "Unknown"
+                    star_name = "N/A"
 
                 # Fetch rasi name from Rasi model
                 try:
-                    rasi = models.Rasi.objects.get(pk=horoscope.birth_rasi_name)
-                    rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                    if horoscope.birth_rasi_name:
+                        rasi = models.Rasi.objects.get(pk=horoscope.birth_rasi_name)
+                        rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                    else:
+                        rasi_name="N/A"
                 except models.Rasi.DoesNotExist:
-                    rasi_name = "Unknown"
+                    rasi_name = "N/A"
 
                 time_of_birth = horoscope.time_of_birth
                 place_of_birth = horoscope.place_of_birth
@@ -6141,7 +6144,7 @@ def render_pdf_view(request, user_profile_id, filename="Horoscope_withbirthchart
 
                                 <td>
                                     <p><strong>Surya Gothram : </strong> {suya_gothram}</p>
-                                    <p><strong>Madhulam : </strong> Not Specified</p>
+                                    <p><strong>Madhulam : </strong> N/A</p>
                                     <p><strong>Birth Time : </strong> {time_of_birth}</p>
                                 </td>
                             </tr>
@@ -6355,24 +6358,34 @@ class GetMyProfilePersonal(APIView):
                 if education_details_serializer.data.get('field_ofstudy'):
                     Profile_field_edu = models.Profilefieldstudy.objects.get(id=education_details_serializer.data.get('field_ofstudy')).field_of_study
                 else:
-                    Profile_field_edu=None                    
+                    Profile_field_edu=''                    
             except models.Profilefieldstudy.DoesNotExist:
-                Profile_field_edu = None
+                Profile_field_edu = ''
+            
+            about_edu =education_details_serializer.data.get('about_edu')
             
             try:
                     
                 if education_details_serializer.data.get('profession'):
                     Profile_prosession = models.Profespref.objects.get(RowId=education_details_serializer.data.get('profession')).profession
                 else:
-                    Profile_prosession=None
+                    Profile_prosession=''
             except models.Profespref.DoesNotExist:
-                Profile_prosession = None
+                Profile_prosession = ''
             
             result_percen=calculate_points_and_get_empty_fields(profile_id)
 
-            qualification_name = safe_get_by_id(models.Profileedu_degree, education_details_serializer.data.get('highest_education'), 'degeree_name')
-            city_name = safe_get_by_id(models.Profilecity, education_details_serializer.data.get('work_city'), 'city_name')
+            highest_qualification_name = safe_get_by_id(models.Edupref, education_details_serializer.data.get('highest_education'), 'EducationLevel')
+            field_of_study_name = safe_get_by_id(models.Profilefieldstudy, education_details_serializer.data.get('field_ofstudy'), 'field_of_study')
+            #city_name = safe_get_by_id(models.Profilecity, education_details_serializer.data.get('work_city'), 'city_name')
+            city_name=get_city_name(education_details_serializer.data.get('work_city'))
 
+            qualification_name= highest_qualification_name +' '+field_of_study_name
+
+            print('Highest edu Name ',education_details_serializer.data.get('highest_education'))
+            print('Work city Name ',education_details_serializer.data.get('work_city'))
+            print(qualification_name)
+            print(city_name)
             
             myself = familydetails_serializer.data.get("about_self")
 
@@ -6430,7 +6443,7 @@ class GetMyProfilePersonal(APIView):
                 "gothram":familydetails_serializer.data.get("suya_gothram"),
                 "uncle_gothram":familydetails_serializer.data.get("uncle_gothram"),
                 # "heightest_education":Profile_high_edu,
-                "heightest_education": f"{Profile_high_edu} {Profile_field_edu}",
+                "heightest_education": f"{Profile_high_edu} {Profile_field_edu} {about_edu}",
                 "prosession":Profile_prosession,
                 "mobile_no":registration.Mobile_no
             }
@@ -7264,9 +7277,7 @@ def format_time_am_pm(time_str):
 
 
 
-class GetMyProfileHoroscope(APIView):
-    
-    def dasa_format_date(self, value):
+def dasa_format_date(value):
         """
         Format the date based on the input format.
         If input is like "12/7/5", convert to "day:12, month:7, year:5".
@@ -7276,9 +7287,14 @@ class GetMyProfileHoroscope(APIView):
             parts = value.split('/')
             if len(parts) == 3:
                 day, month, year = parts
-                return f"{day} Days, {month} Months , {year} Years"
+                #return f"{day} Days, {month} Months , {year} Years"
+                return f"{day} Years, {month} Months, {year} Days"
         return value
-    
+
+
+
+class GetMyProfileHoroscope(APIView):
+
     def post(self, request):
         profile_id = request.data.get('profile_id')
         if not profile_id:
@@ -7365,7 +7381,7 @@ class GetMyProfileHoroscope(APIView):
                 "personal_surya_goth": family_serializer.data.get("suya_gothram"),
                 "personal_madulamn": family_serializer.data.get("madulamn"),
                 "personal_dasa": get_dasa_name(horoscope_serializer.data.get("dasa_name")),
-                "personal_dasa_bal": self.dasa_format_date(horoscope_serializer.data.get("dasa_balance")),
+                "personal_dasa_bal": dasa_format_date(horoscope_serializer.data.get("dasa_balance")),
                 "personal_rasi_katt": horoscope_serializer.data.get("rasi_kattam"),
                 "personal_amsa_katt": horoscope_serializer.data.get("amsa_kattam"),
                 "personal_horoscope_hints": horoscope_serializer.data.get("horoscope_hints")
@@ -12101,7 +12117,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 ]):
                     address_content = f"""
                         <p><b>Address:</b></p>
-                        <p>Not Specified</p>"""
+                        <p>N/A</p>"""
                 else:
                     address_content = f"""
                         <p><b>Address:</b></p>
@@ -12131,6 +12147,8 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     no_of_bro_married = family_detail.no_of_bro_married
                     suya_gothram = family_detail.suya_gothram
                     madulamn = family_detail.madulamn if family_detail.madulamn != None else "N/A" 
+                    no_of_sister = family_detail.no_of_sister
+                    no_of_brother = family_detail.no_of_brother
                 else:
                     # Handle case where no family details are found
                     father_name = father_occupation = family_status = " "
@@ -12151,8 +12169,25 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
 
                 if  int(num_brothers_married) == 0:
                     no_of_bro_married="No"
+
+
+                if no_of_sister=="0" or no_of_sister =='':
+                    no_of_sis_married='-'
+
+                if no_of_brother=="0" or no_of_brother =='':
+                    no_of_bro_married='-'
+                
+
                 # Education and profession details
                 highest_education = education_details.highest_education
+
+
+
+
+
+
+
+
                 if not education_details.actual_income:
                     annual_income = education_details.anual_income
                 else:
@@ -12186,6 +12221,17 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     highest_education = models.Edupref.objects.filter(RowId=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
 
                 
+
+                field_ofstudy_id = education_details.field_ofstudy
+                fieldof_study=" "
+                if field_ofstudy_id:
+                    fieldof_study = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id).values_list('field_of_study', flat=True).first() or "Unknown"
+                
+                about_edu=education_details.about_edu
+                
+                final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
+
+                
                 # Annual Income
                 annual_income_id = education_details.anual_income
                 annual_income = safe_get_value(models.Annualincome, 'id', annual_income_id, 'income')
@@ -12195,7 +12241,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 profession = safe_get_value(models.Profespref, 'RowId', profession_id, 'profession')
 
                 # Work place and occupation details
-                work_place = education_details.work_city or "Not specified"
+                work_place = education_details.work_city or "N/A"
                 occupation_title = ''
                 occupation = ''
 
@@ -12231,22 +12277,25 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 # lagnam = get_model_instance_name(models.Rasi, horoscope.lagnam_didi, "name")
 
                 try:
-                    rasi = models.Rasi.objects.get(pk=horoscope.birth_rasi_name)
-                    rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                    if horoscope.birth_rasi_name :
+                        rasi = models.Rasi.objects.get(pk=horoscope.birth_rasi_name)
+                        rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                    else :
+                        rasi_name="N/A"
                 except models.Rasi.DoesNotExist:
-                    rasi_name = "Unknown"
-                lagnam="Unknown"
+                    rasi_name = "N/A"
+                lagnam="N/A"
                 try:
                     if horoscope.lagnam_didi and str(horoscope.lagnam_didi).isdigit():
                         lagnam = models.Rasi.objects.filter(pk=int(horoscope.lagnam_didi)).first()
                         lagnam= lagnam.name
                 except models.Rasi.DoesNotExist:
-                    lagnam = "Unknown"
+                    lagnam = "N/A"
                 # Time & location
-                time_of_birth = horoscope.time_of_birth or "Not specified"
-                place_of_birth = horoscope.place_of_birth or "Not specified"
-                didi = horoscope.didi or "Not specified"
-                nalikai = horoscope.nalikai or "Not specified"
+                time_of_birth = horoscope.time_of_birth or "N/A"
+                place_of_birth = horoscope.place_of_birth or "N/A"
+                didi = horoscope.didi or "N/A"
+                nalikai = horoscope.nalikai or "N/A"
                 def format_time_am_pm(time_str):
                     try:
                         time_obj = datetime.strptime(time_str, "%H:%M:%S")
@@ -12256,7 +12305,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     
                 birth_time=format_time_am_pm(time_of_birth)
                 # Age calculation
-                age = calculate_age(dob) if dob else "Not specified"
+                age = calculate_age(dob) if dob else "N/A"
                 # Planet mapping dictionary
                 # planet_mapping = {
                 #     "1": "Sun",
@@ -12352,16 +12401,24 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
 
                 dasa_day = dasa_month = dasa_year = 0
                 # Try to split if format is correct
-                dasa_date_str = horoscope.dasa_balance.strip()
-                if dasa_date_str.startswith("day:") and "," in dasa_date_str:
-                    # Split and extract numbers
-                    try:
-                        day_str, month_str, year_str = dasa_date_str.split(',')
-                        dasa_day = int(day_str.split(':')[1].strip())
-                        dasa_month = int(month_str.split(':')[1].strip())
-                        dasa_year = int(year_str.split(':')[1].strip())
-                    except (ValueError, IndexError):
-                        dasa_day = dasa_month = dasa_year = 0
+                # dasa_date_str = horoscope.dasa_balance.strip()
+                # if dasa_date_str.startswith("day:") and "," in dasa_date_str:
+                #     # Split and extract numbers
+                #     try:
+                #         day_str, month_str, year_str = dasa_date_str.split(',')
+                #         dasa_day = int(day_str.split(':')[1].strip())
+                #         dasa_month = int(month_str.split(':')[1].strip())
+                #         dasa_year = int(year_str.split(':')[1].strip())
+                #     except (ValueError, IndexError):
+                #         dasa_day = dasa_month = dasa_year = 0
+
+                dasa_balance_str=dasa_format_date(horoscope.dasa_balance)
+                match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+                if match:
+                    dasa_year, dasa_month, dasa_day = match.groups()
+
+                print(dasa_balance_str,'dasa_balance_str')
+
 
                 dasa_name = get_dasa_name(horoscope_data.dasa_name)
                 image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
@@ -12429,9 +12486,9 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                     <tr>
                                         <td>
                                             <p><strong>Dasa Balance</strong></p>
-                                            <p>Years: {dasa_year}</p>
-                                            <p>Months: {dasa_month}</p>
-                                            <p>Days: {dasa_day}</p>
+                                            <p>{dasa_year} Years</p>
+                                            <p>{dasa_month} Months</p>
+                                            <p>{dasa_day} Days</p>
                                         </td>
                                     </tr>
                                 </table>
@@ -12794,7 +12851,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                     <p><strong>{name}</strong></p>
                                     <p>{dob} / {place_of_birth}</p>
                                     <p> {complexion}</p>
-                                    <p>{highest_education}</p>
+                                    <p>{final_education}</p>
                                     </td>
                                     </tr>
                                     </table>
@@ -12842,7 +12899,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                                 <p><strong>{father_name}</strong></p>
                                                 <p> {father_occupation}</p>
                                                 <p>{family_status}</p>
-                                                <p>{no_of_bro_married}</p>
+                                                <p>{no_of_brother}/{no_of_bro_married}</p>
                                             </td>
                                         </tr>
                                     </table>
@@ -12860,7 +12917,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                             <td>
                                                 <p><strong>{mother_name}</strong></p>
                                                 <p>{mother_occupation}</p>
-                                                <p>{no_of_sis_married}</p>
+                                                <p>{no_of_sister}/{no_of_sis_married}</p>
                                             </td>
                                         </tr>
                                     </table>
@@ -13218,7 +13275,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 ]):
                     address_content = f"""
                         <p><b>Address:</b></p>
-                        <p>Not Specified</p>"""
+                        <p>N/A</p>"""
                 else:
                     address_content = f"""
                         <p><b>Address:</b></p>
@@ -13245,6 +13302,10 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                     mother_occupation = family_detail.mother_occupation
                     no_of_sis_married = family_detail.no_of_sis_married
                     no_of_bro_married = family_detail.no_of_bro_married
+
+                    no_of_sister = family_detail.no_of_sister
+                    no_of_brother = family_detail.no_of_brother
+
                     suya_gothram = family_detail.suya_gothram
                     madulamn = family_detail.madulamn if family_detail.madulamn != None else "N/A" 
                 else:
@@ -13267,6 +13328,14 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
 
                 if  int(num_brothers_married) == 0:
                     no_of_bro_married="No"
+
+                if no_of_sister=="0" or no_of_sister =='':
+                    no_of_sis_married='-'
+
+                if no_of_brother=="0" or no_of_brother =='':
+                    no_of_bro_married='-'
+               
+
                 # Education and profession details
                 highest_education = education_details.highest_education
                 
@@ -13294,6 +13363,15 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 highest_education = "Unknown"
                 if highest_education_id:
                     highest_education = models.Edupref.objects.filter(RowId=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
+                
+                field_ofstudy_id = education_details.field_ofstudy
+                fieldof_study=" "
+                if field_ofstudy_id:
+                    fieldof_study = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id).values_list('field_of_study', flat=True).first() or "Unknown"
+                
+                about_edu=education_details.about_edu
+                
+                final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
 
                 # Safely handle profession
                 profession_id = education_details.profession
@@ -13306,25 +13384,24 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 occupation_title = ''
                 occupation = ''
 
-                if profession_id == 1:
-                    occupation_title = 'Employment Details'
-                    occupation = f"{education_details.company_name or ''}/{education_details.designation or ''}"
-                elif profession_id == 2:
-                    occupation_title = 'Business Details'
-                    occupation = f"{education_details.business_name or ''}/{education_details.nature_of_business or ''}"
+                try:
+                    prof_id_int = int(profession_id)
+                    if prof_id_int == 1:
+                        occupation_title = 'Employment Details'
+                        occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                    elif prof_id_int == 2:
+                        occupation_title = 'Business Details'
+                        occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                except (ValueError, TypeError):
+                    occupation_title = 'Other'
+                    occupation = ''
 
                 dasa_day = dasa_month = dasa_year = 0
                 # Try to split if format is correct
-                dasa_date_str = horoscope.dasa_balance.strip()
-                if dasa_date_str.startswith("day:") and "," in dasa_date_str:
-                    # Split and extract numbers
-                    try:
-                        day_str, month_str, year_str = dasa_date_str.split(',')
-                        dasa_day = int(day_str.split(':')[1].strip())
-                        dasa_month = int(month_str.split(':')[1].strip())
-                        dasa_year = int(year_str.split(':')[1].strip())
-                    except (ValueError, IndexError):
-                        dasa_day = dasa_month = dasa_year = 0
+                dasa_balance_str=dasa_format_date(horoscope.dasa_balance)
+                match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+                if match:
+                    dasa_year, dasa_month, dasa_day = match.groups()
                 
                 
                 #father_occupation_id = family_detail.father_occupation
@@ -13364,8 +13441,8 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 place_of_birth = horoscope.place_of_birth
 
 
-                didi = horoscope.didi or "Not specified"
-                nalikai =  horoscope.nalikai or "Not specified"
+                didi = horoscope.didi or "N/A"
+                nalikai =  horoscope.nalikai or "N/A"
                 
                 def format_time_am_pm(time_str):
                     try:
@@ -13375,7 +13452,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                         return time_str
                 birth_time=format_time_am_pm(time_of_birth)
                 # Age calculation
-                age = calculate_age(dob) or "Not specified"
+                age = calculate_age(dob) or "N/A"
 
                 # Planet mapping dictionary
                 # planet_mapping = {
@@ -13521,9 +13598,9 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                     <tr>
                                         <td>
                                             <p><strong>Dasa Balance</strong></p>
-                                            <p>Years: {dasa_year}</p>
-                                            <p>Months: {dasa_month}</p>
-                                            <p>Days: {dasa_day}</p>
+                                            <p>{dasa_year} Years</p>
+                                            <p>{dasa_month} Months</p>
+                                            <p>{dasa_day} Days</p>
                                         </td>
                                     </tr>
                                 </table>
@@ -13900,7 +13977,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                     <p><strong>{name}</strong></p>
                                     <p>{dob} / {place_of_birth}</p>
                                     <p> {complexion}</p>
-                                    <p>{highest_education}</p>
+                                    <p>{final_education}</p>
                                     </td>
                                     </tr>
                                     </table>
@@ -13948,7 +14025,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                                 <p><strong>{father_name}</strong></p>
                                                 <p style="font-size:14px"> {father_occupation}</p>
                                                 <p>{family_status}</p>
-                                                <p>{no_of_bro_married}</p>
+                                                <p>{no_of_brother}/{no_of_bro_married}</p>
                                             </td>
                                         </tr>
                                     </table>
@@ -13966,7 +14043,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                             <td>
                                                 <p><strong>{mother_name}</strong></p>
                                                 <p>{mother_occupation}</p>
-                                                <p>{no_of_sis_married}</p>
+                                                <p>{no_of_sister}/{no_of_sis_married}</p>
                                             </td>
                                         </tr>
                                     </table>
@@ -15737,7 +15814,7 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
                                         </td>
                                         <td>
                                             <p><strong>{suya_gothram}</strong></p>
-                                            <p>Not Specified</p>
+                                            <p>N/A</p>
                                             <p>{time_of_birth}</p>
                                         </td>
                                     </tr>
@@ -16873,6 +16950,10 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                     mother_occupation = family_detail.mother_occupation
                     no_of_sis_married = family_detail.no_of_sis_married
                     no_of_bro_married = family_detail.no_of_bro_married
+
+                    no_of_sister = family_detail.no_of_sister
+                    no_of_brother = family_detail.no_of_brother
+
                     suya_gothram = family_detail.suya_gothram
                     madulamn = family_detail.madulamn if family_detail.madulamn != None else "N/A" 
                 else:
@@ -16895,6 +16976,14 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
 
                 if  int(num_brothers_married) == 0:
                     no_of_bro_married="No"
+
+
+                if no_of_sister=="0" or no_of_sister =='':
+                    no_of_sis_married='-'
+
+                if no_of_brother=="0" or no_of_brother =='':
+                    no_of_bro_married='-'
+                
                 # Education and profession details
                 highest_education = education_details.highest_education
                 annual_income = education_details.anual_income
@@ -16917,6 +17006,18 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 highest_education = "Unknown"
                 if highest_education_id:
                     highest_education = models.Edupref.objects.filter(RowId=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
+
+
+                field_ofstudy_id = education_details.field_ofstudy
+                fieldof_study=" "
+                if field_ofstudy_id:
+                    fieldof_study = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id).values_list('field_of_study', flat=True).first() or "Unknown"
+                
+                about_edu=education_details.about_edu
+                
+                final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
+
+
                 annual_income = "Unknown"
                 actual_income = str(education_details.actual_income).strip()
                 annual_income_id = education_details.anual_income
@@ -16934,15 +17035,20 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                     profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
                 work_place=education_details.work_city
-                ocupation_title=''
-                ocupation=''
+                occupation_title=''
+                occupation=''
 
-                if profession_id==1:
-                        ocupation_title='Employment Details'
-                        ocupation=education_details.company_name+'/'+education_details.designation
-                if profession_id==2:
-                       ocupation_title='Business Details'
-                       ocupation=education_details.business_name+'/'+education_details.nature_of_business
+                try:
+                    prof_id_int = int(profession_id)
+                    if prof_id_int == 1:
+                        occupation_title = 'Employment Details'
+                        occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                    elif prof_id_int == 2:
+                        occupation_title = 'Business Details'
+                        occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                except (ValueError, TypeError):
+                    occupation_title = 'Other'
+                    occupation = ''
                 
           
 
@@ -16971,19 +17077,19 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                         return None
 
                 star_obj = get_model_instance(models.Birthstar, horoscope.birthstar_name)
-                star_name = star_obj.star if star_obj else "Unknown"
+                star_name = star_obj.star if star_obj else "N/A"
 
                 rasi_obj = get_model_instance(models.Rasi, horoscope.birth_rasi_name)
-                rasi_name = rasi_obj.name if rasi_obj else "Unknown"
+                rasi_name = rasi_obj.name if rasi_obj else "N/A"
 
                 lagnam_obj = get_model_instance(models.Rasi, horoscope.lagnam_didi)
-                lagnam = lagnam_obj.name if lagnam_obj else "Unknown"
+                lagnam = lagnam_obj.name if lagnam_obj else "N/A"
 
                 time_of_birth = horoscope.time_of_birth
                 place_of_birth = horoscope.place_of_birth
                 lagnam = horoscope.lagnam_didi 
-                didi = horoscope.didi  or "Not specified"
-                nalikai =  horoscope.nalikai  or "Not specified"
+                didi = horoscope.didi  or "N/A"
+                nalikai =  horoscope.nalikai  or "N/A"
 
                 def format_time_am_pm(time_str):
                     try:
@@ -16993,7 +17099,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                         return time_str
 
                 birth_time=format_time_am_pm(time_of_birth)
-                age = calculate_age(dob)   or "Not specified"
+                age = calculate_age(dob)   or "N/A"
 
 
                 planet_mapping = {
@@ -17081,16 +17187,10 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
 
                 dasa_day = dasa_month = dasa_year = 0
                 # Try to split if format is correct
-                dasa_date_str = horoscope.dasa_balance.strip()
-                if dasa_date_str.startswith("day:") and "," in dasa_date_str:
-                    # Split and extract number
-                    try:
-                        day_str, month_str, year_str = dasa_date_str.split(',')
-                        dasa_day = int(day_str.split(':')[1].strip())
-                        dasa_month = int(month_str.split(':')[1].strip())
-                        dasa_year = int(year_str.split(':')[1].strip())
-                    except (ValueError, IndexError):
-                        dasa_day = dasa_month = dasa_year = 0
+                dasa_balance_str=dasa_format_date(horoscope.dasa_balance)
+                match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+                if match:
+                    dasa_year, dasa_month, dasa_day = match.groups()
                 dasa_name = get_dasa_name(horoscope.dasa_name)
                 image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
 
@@ -17144,9 +17244,9 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                     <tr>
                                         <td>
                                             <p><strong>Dasa Balance</strong></p>
-                                            <p>Years: {dasa_year}</p>
-                                            <p>Months: {dasa_month}</p>
-                                            <p>Days: {dasa_day}</p>
+                                            <p>{dasa_year} Years</p>
+                                            <p>{dasa_month} Months</p>
+                                            <p>{dasa_day} Days</p>
                                         </td>
                                     </tr>
                                 </table>
@@ -17508,7 +17608,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                     <p><strong>{name}</strong></p>
                                     <p>{dob} / {place_of_birth}</p>
                                     <p> {complexion}</p>
-                                    <p>{highest_education}</p>
+                                    <p>{final_education}</p>
                                     </td>
                                     </tr>
                                     </table>
@@ -17523,14 +17623,14 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                             <p>Height / Photos </p>
                                             <p>Annual Income</p>
                                             <p>Profession/Place of stay</p>
-                                            <p>{ocupation_title}</p>
+                                            <p>{occupation_title}</p>
                                         </td> 
                                         <td>
                                             <p><strong>{user_profile_id}</strong></p>
                                             <p> {height} / {image_status}</p>
                                             <p>{annual_income}</p>
                                             <p>{profession} / {work_place}</p>
-                                            <p>{ocupation}</p>
+                                            <p>{occupation}</p>
                                         </td> 
                                     </tr>
                                 </table>
@@ -17556,7 +17656,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                                 <p><strong>{father_name}</strong></p>
                                                 <p> {father_occupation}</p>
                                                 <p>{family_status}</p>
-                                                <p>{no_of_bro_married}</p>
+                                                <p>{no_of_brother}/{no_of_bro_married}</p>
                                             </td>
                                         </tr>
                                     </table>
@@ -17574,7 +17674,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                             <td>
                                                 <p><strong>{mother_name}</strong></p>
                                                 <p>{mother_occupation}</p>
-                                                <p>{no_of_sis_married}</p>
+                                                <p>{no_of_sister}/{no_of_sis_married}</p>
                                             </td>
                                         </tr>
                                     </table>
@@ -17793,7 +17893,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 ]):
                     address_content = f"""
                         <p><b>Address:</b></p>
-                        <p>Not Specified</p>"""
+                        <p>N/A</p>"""
                 else:
                     address_content = f"""
                         <p><b>Address:</b></p>
@@ -17827,6 +17927,10 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                     mother_occupation = family_detail.mother_occupation
                     no_of_sis_married = family_detail.no_of_sis_married
                     no_of_bro_married = family_detail.no_of_bro_married
+
+                    no_of_sister = family_detail.no_of_sister
+                    no_of_brother = family_detail.no_of_brother
+
                     suya_gothram = family_detail.suya_gothram
                     madulamn = family_detail.madulamn if family_detail.madulamn != None else "N/A" 
                 else:
@@ -17849,6 +17953,13 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
 
                 if  int(num_brothers_married) == 0:
                     no_of_bro_married="No"
+                
+
+                if no_of_sister=="0" or no_of_sister =='':
+                    no_of_sis_married='-'
+
+                if no_of_brother=="0" or no_of_brother =='':
+                    no_of_bro_married='-'
                 # Education and profession details
                 highest_education = education_details.highest_education
                 annual_income = education_details.anual_income
@@ -17862,17 +17973,28 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 height = login_details.Profile_height 
 
                 complexion_id = login_details.Profile_complexion
-                complexion="Not specified"
+                complexion="N/A"
                 if complexion_id:
-                    complexion = models.Profilecomplexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
+                    complexion = models.Profilecomplexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "N/A"
 
                 highest_education_id = education_details.highest_education
-                highest_education="Not Specified"
+                highest_education="N/A"
                 if highest_education_id:
-                    highest_education = models.Edupref.objects.filter(RowId=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
+                    highest_education = models.Edupref.objects.filter(RowId=highest_education_id).values_list('EducationLevel', flat=True).first() or "N/A"
+
+                field_ofstudy_id = education_details.field_ofstudy
+                fieldof_study=" "
+                if field_ofstudy_id:
+                    fieldof_study = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id).values_list('field_of_study', flat=True).first() or "N/A"
+                
+                about_edu=education_details.about_edu
+                
+                final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
+
+
 
                 annual_income_id = education_details.anual_income
-                annual_income = "Not specified"
+                annual_income = "N/A"
                 
                 if not education_details.actual_income or str(education_details.actual_income).strip() in ["", "~"]:
                     annual_income_id = education_details.anual_income
@@ -17883,37 +18005,35 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                     annual_income = education_details.actual_income
                 
                 profession_id = education_details.profession
-                profession="Not Specified"
+                profession="N/A"
                 if profession_id:
                     profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
                 work_place=education_details.work_city
-                ocupation_title=''
-                ocupation=''
+                occupation_title=''
+                occupation=''
 
-                if profession_id==1:
-                        ocupation_title='Employment Details'
-                        ocupation=education_details.company_name+'/'+education_details.designation
-                if profession_id==2:
-                       ocupation_title='Business Details'
-                       ocupation=education_details.business_name+'/'+education_details.nature_of_business
+                try:
+                    prof_id_int = int(profession_id)
+                    if prof_id_int == 1:
+                        occupation_title = 'Employment Details'
+                        occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                    elif prof_id_int == 2:
+                        occupation_title = 'Business Details'
+                        occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                except (ValueError, TypeError):
+                    occupation_title = 'Other'
+                    occupation = ''
                 
                
             
                 dasa_day = dasa_month = dasa_year = 0
                 # Try to split if format is correct
-                dasa_date_str = horoscope.dasa_balance.strip()
-                if dasa_date_str.startswith("day:") and "," in dasa_date_str:
-                    # Split and extract numbers
-                    try:
-                        day_str, month_str, year_str = dasa_date_str.split(',')
-                        dasa_day = int(day_str.split(':')[1].strip())
-                        dasa_month = int(month_str.split(':')[1].strip())
-                        dasa_year = int(year_str.split(':')[1].strip())
-                    except (ValueError, IndexError):
-                        dasa_day = dasa_month = dasa_year = 0
+                dasa_balance_str=dasa_format_date(horoscope.dasa_balance)
+                match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+                if match:
+                    dasa_year, dasa_month, dasa_day = match.groups()
                 
-
                 #father_occupation_id = family_detail.father_occupation
                 father_occupation = family_detail.father_occupation or "N/A"
 
@@ -17931,14 +18051,17 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                     star = models.Birthstar.objects.get(pk=horoscope.birthstar_name)
                     star_name = star.star  # Or use star.tamil_series, telugu_series, etc. as per your requirement
                 except models.Birthstar.DoesNotExist:
-                    star_name = "Unknown"
+                    star_name = "N/A"
 
                 # Fetch rasi name from Rasi model
                 try:
-                    rasi = models.Rasi.objects.get(pk=horoscope.birth_rasi_name)
-                    rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                    if horoscope.birth_rasi_name:
+                        rasi = models.Rasi.objects.get(pk=horoscope.birth_rasi_name)
+                        rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                    else:
+                        rasi_name="N/A"
                 except models.Rasi.DoesNotExist:
-                    rasi_name = "Unknown"
+                    rasi_name = "N/As"
                     
 
                 time_of_birth = horoscope.time_of_birth
@@ -17962,10 +18085,10 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 except models.Rasi.DoesNotExist:
                     lagnam = "Unknown"
 
-                didi = horoscope.didi or "Not specified"
-                nalikai =  horoscope.nalikai  or "Not specified"
+                didi = horoscope.didi or "N/A"
+                nalikai =  horoscope.nalikai  or "N/A"
 
-                age = calculate_age(dob)  or "Not specified" 
+                age = calculate_age(dob)  or "N/A" 
 
                 # Planet mapping dictionary
                 # planet_mapping = {
@@ -18118,9 +18241,9 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                     <tr>
                                         <td>
                                             <p><strong>Dasa Balance</strong></p>
-                                            <p>Years: {dasa_year}</p>
-                                            <p>Months: {dasa_month}</p>
-                                            <p>Days: {dasa_day}</p>
+                                            <p>{dasa_year} Years</p>
+                                            <p>{dasa_month} Months</p>
+                                            <p>{dasa_day} Days</p>
                                         </td>
                                     </tr>
                                 </table>
@@ -18496,7 +18619,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                     <p><strong>{name}</strong></p>
                                     <p>{dob} / {place_of_birth}</p>
                                     <p> {complexion}</p>
-                                    <p>{highest_education}</p>
+                                    <p>{final_education}</p>
                                     </td>
                                     </tr>
                                     </table>
@@ -18511,14 +18634,14 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                             <p>Height / Photos </p>
                                             <p>Annual Income</p>
                                             <p>Profession/Place of stay</p>
-                                            <p>{ocupation_title}</p>
+                                            <p>{occupation_title}</p>
                                         </td> 
                                         <td>
                                             <p><strong>{user_profile_id}</strong></p>
                                             <p> {height} / {image_status}</p>
                                             <p>{annual_income}</p>
                                             <p>{profession} / {work_place}</p>
-                                            <p>{ocupation}</p>
+                                            <p>{occupation}</p>
                                         </td> 
                                     </tr>
                                 </table>
@@ -18544,7 +18667,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                                 <p><strong>{father_name}</strong></p>
                                                 <p style="font-size:12px"> {father_occupation}</p>
                                                 <p>{family_status}</p>
-                                                <p>{no_of_bro_married}</p>
+                                                <p>{no_of_brother}/{no_of_bro_married}</p>
                                             </td>
                                         </tr>
                                     </table>
@@ -18562,7 +18685,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                             <td>
                                                 <p><strong>{mother_name}</strong></p>
                                                 <p>{mother_occupation}</p>
-                                                <p>{no_of_sis_married}</p>
+                                                <p>{no_of_sister}/{no_of_sis_married}</p>
                                             </td>
                                         </tr>
                                     </table>

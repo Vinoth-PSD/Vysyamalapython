@@ -545,7 +545,7 @@ class Image_Upload(models.Model):
             is_deleted__in=[None, 0]
         ).exists()
     
-        return "Specified" if approved_images_exist else "Not Specified"
+        return "Yes" if approved_images_exist else "No"
   
 
 
