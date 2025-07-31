@@ -1282,6 +1282,11 @@ class PersonalFamilydetailsSerializer(serializers.ModelSerializer):
     weight = serializers.CharField(required=False, allow_blank=True , allow_null=True)
     eye_wear = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     body_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    blood_group = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    hobbies = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    about_self = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    Pysically_changed = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    uncle_gothram = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     class Meta:
         model = models.Familydetails
         fields = ['blood_group', 'about_self', 'hobbies', 'Pysically_changed','weight','eye_wear','body_type','suya_gothram','uncle_gothram']
