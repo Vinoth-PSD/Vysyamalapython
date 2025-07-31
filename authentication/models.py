@@ -72,8 +72,8 @@ class Registration1(models.Model):
     LoginId = models.CharField(max_length=50)
     Profile_for = models.CharField(max_length=50)
     Gender = models.TextField(max_length=100)  # Changed from CharField to TextField
-    Mobile_no = models.CharField(max_length=50,null=True,blank=True)
-    EmailId = models.CharField(max_length=100,null=True,blank=True)
+    Mobile_no = models.CharField(max_length=50)
+    EmailId = models.CharField(max_length=100)
     Password = models.CharField(max_length=20)  # Changed from CharField to TextField
     Otp = models.CharField(max_length=10)
     Otp_verify = models.SmallIntegerField(max_length=10)
@@ -92,24 +92,24 @@ class Registration1(models.Model):
 
 
 
-    Profile_address = models.CharField(max_length=200,null=True,blank=True) 
+    Profile_address = models.CharField(max_length=200) 
     Profile_country = models.CharField(max_length=200) 
-    Profile_state = models.CharField(max_length=200,null=True,blank=True) 
-    Profile_city = models.CharField(max_length=200,null=True,blank=True) 
-    Profile_district = models.CharField(max_length=200,null=True,blank=True) 
-    Profile_pincode = models.CharField(max_length=200,null=True,blank=True)
-    Profile_alternate_mobile= models.CharField(max_length=20,null=True,blank=True)
-    Profile_whatsapp= models.CharField(max_length=20,null=True,blank=True)
-    Profile_mobile_no= models.CharField(max_length=20,null=True,blank=True)
-    Profile_emailid= models.CharField(max_length=20,null=True,blank=True)
-    Profile_idproof = models.FileField(upload_to=upload_to_profile_basic,storage=AzureMediaStorage(),null=True,blank=True)
+    Profile_state = models.CharField(max_length=200) 
+    Profile_city = models.CharField(max_length=200) 
+    Profile_district = models.CharField(max_length=200) 
+    Profile_pincode = models.CharField(max_length=200)
+    Profile_alternate_mobile= models.CharField(max_length=20)
+    Profile_whatsapp= models.CharField(max_length=20)
+    Profile_mobile_no= models.CharField(max_length=20)
+    Profile_emailid= models.CharField(max_length=20)
+    Profile_idproof = models.FileField(upload_to=upload_to_profile_basic,storage=AzureMediaStorage())
     # Profile_divorceproof = models.FileField(upload_to=upload_to_profile_basic,storage=AzureMediaStorage())
-    Profile_divorceproof = models.FileField(upload_to=upload_to_profile_divorce,storage=AzureMediaStorage(),null=True,blank=True)
-    Profile_gothras = models.CharField(max_length=255,null=True,blank=True)
-    Photo_password = models.CharField(max_length=255,null=True,blank=True)
+    Profile_divorceproof = models.FileField(upload_to=upload_to_profile_divorce,storage=AzureMediaStorage())
+    Profile_gothras = models.CharField(max_length=255)
+    Photo_password = models.CharField(max_length=255)
     Photo_protection = models.SmallIntegerField(default=0)
-    Video_url= models.CharField(max_length=255,null=True,blank=True)
-    Plan_id= models.CharField(max_length=100,null=True,blank=True)
+    Video_url= models.CharField(max_length=255)
+    Plan_id= models.CharField(max_length=100)
     Addon_package= models.CharField(max_length=100)
     # Last_login_date= models.CharField(max_length=100)
     Last_login_date= models.CharField(max_length=100,null=True, blank=True)  
@@ -805,37 +805,37 @@ class Horoscope(models.Model):
 
     def __str__(self):
         return self.id
-    
+
 
 class Familydetails(models.Model):
     id    =  models.AutoField(primary_key=True)
     profile_id = models.CharField(max_length=50)   
     father_name = models.CharField(max_length=100)
-    father_occupation = models.CharField(max_length=100,null=True,blank=True)
-    mother_name = models.CharField(max_length=100,null=True,blank=True)  # Changed from CharField to TextField
-    mother_occupation = models.CharField(max_length=100,null=True,blank=True)
-    family_name = models.CharField(max_length=100,null=True,blank=True)
-    about_self = models.CharField(max_length=1000,null=True,blank=True)  # Changed from CharField to TextField
-    hobbies = models.CharField(max_length=500,null=True,blank=True)
-    blood_group = models.CharField(max_length=50,null=True,blank=True)
-    Pysically_changed = models.CharField(max_length=20,null=True,blank=True)  # Changed from CharField to TextField
-    no_of_brother = models.CharField(max_length=20,null=True,blank=True)  # Changed from CharField to TextField
-    no_of_sister = models.CharField(max_length=20,null=True,blank=True)  # Changed from CharField to TextField
-    no_of_sis_married = models.CharField(max_length=20,null=True,blank=True)  # Changed from CharField to TextField
-    no_of_bro_married = models.CharField(max_length=20,null=True,blank=True)  # Changed from CharField to TextField
-    family_type = models.CharField(max_length=100,null=True,blank=True)
-    family_value = models.CharField(max_length=100,null=True,blank=True)
-    family_status = models.CharField(max_length=100,null=True,blank=True)
-    property_details = models.CharField(max_length=1000,null=True,blank=True)
-    property_worth = models.CharField(max_length=1000,null=True,blank=True)
+    father_occupation = models.CharField(max_length=100)
+    mother_name = models.CharField(max_length=100)  # Changed from CharField to TextField
+    mother_occupation = models.CharField(max_length=100)
+    family_name = models.CharField(max_length=100)
+    about_self = models.CharField(max_length=1000)  # Changed from CharField to TextField
+    hobbies = models.CharField(max_length=500)
+    blood_group = models.CharField(max_length=50)
+    Pysically_changed = models.CharField(max_length=20)  # Changed from CharField to TextField
+    no_of_brother = models.CharField(max_length=20)  # Changed from CharField to TextField
+    no_of_sister = models.CharField(max_length=20)  # Changed from CharField to TextField
+    no_of_sis_married = models.CharField(max_length=20)  # Changed from CharField to TextField
+    no_of_bro_married = models.CharField(max_length=20)  # Changed from CharField to TextField
+    family_type = models.CharField(max_length=100)
+    family_value = models.CharField(max_length=100)
+    family_status = models.CharField(max_length=100)
+    property_details = models.CharField(max_length=1000)
+    property_worth = models.CharField(max_length=1000)
     suya_gothram = models.CharField(max_length=100)
-    uncle_gothram = models.CharField(max_length=100,null=True,blank=True)
-    ancestor_origin = models.CharField(max_length=1000,null=True,blank=True)
-    about_family = models.CharField(max_length=1000,null=True,blank=True)
-    weight = models.CharField(max_length=100, null=True,blank=True)
-    eye_wear = models.CharField(max_length=100, null=True,blank=True)
-    body_type = models.CharField(max_length=100, null=True,blank=True)
-    no_of_children = models.CharField(max_length=10 ,null=True,blank=True)
+    uncle_gothram = models.CharField(max_length=100)
+    ancestor_origin = models.CharField(max_length=1000)
+    about_family = models.CharField(max_length=1000)
+    weight = models.CharField(max_length=100, null=True)
+    eye_wear = models.CharField(max_length=100, null=True)
+    body_type = models.CharField(max_length=100, null=True)
+    no_of_children = models.IntegerField(max_length=10 , null=True)
     madulamn = models.CharField(max_length=10 ,null=True,blank=True)
 
     class Meta:
@@ -849,28 +849,28 @@ class Edudetails(models.Model):
     id    =  models.AutoField(primary_key=True)
     profile_id = models.CharField(max_length=50)
     highest_education = models.CharField(max_length=100)
-    field_ofstudy= models.CharField(max_length=100,null=True,blank=True)
-    degree= models.CharField(max_length=100,null=True,blank=True)
-    ug_degeree = models.CharField(max_length=100,null=True,blank=True)
-    about_edu = models.CharField(max_length=100,null=True,blank=True)
+    field_ofstudy= models.CharField(max_length=100)
+    degree= models.CharField(max_length=100)
+    ug_degeree = models.CharField(max_length=100)
+    about_edu = models.CharField(max_length=100)
     profession = models.CharField(max_length=100)  # Changed from CharField to TextField
-    anual_income = models.CharField(max_length=50,null=True,blank=True)
-    actual_income = models.CharField(max_length=100,null=True,blank=True)
-    work_country = models.CharField(max_length=100,null=True,blank=True)  # Changed from CharField to TextField
-    work_state = models.CharField(max_length=100,null=True,blank=True)
-    work_city = models.CharField(max_length=100,null=True,blank=True)
-    work_district = models.CharField(max_length=100,null=True,blank=True) 
-    work_pincode = models.CharField(max_length=100,null=True,blank=True)
-    work_place = models.CharField(max_length=100,null=True,blank=True)
-    career_plans = models.CharField(max_length=100,null=True,blank=True)  # Changed from CharField to TextField
-    currency= models.CharField(max_length=100,null=True,blank=True) 
-    company_name= models.CharField(max_length=100,null=True,blank=True) 
-    designation= models.CharField(max_length=100,null=True,blank=True) 
-    profession_details= models.CharField(max_length=100,null=True,blank=True) 
-    business_name= models.CharField(max_length=100,null=True,blank=True) 
-    business_address= models.CharField(max_length=100,null=True,blank=True) 
-    nature_of_business= models.CharField(max_length=100,null=True,blank=True) 
-    other_degree= models.CharField(max_length=100,null=True,blank=True) 
+    anual_income = models.CharField(max_length=50)
+    actual_income = models.CharField(max_length=100)
+    work_country = models.CharField(max_length=100)  # Changed from CharField to TextField
+    work_state = models.CharField(max_length=100)
+    work_city = models.CharField(max_length=100)
+    work_district = models.CharField(max_length=100) 
+    work_pincode = models.CharField(max_length=100)
+    work_place = models.CharField(max_length=100)
+    career_plans = models.CharField(max_length=100)  # Changed from CharField to TextField
+    currency= models.CharField(max_length=100) 
+    company_name= models.CharField(max_length=100) 
+    designation= models.CharField(max_length=100) 
+    profession_details= models.CharField(max_length=100) 
+    business_name= models.CharField(max_length=100) 
+    business_address= models.CharField(max_length=100) 
+    nature_of_business= models.CharField(max_length=100) 
+    other_degree= models.CharField(max_length=100) 
 
 
 

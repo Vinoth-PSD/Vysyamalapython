@@ -115,6 +115,8 @@ class Registration1Serializer(serializers.ModelSerializer):
 
      
 class Registration2Serializer(serializers.ModelSerializer):
+    
+    
     class Meta:
         model = models.Registration1
         fields = ('ProfileId','Profile_name', 'Profile_marital_status', 'Profile_dob', 'Profile_height', 'Profile_complexion')
@@ -1257,6 +1259,7 @@ class CustomAddOnPackSerializer(serializers.ModelSerializer):
 class PersonalRegistrationSerializer(serializers.ModelSerializer):
     age = serializers.SerializerMethodField()
     #Profile_for=serializers.CharField(required=False, allow_blank=True , allow_null=True)
+    
     class Meta:
         model = models.Registration1
         fields = ['ProfileId','Profile_name', 'Gender', 'Profile_dob', 'Profile_height', 'Profile_marital_status', 'Profile_complexion','age','Profile_verified','PaymentExpire','Plan_id','DateOfJoin','Profile_gothras','Video_url','Mobile_no']
@@ -1270,6 +1273,7 @@ class PersonalRegistrationSerializer(serializers.ModelSerializer):
 
 
 class PersonalHoroscopeSerializer(serializers.ModelSerializer):
+    time_of_birth = serializers.CharField(required=False, allow_blank=True , allow_null=True)
     class Meta:
         model = models.Horoscope
         fields = ['place_of_birth', 'time_of_birth','birth_rasi_name','birthstar_name']
@@ -1352,6 +1356,16 @@ class PersonalEdudetailsSerializer(serializers.ModelSerializer):
         fields = ['highest_education', 'about_edu', 'profession', 'anual_income', 'actual_income', 'work_country', 'work_state', 'work_district','work_city', 'work_pincode', 'career_plans','work_place','currency','company_name','designation','profession_details','business_name','business_address','nature_of_business','other_degree','field_ofstudy','degree']
 
 class Registration1ContactSerializer(serializers.ModelSerializer):
+    
+    Profile_district= serializers.CharField(required=False, allow_blank=True ,allow_null=True)
+    Profile_address= serializers.CharField(required=False, allow_blank=True ,allow_null=True)
+    Profile_city= serializers.CharField(required=False, allow_blank=True,allow_null=True)
+    Profile_state= serializers.CharField(required=False, allow_blank=True,allow_null=True)
+    Profile_pincode= serializers.CharField(required=False, allow_blank=True,allow_null=True)
+    Profile_alternate_mobile= serializers.CharField(required=False, allow_blank=True,allow_null=True)
+    Profile_mobile_no= serializers.CharField(required=False, allow_blank=True,allow_null=True)
+    Profile_whatsapp= serializers.CharField(required=False, allow_blank=True,allow_null=True)
+    Profile_emailid= serializers.CharField(required=False, allow_blank=True,allow_null=True)
     class Meta:
         model = models.Registration1
         fields = ['Profile_address','Profile_district','Profile_city', 'Profile_state', 'Profile_country', 'Profile_pincode', 'Profile_alternate_mobile', 'Profile_mobile_no', 'Profile_whatsapp', 'EmailId','Profile_emailid']
