@@ -4808,7 +4808,7 @@ class Get_profile_det_match(APIView):
                         # "user_images":user_images,
                         "user_images":user_images(profile_details[0]),
                         # "user_images": {
-                        #         "1": "https://vysyamaladev2025.blob.core.windows.net/vysyamala/default_groom.png"
+                        #         "1": "https://vysyamat.blob.core.windows.net/vysyamala/default_groom.png"
                         #     },
                         "personal_details": {
                             "profile_name": profile_details[0]['Profile_name'],
@@ -12172,10 +12172,10 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
 
 
                 if no_of_sister=="0" or no_of_sister =='':
-                    no_of_sis_married='-'
+                    no_of_sis_married='0'
 
                 if no_of_brother=="0" or no_of_brother =='':
-                    no_of_bro_married='-'
+                    no_of_bro_married='0'
                 
 
                 # Education and profession details
@@ -12392,10 +12392,13 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 birth_rasi_id = horoscope.birth_rasi_name
                 gender = login_details.Gender
                 porutham_data = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
+
+                #print(porutham_data)
             
                 # Prepare the Porutham sections for the PDF
                 def format_star_names(poruthams):
-                    return ', '.join([item['matching_starname'] for item in poruthams])
+                    #return ', '.join([item['matching_starname'] for item in poruthams])
+                    return ', '.join([f"{item['matching_starname']} - {item['matching_rasiname'].split('/')[0]}" for item in poruthams])
 
                 profile_url = f"https://polite-pond-0783ff91e.1.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
 
@@ -12417,7 +12420,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 if match:
                     dasa_year, dasa_month, dasa_day = match.groups()
 
-                print(dasa_balance_str,'dasa_balance_str')
+                #print(dasa_balance_str,'dasa_balance_str')
 
 
                 dasa_name = get_dasa_name(horoscope_data.dasa_name)
@@ -12430,7 +12433,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     
 
                         <div class="upload-horo-bg" >
-                            <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
+                            <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
                         </div>
 
                
@@ -12828,7 +12831,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 <tr>
                                     <td class="header-left">
                                         <div class="header-logo">
-                                            <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
+                                            <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
                                         </div>
                                     </td>
                                 </tr>
@@ -13078,7 +13081,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
 
                 {horo_file}
                 <div class="upload-horo-bg" >
-                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png" >
+                    <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png" >
                 </div>
 
                     </body>
@@ -13330,10 +13333,10 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                     no_of_bro_married="No"
 
                 if no_of_sister=="0" or no_of_sister =='':
-                    no_of_sis_married='-'
+                    no_of_sis_married='0'
 
                 if no_of_brother=="0" or no_of_brother =='':
-                    no_of_bro_married='-'
+                    no_of_bro_married='0'
                
 
                 # Education and profession details
@@ -13537,10 +13540,10 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 birth_rasi_id = horoscope.birth_rasi_name
                 gender = login_details.Gender
                 porutham_data = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
-                print("fathername:",father_name)
+                # print("fathername:",father_name)
                 # Prepare the Porutham sections for the PDF
                 def format_star_names(poruthams):
-                    return ', '.join([item['matching_starname'] for item in poruthams])
+                    return ', '.join([f"{item['matching_starname']} - {item['matching_rasiname'].split('/')[0]}" for item in poruthams])
                 
                 profile_url = f"https://polite-pond-0783ff91e.1.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
                 
@@ -13554,7 +13557,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                     
                     
                 charts_html = ""
-                print("hide",hide_charts)
+                # print("hide",hide_charts)
                 if not hide_charts:
                     charts_html = f"""
                     <table class="outer">
@@ -13954,7 +13957,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                 <tr>
                                     <td class="header-left">
                                         <div class="header-logo">
-                                            <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader-bg-white.png" alt="Vysyamala Logo">
+                                            <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader-bg-white.png" alt="Vysyamala Logo">
                                         </div>
                                     </td>
                                 </tr>
@@ -14209,7 +14212,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
 
 
                 <div class="upload-horo-bg" >
-                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
+                    <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
                 </div>
 
                <table class="upload-horo-image">
@@ -14221,7 +14224,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 </tr>
                 </table>
                 <div class="upload-horo-bg" >
-                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png" >
+                    <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png" >
                 </div>
 
 
@@ -14548,7 +14551,7 @@ def generate_porutham_pdf(request):
                                 <tr>
                                     <td class="header-left">
                                         <div class="header-logo">
-                                            <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
+                                            <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
                                         </div>
                                     </td>
                                 </tr>
@@ -14975,7 +14978,7 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                                 <tr>
                                     <td class="header-left">
                                         <div class="header-logo">
-                                            <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
+                                            <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
                                         </div>
                                     </td>
                                 </tr>
@@ -15424,7 +15427,7 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
         
             # Prepare the Porutham sections for the PDF
             def format_star_names(poruthams):
-                return ', '.join([item['matching_starname'] for item in poruthams])
+                return ', '.join([f"{item['matching_starname']} - {item['matching_rasiname'].split('/')[0]}" for item in poruthams])
             profile_url = f"http://matrimonyapp.rainyseasun.com/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
             
                 # Dynamic HTML content including Rasi and Amsam charts
@@ -15692,7 +15695,7 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
                             <tr>
                                 <td class="header-left">
                                     <div class="header-logo">
-                                        <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
+                                        <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
                                     </div>
                                 </td>
                             </tr>
@@ -15985,13 +15988,13 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
             </tr>
             </table>
             <div class="upload-horo-bg" >
-                <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
+                <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
             </div>
             <div class="upload-horo-image">
                      {horoscope_content} 
             </div>
             <div class="upload-horo-bg" >
-                <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/uploadHoroFooter.png" >
+                <img  src="https://vysyamat.blob.core.windows.net/vysyamala/uploadHoroFooter.png" >
             </div>
                
                 </body>
@@ -16979,10 +16982,10 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
 
 
                 if no_of_sister=="0" or no_of_sister =='':
-                    no_of_sis_married='-'
+                    no_of_sis_married='0'
 
                 if no_of_brother=="0" or no_of_brother =='':
-                    no_of_bro_married='-'
+                    no_of_bro_married='0'
                 
                 # Education and profession details
                 highest_education = education_details.highest_education
@@ -17181,7 +17184,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
             
                 # Prepare the Porutham sections for the PDF
                 def format_star_names(poruthams):
-                    return ', '.join([item['matching_starname'] for item in poruthams])
+                    return ', '.join([f"{item['matching_starname']} - {item['matching_rasiname'].split('/')[0]}" for item in poruthams])
 
                 profile_url = f"https://polite-pond-0783ff91e.1.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
 
@@ -17585,7 +17588,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 <tr>
                                     <td class="header-left">
                                         <div class="header-logo">
-                                            <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
+                                            <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
                                         </div>
                                     </td>
                                 </tr>
@@ -17836,7 +17839,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
 
 
                 <div class="upload-horo-bg" >
-                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
+                    <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
                 </div>
 
                 <table class="upload-horo-image">
@@ -17849,7 +17852,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 </table>
                 
                 <div class="upload-horo-bg" >
-                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png" >
+                    <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png" >
                 </div>
 
                     </body>
@@ -17956,10 +17959,10 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 
 
                 if no_of_sister=="0" or no_of_sister =='':
-                    no_of_sis_married='-'
+                    no_of_sis_married='0'
 
                 if no_of_brother=="0" or no_of_brother =='':
-                    no_of_bro_married='-'
+                    no_of_bro_married='0'
                 # Education and profession details
                 highest_education = education_details.highest_education
                 annual_income = education_details.anual_income
@@ -18179,7 +18182,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
             
                 # Prepare the Porutham sections for the PDF
                 def format_star_names(poruthams):
-                    return ', '.join([item['matching_starname'] for item in poruthams])
+                    return ', '.join([f"{item['matching_starname']} - {item['matching_rasiname'].split('/')[0]}" for item in poruthams])
                 
                 profile_url = f"https://polite-pond-0783ff91e.1.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
 
@@ -18596,7 +18599,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                 <tr>
                                     <td class="header-left">
                                         <div class="header-logo">
-                                            <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader-bg-white.png" alt="Vysyamala Logo">
+                                            <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader-bg-white.png" alt="Vysyamala Logo">
                                         </div>
                                     </td>
                                 </tr>
@@ -18853,7 +18856,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
 
 
                 <div class="upload-horo-bg" >
-                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
+                    <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
                 </div>
 
                <table class="upload-horo-image">
@@ -18865,7 +18868,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 </tr>
                 </table>
                 <div class="upload-horo-bg" >
-                    <img  src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png" >
+                    <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png" >
                 </div>
 
 
