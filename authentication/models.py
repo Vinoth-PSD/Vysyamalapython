@@ -1081,6 +1081,10 @@ class Get_profiledata(models.Model):
             partner_pref_height_from = partner_pref.pref_height_from
             partner_pref_height_to = partner_pref.pref_height_to
             partner_pref_porutham_star_rasi= partner_pref.pref_porutham_star_rasi
+            
+            partner_pref_foreign_intrest= partner_pref.pref_foreign_intrest
+            partner_pref_ragukethu= partner_pref.pref_ragukethu
+            partner_pref_chevvai= partner_pref.pref_chevvai
 
 
 
@@ -1212,6 +1216,22 @@ class Get_profiledata(models.Model):
                     if pref_marital_status:
                         base_query += " AND FIND_IN_SET(a.Profile_marital_status, %s) > 0"
                         query_params.append(pref_marital_status)
+                    
+                    if partner_pref_foreign_intrest == 'yes':
+                        base_query += " AND f.work_country !='1'"
+
+                    if partner_pref_foreign_intrest == 'no':
+                        base_query += " AND f.work_country = '1'"
+
+                    
+                    if partner_pref_ragukethu == 'yes':
+                        base_query += " AND a.Profile_country != '1'"
+
+                    if partner_pref_chevvai == 'no':
+                        base_query += " AND a.Profile_country = '1'"
+
+
+
 
                     height_conditions = ""
 
@@ -1272,12 +1292,12 @@ class Get_profiledata(models.Model):
                             
                             #orderby_cond = " ORDER BY a.DateOfJoin ASC "
                             # orderby_cond = f" ORDER BY {plan_priority_order}, a.DateOfJoin ASC "
-                            orderby_cond = f" ORDER BY {plan_priority},{photo_priority},{view_priority}, a.DateOfJoin ASC"
+                            orderby_cond = f" ORDER BY {plan_priority},{photo_priority},{view_priority}, a.DateOfJoin DESC"
                     elif order_by == 2:
                             # print('order by 123456',order_by)
                             # orderby_cond = " ORDER BY a.DateOfJoin DESC "
                             # orderby_cond = f" ORDER BY {plan_priority_order}, a.DateOfJoin DESC "
-                            orderby_cond = f" ORDER BY {plan_priority},{photo_priority},{view_priority}, a.DateOfJoin DESC"
+                            orderby_cond = f" ORDER BY {plan_priority},{photo_priority},{view_priority}, a.DateOfJoin ASC"
                     else:
                             # print('esg')
                             # orderby_cond = ""  # Default case if no valid order_by is provided
