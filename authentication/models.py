@@ -1217,18 +1217,18 @@ class Get_profiledata(models.Model):
                         base_query += " AND FIND_IN_SET(a.Profile_marital_status, %s) > 0"
                         query_params.append(pref_marital_status)
                     
-                    if partner_pref_foreign_intrest == 'yes':
+                    if partner_pref_foreign_intrest == 'yes' or partner_pref_foreign_intrest == 'Yes':
                         base_query += " AND f.work_country !='1'"
 
-                    if partner_pref_foreign_intrest == 'no':
+                    if partner_pref_foreign_intrest == 'no' or partner_pref_foreign_intrest == 'No':
                         base_query += " AND f.work_country = '1'"
 
                     
-                    if partner_pref_ragukethu == 'yes':
-                        base_query += " AND a.Profile_country != '1'"
+                    # if partner_pref_ragukethu == 'yes':
+                    #     base_query += " AND a.Profile_country != '1'"
 
-                    if partner_pref_chevvai == 'no':
-                        base_query += " AND a.Profile_country = '1'"
+                    # if partner_pref_chevvai == 'no':
+                    #     base_query += " AND a.Profile_country = '1'"
 
 
 
