@@ -1220,10 +1220,23 @@ class Get_profiledata(models.Model):
                     if partner_pref_foreign_intrest == 'yes' or partner_pref_foreign_intrest == 'Yes':
                         base_query += " AND f.work_country !='1'"
 
-                    if partner_pref_foreign_intrest == 'no' or partner_pref_foreign_intrest == 'No':
+                    elif partner_pref_foreign_intrest == 'no' or partner_pref_foreign_intrest == 'No':
                         base_query += " AND f.work_country = '1'"
 
-                    
+
+                    if partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'yes':
+                        base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
+                    elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'no':
+                        base_query += " AND LOWER(e.ragu_dosham) = 'no'"
+
+                    if partner_pref_chevvai and partner_pref_chevvai.lower() == 'yes':
+                        base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+                    elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'no':
+                        base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
+
+                
+
+                
                     # if partner_pref_ragukethu == 'yes':
                     #     base_query += " AND a.Profile_country != '1'"
 
@@ -1426,6 +1439,10 @@ class Get_profiledata(models.Model):
             partner_pref_height_to = partner_pref.pref_height_to
             partner_pref_porutham_star_rasi = partner_pref.pref_porutham_star_rasi
 
+            partner_pref_foreign_intrest= partner_pref.pref_foreign_intrest
+            partner_pref_ragukethu= partner_pref.pref_ragukethu
+            partner_pref_chevvai= partner_pref.pref_chevvai
+
             # Get Min/Max income range from masterannualincome
             with connection.cursor() as cursor:
                 cursor.execute("""
@@ -1499,6 +1516,25 @@ class Get_profiledata(models.Model):
             if pref_marital_status:
                 query += " AND FIND_IN_SET(a.Profile_marital_status, %s) > 0"
                 query_params.append(pref_marital_status)
+            
+            if partner_pref_foreign_intrest == 'yes' or partner_pref_foreign_intrest == 'Yes':
+                query += " AND f.work_country !='1'"
+
+            elif partner_pref_foreign_intrest == 'no' or partner_pref_foreign_intrest == 'No':
+                query += " AND f.work_country = '1'"
+
+
+            if partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'yes':
+                query += " AND LOWER(e.ragu_dosham) = 'yes'"
+            elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'no':
+                query += " AND LOWER(e.ragu_dosham) = 'no'"
+
+            if partner_pref_chevvai and partner_pref_chevvai.lower() == 'yes':
+                query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+            elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'no':
+                query += " AND LOWER(e.chevvai_dosaham) = 'no'"
+
+
 
             if partner_pref_height_from and partner_pref_height_to:
                 query += " AND a.Profile_height BETWEEN %s AND %s"
@@ -1529,6 +1565,150 @@ class Get_profiledata(models.Model):
         except Exception as e:
             print(f"Error: {e}")
             return []
+
+
+    @staticmethod
+    def get_profile_list_for_pref_type(profile_id,use_suggested=False):
+        # print("Fetching profile details...")
+
+        
+        if use_suggested:
+            try:
+                partner_pref = ProfileSuggestedPref.objects.get(profile_id=profile_id)
+            except ProfileSuggestedPref.DoesNotExist:
+                return []
+        else:
+            try:
+                partner_pref = Partnerpref.objects.get(profile_id=profile_id)
+            except Partnerpref.DoesNotExist:
+                return []
+        
+        
+        try:
+            profile = get_object_or_404(Registration1, ProfileId=profile_id)
+            gender = profile.Gender
+            current_age = calculate_age(profile.Profile_dob)
+
+            # partner_pref = get_object_or_404(Partnerpref, profile_id=profile_id)
+            age_difference_str = partner_pref.pref_age_differences
+            pref_annual_income = partner_pref.pref_anual_income
+            pref_marital_status = partner_pref.pref_marital_status
+            partner_pref_education = partner_pref.pref_education
+            partner_pref_height_from = partner_pref.pref_height_from
+            partner_pref_height_to = partner_pref.pref_height_to
+            partner_pref_porutham_star_rasi = partner_pref.pref_porutham_star_rasi
+
+            partner_pref_foreign_intrest= partner_pref.pref_foreign_intrest
+            partner_pref_ragukethu= partner_pref.pref_ragukethu
+            partner_pref_chevvai= partner_pref.pref_chevvai
+
+            # Get Min/Max income range from masterannualincome
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT MIN(income_amount), MAX(income_amount)
+                    FROM masterannualincome
+                    WHERE FIND_IN_SET(id, %s) > 0
+                """, [pref_annual_income])
+                min_max_income = cursor.fetchone()
+
+            min_income, max_income = min_max_income if min_max_income else (None, None)
+
+            try:
+                age_difference = int(age_difference_str)
+                
+            except ValueError:
+                return []
+
+            age_difference = int(age_difference) if age_difference else 5
+            if gender.upper() == "MALE":
+                min_age = max(current_age - age_difference, 18)  # 🛡 Never below 18
+                max_age = current_age
+            elif gender.upper() == "FEMALE":
+                min_age = max(current_age, 18)             # 🛡 Ensure at least 18
+                max_age = current_age + age_difference
+
+
+            # Base query to get matching profiles
+            query = """
+                 SELECT DISTINCT a.ProfileId,a.Plan_id ,a.DateOfJoin,a.Photo_protection,a.Profile_city,a.Profile_verified,a.Profile_name,a.Profile_dob,a.Profile_height,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
+                    f.highest_education, g.EducationLevel, d.star, h.income FROM logindetails a 
+                    JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
+                    JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
+                    JOIN masterbirthstar d ON d.id = e.birthstar_name 
+                    JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
+                    JOIN mastereducation g ON f.highest_education = g.RowId 
+                    JOIN masterannualincome h ON h.id = f.anual_income
+                    WHERE a.Status=1 AND a.Plan_id NOT IN (16, 18, 3) AND a.gender != %s AND a.ProfileId != %s 
+                    AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
+            """
+            
+            query_params = [gender, profile_id, min_age , max_age]
+
+            if min_income and max_income:
+                query += " AND h.income_amount BETWEEN %s AND %s"
+                query_params.extend([min_income, max_income])
+
+            if partner_pref_education:
+                query += " AND FIND_IN_SET(g.RowId, %s) > 0"
+                query_params.append(partner_pref_education)
+
+            if partner_pref_porutham_star_rasi:
+                query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
+                query_params.append(partner_pref_porutham_star_rasi)
+
+            if pref_marital_status:
+                query += " AND FIND_IN_SET(a.Profile_marital_status, %s) > 0"
+                query_params.append(pref_marital_status)
+            
+            if partner_pref_foreign_intrest == 'yes' or partner_pref_foreign_intrest == 'Yes':
+                query += " AND f.work_country !='1'"
+
+            elif partner_pref_foreign_intrest == 'no' or partner_pref_foreign_intrest == 'No':
+                query += " AND f.work_country = '1'"
+
+
+            if partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'yes':
+                query += " AND LOWER(e.ragu_dosham) = 'yes'"
+            elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'no':
+                query += " AND LOWER(e.ragu_dosham) = 'no'"
+
+            if partner_pref_chevvai and partner_pref_chevvai.lower() == 'yes':
+                query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+            elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'no':
+                query += " AND LOWER(e.chevvai_dosaham) = 'no'"
+
+
+
+            if partner_pref_height_from and partner_pref_height_to:
+                query += " AND a.Profile_height BETWEEN %s AND %s"
+                query_params.extend([partner_pref_height_from, partner_pref_height_to])
+            elif partner_pref_height_from:
+                query += " AND a.Profile_height >= %s"
+                query_params.append(partner_pref_height_from)
+            elif partner_pref_height_to:
+                query += " AND a.Profile_height <= %s"
+                query_params.append(partner_pref_height_to)
+
+            # Sorting logic
+            orderby_cond = " ORDER BY a.DateOfJoin DESC"
+            query += orderby_cond
+
+            with connection.cursor() as cursor:
+                # cursor.execute(query.format(operator=age_condition_operator), query_params)
+                cursor.execute(query, query_params)
+                rows = cursor.fetchall()
+
+                if rows:
+                    columns = [col[0] for col in cursor.description]
+                    results = [dict(zip(columns, row)) for row in rows]
+                    return results  # Returns full profile details
+
+            return []  # Return empty list if no matches found
+
+        except Exception as e:
+            print(f"Error: {e}")
+            return []
+
 
 
     @staticmethod

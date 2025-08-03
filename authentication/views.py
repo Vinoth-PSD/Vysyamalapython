@@ -219,6 +219,9 @@ class LoginView(APIView):
                 education_details_exists=models.Edudetails.objects.filter(profile_id=username).first()
                 partner_details_exists=models.Partnerpref.objects.filter(profile_id=username).first()
 
+                profile_planfeature = models.Profile_PlanFeatureLimit.objects.filter(profile_id=username, status=1).first()
+                valid_till = profile_planfeature.membership_todate if profile_planfeature else None
+
                 #check the address is exists for the contact s page contact us details stored in the logindetails page only
                 if not logindetails_exists:
                     
@@ -238,7 +241,7 @@ class LoginView(APIView):
                     profile_completion=5            #Partner details not exists   
 
                     
-                return JsonResponse({'status': 1,'token':token.key ,'profile_id':username ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json}, status=200)
+                return JsonResponse({'status': 1,'token':token.key ,'profile_id':username ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till}, status=200)
 
             else:
             # Password is incorrect
@@ -2103,6 +2106,11 @@ class Login_verifyotp(APIView):
                 gender = logindetails.Gender
                 height = logindetails.Profile_height
                 marital_status=logindetails.Profile_marital_status
+
+
+                profile_planfeature = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id, status=1).first()
+                valid_till = profile_planfeature.membership_todate if profile_planfeature else None
+
                 profile_icon=''
                 profile_completion=0
                 birth_star_id=''
@@ -2152,7 +2160,7 @@ class Login_verifyotp(APIView):
                 
                 
                 # return JsonResponse({'status': 1, 'token': token.key, 'message': 'Login Successful'}, status=status.HTTP_200_OK)
-                return JsonResponse({'status': 1,'token':token.key ,'profile_id':profile_id ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json}, status=200)
+                return JsonResponse({'status': 1,'token':token.key ,'profile_id':profile_id ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till}, status=200)
             except models.Registration1.DoesNotExist:
                 return JsonResponse({"status": 0, "message": "Invalid OTP or mobile number."}, status=status.HTTP_200_OK)
         
@@ -4540,7 +4548,12 @@ class Get_profile_det_match(APIView):
                 try:
                         Profile_high_edu = models.Edupref.objects.get(RowId=profile_details[0]['highest_education']).EducationLevel
                 except models.Edupref.DoesNotExist:
-                        Profile_high_edu = None
+                        Profile_high_edu = ''
+
+                try:
+                        Profile_field_study = models.Profilefieldstudy.objects.get(id=profile_details[0]['field_ofstudy']).field_of_study
+                except models.Profilefieldstudy.DoesNotExist:
+                        Profile_field_study = ''
 
                 try:
                         Profile_profession = models.Profespref.objects.get(RowId=profile_details[0]['profession']).profession
@@ -4777,7 +4790,7 @@ class Get_profile_det_match(APIView):
                             "height": profile_details[0]['Profile_height'],
                             "star":  profile_details[0]['star_name'],
                             "profession": Profile_profession,
-                            "education": Profile_high_edu,
+                            "education": Profile_high_edu +' '+Profile_field_study,
                             "about": profile_details[0]['about_self'],
                             "gothram": profile_details[0]['suya_gothram'],
                             "horoscope_available": Profile_horoscope,
@@ -4814,9 +4827,9 @@ class Get_profile_det_match(APIView):
                             "profile_name": profile_details[0]['Profile_name'],
                             "gender": profile_details[0]['Gender'],
                             "age": calculate_age(profile_details[0]['Profile_dob']),
-                            "dob": profile_details[0]['Profile_dob'],
+                            "dob": format_date_of_birth(profile_details[0]['Profile_dob']),
                             "place_of_birth": profile_details[0]['place_of_birth'],
-                            "time_of_birth": profile_details[0]['time_of_birth'],                   
+                            "time_of_birth": format_time_am_pm(profile_details[0]['time_of_birth']),                   
                             "height": profile_details[0]['Profile_height'],
                             "marital_status": Profile_marital_status,
                             "blood_group": profile_details[0]['blood_group'],
@@ -4830,22 +4843,23 @@ class Get_profile_det_match(APIView):
                             "profile_created_by": Profile_owner,
                         },
                         "education_details": {
-                            "education_level": Profile_high_edu,
+                            "education_level": Profile_high_edu+' '+Profile_field_study,
                             "education_detail": " ",
                             "ug_degeree": get_degree(profile_details[0]['ug_degeree']),
                             "about_education": profile_details[0]['about_edu'],
                             "profession": Profile_profession,
+                            "designation": profile_details[0]['designation'],
                             "company_name": profile_details[0]['company_name'],
                             "business_name": profile_details[0]['business_name'],
                             "business_address": profile_details[0]['business_address'],
                             "annual_income": annual_income_name,
                             "gross_annual_income": profile_details[0]['actual_income'],
-                            "place_of_stay": profile_details[0]['Profile_city'],
+                            # "place_of_stay": profile_details[0]['Profile_city'],
+                            "place_of_stay":get_place_of_work(profile_details),
                         },
                         "family_details": {
-                            "about_family": profile_details[0]['about_self'],
-                            "father_name": profile_details[0]['father_name'],
-                            
+                            "about_family": profile_details[0]['about_family'],
+                            "father_name": profile_details[0]['father_name'],                            
                             "father_occupation": profile_details[0]['father_occupation'],
                             "mother_name": profile_details[0]['mother_name'],
                             "mother_occupation": profile_details[0]['mother_occupation'],
@@ -4865,8 +4879,8 @@ class Get_profile_det_match(APIView):
                             "surya_gothram": profile_details[0]['suya_gothram'],
                             "dasa_name": get_dasa_name(profile_details[0]['dasa_name']),
                             "dasa_balance": dasa_format_date(profile_details[0]['dasa_balance']),
-                            "chevvai_dosham": dosham_value_formatter(profile_details[0]['calc_chevvai_dhosham']),
-                            "sarpadosham":  dosham_value_formatter(profile_details[0]['calc_raguketu_dhosham']),
+                            "chevvai_dosham": dosham_value_formatter(profile_details[0]['chevvai_dosaham']),
+                            "sarpadosham":  dosham_value_formatter(profile_details[0]['ragu_dosham']),
                             "madulamn": profile_details[0]['madulamn'],                           
                             # "rasi_kattam":profile_details[0]['rasi_kattam'],
                             # "amsa_kattam":profile_details[0]['amsa_kattam'],
@@ -4899,7 +4913,7 @@ class Get_profile_det_match(APIView):
                             "district": get_district_name(profile_details[0]['Profile_district']),
                             "state": get_state_name(profile_details[0]['Profile_state']),
                             "country": get_country_name(profile_details[0]['Profile_country']),                           
-                            "phone": profile_details[0]['Mobile_no'],
+                            "phone": profile_details[0]['Profile_alternate_mobile'],
                             "mobile": profile_details[0]['Mobile_no'],
                             "whatsapp": profile_details[0]['Profile_whatsapp'],
                             "email": profile_details[0]['EmailId'],
@@ -4914,6 +4928,42 @@ class Get_profile_det_match(APIView):
             return JsonResponse({'status': 'failure', 'message': 'Limit Reached to view the profile'}, status=status.HTTP_201_CREATED)
     
       return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+def get_place_of_work(profile_details):
+    profile = profile_details[0]
+
+    parts = []
+
+    country = get_country_name(profile.get('work_country'))
+    if country:
+        parts.append(country)
+
+    state = get_state_name(profile.get('work_state'))
+    if state:
+        parts.append(state)
+
+    district = get_district_name(profile.get('work_district'))
+    if district:
+        parts.append(district)
+
+    city = get_city_name(profile.get('work_city'))
+    if city:
+        parts.append(city)
+
+    return " / ".join(parts) if parts else None
+
+
+def format_date_of_birth(Profile_dob):
+    if Profile_dob:
+        try:
+            return Profile_dob.strftime("%d-%m-%Y")
+        except AttributeError:
+            return None  # In case dob is not a valid date object
+    return None
+
 
 
 
@@ -6887,6 +6937,9 @@ class Save_plan_package(APIView):
             education_details_exists=models.Edudetails.objects.filter(profile_id=profile_id).first()
             partner_details_exists=models.Partnerpref.objects.filter(profile_id=profile_id).first()
 
+            profile_planfeature = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id, status=1).first()
+            valid_till = profile_planfeature.membership_todate if profile_planfeature else None
+
             #check the address is exists for the contact s page contact us details stored in the logindetails page only
             if not logindetails_exists:
             
@@ -6911,8 +6964,7 @@ class Save_plan_package(APIView):
                     "status": "success",
                     "message": "Plans and packages updated successfully",
                     "data_message": f"Thank you for registering in Vysyamala. Your profile has been successfully submitted.Your Profile Id is  {profile_id} . We truly appreciate you taking the time to join Vysyamala—it means a lot to us! Our customer support team will review your details and get in touch with you shortly to complete the approval process. Welcome to the Vysyamala family!",
-                    'token':token.key ,'profile_id':profile_id ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json
-                }, status=status.HTTP_200_OK)
+                    'token':token.key ,'profile_id':profile_id ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till }, status=status.HTTP_200_OK)
         
         except models.Registration1.DoesNotExist:
             return JsonResponse({"status": "error", "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -8828,42 +8880,14 @@ class GetFeaturedList(APIView):
         
 
 
-
 class SuggestedProfiles1(APIView):
 
     def post(self, request):
-        # Extract the input data from the JSON body (POST request)
+            # Extract the input data from the JSON body (POST request)
         profile_id = request.data.get('profile_id')
-
-        if not profile_id:
-            return JsonResponse({'status': 'failure', 'message': 'profile_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Get gender from logindetails table
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT Gender,Profile_dob FROM logindetails WHERE ProfileId = %s", [profile_id])
-                result = cursor.fetchone()
-                
-                if result:
-                    gender, profile_dob = result  # unpack the tuple
-                else:
-                    # Handle no result found
-                    gender = None
-                    profile_dob = None
-                profile_age=calculate_age(profile_dob)
-        except Exception as e:
-            return JsonResponse({'status': 'failure', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        # Extract input values from request data (POST request)
-        from_age = request.data.get('from_age')
-        to_age = request.data.get('to_age')
-        from_height = request.data.get('from_height')
-        to_height = request.data.get('to_height')
 
         received_per_page = request.data.get('per_page')
         received_page_number = request.data.get('page_number')
-
-        # Set default values if not provided
         per_page = int(received_per_page) if received_per_page else 10
         page_number = int(received_page_number) if received_page_number else 1
 
@@ -8874,74 +8898,59 @@ class SuggestedProfiles1(APIView):
         # Calculate the starting record for the SQL LIMIT clause
         start = (page_number - 1) * per_page
 
-        # Initialize the query with the base structure
-        
-        if gender.lower() == 'male':
-            age_condition_operator = '<'
-        else:
-            age_condition_operator = '>'
-        
-        base_query = """
-        SELECT DISTINCT b.profile_id,a.*, 
-               f.profession, f.highest_education, g.EducationLevel, d.star, h.income ,d.star as star_name , e.birthstar_name ,e.birth_rasi_name ,
-               IF(i.id IS NOT NULL, 1, 0) AS has_image
-        FROM logindetails a 
-        JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
-        JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
-        JOIN masterbirthstar d ON d.id = e.birthstar_name 
-        JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
-        JOIN mastereducation g ON f.highest_education = g.RowId 
-        JOIN masterannualincome h ON h.id = f.anual_income
+        if not profile_id:
+                return JsonResponse({'status': 'failure', 'message': 'profile_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        LEFT JOIN profile_images i 
-        ON a.ProfileId = i.profile_id 
-        AND a.Plan_id !=16
-        AND i.image_approved = 1 
-        AND i.is_deleted = 0
+        
+        profile = get_object_or_404(models.Registration1, ProfileId=profile_id)
+        gender = profile.Gender
+        suggested_results = models.Get_profiledata.get_profile_list_for_pref_type(
+            profile_id=profile_id,
+            use_suggested=True
+        )
+        suggested_ids = set([r['ProfileId'] for r in suggested_results])
 
-        WHERE a.gender != %s AND a.ProfileId != %s AND Plan_id IN (2, 3, 15)
+        print('suggested_ids',suggested_ids)
+
+        # Get all user preference profile IDs
+        partner_results = models.Get_profiledata.get_profile_list_for_pref_type(
+            profile_id=profile_id,
+            use_suggested=False
+        )
+        partner_ids = set([r['ProfileId'] for r in partner_results])
+        print('partner_ids',partner_ids)
+
+        # Subtract
+        unique_ids = list(suggested_ids - partner_ids)
+
+        if not unique_ids:
+
+            return JsonResponse({'status': 'failure', 'message': 'No unique suggested profiles found.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+        # Use raw query to fetch final result details using profile ID list
+        placeholders = ','.join(['%s'] * len(unique_ids))
+        base_query = f"""
+            SELECT DISTINCT a.ProfileId,a.Plan_id ,a.DateOfJoin,a.Photo_protection,a.Profile_city,a.Profile_verified,a.Profile_name,a.Profile_dob,a.Profile_height,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
+                    f.highest_education, g.EducationLevel, d.star, h.income FROM logindetails a 
+                    JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
+                    JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
+                    JOIN masterbirthstar d ON d.id = e.birthstar_name 
+                    JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
+                    JOIN mastereducation g ON f.highest_education = g.RowId 
+                    JOIN masterannualincome h ON h.id = f.anual_income
+            WHERE a.ProfileId IN ({placeholders}) 
+            ORDER BY a.DateOfJoin DESC LIMIT %s OFFSET %s
         """
+        count_query = f"SELECT COUNT(*) FROM ({base_query.replace('LIMIT %s OFFSET %s', '')}) AS count_query"
+        count_query_params = list(unique_ids)  # Only the profile_ids for count
 
-        base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator} %s   ORDER BY has_image DESC"
-
-
-        # Prepare the query parameters
-        query_params = [gender, profile_id, profile_age]
-        
-
-        # Check if additional filters are provided, and add them to the query
-        # if from_age or to_age or from_height or to_height:
-        #     # Add age filter
-        #     age_condition_operator = "BETWEEN %s AND %s" if from_age and to_age else ">=" if from_age else "<=" if to_age else None
-        #     if age_condition_operator:
-        #         base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator}"
-        #         if from_age and to_age:
-        #             query_params.extend([from_age, to_age])
-        #         else:
-        #             query_params.append(from_age or to_age)
-            
-        #     if from_height and to_height:
-        #         base_query += " AND a.Profile_height BETWEEN %s AND %s"
-        #         query_params.extend([from_height, to_height])
-        #     elif from_height:
-        #         base_query += " AND a.Profile_height >= %s"
-        #         query_params.append(from_height)
-        #     elif to_height:
-        #         base_query += " AND a.Profile_height <= %s"
-        #         query_params.append(to_height)
-
-        count_query = f"SELECT COUNT(*) FROM ({base_query}) AS count_query"
-
-                    # Execute the count query to get the total number of records
         with connection.cursor() as cursor:
-                cursor.execute(count_query, query_params)
-                total_count = cursor.fetchone()[0]  # Fetch the count
+            cursor.execute(count_query, count_query_params)
+            total_count = cursor.fetchone()[0]
 
 
-
-
-        base_query += " LIMIT %s, %s"
-        query_params.extend([start, per_page])
+        query_params = list(unique_ids) + [per_page, start]
 
         try:
             with connection.cursor() as cursor:
@@ -8950,21 +8959,13 @@ class SuggestedProfiles1(APIView):
 
                 if rows:
                     columns = [col[0] for col in cursor.description]
-                    results = [dict(zip(columns, row)) for row in rows]
-                    
+                    results = [dict(zip(columns, row)) for row in rows]                    
 
                     full_query = cursor.mogrify(base_query, query_params)
 
                     profilehoro_data =  models.Horoscope.objects.get(profile_id=profile_id)
                     source_rasi_id=profilehoro_data.birth_rasi_name
                     source_star_id=profilehoro_data.birthstar_name
-
-
-                    # print(source_rasi_id,'source_rasi_id')
-                    # print(source_star_id,'source_star_id')
-                    # print(profile_id,'profile_id')
-                    # print(gender,'gender')
-
                     transformed_results = [transform_data(result,profile_id,gender,source_rasi_id,source_star_id) for result in results]
 
                     
@@ -8974,9 +8975,7 @@ class SuggestedProfiles1(APIView):
                     return JsonResponse({
                         'status': 'success',
                         'total_count':total_count,
-                        # 'data': results,
                         'data':transformed_results,
-                        # 'query': full_query,  
                         'received_per_page': received_per_page,
                         'received_page_number': received_page_number,
                         'calculated_per_page': per_page,
@@ -8989,6 +8988,170 @@ class SuggestedProfiles1(APIView):
 
         except Exception as e:
             return JsonResponse({'status': 'failure', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+# class SuggestedProfiles1(APIView):
+
+#     def post(self, request):
+#         # Extract the input data from the JSON body (POST request)
+#         profile_id = request.data.get('profile_id')
+
+#         if not profile_id:
+#             return JsonResponse({'status': 'failure', 'message': 'profile_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+#         # Get gender from logindetails table
+#         try:
+#             with connection.cursor() as cursor:
+#                 cursor.execute("SELECT Gender,Profile_dob FROM logindetails WHERE ProfileId = %s", [profile_id])
+#                 result = cursor.fetchone()
+                
+#                 if result:
+#                     gender, profile_dob = result  # unpack the tuple
+#                 else:
+#                     # Handle no result found
+#                     gender = None
+#                     profile_dob = None
+#                 profile_age=calculate_age(profile_dob)
+#         except Exception as e:
+#             return JsonResponse({'status': 'failure', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#         # Extract input values from request data (POST request)
+#         from_age = request.data.get('from_age')
+#         to_age = request.data.get('to_age')
+#         from_height = request.data.get('from_height')
+#         to_height = request.data.get('to_height')
+
+#         received_per_page = request.data.get('per_page')
+#         received_page_number = request.data.get('page_number')
+
+#         # Set default values if not provided
+#         per_page = int(received_per_page) if received_per_page else 10
+#         page_number = int(received_page_number) if received_page_number else 1
+
+#         # Ensure valid values for pagination
+#         per_page = max(1, per_page)
+#         page_number = max(1, page_number)
+
+#         # Calculate the starting record for the SQL LIMIT clause
+#         start = (page_number - 1) * per_page
+
+#         # Initialize the query with the base structure
+        
+#         if gender.lower() == 'male':
+#             age_condition_operator = '<'
+#         else:
+#             age_condition_operator = '>'
+        
+#         base_query = """
+#         SELECT DISTINCT b.profile_id,a.*, 
+#                f.profession, f.highest_education, g.EducationLevel, d.star, h.income ,d.star as star_name , e.birthstar_name ,e.birth_rasi_name ,
+#                IF(i.id IS NOT NULL, 1, 0) AS has_image
+#         FROM logindetails a 
+#         JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
+#         JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
+#         JOIN masterbirthstar d ON d.id = e.birthstar_name 
+#         JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
+#         JOIN mastereducation g ON f.highest_education = g.RowId 
+#         JOIN masterannualincome h ON h.id = f.anual_income
+
+#         LEFT JOIN profile_images i 
+#         ON a.ProfileId = i.profile_id 
+#         AND a.Plan_id !=16
+#         AND i.image_approved = 1 
+#         AND i.is_deleted = 0
+
+#         WHERE a.gender != %s AND a.ProfileId != %s AND Plan_id IN (2, 3, 15)
+#         """
+
+#         base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator} %s   ORDER BY has_image DESC"
+
+
+#         # Prepare the query parameters
+#         query_params = [gender, profile_id, profile_age]
+        
+
+#         # Check if additional filters are provided, and add them to the query
+#         # if from_age or to_age or from_height or to_height:
+#         #     # Add age filter
+#         #     age_condition_operator = "BETWEEN %s AND %s" if from_age and to_age else ">=" if from_age else "<=" if to_age else None
+#         #     if age_condition_operator:
+#         #         base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator}"
+#         #         if from_age and to_age:
+#         #             query_params.extend([from_age, to_age])
+#         #         else:
+#         #             query_params.append(from_age or to_age)
+            
+#         #     if from_height and to_height:
+#         #         base_query += " AND a.Profile_height BETWEEN %s AND %s"
+#         #         query_params.extend([from_height, to_height])
+#         #     elif from_height:
+#         #         base_query += " AND a.Profile_height >= %s"
+#         #         query_params.append(from_height)
+#         #     elif to_height:
+#         #         base_query += " AND a.Profile_height <= %s"
+#         #         query_params.append(to_height)
+
+#         count_query = f"SELECT COUNT(*) FROM ({base_query}) AS count_query"
+
+#                     # Execute the count query to get the total number of records
+#         with connection.cursor() as cursor:
+#                 cursor.execute(count_query, query_params)
+#                 total_count = cursor.fetchone()[0]  # Fetch the count
+
+
+
+
+#         base_query += " LIMIT %s, %s"
+#         query_params.extend([start, per_page])
+
+#         try:
+#             with connection.cursor() as cursor:
+#                 cursor.execute(base_query, query_params)
+#                 rows = cursor.fetchall()
+
+#                 if rows:
+#                     columns = [col[0] for col in cursor.description]
+#                     results = [dict(zip(columns, row)) for row in rows]
+                    
+
+#                     full_query = cursor.mogrify(base_query, query_params)
+
+#                     profilehoro_data =  models.Horoscope.objects.get(profile_id=profile_id)
+#                     source_rasi_id=profilehoro_data.birth_rasi_name
+#                     source_star_id=profilehoro_data.birthstar_name
+
+
+#                     # print(source_rasi_id,'source_rasi_id')
+#                     # print(source_star_id,'source_star_id')
+#                     # print(profile_id,'profile_id')
+#                     # print(gender,'gender')
+
+#                     transformed_results = [transform_data(result,profile_id,gender,source_rasi_id,source_star_id) for result in results]
+
+                    
+#                     # print('transformed_results',transformed_results)
+
+#                     # print(full_query)  
+#                     return JsonResponse({
+#                         'status': 'success',
+#                         'total_count':total_count,
+#                         # 'data': results,
+#                         'data':transformed_results,
+#                         # 'query': full_query,  
+#                         'received_per_page': received_per_page,
+#                         'received_page_number': received_page_number,
+#                         'calculated_per_page': per_page,
+#                         'calculated_page_number': page_number
+#                     }, status=status.HTTP_200_OK)
+#                 else:
+#                     full_query = cursor.mogrify(base_query, query_params)
+#                     print(full_query) 
+#                     return JsonResponse({'status': 'failure', 'message': 'No records found.', 'query': full_query}, status=status.HTTP_404_NOT_FOUND)
+
+#         except Exception as e:
+#             return JsonResponse({'status': 'failure', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class Photo_Id_Settings(APIView):
