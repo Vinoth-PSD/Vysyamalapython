@@ -4539,27 +4539,41 @@ class Get_profile_det_match(APIView):
                     print("Execution time after image  ",datetime.now())
                
                 try:
-                        Profile_complexion = models.Profilecomplexion.objects.get(complexion_id=profile_details[0]['Profile_complexion']).complexion_desc
-                except models.Profilecomplexion.DoesNotExist:
+                    complexion_id = profile_details[0].get('Profile_complexion')
+                    if complexion_id and str(complexion_id).isdigit():
+                        Profile_complexion = models.Profilecomplexion.objects.get(complexion_id=complexion_id).complexion_desc
+                    else:
                         Profile_complexion = None
-                
-                #Profile_high_edu = models.Edupref.objects.get(RowId=profile_details[0]['highest_education']).EducationLevel  
-                
+                except models.Profilecomplexion.DoesNotExist:
+                    Profile_complexion = None
+
+                # Handle highest_education safely
                 try:
-                        Profile_high_edu = models.Edupref.objects.get(RowId=profile_details[0]['highest_education']).EducationLevel
-                except models.Edupref.DoesNotExist:
+                    highest_edu_id = profile_details[0].get('highest_education')
+                    if highest_edu_id and str(highest_edu_id).isdigit():
+                        Profile_high_edu = models.Edupref.objects.get(RowId=highest_edu_id).EducationLevel
+                    else:
                         Profile_high_edu = ''
+                except models.Edupref.DoesNotExist:
+                    Profile_high_edu = ''
 
                 try:
-                        Profile_field_study = models.Profilefieldstudy.objects.get(id=profile_details[0]['field_ofstudy']).field_of_study
-                except models.Profilefieldstudy.DoesNotExist:
+                    field_of_study_id = profile_details[0].get('field_ofstudy')
+                    if field_of_study_id:
+                        Profile_field_study = models.Profilefieldstudy.objects.get(id=field_of_study_id).field_of_study
+                    else:
                         Profile_field_study = ''
+                except models.Profilefieldstudy.DoesNotExist:
+                    Profile_field_study = ''
 
                 try:
-                        Profile_profession = models.Profespref.objects.get(RowId=profile_details[0]['profession']).profession
-                except models.Profespref.DoesNotExist:
+                    profession_id = profile_details[0].get('profession')
+                    if profession_id and str(profession_id).isdigit():
+                        Profile_profession = models.Profespref.objects.get(RowId=profession_id).profession
+                    else:
                         Profile_profession = None
-
+                except models.Profespref.DoesNotExist:
+                    Profile_profession = None
 
                 # try:
                 #         Profile_ug_degree = models.Ugdegree.objects.get(id=profile_details[0]['ug_degeree']).degree
@@ -4577,7 +4591,7 @@ class Get_profile_det_match(APIView):
                 except models.ProfileMaritalstatus.DoesNotExist:
                         Profile_marital_status = None
 
-                
+             
                 # try:
                 #             Profile_mother_ocup = models.Parentoccupation.objects.get(id=profile_details[0]['mother_occupation']).occupation
                 # except models.Parentoccupation.DoesNotExist:
