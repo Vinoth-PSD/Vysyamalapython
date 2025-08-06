@@ -2365,13 +2365,19 @@ class Get_profile_intrests_list(APIView):
 
                     received_intrests_count = {'status': 1,'profile_to':profile_id}
                     received_int_count = count_records(models.Express_interests, received_intrests_count)
-                    
+                    photo_viewing=get_permission_limits(profile_id,'photo_viewing')
+               
+                    if photo_viewing == 1:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
+                    else:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
                     restricted_profile_details = [
                         {
                             "int_profileid": detail.get("ProfileId"),
                             "int_profile_name": detail.get("Profile_name"),
                             #"int_Profile_img": 'http://matrimonyapp.rainyseasun.com/assets/Groom-Cdjk7JZo.png',
-                            "int_Profile_img":Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                            # "int_Profile_img":Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                            "int_Profile_img": image_function(detail),
                             "int_profile_age": calculate_age(detail.get("Profile_dob")),
                             "int_profile_notes": 'Iam intrested in your profile if you are intrested in my profile , please contact me',
                             "int_status":1,
@@ -2869,13 +2875,23 @@ class Get_Gallery_lists(APIView):
             if not paginated_images:
                 return JsonResponse({"Status": 0, "message": "No matching image fetched"}, status=status.HTTP_200_OK)
 
-            image_data = [
-                {
-                    "profile_id": image[1],
-                    "img_url": f"{base_url}{image[2]}"
-                }
-                for image in paginated_images
-            ]
+            photo_viewing=get_permission_limits(profile_id,'photo_viewing')
+            if(photo_viewing==1):
+                image_data = [
+                    {
+                        "profile_id": image[1],
+                        "img_url": f"{base_url}{image[2]}"
+                    }
+                    for image in paginated_images
+                ]
+            else:
+                image_data = [
+                    {
+                        "profile_id": image[1],
+                        "img_url": f"{base_url}{image[2].replace('profile_images/', 'blurred_images/')}"
+                    }
+                    for image in paginated_images
+                ]
 
             all_profile_ids = {str(index + 1): image[1] for index, image in enumerate(paginated_images)}
 
@@ -2968,12 +2984,18 @@ class My_intrests_list(APIView):
                     # sent_intrest_count = {'status': 1,'profile_from':profile_id}
                     # sent_int_count = count_records(models.Express_interests, sent_intrest_count)
                     
-                    
+                    photo_viewing=get_permission_limits(profile_id,'photo_viewing')
+               
+                    if photo_viewing == 1:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
+                    else:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
                     restricted_profile_details = [
                         {
                             "myint_profileid": detail.get("ProfileId"),
                             "myint_profile_name": detail.get("Profile_name"),
-                            "myint_Profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                            # "myint_Profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                            "myint_Profile_img": image_function(detail),    
                             "myint_profile_age": calculate_age(detail.get("Profile_dob")),
                             "myint_verified":detail.get("Profile_verified"),
                             "myint_height":detail.get("Profile_height"),
@@ -3083,7 +3105,12 @@ class Get_mutual_intrests(APIView):
             
                     my_gender=profile_data.Gender
 
-                    
+                    photo_viewing=get_permission_limits(profile_id,'photo_viewing')
+               
+                    if photo_viewing == 1:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
+                    else:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
                     # mutual_condition = Q(status=2) & (Q(profile_from=profile_id) | Q(profile_to=profile_id))
                     # mutual_int_count = count_records_forQ(models.Express_interests, mutual_condition)
                     
@@ -3091,7 +3118,8 @@ class Get_mutual_intrests(APIView):
                         {
                             "mutint_profileid": detail.get("ProfileId"),
                             "mutint_profile_name": detail.get("Profile_name"),
-                            "mutint_Profile_img":  Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),                           
+                            # "mutint_Profile_img":  Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),                           
+                            "mutint_Profile_img": image_function(detail),
                             "mutint_profile_age": calculate_age(detail.get("Profile_dob")),
                             "mutint_verified":detail.get("Profile_verified"),
                             "mutint_height":detail.get("Profile_height"),
@@ -3242,13 +3270,19 @@ class Get_profile_wishlist(APIView):
                     
                     # wishlist_count = count_records(models.Profile_wishlists, wishlist_condition)
 
-                    
+                    photo_viewing=get_permission_limits(profile_id,'photo_viewing')
+               
+                    if photo_viewing == 1:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
+                    else:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
                     restricted_profile_details = [
                         {
                             "wishlist_profileid": detail.get("ProfileId"),
                             "wishlist_profile_name": detail.get("Profile_name"),
                             # "wishlist_Profile_img": 'http://matrimonyapp.rainyseasun.com/assets/Groom-Cdjk7JZo.png',
-                            "wishlist_Profile_img":  Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),                                                        
+                            # "wishlist_Profile_img":  Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),                                                        
+                            "wishlist_Profile_img": image_function(detail),
                             "wishlist_profile_age": calculate_age(detail.get("Profile_dob")),
                             "wishlist_verified":detail.get("Profile_verified"),
                             "wishlist_height":detail.get("Profile_height"),
@@ -3359,12 +3393,18 @@ class My_profile_visit(APIView):
 
                     # myvisitor_count = count_records(models.Profile_visitors, my_vistor_count)
                     # total_records=myvisitor_count
-                    
+                    photo_viewing=get_permission_limits(profile_id,'photo_viewing')
+               
+                    if photo_viewing == 1:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
+                    else:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
                     restricted_profile_details = [
                         {
                             "viwed_profileid": detail.get("ProfileId"),
                             "viwed_profile_name": detail.get("Profile_name"),
-                            "viwed_Profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                            # "viwed_Profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                            "viwed_Profile_img": image_function(detail),
                             "viwed_profile_age": calculate_age(detail.get("Profile_dob")),
                             "viwed_verified":detail.get("Profile_verified"),
                             "viwed_height":detail.get("Profile_height"),
@@ -3445,12 +3485,20 @@ class My_viewed_profiles(APIView):
             
                     my_gender=profile_data.Gender
 
+                    photo_viewing=get_permission_limits(profile_id,'photo_viewing')
+               
+                    if photo_viewing == 1:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
+                    else:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
+
                     restricted_profile_details = [
                         {
                             "visited_profileid": detail.get("ProfileId"),
                             "visited_profile_name": detail.get("Profile_name"),
                             # "visited_Profile_img": 'http://matrimonyapp.rainyseasun.com/assets/Groom-Cdjk7JZo.png',
-                            "visited_Profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                            # "visited_Profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                            "visited_Profile_img": image_function(detail),
                             "visited_profile_age": calculate_age(detail.get("Profile_dob")),
                             "visited_verified":detail.get("Profile_verified"),
                             "visited_height":detail.get("Profile_height"),
@@ -3578,14 +3626,20 @@ class Get_personal_notes(APIView):
                     # personal_notes_condition={'status': 1,'profile_id':profile_id}
 
                     # personal_notes_count = count_records(models.Profile_personal_notes, personal_notes_condition)
-                    
+                    photo_viewing=get_permission_limits(profile_id,'photo_viewing')
+               
+                    if photo_viewing == 1:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
+                    else:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
                                       
                     restricted_profile_details = [
                         {
                             "notes_profileid": detail.get("ProfileId"),
                             "notes_profile_name": detail.get("Profile_name"),
                             # "notes_Profile_img": 'http://matrimonyapp.rainyseasun.com/assets/Groom-Cdjk7JZo.png',
-                            "notes_Profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                            # "notes_Profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                            "notes_Profile_img": image_function(detail),
                             "notes_profile_age": calculate_age(detail.get("Profile_dob")),
                             "notes_details": notes_mapping.get(detail.get("ProfileId"), ('notes', ''))[0],  # Get notes from the mapping
                             "notes_datetime": notes_mapping.get(detail.get("ProfileId"), ('datetime', ''))[1],
@@ -5226,13 +5280,20 @@ class Get_photo_request_list(APIView):
                     # print('profile_details',(profile_details))
 
                     
+                    photo_viewing=get_permission_limits(profile_id,'photo_viewing')
+               
+                    if photo_viewing == 1:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
+                    else:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
                     
                     restricted_profile_details = [
                         {
                             "req_profileid": detail.get("ProfileId"),
                             "req_profile_name": detail.get("Profile_name"),
                             #"req_Profile_img": 'http://matrimonyapp.rainyseasun.com/assets/Groom-Cdjk7JZo.png',
-                            "req_Profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                            # "req_Profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                            "req_Profile_img": image_function(detail),
                             "req_profile_age": calculate_age(detail.get("Profile_dob")),
                             "response_message": fetch_data[index].response_message,
                             "req_status": fetch_data[index].status,
@@ -8734,165 +8795,147 @@ def get_country_name(country_id):
 class GetFeaturedList(APIView):
 
     def post(self, request):
-        # Extract the input data from the JSON body (POST request)
         profile_id = request.data.get('profile_id')
-
         if not profile_id:
-            return JsonResponse({'status': 'failure', 'message': 'profile_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Get gender from logindetails table
+            return JsonResponse({'status': 'failure', 'message': 'profile_id is required.'}, status=400)
+
+        # --- Get gender and DOB ---
         try:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT Gender,Profile_dob FROM logindetails WHERE ProfileId = %s", [profile_id])
+                cursor.execute("SELECT Gender, Profile_dob FROM logindetails WHERE ProfileId = %s", [profile_id])
                 result = cursor.fetchone()
-                
-                if result:
-                    gender, profile_dob = result  # unpack the tuple
-                else:
-                    # Handle no result found
-                    gender = None
-                    profile_dob = None
-                profile_age=calculate_age(profile_dob)
+                if not result:
+                    return JsonResponse({'status': 'failure', 'message': 'Profile not found'}, status=404)
+                gender, profile_dob = result
+                profile_age = calculate_age(profile_dob)
         except Exception as e:
-            return JsonResponse({'status': 'failure', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return JsonResponse({'status': 'failure', 'message': str(e)}, status=500)
 
-        # Extract input values from request data (POST request)
+        # --- Pagination ---
+        received_per_page = request.data.get('per_page')
+        received_page_number = request.data.get('page_number')
+        per_page = int(received_per_page) if received_per_page else 10
+        page_number = int(received_page_number) if received_page_number else 1
+        per_page = max(1, per_page)
+        start = (page_number - 1) * per_page
+
+        # --- Filters from request ---
         from_age = request.data.get('from_age')
         to_age = request.data.get('to_age')
         from_height = request.data.get('from_height')
         to_height = request.data.get('to_height')
 
-        received_per_page = request.data.get('per_page')
-        received_page_number = request.data.get('page_number')
+        # STEP 1: Get Matching (Partner Preference) IDs
+        partner_results = models.Get_profiledata.get_profile_list_for_pref_type(profile_id=profile_id, use_suggested=False)
+        partner_ids = set(str(p['ProfileId']) for p in partner_results)
 
-        # Set default values if not provided
-        per_page = int(received_per_page) if received_per_page else 10
-        page_number = int(received_page_number) if received_page_number else 1
-
-        # Ensure valid values for pagination
-        per_page = max(1, per_page)
-        page_number = max(1, page_number)
-
-        # Calculate the starting record for the SQL LIMIT clause
-        start = (page_number - 1) * per_page
-
-        # Initialize the query with the base structure
-        
-        if gender.lower() == 'male':
-            age_condition_operator = '<'
-        else:
-            age_condition_operator = '>'
-        
-        base_query = """
-        SELECT DISTINCT b.profile_id,a.*, 
-               f.profession, f.highest_education, g.EducationLevel, d.star, h.income ,d.star as star_name , e.birthstar_name ,e.birth_rasi_name ,
-               IF(i.id IS NOT NULL, 1, 0) AS has_image
-        FROM logindetails a 
-        JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
-        JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
-        JOIN masterbirthstar d ON d.id = e.birthstar_name 
-        JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
-        JOIN mastereducation g ON f.highest_education = g.RowId 
-        JOIN masterannualincome h ON h.id = f.anual_income
-
-        LEFT JOIN profile_images i 
-        ON a.ProfileId = i.profile_id 
-        AND a.Plan_id !=16
-        AND i.image_approved = 1 
-        AND i.is_deleted = 0
-
-        WHERE a.gender != %s AND a.ProfileId != %s AND Plan_id IN (2, 3, 15)
+        # STEP 2: Get All Featured IDs with Filters
+        query = """
+            SELECT ProfileId FROM logindetails
+            WHERE gender != %s
+            AND ProfileId != %s
+            AND Plan_id IN (2, 3, 15)
+            AND Profile_dob IS NOT NULL
         """
+        params = [gender, profile_id]
 
-        base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator} %s   ORDER BY has_image DESC"
-
-
-        # Prepare the query parameters
-        query_params = [gender, profile_id, profile_age]
-        
-
-        # Check if additional filters are provided, and add them to the query
-        # if from_age or to_age or from_height or to_height:
-        #     # Add age filter
-        #     age_condition_operator = "BETWEEN %s AND %s" if from_age and to_age else ">=" if from_age else "<=" if to_age else None
-        #     if age_condition_operator:
-        #         base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator}"
-        #         if from_age and to_age:
-        #             query_params.extend([from_age, to_age])
-        #         else:
-        #             query_params.append(from_age or to_age)
-            
-        #     if from_height and to_height:
-        #         base_query += " AND a.Profile_height BETWEEN %s AND %s"
-        #         query_params.extend([from_height, to_height])
-        #     elif from_height:
-        #         base_query += " AND a.Profile_height >= %s"
-        #         query_params.append(from_height)
-        #     elif to_height:
-        #         base_query += " AND a.Profile_height <= %s"
-        #         query_params.append(to_height)
-
-        count_query = f"SELECT COUNT(*) FROM ({base_query}) AS count_query"
-
-                    # Execute the count query to get the total number of records
-        with connection.cursor() as cursor:
-                cursor.execute(count_query, query_params)
-                total_count = cursor.fetchone()[0]  # Fetch the count
-
-
-
-
-        base_query += " LIMIT %s, %s"
-        query_params.extend([start, per_page])
+        if from_age:
+            query += " AND TIMESTAMPDIFF(YEAR, Profile_dob, CURDATE()) >= %s"
+            params.append(int(from_age))
+        if to_age:
+            query += " AND TIMESTAMPDIFF(YEAR, Profile_dob, CURDATE()) <= %s"
+            params.append(int(to_age))
+        if from_height:
+            query += " AND Profile_height >= %s"
+            params.append(int(from_height))
+        if to_height:
+            query += " AND Profile_height <= %s"
+            params.append(int(to_height))
 
         try:
             with connection.cursor() as cursor:
-                cursor.execute(base_query, query_params)
+                cursor.execute(query, params)
+                featured_ids = set(str(row[0]) for row in cursor.fetchall())
+        except Exception as e:
+            return JsonResponse({'status': 'failure', 'message': str(e)}, status=500)
+
+        # STEP 3: Subtract Matching from Featured IDs
+        unique_ids = list(featured_ids - partner_ids)
+
+        if not unique_ids:
+            return JsonResponse({'status': 'failure', 'message': 'No unique featured profiles found.'}, status=404)
+
+        # STEP 4: Fetch Full Data with JOINs
+        placeholders = ','.join(['%s'] * len(unique_ids))
+        details_query = f"""
+            SELECT DISTINCT a.ProfileId, a.Plan_id, a.DateOfJoin, a.Photo_protection, a.Profile_city,
+                   a.Profile_verified, a.Profile_name, a.Profile_dob, a.Profile_height,
+                   e.birthstar_name, e.birth_rasi_name,
+                   f.ug_degeree, f.profession, f.highest_education,
+                   g.EducationLevel, d.star, h.income,
+                   IF(i.id IS NOT NULL, 1, 0) AS has_image
+            FROM logindetails a
+            JOIN profile_horoscope e ON a.ProfileId = e.profile_id
+            JOIN masterbirthstar d ON d.id = e.birthstar_name
+            JOIN profile_edudetails f ON a.ProfileId = f.profile_id
+            JOIN mastereducation g ON f.highest_education = g.RowId
+            JOIN masterannualincome h ON h.id = f.anual_income
+            LEFT JOIN profile_images i ON a.ProfileId = i.profile_id
+                AND i.image_approved = 1 AND i.is_deleted = 0
+            WHERE a.ProfileId IN ({placeholders})
+            ORDER BY has_image DESC, a.DateOfJoin DESC
+            LIMIT %s OFFSET %s
+        """
+
+        count_query = f"""
+            SELECT COUNT(*) FROM (
+                SELECT ProfileId FROM logindetails
+                WHERE ProfileId IN ({placeholders})
+            ) AS count_alias
+        """
+
+        query_params = unique_ids + [per_page, start]
+        count_params = unique_ids
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(count_query, count_params)
+                total_count = cursor.fetchone()[0]
+
+                cursor.execute(details_query, query_params)
                 rows = cursor.fetchall()
+                if not rows:
+                    return JsonResponse({'status': 'failure', 'message': 'No records found.'}, status=404)
 
-                if rows:
-                    columns = [col[0] for col in cursor.description]
-                    results = [dict(zip(columns, row)) for row in rows]
-                    
-
-                    full_query = cursor.mogrify(base_query, query_params)
-
-                    profilehoro_data =  models.Horoscope.objects.get(profile_id=profile_id)
-                    source_rasi_id=profilehoro_data.birth_rasi_name
-                    source_star_id=profilehoro_data.birthstar_name
-
-
-                    # print(source_rasi_id,'source_rasi_id')
-                    # print(source_star_id,'source_star_id')
-                    # print(profile_id,'profile_id')
-                    # print(gender,'gender')
-
-                    transformed_results = [transform_data(result,profile_id,gender,source_rasi_id,source_star_id) for result in results]
-
-                    
-                    # print('transformed_results',transformed_results)
-
-                    # print(full_query)  
-                    return JsonResponse({
-                        'status': 'success',
-                        'total_count':total_count,
-                        # 'data': results,
-                        'data':transformed_results,
-                        # 'query': full_query,  
-                        'received_per_page': received_per_page,
-                        'received_page_number': received_page_number,
-                        'calculated_per_page': per_page,
-                        'calculated_page_number': page_number
-                    }, status=status.HTTP_200_OK)
-                else:
-                    full_query = cursor.mogrify(base_query, query_params)
-                    print(full_query) 
-                    return JsonResponse({'status': 'failure', 'message': 'No records found.', 'query': full_query}, status=status.HTTP_404_NOT_FOUND)
+                columns = [col[0] for col in cursor.description]
+                results = [dict(zip(columns, row)) for row in rows]
 
         except Exception as e:
-            return JsonResponse({'status': 'failure', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+            return JsonResponse({'status': 'failure', 'message': f'DB Error: {str(e)}'}, status=500)
 
+        # STEP 5: Apply transformation (e.g., horoscope logic)
+        try:
+            profile_horo = models.Horoscope.objects.get(profile_id=profile_id)
+            source_rasi_id = profile_horo.birth_rasi_name
+            source_star_id = profile_horo.birthstar_name
+        except models.Horoscope.DoesNotExist:
+            source_rasi_id = None
+            source_star_id = None
+
+        final_data = [
+            transform_data(entry, profile_id, gender, source_rasi_id, source_star_id)
+            for entry in results
+        ]
+
+        return JsonResponse({
+            'status': 'success',
+            'total_count': total_count,
+            'data': final_data,
+            'received_per_page': received_per_page,
+            'received_page_number': received_page_number,
+            'calculated_per_page': per_page,
+            'calculated_page_number': page_number,
+        }, status=200)
 
 class SuggestedProfiles1(APIView):
 
@@ -10312,12 +10355,22 @@ class FeaturedProfile(APIView):
         try:
             # Raw SQL query to fetch random profiles
             query = """
-                SELECT ProfileId, Profile_name, Gender, Profile_dob, Profile_height, 
+                SELECT ProfileId, Profile_name, Gender, Profile_dob, Profile_height,
                        Profile_city, Photo_protection
-                FROM logindetails 
-                WHERE 
-                    LOWER(Gender) = LOWER(%s) AND 
-                    Status = 1 AND 
+                FROM logindetails
+                LEFT JOIN (
+                        SELECT *
+                        FROM (
+                            SELECT *,
+                                ROW_NUMBER() OVER (PARTITION BY profile_id ORDER BY id ASC) AS rn
+                            FROM profile_images
+                            WHERE image_approved = 1 AND is_deleted = 0
+                        ) AS ranked_images
+                        WHERE rn = 1
+                    ) AS i ON i.profile_id = ProfileId
+                WHERE
+                    LOWER(Gender) = LOWER(%s) AND
+                    Status = 1 AND
                     Plan_id IN (2, 3, 15)
                 ORDER BY RAND()
                 LIMIT 10
@@ -18367,7 +18420,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 didi = horoscope.didi or "N/A"
                 nalikai =  horoscope.nalikai  or "N/A"
 
-                age = calculate_age(login_details.Profile_dob) or "N/A" 
+                age = calculate_age(login_details.Profile_dob)  or "N/A" 
 
                 # Planet mapping dictionary
                 # planet_mapping = {
