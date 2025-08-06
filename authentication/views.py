@@ -12305,9 +12305,10 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
 
             
                 mobile_email_content = f"""
-                        <p>Mobile: {login_details.Mobile_no or ''}</p>
-                        <p>WhatsApp: {login_details.Profile_whatsapp or ''}</p>
-                        <p>Email: {login_details.EmailId or ''}</p>
+                        <p>Mobile: {login_details.Mobile_no or 'N/A'}</p>
+                        <p>Alternate Mobile: {login_details.Profile_alternate_mobile or 'N/A'}</p>
+                        <p>WhatsApp: {login_details.Profile_whatsapp or 'N/A'}</p>
+                        <p>Email: {login_details.EmailId or 'N/A'}</p>
                 """
                 
                 # family details
@@ -12358,22 +12359,20 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 # Education and profession details
                 highest_education = education_details.highest_education
 
+                annual_income = "Unknown"
+                actual_income = str(education_details.actual_income).strip()
+                annual_income_id = education_details.anual_income
 
-
-
-
-
-
-
-                if not education_details.actual_income:
-                    annual_income = education_details.anual_income
+                if not actual_income or actual_income in ["", "~"]:
+                    if annual_income_id and str(annual_income_id).isdigit():
+                        annual_income = models.Annualincome.objects.filter(id=int(annual_income_id)).values_list('income', flat=True).first() or "Unknown"
                 else:
-                    annual_income = education_details.actual_income
-                profession = education_details.profession
+                    annual_income = actual_income
 
                 # personal details
                 name = login_details.Profile_name  # Assuming a Profile_name field exists
-                dob = login_details.Profile_dob
+                date =  format_date_of_birth(login_details.Profile_dob)
+                dob = date
                 complexion = login_details.Profile_complexion
                 user_profile_id = login_details.ProfileId
                 height = login_details.Profile_height 
@@ -12570,6 +12569,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 gender = login_details.Gender
                 porutham_data = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
 
+                horo_hint = horoscope_data.horoscope_hints or "N/A"
                 #print(porutham_data)
             
                 # Prepare the Porutham sections for the PDF
@@ -12702,6 +12702,17 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                             </td>
                         </tr>
                     </table>
+                    
+                <div>
+                <table class="add-info"> 
+                    <tr>
+                        <td>
+                            <p><b>Horoscope Hints: </b>{horo_hint}</p>
+                        </td>
+                    </tr>
+                    <tr>
+                    <td>
+                    <table>
                     """
 
                 html_content = rf"""
@@ -13021,18 +13032,20 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 <td class="border-right">
                                 <table class="inner-table">
                                     <tr>
-                                    <td>
-                                    <p><strong>Name </strong></p>
-                                    <p>DOB / POB </p>
-                                    <p>Complexion </p>
-                                    <p>Education </p>
-                                    </td>
-                                    <td>
-                                    <p><strong>{name}</strong></p>
-                                    <p>{dob} / {place_of_birth}</p>
-                                    <p> {complexion}</p>
-                                    <p>{final_education}</p>
-                                    </td>
+                                        <td><p><strong>Name</strong></p></td>
+                                        <td><p><strong>{name}</strong></p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>DOB / POB</p></td>
+                                        <td><p>{dob} / {place_of_birth}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Complexion</p></td>
+                                        <td><p>{complexion}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Education</p></td>
+                                        <td><p>{final_education}</p></td>
                                     </tr>
                                     </table>
                                     
@@ -13041,20 +13054,24 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 <td>
                                 <table class="inner-table">
                                     <tr>
-                                        <td>
-                                            <p><strong>Vysyamala Id : </strong></p>
-                                            <p>Height / Photos </p>
-                                            <p>Annual Income</p>
-                                            <p>Profession/Place of stay</p>
-                                            <p>{occupation_title}</p>
-                                        </td> 
-                                        <td>
-                                            <p><strong>{user_profile_id}</strong></p>
-                                            <p> {height} / {image_status}</p>
-                                            <p>{annual_income}</p>
-                                            <p>{profession} / {work_place}</p>
-                                            <p>{occupation}</p>
-                                        </td> 
+                                        <td><p><strong>Vysyamala Id :</strong></p></td>
+                                        <td><p><strong>{user_profile_id}</strong></p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Height / Photos </p></td>
+                                        <td><p>{height} / {image_status}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Annual Income </p></td>
+                                        <td><p>{annual_income}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Profession / Place of stay </p></td>
+                                        <td><p>{profession} / {work_place}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>{occupation_title}</p></td>
+                                        <td><p>{occupation}</p></td>
                                     </tr>
                                 </table>
                                 </td>
@@ -13069,18 +13086,20 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 <td  class="border-right">
                                     <table class="inner-table">
                                         <tr>
-                                            <td>
-                                                <p><strong>Father Name </strong> </p>
-                                                <p>Father Occupation </p>
-                                                <p>Family Status </p>
-                                                <p>Brothers/Married </p>
-                                            </td>
-                                            <td>
-                                                <p><strong>{father_name}</strong></p>
-                                                <p> {father_occupation}</p>
-                                                <p>{family_status}</p>
-                                                <p>{no_of_brother}/{no_of_bro_married}</p>
-                                            </td>
+                                            <td><p><strong>Father Name</strong></p></td>
+                                            <td><p><strong>{father_name}</strong></p></td>
+                                        </tr>
+                                        <tr>
+                                            <td><p>Father Occupation</p></td>
+                                            <td><p>{father_occupation}</p></td>
+                                        </tr>
+                                        <tr>
+                                            <td><p>Family Status</p></td>
+                                            <td><p>{family_status}</p></td>
+                                        </tr>
+                                        <tr>
+                                            <td><p>Brothers/Married</p></td>
+                                            <td><p>{no_of_brother}/{no_of_bro_married}</p></td>
                                         </tr>
                                     </table>
                                     
@@ -13117,7 +13136,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                                 <p>Nalikai </p>
                                             </td>
                                             <td>
-                                                <p><strong>{star_name}, {rasi_name}</strong></p>
+                                                <p style="font-size:12px"><strong>{star_name}, {rasi_name}</strong></p>
                                                 <p>{lagnam}/{didi}</p>
                                                 <p>{nalikai}</p>
                                             </td>
@@ -13150,16 +13169,6 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     {charts_html}
 
 
-                <div>
-                <table class="add-info"> 
-                    <tr>
-                        <td>
-                            <p><b>Horoscope Hints: </b>Parihara Chevvai based on Vakiya Panchangam.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                    <td>
-                    <table>
                         <tr>
                             <td>
                                 {address_content}
@@ -13368,7 +13377,7 @@ def fetch_porutham_details(profile_from, profile_to):
             gender=gender_to
         ).first()
 
-        porutham_names = models.Matchingporutham.objects.all()
+        porutham_names = models.Matchingporutham.objects.exclude(id__in=[11, 12])
 
         if not matching_star_partner:
             porutham_results = [{'porutham_name': porutham.protham_name, 'status': 'NO ✖'} for porutham in porutham_names]
@@ -13465,9 +13474,10 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                     """
                 
                 mobile_email_content = f"""
-                        <p>Mobile: {login_details.Mobile_no or ''}</p>
-                        <p>WhatsApp: {login_details.Profile_whatsapp or ''}</p>
-                        <p>Email: {login_details.EmailId or ''}</p>
+                        <p>Mobile: {login_details.Mobile_no or 'N/A'}</p>
+                        <p>Alternate Mobile: {login_details.Profile_alternate_mobile or 'N/A'}</p>
+                        <p>WhatsApp: {login_details.Profile_whatsapp or 'N/A'}</p>
+                        <p>Email: {login_details.EmailId or 'N/A'}</p>
                 """
                 
                 # family details
@@ -13519,15 +13529,19 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 # Education and profession details
                 highest_education = education_details.highest_education
                 
-                if not education_details.actual_income:
-                    annual_income = education_details.anual_income
-                else:
-                    annual_income = education_details.actual_income
-                profession = education_details.profession
+                annual_income = "Unknown"
+                actual_income = str(education_details.actual_income).strip()
+                annual_income_id = education_details.anual_income
 
+                if not actual_income or actual_income in ["", "~"]:
+                    if annual_income_id and str(annual_income_id).isdigit():
+                        annual_income = models.Annualincome.objects.filter(id=int(annual_income_id)).values_list('income', flat=True).first() or "Unknown"
+                else:
+                    annual_income = actual_income
                 # personal details
                 name = login_details.Profile_name  # Assuming a Profile_name field exists
-                dob = login_details.Profile_dob
+                date =  format_date_of_birth(login_details.Profile_dob)
+                dob = date
                 complexion = login_details.Profile_complexion
                 user_profile_id = login_details.ProfileId
                 height = login_details.Profile_height 
@@ -13710,6 +13724,8 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 else:
                     horoscope_content = '<p>No horoscope uploaded</p>'
                 dasa_name = get_dasa_name(horoscope_data.dasa_name)
+                
+                horo_hint = horoscope_data.horoscope_hints or "N/A"
                 # image status
                 image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
                 # Get matching stars data
@@ -13814,6 +13830,18 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                             </td>
                         </tr>
                     </table>
+                    <div>
+                <table class="add-info"> 
+                    <tr>
+                        <td>
+                            <p><b>Horoscope Hints: </b>{horo_hint}</p>
+                       <hr class="divider">
+
+                        </td>
+                    </tr>
+                    <tr>
+                    <td>
+                    <table>
                     """
 
                 html_content = rf"""
@@ -14147,18 +14175,20 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                 <td class="border-right">
                                 <table class="inner-table">
                                     <tr>
-                                    <td>
-                                    <p><strong>Name </strong></p>
-                                    <p>DOB / POB </p>
-                                    <p>Complexion </p>
-                                    <p>Education </p>
-                                    </td>
-                                    <td>
-                                    <p><strong>{name}</strong></p>
-                                    <p>{dob} / {place_of_birth}</p>
-                                    <p> {complexion}</p>
-                                    <p>{final_education}</p>
-                                    </td>
+                                        <td><p><strong>Name</strong></p></td>
+                                        <td><p><strong>{name}</strong></p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>DOB / POB</p></td>
+                                        <td><p>{dob} / {place_of_birth}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Complexion</p></td>
+                                        <td><p>{complexion}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Education</p></td>
+                                        <td><p>{final_education}</p></td>
                                     </tr>
                                     </table>
                                     
@@ -14167,20 +14197,24 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                 <td>
                                 <table class="inner-table">
                                     <tr>
-                                        <td>
-                                            <p><strong>Vysyamala Id : </strong></p>
-                                            <p>Height / Photos </p>
-                                            <p>Annual Income</p>
-                                            <p>Profession/Place of stay</p>
-                                            <p>{occupation_title}</p>
-                                        </td> 
-                                        <td>
-                                            <p><strong>{user_profile_id}</strong></p>
-                                            <p> {height} / {image_status}</p>
-                                            <p>{annual_income}</p>
-                                            <p>{profession} / {work_place}</p>
-                                            <p>{occupation}</p>
-                                        </td> 
+                                        <td><p><strong>Vysyamala Id :</strong></p></td>
+                                        <td><p><strong>{user_profile_id}</strong></p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Height / Photos </p></td>
+                                        <td><p>{height} / {image_status}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Annual Income </p></td>
+                                        <td><p>{annual_income}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Profession / Place of stay </p></td>
+                                        <td><p>{profession} / {work_place}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>{occupation_title}</p></td>
+                                        <td><p>{occupation}</p></td>
                                     </tr>
                                 </table>
                                 </td>
@@ -14195,18 +14229,20 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                 <td  class="border-right">
                                     <table class="inner-table">
                                         <tr>
-                                            <td>
-                                                <p><strong>Father Name </strong> </p>
-                                                <p>Father Occupation </p>
-                                                <p>Family Status </p>
-                                                <p>Brothers/Married </p>
-                                            </td>
-                                            <td>
-                                                <p><strong>{father_name}</strong></p>
-                                                <p style="font-size:14px"> {father_occupation}</p>
-                                                <p>{family_status}</p>
-                                                <p>{no_of_brother}/{no_of_bro_married}</p>
-                                            </td>
+                                            <td><p><strong>Father Name</strong></p></td>
+                                            <td><p><strong>{father_name}</strong></p></td>
+                                        </tr>
+                                        <tr>
+                                            <td><p>Father Occupation</p></td>
+                                            <td><p>{father_occupation}</p></td>
+                                        </tr>
+                                        <tr>
+                                            <td><p>Family Status</p></td>
+                                            <td><p>{family_status}</p></td>
+                                        </tr>
+                                        <tr>
+                                            <td><p>Brothers/Married</p></td>
+                                            <td><p>{no_of_brother}/{no_of_bro_married}</p></td>
                                         </tr>
                                     </table>
                                     
@@ -14247,7 +14283,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                                 <p>Nalikai </p>
                                             </td>
                                             <td>
-                                                <p><strong>{star_name}/{rasi_name}</strong></p>
+                                                <p style="font-size:12px"><strong>{star_name}/{rasi_name}</strong></p>
                                                 <p>{lagnam}/{didi}</p>
                                                 <p>{nalikai}</p>
                                             </td>
@@ -14279,18 +14315,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                     </div>
                     
                     {charts_html}
-                <div>
-                <table class="add-info"> 
-                    <tr>
-                        <td>
-                            <p><b>Horoscope Hints: </b>Parihara Chevvai based on Vakiya Panchangam.</p>
-                       <hr class="divider">
-
-                        </td>
-                    </tr>
-                    <tr>
-                    <td>
-                    <table>
+                
                         <tr>
                             <td>
                                {address_content}
@@ -14480,8 +14505,38 @@ def generate_porutham_pdf(request):
         rasi_from = models.Rasi.objects.get(id=horoscope_from.birth_rasi_name)
         rasi_to = models.Rasi.objects.get(id=horoscope_to.birth_rasi_name)
         highest_education_from = models.Edupref.objects.get(RowId=education_from_details.highest_education)
-        highest_education_to = models.Edupref.objects.get(RowId=education_to_details.highest_education)
+        highest_education_to = models.Edupref.objects.get(RowId=education_to_details.highest_education) 
 
+        field_ofstudy_id_from = education_from_details.field_ofstudy
+        fieldof_study_from=" "
+        if field_ofstudy_id_from:
+            fieldof_study_from = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id_from).values_list('field_of_study', flat=True).first() or "Unknown"
+        
+        about_edu_from=education_from_details.about_edu
+        
+        final_education_from = (highest_education_from.EducationLevel + ' ' + fieldof_study_from).strip() or about_edu_from
+                
+        field_ofstudy_id_to = education_to_details.field_ofstudy
+        fieldof_study_to=" "
+        if field_ofstudy_id_to:
+            fieldof_study_to = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id_to).values_list('field_of_study', flat=True).first() or "Unknown"
+        
+        about_edu_to=education_to_details.about_edu
+        
+        final_education_to = (highest_education_to.EducationLevel + ' ' + fieldof_study_to).strip() or about_edu_to
+        
+        def format_time_am_pm(time_str):
+            try:
+                time_obj = datetime.strptime(time_str, "%H:%M:%S")
+                return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
+            except ValueError:
+                return time_str
+            
+        horo_from_time = format_time_am_pm(horoscope_from.time_of_birth)
+        horo_to_time = format_time_am_pm(horoscope_to.time_of_birth)
+        
+        horo_from_date = format_date_of_birth(profile_from_details.Profile_dob)
+        horo_to_date = format_date_of_birth(profile_to_details.Profile_dob)
         # Handle Gender safely
         gender_from = safe_str(profile_from_details.Gender).lower()
         gender_to = safe_str(profile_to_details.Gender).lower()
@@ -14771,18 +14826,18 @@ def generate_porutham_pdf(request):
                 </tr>
                 <tr>
                 <td class="data-row">
-                    <p> Time of Birth : {horoscope_from.time_of_birth}</p>
+                    <p> Time of Birth : {horo_from_time}</p>
                 </td>
                 <td class="data-row">
-                    <p>  Time of Birth : {horoscope_to.time_of_birth}</p>
+                    <p>  Time of Birth : {horo_to_time}</p>
                 </td>
                 </tr>
                 <tr>
                 <td class="data-row">
-                    <p> Date Of Birth : {profile_from_details.Profile_dob}</p>
+                    <p> Date Of Birth : {horo_from_date}</p>
                 </td>
                 <td class="data-row">
-                    <p> Date Of Birth : {profile_to_details.Profile_dob}</p>
+                    <p> Date Of Birth : {horo_to_date}</p>
                 </td>
                 </tr>
             </table>
@@ -14800,10 +14855,10 @@ def generate_porutham_pdf(request):
                 </tr>
                 <tr>
                 <td class="data-row">
-                    <p> {highest_education_from.EducationLevel}</p>
+                    <p> {final_education_from}</p>
                 </td>
                 <td class="data-row">
-                    <p> {highest_education_to.EducationLevel}</p>
+                    <p> {final_education_to}</p>
                 </td>
                 </tr>
             </table>
@@ -14909,6 +14964,37 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
         rasi_to = models.Rasi.objects.get(id=horoscope_to.birth_rasi_name)
         highest_education_from = models.Edupref.objects.get(RowId=education_from_details.highest_education)
         highest_education_to = models.Edupref.objects.get(RowId=education_to_details.highest_education)
+        
+        field_ofstudy_id_from = education_from_details.field_ofstudy
+        fieldof_study_from=" "
+        if field_ofstudy_id_from:
+            fieldof_study_from = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id_from).values_list('field_of_study', flat=True).first() or "Unknown"
+        
+        about_edu_from=education_from_details.about_edu
+        
+        final_education_from = (highest_education_from.EducationLevel + ' ' + fieldof_study_from).strip() or about_edu_from
+                
+        field_ofstudy_id_to = education_to_details.field_ofstudy
+        fieldof_study_to=" "
+        if field_ofstudy_id_to:
+            fieldof_study_to = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id_to).values_list('field_of_study', flat=True).first() or "Unknown"
+        
+        about_edu_to=education_to_details.about_edu
+        
+        final_education_to = (highest_education_to.EducationLevel + ' ' + fieldof_study_to).strip() or about_edu_to
+        
+        def format_time_am_pm(time_str):
+            try:
+                time_obj = datetime.strptime(time_str, "%H:%M:%S")
+                return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
+            except ValueError:
+                return time_str
+            
+        horo_from_time = format_time_am_pm(horoscope_from.time_of_birth)
+        horo_to_time = format_time_am_pm(horoscope_to.time_of_birth)
+        
+        horo_from_date = format_date_of_birth(profile_from_details.Profile_dob)
+        horo_to_date = format_date_of_birth(profile_to_details.Profile_dob)
 
         # Handle Gender safely
         gender_from = safe_str(profile_from_details.Gender).lower()
@@ -15198,18 +15284,18 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                 </tr>
                 <tr>
                 <td class="data-row">
-                    <p> Time of Birth : {horoscope_from.time_of_birth}</p>
+                    <p> Time of Birth : {horo_from_time}</p>
                 </td>
                 <td class="data-row">
-                    <p>  Time of Birth : {horoscope_to.time_of_birth}</p>
+                    <p>  Time of Birth : {horo_to_time}</p>
                 </td>
                 </tr>
                 <tr>
                 <td class="data-row">
-                    <p> Date Of Birth : {profile_from_details.Profile_dob}</p>
+                    <p> Date Of Birth : {horo_from_date}</p>
                 </td>
                 <td class="data-row">
-                    <p> Date Of Birth : {profile_to_details.Profile_dob}</p>
+                    <p> Date Of Birth : {horo_to_date}</p>
                 </td>
                 </tr>
             </table>
@@ -15227,10 +15313,10 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                 </tr>
                 <tr>
                 <td class="data-row">
-                    <p> {highest_education_from.EducationLevel}</p>
+                    <p> {final_education_from}</p>
                 </td>
                 <td class="data-row">
-                    <p> {highest_education_to.EducationLevel}</p>
+                    <p> {final_education_to}</p>
                 </td>
                 </tr>
             </table>
@@ -17102,9 +17188,10 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                     """
                 
                 mobile_email_content = f"""
-                        <p>Mobile: {login_details.Mobile_no or ''}</p>
-                        <p>WhatsApp: {login_details.Profile_whatsapp or ''}</p>
-                        <p>Email: {login_details.EmailId or ''}</p>
+                        <p>Mobile: {login_details.Mobile_no or 'N/A'}</p>
+                        <p>Alternate Mobile: {login_details.Profile_alternate_mobile or 'N/A'}</p>
+                        <p>WhatsApp: {login_details.Profile_whatsapp or 'N/A'}</p>
+                        <p>Email: {login_details.EmailId or 'N/A'}</p>
                 """
 
 
@@ -17171,7 +17258,8 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
 
                 # personal details
                 name = login_details.Profile_name  # Assuming a Profile_name field exists
-                dob = login_details.Profile_dob
+                date =  format_date_of_birth(login_details.Profile_dob)
+                dob = date
                 complexion = login_details.Profile_complexion
                 user_profile_id = login_details.ProfileId
                 height = login_details.Profile_height 
@@ -17267,7 +17355,6 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
 
                 time_of_birth = horoscope.time_of_birth
                 place_of_birth = horoscope.place_of_birth
-                lagnam = horoscope.lagnam_didi 
                 didi = horoscope.didi  or "N/A"
                 nalikai =  horoscope.nalikai  or "N/A"
 
@@ -17354,6 +17441,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 gender = login_details.Gender
                 porutham_data = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
             
+                horo_hint = horoscope.horoscope_hints or "N/A"
                 def is_grid_data_empty(grid_data):
                     return all(cell == default_placeholder for cell in grid_data)
 
@@ -17460,6 +17548,16 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                             </td>
                         </tr>
                     </table>
+                     <div>
+                <table class="add-info"> 
+                    <tr>
+                        <td>
+                            <p><b>Horoscope Hints: </b>{horo_hint}</p>
+                        </td>
+                    </tr>
+                    <tr>
+                    <td>
+                    <table>
                     """  
                 html_content = rf"""
                 <html>
@@ -17778,18 +17876,20 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 <td class="border-right">
                                 <table class="inner-table">
                                     <tr>
-                                    <td>
-                                    <p><strong>Name </strong></p>
-                                    <p>DOB / POB </p>
-                                    <p>Complexion </p>
-                                    <p>Education </p>
-                                    </td>
-                                    <td>
-                                    <p><strong>{name}</strong></p>
-                                    <p>{dob} / {place_of_birth}</p>
-                                    <p> {complexion}</p>
-                                    <p>{final_education}</p>
-                                    </td>
+                                        <td><p><strong>Name</strong></p></td>
+                                        <td><p><strong>{name}</strong></p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>DOB / POB</p></td>
+                                        <td><p>{dob} / {place_of_birth}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Complexion</p></td>
+                                        <td><p>{complexion}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Education</p></td>
+                                        <td><p>{final_education}</p></td>
                                     </tr>
                                     </table>
                                     
@@ -17798,20 +17898,24 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 <td>
                                 <table class="inner-table">
                                     <tr>
-                                        <td>
-                                            <p><strong>Vysyamala Id : </strong></p>
-                                            <p>Height / Photos </p>
-                                            <p>Annual Income</p>
-                                            <p>Profession/Place of stay</p>
-                                            <p>{occupation_title}</p>
-                                        </td> 
-                                        <td>
-                                            <p><strong>{user_profile_id}</strong></p>
-                                            <p> {height} / {image_status}</p>
-                                            <p>{annual_income}</p>
-                                            <p>{profession} / {work_place}</p>
-                                            <p>{occupation}</p>
-                                        </td> 
+                                        <td><p><strong>Vysyamala Id :</strong></p></td>
+                                        <td><p><strong>{user_profile_id}</strong></p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Height / Photos </p></td>
+                                        <td><p>{height} / {image_status}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Annual Income </p></td>
+                                        <td><p>{annual_income}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Profession / Place of stay </p></td>
+                                        <td><p>{profession} / {work_place}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>{occupation_title}</p></td>
+                                        <td><p>{occupation}</p></td>
                                     </tr>
                                 </table>
                                 </td>
@@ -17826,18 +17930,20 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 <td  class="border-right">
                                     <table class="inner-table">
                                         <tr>
-                                            <td>
-                                                <p><strong>Father Name </strong> </p>
-                                                <p>Father Occupation </p>
-                                                <p>Family Status </p>
-                                                <p>Brothers/Married </p>
-                                            </td>
-                                            <td>
-                                                <p><strong>{father_name}</strong></p>
-                                                <p> {father_occupation}</p>
-                                                <p>{family_status}</p>
-                                                <p>{no_of_brother}/{no_of_bro_married}</p>
-                                            </td>
+                                            <td><p><strong>Father Name</strong></p></td>
+                                            <td><p><strong>{father_name}</strong></p></td>
+                                        </tr>
+                                        <tr>
+                                            <td><p>Father Occupation</p></td>
+                                            <td><p>{father_occupation}</p></td>
+                                        </tr>
+                                        <tr>
+                                            <td><p>Family Status</p></td>
+                                            <td><p>{family_status}</p></td>
+                                        </tr>
+                                        <tr>
+                                            <td><p>Brothers/Married</p></td>
+                                            <td><p>{no_of_brother}/{no_of_bro_married}</p></td>
                                         </tr>
                                     </table>
                                     
@@ -17874,7 +17980,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                                 <p>Nalikai </p>
                                             </td>
                                             <td>
-                                                <p><strong>{star_name}, {rasi_name}</strong></p>
+                                                <p style="font-size:12px"><strong>{star_name}, {rasi_name}</strong></p>
                                                 <p>{lagnam}/{didi}</p>
                                                 <p>{nalikai}</p>
                                             </td>
@@ -17908,16 +18014,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                     {charts_html}   
 
 
-                <div>
-                <table class="add-info"> 
-                    <tr>
-                        <td>
-                            <p><b>Horoscope Hints: </b>Parihara Chevvai based on Vakiya Panchangam.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                    <td>
-                    <table>
+               
                         <tr>
                             <td>
                                {address_content}
@@ -18083,9 +18180,10 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                     """
                 
                 mobile_email_content = f"""
-                        <p>Mobile: {login_details.Mobile_no or ''}</p>
-                        <p>WhatsApp: {login_details.Profile_whatsapp or ''}</p>
-                        <p>Email: {login_details.EmailId or ''}</p>
+                        <p>Mobile: {login_details.Mobile_no or 'N/A'}</p>
+                        <p>Alternate Mobile: {login_details.Profile_alternate_mobile or 'N/A'}</p>
+                        <p>WhatsApp: {login_details.Profile_whatsapp or 'N/A'}</p>
+                        <p>Email: {login_details.EmailId or 'N/A'}</p>
                 """
 
                 if contact_enable:
@@ -18147,7 +18245,8 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
 
                 # personal details
                 name = login_details.Profile_name  # Assuming a Profile_name field exists
-                dob = login_details.Profile_dob
+                date =  format_date_of_birth(login_details.Profile_dob)
+                dob = date
                 complexion = login_details.Profile_complexion
                 user_profile_id = login_details.ProfileId
                 height = login_details.Profile_height 
@@ -18197,10 +18296,10 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                     prof_id_int = int(profession_id)
                     if prof_id_int == 1:
                         occupation_title = 'Employment Details'
-                        occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                        occupation = f"{education_details.company_name or 'N/A'} / {education_details.designation or 'N/A'}"
                     elif prof_id_int == 2:
                         occupation_title = 'Business Details'
-                        occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                        occupation = f"{education_details.business_name or 'N/A'} / {education_details.nature_of_business or 'N/A'}"
                 except (ValueError, TypeError):
                     occupation_title = 'Other'
                     occupation = ''
@@ -18334,7 +18433,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 
                 horoscope_data = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
                 
-                
+                horo_hint = horoscope_data.horoscope_hints or "N/A"
                 if attached_horoscope_enable:
                     if horoscope_data.horoscope_file_admin:
                         horoscope_image_url = horoscope_data.horoscope_file_admin.url
@@ -18457,6 +18556,19 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                             </td>
                         </tr>
                     </table>
+                    
+                <div>
+                <table class="add-info"> 
+                    <tr>
+                        <td>
+                            <p><b>Horoscope Hints: </b>{horo_hint}</p>
+                       <hr class="divider">
+
+                        </td>
+                    </tr>
+                    <tr>
+                    <td>
+                    <table>
                     """
                 html_content = rf"""
                 <html>
@@ -18789,18 +18901,20 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                 <td class="border-right">
                                 <table class="inner-table">
                                     <tr>
-                                    <td>
-                                    <p><strong>Name </strong></p>
-                                    <p>DOB / POB </p>
-                                    <p>Complexion </p>
-                                    <p>Education </p>
-                                    </td>
-                                    <td>
-                                    <p><strong>{name}</strong></p>
-                                    <p>{dob} / {place_of_birth}</p>
-                                    <p> {complexion}</p>
-                                    <p>{final_education}</p>
-                                    </td>
+                                        <td><p><strong>Name</strong></p></td>
+                                        <td><p><strong>{name}</strong></p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>DOB / POB</p></td>
+                                        <td><p>{dob} / {place_of_birth}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Complexion</p></td>
+                                        <td><p>{complexion}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Education</p></td>
+                                        <td><p>{final_education}</p></td>
                                     </tr>
                                     </table>
                                     
@@ -18809,20 +18923,24 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                 <td>
                                 <table class="inner-table">
                                     <tr>
-                                        <td>
-                                            <p><strong>Vysyamala Id : </strong></p>
-                                            <p>Height / Photos </p>
-                                            <p>Annual Income</p>
-                                            <p>Profession/Place of stay</p>
-                                            <p>{occupation_title}</p>
-                                        </td> 
-                                        <td>
-                                            <p><strong>{user_profile_id}</strong></p>
-                                            <p> {height} / {image_status}</p>
-                                            <p>{annual_income}</p>
-                                            <p>{profession} / {work_place}</p>
-                                            <p>{occupation}</p>
-                                        </td> 
+                                        <td><p><strong>Vysyamala Id :</strong></p></td>
+                                        <td><p><strong>{user_profile_id}</strong></p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Height / Photos </p></td>
+                                        <td><p>{height} / {image_status}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Annual Income </p></td>
+                                        <td><p>{annual_income}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>Profession / Place of stay </p></td>
+                                        <td><p>{profession} / {work_place}</p></td>
+                                    </tr>
+                                    <tr>
+                                        <td><p>{occupation_title}</p></td>
+                                        <td><p>{occupation}</p></td>
                                     </tr>
                                 </table>
                                 </td>
@@ -18837,18 +18955,20 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                 <td  class="border-right">
                                     <table class="inner-table">
                                         <tr>
-                                            <td>
-                                                <p><strong>Father Name </strong> </p>
-                                                <p>Father Occupation </p>
-                                                <p>Family Status </p>
-                                                <p>Brothers/Married </p>
-                                            </td>
-                                            <td>
-                                                <p><strong>{father_name}</strong></p>
-                                                <p style="font-size:12px"> {father_occupation}</p>
-                                                <p>{family_status}</p>
-                                                <p>{no_of_brother}/{no_of_bro_married}</p>
-                                            </td>
+                                            <td><p><strong>Father Name</strong></p></td>
+                                            <td><p><strong>{father_name}</strong></p></td>
+                                        </tr>
+                                        <tr>
+                                            <td><p>Father Occupation</p></td>
+                                            <td><p>{father_occupation}</p></td>
+                                        </tr>
+                                        <tr>
+                                            <td><p>Family Status</p></td>
+                                            <td><p>{family_status}</p></td>
+                                        </tr>
+                                        <tr>
+                                            <td><p>Brothers/Married</p></td>
+                                            <td><p>{no_of_brother}/{no_of_bro_married}</p></td>
                                         </tr>
                                     </table>
                                     
@@ -18889,7 +19009,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                                 <p>Nalikai </p>
                                             </td>
                                             <td>
-                                                <p><strong>{star_name}/{rasi_name}</strong></p>
+                                                <p style="font-size:12px"><strong>{star_name}/{rasi_name}</strong></p>
                                                 <p>{lagnam}/{didi}</p>
                                                 <p>{nalikai}</p>
                                             </td>
@@ -18922,19 +19042,6 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                     
                  {charts_html}
 
-
-                <div>
-                <table class="add-info"> 
-                    <tr>
-                        <td>
-                            <p><b>Horoscope Hints: </b>Parihara Chevvai based on Vakiya Panchangam.</p>
-                       <hr class="divider">
-
-                        </td>
-                    </tr>
-                    <tr>
-                    <td>
-                    <table>
                         <tr>
                             <td>
                                {address_content}
