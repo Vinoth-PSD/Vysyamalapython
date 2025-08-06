@@ -230,8 +230,12 @@ DATABASES = {
 # RAZORPAY_KEY_ID = "rzp_test_bR07kHwjYrmOHm"
 # RAZORPAY_KEY_SECRET = "19D1bDjsZFN9Wh8xHHAqy5f0"
 
-RAZORPAY_KEY_ID = "rzp_live_uQLFO2SH0yNGCh"
-RAZORPAY_KEY_SECRET = "Nefg8B37WaHfPyjwMYt8xz90K"
+# RAZORPAY_KEY_ID = "rzp_live_uQLFO2SH0yNGCh"
+# RAZORPAY_KEY_SECRET = "Nefg8B37WaHfPyjwMYt8xz90K"
+
+RAZORPAY_KEY_ID = "rzp_live_HYCeDsho3jhHRt"
+RAZORPAY_KEY_SECRET = "115FgMLvHHVQHlnjtT38zhzk"
+ 
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
