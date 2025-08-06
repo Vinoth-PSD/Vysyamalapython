@@ -12481,7 +12481,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     
                 birth_time=format_time_am_pm(time_of_birth)
                 # Age calculation
-                age = calculate_age(dob) if dob else "N/A"
+                age = calculate_age(login_details.Profile_dob) if login_details.Profile_dob else "N/A"
                 # Planet mapping dictionary
                 # planet_mapping = {
                 #     "1": "Sun",
@@ -13646,7 +13646,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                         return time_str
                 birth_time=format_time_am_pm(time_of_birth)
                 # Age calculation
-                age = calculate_age(dob) or "N/A"
+                age = calculate_age(login_details.Profile_dob) or "N/A"
 
                 # Planet mapping dictionary
                 # planet_mapping = {
@@ -17366,7 +17366,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                         return time_str
 
                 birth_time=format_time_am_pm(time_of_birth)
-                age = calculate_age(dob)   or "N/A"
+                age = calculate_age(login_details.Profile_dob)   or "N/A"
 
 
                 planet_mapping = {
@@ -18367,7 +18367,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 didi = horoscope.didi or "N/A"
                 nalikai =  horoscope.nalikai  or "N/A"
 
-                age = calculate_age(dob)  or "N/A" 
+                age = calculate_age(login_details.Profile_dob) or "N/A" 
 
                 # Planet mapping dictionary
                 # planet_mapping = {
