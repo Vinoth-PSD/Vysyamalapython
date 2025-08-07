@@ -6211,7 +6211,7 @@ def render_pdf_view(request, user_profile_id, filename="Horoscope_withbirthchart
                                 <tr>
                                     <td>
                                         <div class="header-logo">
-                                            <img src="https://vysyamala.com/img/newlogo.png" alt="Vysyamala Logo">
+                                            <img src="https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png" alt="Vysyamala Logo">
                                         </div>
                                     </td>
 
@@ -9891,11 +9891,11 @@ class ForgetPassword(APIView):
             try:
                 if profile_id:
                     # Fetch user by profile_id to get the associated email
-                    user = models.Registration1.objects.get(ProfileId=profile_id,status=1)
+                    user = models.Registration1.objects.get(ProfileId=profile_id,Status=1)
                     email = user.EmailId  # Override email with the one from the user record
                 else:
                     # Fetch user by email
-                    user = models.Registration1.objects.get(EmailId=email,status=1)
+                    user = models.Registration1.objects.get(EmailId=email,Status=1)
 
                 otp = str(secrets.randbelow(1000000)).zfill(6)
                 logging.debug(f"Generated OTP: {otp}")
@@ -9910,7 +9910,7 @@ class ForgetPassword(APIView):
                 context = {
                     'profile_id': user.ProfileId,
                     'otp': otp,
-                    'logo_url': 'https://vysyamala.com/img/newlogo.png',
+                    'logo_url': 'https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png',
                 }
 
                 subject = "Your Password Reset OTP"
@@ -13256,7 +13256,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 <table class="porutham-header">
                     <tr>
                         <td>
-                            <img src="https://vysyamala.com/img/newlogo.png">
+                            <img src="https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png">
                         </td>
                         <td>
                             <p>www.vysyamala.com</p>
@@ -14403,7 +14403,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 <table class="porutham-header">
                     <tr>
                         <td>
-                            <img src="https://vysyamala.com/img/newlogo.png">
+                            <img src="https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png">
                         </td>
                         <td>
                             <p>www.vysyamala.com</p>
@@ -16245,7 +16245,7 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
             <table class="porutham-header">
                 <tr>
                     <td>
-                        <img src="https://vysyamala.com/img/newlogo.png">
+                        <img src="https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png">
                     </td>
                     <td>
                         <p>www.vysyamala.com</p>
@@ -18102,7 +18102,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 <table class="porutham-header">
                     <tr>
                         <td>
-                            <img src="https://vysyamala.com/img/newlogo.png">
+                            <img src="https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png">
                         </td>
                         <td>
                             <p>www.vysyamala.com</p>
@@ -19129,7 +19129,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 <table class="porutham-header">
                     <tr>
                         <td>
-                            <img src="https://vysyamala.com/img/newlogo.png">
+                            <img src="https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png">
                         </td>
                         <td>
                             <p>www.vysyamala.com</p>
