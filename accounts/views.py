@@ -78,8 +78,8 @@ from io import BytesIO
 import os
 import logging
 from collections import OrderedDict
-from authentication.views import fetch_porutham_details,get_dasa_name
-
+from authentication.views import fetch_porutham_details,get_dasa_name,dasa_format_date,format_date_of_birth
+from authentication.models import Get_profiledata as gpt
 # from authentication.models import ProfileVisibility
 # from authentication.serializers import ProfileVisibilityListSerializer
 
@@ -1991,7 +1991,7 @@ class SubmitProfileAPIView(APIView):
                 errors['partner_pref_details'] = partner_pref_serializer.errors
         
         if suggested_pref_serializer:
-            suggested_pref_serializer = ProfileSuggestedPrefSerializer(data=suggested_pref_serializer)
+            suggested_pref_serializer = ProfileSuggestedPrefSerializer(data=suggested_pref_data)
             if suggested_pref_serializer.is_valid():
                 suggested_pref_serializer.save()
             else:
@@ -2567,17 +2567,16 @@ class GetProfEditDetailsAPIView(APIView):
         # print('profile_common_details',response_data['profile_common_details'])
         
        
-        suggest_profile_details=Get_profiledata_Matching.get_suggest_match_count(gender,profile_id)
+        suggest_profile_details=Get_profiledata_Matching.get_unique_suggested_match_count(gender,profile_id)
+        print('suggest_profile_details:', suggest_profile_details)
         matching_profile_count = (
             Get_profiledata_Matching.get_profile_match_count(gender, profile_id)
             or 0
         ) 
 
-        if not isinstance(suggest_profile_details, list):  # Ensure it is a list
-            suggest_profile_details = []
 
-        suggest_profile_count = len(suggest_profile_details)  # This will not cause an error
-
+        suggest_profile_count = suggest_profile_details  # This will not cause an error
+        print('suggest_profile_count:', suggest_profile_count)
 
         mutual_condition = Q(status=2) & (Q(profile_from=profile_id) | Q(profile_to=profile_id))
         # personal_notes_condition={'status': 1,'profile_id':profile_id}
@@ -3648,7 +3647,13 @@ class Get_prof_list_match(APIView):
             result_profiles.append({
                 "profile_id": detail.get("ProfileId"),
                 "profile_name": detail.get("Profile_name"),
-                "profile_img": Get_profile_image(detail.get("ProfileId"), gender, 1, 0, is_admin=True),
+                "profile_img": Get_profile_image(
+                    detail.get("ProfileId"),
+                    gender="female" if gender.lower() == "male" else "male",
+                    no_of_image=1,
+                    photo_protection=0,
+                    is_admin=True
+                            ),
                 "profile_age": calculate_age(detail.get("Profile_dob")),
                 "profile_gender": detail.get("Gender"),
                 "height": detail.get("Profile_height"),
@@ -3732,8 +3737,18 @@ class Get_suggest_list_match(APIView):
             # print('params names567',gender,'  ',profile_id,'  ',start,'  ',per_page,'  ',search_profile_id,'  ',order_by,'  ',search_profession,'  ',search_age,'  ',search_location,'  ')
 
 
-            profile_details , total_count ,profile_with_indices = Get_profiledata_Matching.get_suggest_profile_list(gender,profile_id,start,per_page,search_profile_id,order_by,search_profession,search_age,search_location)
-
+            profile_details , total_count ,profile_with_indices = Get_profiledata_Matching.get_suggest_profile_list(
+                gender,
+                profile_id,start=0,
+                per_page=100000,  # Large enough to fetch all
+                search_profile_id=search_profile_id,
+                order_by=order_by,
+                search_profession=search_profession,
+                search_age=search_age,
+                search_location=search_location
+                )
+            print("total_count",total_count)
+            print('profile_details',len(profile_details))
             my_profile_id = [profile_id]   
 
             # print(my_profile_id,'my_profile_id')
@@ -3743,7 +3758,30 @@ class Get_suggest_list_match(APIView):
             my_gender=my_profile_details[0]['Gender']
             my_star_id=my_profile_details[0]['birthstar_name']
             my_rasi_id=my_profile_details[0]['birth_rasi_name']
+            
+            partner_results = gpt.get_profile_list_for_pref_type(
+                profile_id=profile_id,
+                use_suggested=False
+            )
+            print('partner_results',len(partner_results))
+            partner_ids = set(r['ProfileId'] for r in partner_results)
 
+           
+            suggested_ids = set(detail["ProfileId"] for detail in profile_details)
+            partner_ids = set(r["ProfileId"] for r in partner_results)
+            unique_ids = list(suggested_ids - partner_ids)
+            print('unique_ids',len(unique_ids))
+            # Recalculate total count and index mapping
+            # Step 3: Filter all suggested details
+            unique_profiles = [d for d in profile_details if d["ProfileId"] in unique_ids]
+            total_count = len(unique_profiles)
+            profile_with_indices = {
+                str(i + 1): d["ProfileId"]
+                for i, d in enumerate(unique_profiles)
+            }
+            # Step 4: Apply pagination AFTER subtraction
+            start = (page_number - 1) * per_page
+            paginated_profiles = unique_profiles[start:start + per_page]
             if profile_details:
             
 
@@ -3753,7 +3791,13 @@ class Get_suggest_list_match(APIView):
                             {
                                 "profile_id": detail.get("ProfileId"),
                                 "profile_name": detail.get("Profile_name"),
-                                "profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,0,is_admin=True),
+                                "profile_img": Get_profile_image(
+                                    detail.get("ProfileId"),
+                                    gender="female" if gender.lower() == "male" else "male",
+                                    no_of_image=1,
+                                    photo_protection=0,
+                                    is_admin=True
+                                ),
                                 "profile_age": calculate_age(detail.get("Profile_dob")),
                                 "profile_gender":detail.get("Gender"),
                                 "height": detail.get("Profile_height"),
@@ -3768,7 +3812,7 @@ class Get_suggest_list_match(APIView):
                                 "wish_list":Get_wishlist(profile_id,detail.get("ProfileId")),
                                 "verified":detail.get('Profile_verified'),
                             }
-                            for detail in profile_details
+                            for detail in paginated_profiles
                         ]
             
                 combined_data = {
@@ -7243,6 +7287,8 @@ class AdminProfilePDFView(APIView):
                 no_of_bro_married = family_detail.no_of_bro_married
                 suya_gothram = family_detail.suya_gothram
                 madulamn = family_detail.madulamn if family_detail.madulamn != None else "N/A" 
+                no_of_sister = family_detail.no_of_sister or 0
+                no_of_brother = family_detail.no_of_brother
         else:
             # Handle case where no family details are found
             father_name = father_occupation = family_status = ""
@@ -7263,7 +7309,11 @@ class AdminProfilePDFView(APIView):
 
         if  int(num_brothers_married) == 0:
             no_of_bro_married="No"
-    
+        if no_of_sister=="0" or no_of_sister =='':
+            no_of_sis_married="No"
+
+        if no_of_brother=="0" or no_of_brother =='':
+            no_of_bro_married="No"
         complexion_id = login.Profile_complexion
         complexion = "Unknown"
         if complexion_id:
@@ -7274,6 +7324,16 @@ class AdminProfilePDFView(APIView):
         highest_education = "Unknown"
         if highest_education_id:
             highest_education = models.EducationLevel.objects.filter(row_id=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
+        
+        field_ofstudy_id = education_details.field_ofstudy
+        fieldof_study=" "
+        if field_ofstudy_id:
+            fieldof_study = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id).values_list('field_of_study', flat=True).first() or "Unknown"
+        
+        about_edu=education_details.about_edu
+        
+        final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
+        
         annual_income = "Unknown"
         actual_income = str(education_details.actual_income).strip()
         annual_income_id = education_details.anual_income
@@ -7291,15 +7351,20 @@ class AdminProfilePDFView(APIView):
             profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
         work_place=education_details.work_city
-        ocupation_title=''
-        ocupation=''
+        occupation_title=''
+        occupation=''
 
-        if profession_id==1:
-                ocupation_title='Employment Details'
-                ocupation=education_details.company_name+'/'+education_details.designation
-        if profession_id==2:
-                ocupation_title='Business Details'
-                ocupation=education_details.business_name+'/'+education_details.nature_of_business
+        try:
+            prof_id_int = int(profession_id)
+            if prof_id_int == 1:
+                occupation_title = 'Employment Details'
+                occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+            elif prof_id_int == 2:
+                occupation_title = 'Business Details'
+                occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+        except (ValueError, TypeError):
+            occupation_title = 'Other'
+            occupation = ''
         
     
 
@@ -7347,8 +7412,8 @@ class AdminProfilePDFView(APIView):
     <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
   </div> """
                 # Get matching stars data
-        birthstar= safe_get_value(models.BirthStar, horoscope_data.birthstar_name, "star")
-        birth_rasi = safe_get_value(models.Rasi, horoscope_data.birth_rasi_name, "name")
+        birthstar = safe_get_value(models.BirthStar, 'id', horoscope_data.birthstar_name, 'star')
+        birth_rasi = safe_get_value(models.Rasi, 'id', horoscope_data.birth_rasi_name, 'name')
 
         complexion_id = login.Profile_complexion
         complexion = safe_get_value(models.Complexion, 'complexion_id', complexion_id, 'complexion_desc')
@@ -7366,7 +7431,7 @@ class AdminProfilePDFView(APIView):
         nalikai = horoscope_data.nalikai or "Not specified"
         lagnam="Unknown"
         try:
-            if horoscope_data.lagnam_didi and str(horoscope_data.lagnam_didi).isdigit():
+            if horoscope_data.lagnam_didi and str(horoscope_data.lagnam_didi).isdigit() and int(horoscope_data.lagnam_didi) > 0:
                 lagnam = models.Rasi.objects.filter(pk=int(horoscope_data.lagnam_didi)).first()
                 lagnam= lagnam.name
         except models.Rasi.DoesNotExist:
@@ -7377,9 +7442,13 @@ class AdminProfilePDFView(APIView):
                 return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
             except ValueError:
                 return time_str
-            
+
+        dob = login.Profile_dob
+        age = calculate_age(dob) if dob else "N/A"
+
         birth_time=format_time_am_pm(horoscope_data.time_of_birth)
         image_status = models.Image_Upload.get_image_status(profile_id=profile_id)
+        horo_hint = horoscope_data.horoscope_hints or "N/A"
         # Prepare the Porutham sections for the PDF
         def format_star_names(poruthams):
             return ', '.join([item['matching_starname'] for item in poruthams])
@@ -7414,34 +7483,37 @@ class AdminProfilePDFView(APIView):
         rasi_kattam_data.extend([default_placeholder] * (12 - len(rasi_kattam_data)))
         amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))   
         dasa_day = dasa_month = dasa_year = 0
-
-        # Try to split if format is correct
-        dasa_date_str=horoscope_data.dasa_balance
-        if dasa_date_str.count('/') == 2:
-            parts = dasa_date_str.split('/')
-            if all(part.isdigit() for part in parts):   
-                dasa_day, dasa_month, dasa_year = map(int, parts)      
+        dasa_balance_str=dasa_format_date(horoscope_data.dasa_balance)
+        match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+        if match:
+            dasa_year, dasa_month, dasa_day = match.groups()  
+            
+        date =  format_date_of_birth(login.Profile_dob)
         context_data = {
             "profile_id": login.ProfileId,
             "name": login.Profile_name,
             "height":login.Profile_height,
             "image_status":image_status,
-            "dob": login.Profile_dob,
+            "dob": date,
+            "age":age,
             "didi":didi,
             "nalikai":nalikai,
             "father_name": father_name if father_name not in [None, ""] else "N/A" ,
             "suya_gothram":suya_gothram if suya_gothram not in [None, ""] else "N/A",
             "madulamn":madulamn if madulamn not in [None, ""] else "N/A",
             "work_place":work_place if work_place not in [None, ""] else "N/A",
-            "highest_education":highest_education if highest_education not in [None, ""] else "N/A",
+            "highest_education":final_education if final_education not in [None, ""] else "N/A",
             "annual_income":annual_income if annual_income not in [None, ""] else "N/A",
             "father_occupation":father_occupation if father_occupation not in [None, ""] else "N/A",
             "family_status":family_status if family_status not in [None, ""] else "N/A",
             "no_of_brother_married":no_of_bro_married if no_of_bro_married not in [None, ""] else "N/A",
+            "no_of_sister": no_of_sister if no_of_sister not in [None, ""] else "0",
+            "no_of_brother": no_of_brother if no_of_brother not in [None, ""] else "0 ",
             "mother_name":mother_name if mother_name not in [None, ""] else "N/A",
             "mother_occupation":mother_occupation if mother_occupation not in [None, ""] else "N/A",
             "no_of_sister_married":no_of_sis_married if no_of_sis_married not in [None, ""] else "N/A",
             "contact": login.Mobile_no if login.Mobile_no not in [None, ""] else "N/A",
+            "alternate_number":login.Profile_alternate_mobile if login.Profile_alternate_mobile not in [None, ""] else "N/A",
             "whatsapp": login.Profile_whatsapp,
             "email":login.EmailId,
             "complexion": complexion if complexion not in [None, ""] else "N/A",
@@ -7454,12 +7526,13 @@ class AdminProfilePDFView(APIView):
             "dasa_month":dasa_month,
             "dasa_day":dasa_day,
             "dasa_name":get_dasa_name(horoscope_data.dasa_name),
-            "occupation":ocupation,
+            "occupation":occupation,
             "birth_start":birth_time,
-            "occupation_title":ocupation_title,
+            "occupation_title":occupation_title,
             "profession":profession,
             "horoscope_content": horoscope_content,
             "horoscope_content_admin":horoscope_content_admin,
+            "horo_hint":horo_hint,
             "rasi_kattam_data": rasi_kattam_data,
             "amsa_kattam_data": amsa_kattam_data,
             "mobile_content":mobile_email_content,
@@ -7529,6 +7602,8 @@ class AdminMatchProfilePDFView(APIView):
                         no_of_bro_married = family_detail.no_of_bro_married
                         suya_gothram = family_detail.suya_gothram
                         madulamn = family_detail.madulamn if family_detail.madulamn != None else "N/A" 
+                        no_of_sister = family_detail.no_of_sister
+                        no_of_brother = family_detail.no_of_brother
                 else:
                     # Handle case where no family details are found
                     father_name = father_occupation = family_status = ""
@@ -7549,7 +7624,11 @@ class AdminMatchProfilePDFView(APIView):
 
                 if  int(num_brothers_married) == 0:
                     no_of_bro_married="No"
-            
+                if no_of_sister=="0" or no_of_sister =='':
+                    no_of_sis_married="No"
+
+                if no_of_brother=="0" or no_of_brother =='':
+                    no_of_bro_married="No"
                 complexion_id = login.Profile_complexion
                 complexion = "Unknown"
                 if complexion_id:
@@ -7560,6 +7639,16 @@ class AdminMatchProfilePDFView(APIView):
                 highest_education = "Unknown"
                 if highest_education_id:
                     highest_education = models.EducationLevel.objects.filter(row_id=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
+                
+                field_ofstudy_id = education_details.field_ofstudy
+                fieldof_study=" "
+                if field_ofstudy_id:
+                    fieldof_study = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id).values_list('field_of_study', flat=True).first() or "Unknown"
+                
+                about_edu=education_details.about_edu
+                
+                final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
+                
                 annual_income = "Unknown"
                 actual_income = str(education_details.actual_income).strip()
                 annual_income_id = education_details.anual_income
@@ -7577,17 +7666,20 @@ class AdminMatchProfilePDFView(APIView):
                     profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
                 work_place=education_details.work_city
-                ocupation_title=''
-                ocupation=''
+                occupation_title=''
+                occupation=''
 
-                if profession_id==1:
-                        ocupation_title='Employment Details'
-                        ocupation=education_details.company_name+'/'+education_details.designation
-                if profession_id==2:
-                        ocupation_title='Business Details'
-                        ocupation=education_details.business_name+'/'+education_details.nature_of_business
-                
-            
+                try:
+                    prof_id_int = int(profession_id)
+                    if prof_id_int == 1:
+                        occupation_title = 'Employment Details'
+                        occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                    elif prof_id_int == 2:
+                        occupation_title = 'Business Details'
+                        occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                except (ValueError, TypeError):
+                    occupation_title = 'Other'
+                    occupation = ''
 
                 #father_occupation_id = family_detail.father_occupation
                 father_occupation = family_detail.father_occupation or "N/A"
@@ -7653,7 +7745,7 @@ class AdminMatchProfilePDFView(APIView):
                         return time_str
                     
                 birth_time=format_time_am_pm(horoscope_data.time_of_birth)
-
+                horo_hint = horoscope_data.horoscope_hints or "N/A"
                 # Define the HTML content with custom styles
                 porutham_rows = ""
                 for idx, porutham in enumerate(porutham_data['porutham_results']):
@@ -7661,9 +7753,9 @@ class AdminMatchProfilePDFView(APIView):
                     if idx == 0:
                         extra_td = (
                             f"<td rowspan='{len(porutham_data['porutham_results'])}'>"
-                            f"<p class='matching-score' style='font-size:40px;'>{porutham_data['matching_score']}</p>"
-                            f"<p style='font-weight:300;'>Please check with your astrologer for detailed compatibility.</p>"
-                            f"<p>Jai Vasavi</p>"
+                            f"<p class='matching-score'>{porutham_data['matching_score']}</p>"
+                            f"<p style='font-weight:500; font-size:13px;'>Please check with your astrologer for detailed compatibility.</p>"
+                            f"<p style='margin-top:10px;'>Jai Vasavi</p>"
                             f"</td>"
                         )
                     porutham_rows += (
@@ -7671,8 +7763,7 @@ class AdminMatchProfilePDFView(APIView):
                         f"<td>{porutham['porutham_name']}</td>"
                         f"<td><span style='color: {'green' if porutham['status'].startswith('YES') else 'red'};'>{porutham['status']}</span></td>"
                         f"{extra_td}"
-                        f"</tr>"
-                    )
+                        f"</tr>")
 
                 def format_star_names(poruthams):
                     if not poruthams:
@@ -7707,27 +7798,29 @@ class AdminMatchProfilePDFView(APIView):
                     rasi_name = "Unknown"
                 lagnam="Unknown"
                 try:
-                    if horoscope_data.lagnam_didi and str(horoscope_data.lagnam_didi).isdigit():
+                    if horoscope_data.lagnam_didi and str(horoscope_data.lagnam_didi).isdigit() and int(horoscope_data.lagnam_didi) > 0:
                         lagnam = models.Rasi.objects.filter(pk=int(horoscope_data.lagnam_didi)).first()
-                        lagnam= lagnam.name
+                        lagnam= lagnam.name or "N/A"
                 except models.Rasi.DoesNotExist:
                     lagnam = "Unknown"
-                
+                    
+                dob = login.Profile_dob
+                age = calculate_age(dob) if dob else "N/A"
                 image_status = models.Image_Upload.get_image_status(profile_id=profile_id)
                 rasi_kattam_data.extend([default_placeholder] * (12 - len(rasi_kattam_data)))
                 amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))
                 dasa_day, dasa_month, dasa_year = 0, 0, 0
-                print(login.EmailId)
-                dasa_date_str = horoscope_data.dasa_balance or ''
-                if dasa_date_str.count('/') == 2:
-                    parts = dasa_date_str.split('/')
-                    if all(part.isdigit() for part in parts):   
-                        dasa_day, dasa_month, dasa_year = map(int, parts)
+                dasa_balance_str=dasa_format_date(horoscope_data.dasa_balance)
+                match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+                if match:
+                    dasa_year, dasa_month, dasa_day = match.groups()
                 # print("porutham",porutham_data)
+                date =  format_date_of_birth(login.Profile_dob)
                 context_data = {
                     "profile_id": login.ProfileId,
                     "name": login.Profile_name,
-                    "dob": login.Profile_dob,
+                    "dob": date,
+                    "age":age,
                     "image_status":image_status,
                     "height":login.Profile_height,
                     "didi":didi,
@@ -7736,16 +7829,21 @@ class AdminMatchProfilePDFView(APIView):
                     "suya_gothram":suya_gothram if suya_gothram not in [None, ""] else "N/A",
                     "madulamn":madulamn if madulamn not in [None, ""] else "N/A",
                     "work_place":work_place if work_place not in [None, ""] else "N/A",
-                    "highest_education":highest_education if highest_education not in [None, ""] else "N/A",
+                    "occupation_title":occupation_title,
+                    "occupation":occupation,
+                    "highest_education":final_education if final_education not in [None, ""] else "N/A",
                     "annual_income":annual_income if annual_income not in [None, ""] else "N/A",
                     "father_occupation":father_occupation if father_occupation not in [None, ""] else "N/A",
                     "family_status":family_status if family_status not in [None, ""] else "N/A",
                     "no_of_brother_married":no_of_bro_married if no_of_bro_married not in [None, ""] else "N/A",
+                    "no_of_brother":no_of_brother if no_of_brother not in [None, ""] else "0",
                     "mother_name":mother_name if mother_name not in [None, ""] else "N/A",
                     "mother_occupation":mother_occupation if mother_occupation not in [None, ""] else "N/A",
                     "no_of_sister_married":no_of_sis_married if no_of_sis_married not in [None, ""] else "N/A",
+                    "no_of_sister":no_of_sister if no_of_sister not in [None, ""] else "0",
                     "contact": login.Mobile_no if login.Mobile_no not in [None, ""] else "N/A",
                     "whatsapp": login.Profile_whatsapp,
+                    "alternate_number":login.Profile_alternate_mobile if login.Profile_alternate_mobile not in [None, ""] else "N/A",
                     "email":login.EmailId,
                     "complexion": complexion if complexion not in [None, ""] else "N/A",
                     "birth_star": birthstar if birthstar not in [None, ""] else "N/A",
@@ -7757,12 +7855,11 @@ class AdminMatchProfilePDFView(APIView):
                     "dasa_month":dasa_month,
                     "dasa_day":dasa_day,
                     "dasa_name":get_dasa_name(horoscope_data.dasa_name),
-                    "occupation":ocupation,
                     "birth_start":birth_time,
-                    "occupation_title":ocupation_title,
                     "profession":profession,
                     "horoscope_content": horoscope_content,
                     "horoscope_content_admin":horoscope_content_admin,
+                    "horo_hint":horo_hint,
                     "rasi_kattam_data": rasi_kattam_data,
                     "amsa_kattam_data": amsa_kattam_data,
                     "porutham_stars": OrderedDict([

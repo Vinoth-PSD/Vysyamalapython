@@ -323,6 +323,8 @@ class ProfileFamilyDetailsSerializer(serializers.ModelSerializer):
     uncle_gothram = serializers.CharField(required=False , allow_null=True)
     suya_gothram_admin = serializers.CharField(required=False , allow_null=True)
     uncle_gothram_admin = serializers.CharField(required=False , allow_null=True)
+    father_alive = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    mother_alive = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     class Meta:
         model = ProfileFamilyDetails
         fields = '__all__'
