@@ -9438,8 +9438,8 @@ class CreateOrderView(APIView):
                     status=400
                 )
 
-            # amount = int(data.get("amount")) * 100  # Convert to paise
-            amount = 1*100
+            amount = int(data.get("amount")) * 100  # Convert to paise
+            # amount = 1*100
             currency = "INR"
             profile_id=data.get("profile_id")
             plan_id=data.get("plan_id", "")
