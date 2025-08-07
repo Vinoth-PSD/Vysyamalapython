@@ -1269,8 +1269,8 @@ class ImageUploadView(APIView):
         file_name = default_storage.save(save_path, ContentFile(file.read()))
         file_url = default_storage.url(file_name)
 
-        base_url = 'http://103.214.132.20:8000'  
-        file_url = base_url + file_url
+        #base_url = 'http://103.214.132.20:8000'  
+        file_url = file_url
 
         return Response({"uploaded": True, "url": file_url}, status=status.HTTP_200_OK)
     
