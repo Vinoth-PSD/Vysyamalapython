@@ -52,15 +52,17 @@ class Basic_Registration(models.Model):
 def upload_to_profile_basic(instance, filename):
     # return os.path.join('profile_{0}'.format(instance.ProfileId), filename)
     return f"profile_idproof/IDProof/{filename}"
-
+ 
 def upload_to_profile_horoscope(instance, filename):
     # return os.path.join('profile_{0}'.format(instance.ProfileId), filename)
     return f"profile_horoscope_original/HoroscopeOriginal/{filename}"
+ 
 
+ 
 def upload_to_profile_divorce(instance, filename):
     # return os.path.join('profile_{0}'.format(instance.ProfileId), filename)
     return f"profile_divorce/{filename}"
-
+ 
 def upload_to_profile(instance, filename):
     # return os.path.join('profile_{0}'.format(instance.profile_id), filename)
     return f"profile_images/{filename}"
@@ -837,7 +839,9 @@ class Familydetails(models.Model):
     body_type = models.CharField(max_length=100, null=True)
     no_of_children = models.IntegerField(max_length=10 , null=True)
     madulamn = models.CharField(max_length=10 ,null=True,blank=True)
-
+    father_alive = models.CharField(max_length=10 ,null=True,blank=True)
+    mother_alive = models.CharField(max_length=10 ,null=True,blank=True)
+    
     class Meta:
         managed = False  # This tells Django not to handle database table creation/migration for this model
         db_table = 'profile_familydetails'  # Name of the table in your database
@@ -1286,15 +1290,12 @@ class Get_profiledata(models.Model):
                     # if order_by:
                     #     orderby_cond = "ORDER BY a.DateOfJoin " + order_by
                     # print('order_by',order_by)
-                    
-                    
-                    view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END"
-                    # plan_priority_order = "FIELD(a.Plan_id, 3, 2,15, 14, 1, 11,12,13,6,7,8)"
-
-                    plan_priority = "FIELD(a.Plan_id, 3,2,15,14,1,11,12,13,6,7,8)"
-
-                    photo_priority = "CASE WHEN i.image IS NOT NULL AND i.image != '' THEN 0 ELSE 1 END"
-                    
+                        
+                        
+                    view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END "
+                    plan_priority = "FIELD(a.Plan_id, '3','17','2','15','1','14','11','12','13','6','7','8','9') "
+                    photo_priority = "CASE WHEN i.image IS NOT NULL AND i.image != '' THEN 0 ELSE 1 END "
+                   # print('plan_priority',plan_priority)         
                     try:
                         order_by = int(order_by)  # Convert order_by to integer
                     except (ValueError, TypeError):
@@ -1375,8 +1376,26 @@ class Get_profiledata(models.Model):
                     
                     # print('formatted_query')
 
-                    print('formatted_query',formatted_query)
+                    # print('formatted_query',formatted_query)
+                    def format_sql_for_debug(query, params):
+                        def escape(value):
+                            if isinstance(value, str):
+                                return f"'{value}'"
+                            elif value is None:
+                                return 'NULL'
+                            else:
+                                return str(value)
+                        try:
+                            return query % tuple(map(escape, params))
+                        except Exception as e:
+                            print("Error formatting query:", e)
+                            return query
 
+                    # Usage:
+                    final_query = format_sql_for_debug(query, query_params)
+                    print("MySQL Executable Query:")
+                    print(final_query)
+                    
                     cleaned_query1 = formatted_query.replace('\n', ' ').replace('  ', ' ').strip()
 
                     with connection.cursor() as cursor:
@@ -1689,9 +1708,29 @@ class Get_profiledata(models.Model):
                 query += " AND a.Profile_height <= %s"
                 query_params.append(partner_pref_height_to)
 
-            # Sorting logic
-            orderby_cond = " ORDER BY a.DateOfJoin DESC"
-            query += orderby_cond
+            # view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END "
+            # plan_priority = "FIELD(a.Plan_id, '3','17','2','15','1','14','11','12','13','6','7','8','9') "
+            # photo_priority = "CASE WHEN i.image IS NOT NULL AND i.image != '' THEN 0 ELSE 1 END "
+
+            # # Sorting logic
+            # orderby_cond = f" ORDER BY {plan_priority}, {photo_priority}, {view_priority}, a.DateOfJoin DESC"
+            # query += orderby_cond
+
+            def format_sql_for_debug(query, params):
+                def escape(value):
+                    if isinstance(value, str):
+                        return f"'{value}'"
+                    elif value is None:
+                        return 'NULL'
+                    else:
+                        return str(value)
+                try:
+                    return query % tuple(map(escape, params))
+                except Exception as e:
+                    print("Error formatting query:", e)
+                    return query
+                
+            print("MySQL Executable Query:", format_sql_for_debug(query, query_params))
 
             with connection.cursor() as cursor:
                 # cursor.execute(query.format(operator=age_condition_operator), query_params)
@@ -1751,7 +1790,7 @@ class Get_profiledata(models.Model):
                 dict(zip(columns, row))
                 for row in rows
             ]
-        print("Query result:", result)
+        # print("Query result:", result)
         return result
 
 

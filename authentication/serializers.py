@@ -696,11 +696,12 @@ class FamilydetaiSerializer(serializers.ModelSerializer):
     family_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     mother_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     no_of_children = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-
+    father_alive = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    mother_alive = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = models.Familydetails
-        fields = ('profile_id','father_name', 'father_occupation', 'mother_name','mother_occupation','family_name','about_self','hobbies','blood_group','Pysically_changed','no_of_brother','no_of_sister','no_of_bro_married','no_of_sis_married','family_type','family_value','family_status','property_details','property_worth','suya_gothram','uncle_gothram','ancestor_origin','about_family','weight','eye_wear','body_type','no_of_children','madulamn')
+        fields = ('profile_id','father_name', 'father_occupation', 'mother_name','mother_occupation','family_name','about_self','hobbies','blood_group','Pysically_changed','no_of_brother','no_of_sister','no_of_bro_married','no_of_sis_married','family_type','family_value','family_status','property_details','property_worth','suya_gothram','uncle_gothram','ancestor_origin','about_family','weight','eye_wear','body_type','no_of_children','madulamn','father_alive','mother_alive')
                
 class EdudetailSerializer(serializers.ModelSerializer):
 
@@ -1287,9 +1288,11 @@ class PersonalFamilydetailsSerializer(serializers.ModelSerializer):
     about_self = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     Pysically_changed = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     uncle_gothram = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    father_alive = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    mother_alive = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     class Meta:
         model = models.Familydetails
-        fields = ['blood_group', 'about_self', 'hobbies', 'Pysically_changed','weight','eye_wear','body_type','suya_gothram','uncle_gothram']
+        fields = ['blood_group', 'about_self', 'hobbies', 'Pysically_changed','weight','eye_wear','body_type','suya_gothram','uncle_gothram', 'father_alive', 'mother_alive']
 
 
 class PersHoroscopeSerializer(serializers.ModelSerializer):
@@ -1317,9 +1320,11 @@ class PersonalFamilySerializer(serializers.ModelSerializer):
     family_type = serializers.CharField(required=False, allow_blank=True , allow_null=True)
     family_value = serializers.CharField(required=False, allow_blank=True , allow_null=True)
     no_of_children = serializers.CharField(required=False, allow_blank=True , allow_null=True)
+    father_alive = serializers.CharField(required=False, allow_blank=True , allow_null=True)
+    mother_alive = serializers.CharField(required=False, allow_blank=True , allow_null=True)
     class Meta:
         model = models.Familydetails
-        fields = ['father_name','father_occupation','mother_name','mother_occupation','family_status','no_of_sister','no_of_sis_married','no_of_brother','no_of_bro_married','property_details','property_worth','about_family','ancestor_origin','uncle_gothram','family_type','family_value','no_of_children']
+        fields = ['father_name','father_occupation','mother_name','mother_occupation','family_status','no_of_sister','no_of_sis_married','no_of_brother','no_of_bro_married','property_details','property_worth','about_family','ancestor_origin','uncle_gothram','family_type','family_value','no_of_children','father_alive','mother_alive']
 
 class FamilyStatusSerializer(serializers.ModelSerializer):
     class Meta:
@@ -1567,7 +1572,7 @@ class ProfileImagesSerializer(serializers.Serializer):
     images = serializers.SerializerMethodField()
     Video_url = serializers.SerializerMethodField()
     Photo_protection = serializers.SerializerMethodField()
-
+    
     base_url =settings.MEDIA_URL
 
     class Meta:
@@ -1601,14 +1606,14 @@ class ProfileImagesSerializer(serializers.Serializer):
             return f"{login_details.Profile_divorceproof.url}" if login_details.Profile_divorceproof else None
         except models.LoginDetails.DoesNotExist:
             return None
-
+    
     def get_Photo_protection(self, obj):
         try:
             profile_details = models.Registration1.objects.get(ProfileId=obj)
             return f"{profile_details.Photo_protection}"
         except models.Registration1.DoesNotExist:
             return None
-
+    
     def get_Video_url(self, obj):
         try:
             profile_details = models.Registration1.objects.get(ProfileId=obj)

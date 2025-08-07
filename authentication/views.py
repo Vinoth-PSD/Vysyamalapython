@@ -204,7 +204,7 @@ class LoginView(APIView):
                     profile_image = profile_icon
                 #default image icon
                 else:
-                    
+
                     profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
                     profile_image = settings.MEDIA_URL+profile_icon
                     
@@ -240,7 +240,6 @@ class LoginView(APIView):
                 elif not partner_details_exists:
                     profile_completion=5            #Partner details not exists   
 
-                    
                 return JsonResponse({'status': 1,'token':token.key ,'profile_id':username ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till}, status=200)
 
             else:
@@ -4657,9 +4656,13 @@ class Get_profile_det_match(APIView):
                 #             Profile_father_ocup = None
                 
                 try:
-                            Profile_family_status = models.Familystatus.objects.get(id=profile_details[0]['family_status']).status
+                    family_status_id = profile_details[0].get('family_status')
+                    if family_status_id and str(family_status_id).isdigit():
+                        Profile_family_status = models.Familystatus.objects.get(id=family_status_id).status
+                    else:
+                        Profile_family_status = None
                 except models.Familystatus.DoesNotExist:
-                            Profile_family_status = None
+                    Profile_family_status = None
 
 
                 #Profile_status_active = profile_details[0]['Profile_verified']
@@ -4937,6 +4940,8 @@ class Get_profile_det_match(APIView):
                             "no_of_sis_married": profile_details[0]['no_of_sis_married'],
                             "no_of_bro_married": profile_details[0]['no_of_bro_married'],
                             "property_details": profile_details[0]['property_details'],
+                            "father_alive": profile_details[0]['father_alive'],
+                            "mother_alive": profile_details[0]['mother_alive'],
                         },
                         "horoscope_details": {
                             "rasi": profile_rasi_name,
@@ -7319,6 +7324,8 @@ class GetMyProfileFamily(APIView):
                 "personal_family_type":serializer.data.get("family_type"),
                 "personal_uncle_gothram":serializer.data.get("uncle_gothram"),
                 "personal_no_of_children":serializer.data.get("no_of_children"),
+                "father_alive": serializer.data.get("father_alive"),
+                "mother_alive": serializer.data.get("mother_alive"),
             }
 
             response = {
@@ -8828,7 +8835,7 @@ class GetFeaturedList(APIView):
         # STEP 1: Get Matching (Partner Preference) IDs
         partner_results = models.Get_profiledata.get_profile_list_for_pref_type(profile_id=profile_id, use_suggested=False)
         partner_ids = set(str(p['ProfileId']) for p in partner_results)
-
+        
         # STEP 2: Get All Featured IDs with Filters
         query = """
             SELECT ProfileId FROM logindetails
@@ -12516,7 +12523,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     rasi_name = "N/A"
                 lagnam="N/A"
                 try:
-                    if horoscope.lagnam_didi and str(horoscope.lagnam_didi).isdigit():
+                    if horoscope.lagnam_didi and str(horoscope.lagnam_didi).isdigit() and int(horoscope.lagnam_didi) > 0:
                         lagnam = models.Rasi.objects.filter(pk=int(horoscope.lagnam_didi)).first()
                         lagnam= lagnam.name
                 except models.Rasi.DoesNotExist:
@@ -18410,7 +18417,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 birth_time=format_time_am_pm(time_of_birth)
                 
                 try:
-                    if horoscope.lagnam_didi:
+                    if horoscope.lagnam_didi and str(horoscope.lagnam_didi).isdigit() and int(horoscope.lagnam_didi) > 0:
                         lagnam = models.Rasi.objects.get(pk=horoscope.lagnam_didi)
                         lagnam = lagnam.name 
                     else:
