@@ -10359,7 +10359,7 @@ class FeaturedProfile(APIView):
                 SELECT ProfileId, Profile_name, Gender, Profile_dob, Profile_height,
                        Profile_city, Photo_protection
                 FROM logindetails
-                LEFT JOIN (
+                INNER JOIN (
                         SELECT *
                         FROM (
                             SELECT *,
