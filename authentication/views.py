@@ -10410,10 +10410,17 @@ class FeaturedProfile(APIView):
             restricted_profile_details = []
             for profile in profile_details:
                 profile_id = profile['ProfileId']
+
+                profile_img = Get_profile_image(profile_id, photo_gender, 1, profile['Photo_protection'])
+                # Skip if image is 'not found'
+                if profile_img == "not_found_image_url" or profile_img.endswith("not-found.jpg"):  # Adjust the condition as needed
+                    continue
+
+
                 restricted_profile_details.append({
                     "profile_id": profile_id,
                     "profile_name": profile['Profile_name'],
-                    "profile_img": Get_profile_image(profile_id, photo_gender, 1, profile['Photo_protection']),
+                    "profile_img":profile_img,
                     "profile_age": calculate_age(profile['Profile_dob']),
                     "profile_gender": profile['Gender'],
                     "height": profile['Profile_height'],
@@ -11150,7 +11157,12 @@ class Searchbeforelogin(APIView):
                         columns = [col[0] for col in cursor.description]
                         results = [dict(zip(columns, row)) for row in rows]
 
-                        transformed_results = [transform_data2(result, gender) for result in results]
+                        if gender == 'male':
+                            opposite_gender = 'female'
+                        else:
+                            opposite_gender = 'male'
+                        
+                        transformed_results = [transform_data2(result, opposite_gender) for result in results]
 
                         return JsonResponse({
                             'status': 'success',
