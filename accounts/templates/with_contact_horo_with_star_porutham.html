@@ -1,8 +1,24 @@
 {% include 'pdf_templates/header.html' %}
   {% include 'pdf_templates/with_contact.html' %}
+  {% include 'pdf_templates/address.html' %}
+   <div style="page-break-before: always;"></div>
+  <br/>
+  <br/>
+  <br/>
+  <br/>
   {% include 'pdf_templates/horoscope_without_contact.html' %}
+  <div style="page-break-before: always;"></div>
   {% include 'pdf_templates/matching_star_list.html' %}
-  {% comment %} {% include 'pdf_templates/matching_star_list.html' %} {% endcomment %}
+  <br/>
+  <br/>
+  <br/>
+  <br/>
+  <br/>
+  <br/>
+  <br/>
+  {% include 'pdf_templates/compatability.html' %}
+  <div style="page-break-before: always;"></div>
+   {% include 'pdf_templates/horoscope_file.html' %}
   <!-- Footer -->
 <style>
   @page{
@@ -13,9 +29,6 @@
     margin-top: 2rem;
   }
 </style>
-  <div class="upload-horo-bg mt">
-    <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
-  </div>
   
 </body>
 </html>

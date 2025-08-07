@@ -1,58 +1,86 @@
-{% include 'pdf_templates/header.html' %}
-    <!-- <div class="section">
-        <h2>Profile Summary</h2>
-        <p><strong>Profile ID:</strong> {{ profile_id }}</p>
-        <p><strong>Name:</strong> {{ name }}</p>
-        <p><strong>Date of Birth:</strong> {{ dob }}</p>
-        <p><strong>Father's Name:</strong> {{ father_name }}</p>
-        <p><strong>Complexion:</strong> {{ complexion }}</p>
-    </div> -->
-    <table class="table-div">
-                            <tr>
-                                <td class="border-right">
-                                <table class="inner-table">
-                                    <tr>
-                                    <td>
-                                    <p><strong>Profile ID: </strong></p>
-                                    <p>Name:</p>
-                                    <p>DOB / POB </p>
-                                    </td>
-                                    <td>
-                                    <p><strong>{{ profile_id|default:"N/A" }}</strong></p>
-                                    <p>{{ name|default:"N/A" }}</p>
-                                    <p>{{ dob|default:"N/A" }}</p>
-                                    
-                                    </td>
-                                    </tr>
-                                    </table>
-                                    
-                                </td>
-                                
-                                <td>
-                                <table class="inner-table">
-                                    <tr>
-                                        <td>
-                                            <p><strong>Father's Name: </strong></p>
-                                            <p>Complexion: </p>
-                                            
-                                            
-                                        </td> 
-                                        <td>
-                                            <p><strong>{{ father_name|default:"N/A" }}</strong></p>
-                                            <p> {{ complexion|default:"N/A" }}</p>
-                                           
-                                        </td> 
-                                    </tr>
-                                </table>
-                                </td>
-                            </tr>
-                        </table>
-   
-        {% include 'pdf_templates/matching_star_list.html'%}
+       
+<style>
+  .porutham-star tr td p {
+    text-align: left !important;
+  }
+.porutham-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 15px;
+    background-color: #fff9c7;
+    font-size: 14px;
+}
 
+.porutham-table th {
+    background-color: #008000;
+    color: #ffffff;
+    font-size: 14px;
+    padding: 12px 10px;
+    text-align: center;
+    border: 1px solid #bcbcbc;
+}
 
-        <p class="note">Note: This is a system-generated list. Please consult with your astrologer before making decisions.</p>
-    
+.porutham-table td {
+    padding: 10px;
+    text-align: center;
+    font-weight: 500;
+    border: 1px solid #bcbcbc;
+}
+
+.porutham-table tr:nth-child(even) {
+    background-color: #fef5b3;
+}
+
+.matching-score {
+    font-size: 36px;
+    font-weight: bold;
+    color: #008000;
+    margin-bottom: 10px;
+}
+
+.porutham-table td span {
+    font-size: 14px;
+    font-weight: 600;
+}
+</style>
+<table class="header">
+        <tr>
+            <td class="header-left">
+                <div class="header-logo">
+                    <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png"
+                        alt="Vysyamala Logo">
+                </div>
+            </td>
+        </tr>
+    </table>
+
+<div class=" porutham-match">
+    <table class="porutham-page">
+                <h2 class="porutham-table-title" style="color:#008000; font-size:18px">Matching Stars Report</h2>
+                <table class="porutham-table">
+                     <tr>
+                        <td><p style="color:#008000;">Name</p></td>
+                        <td><p style="color:#008000;">{{name}}</p></td>
+                        <td><p style="color:#008000;">Vysyamala ID</p></td>
+                        <td><p style="color:#008000;">{{profile_id}}</p></td>
+                    </tr>
+                    <tr>
+                        <td><p style="color:#008000;">Birth Star</p></td>
+                        <td><p style="color:#008000;">{{birth_star}}</p></td>
+                        <td><p style="color:#008000;">Age</p></td>
+                        <td><p style="color:#008000;">{{age}}</p></td>
+                    </tr>
+                </table>
+            {% for porutham_count, stars in porutham_stars.items %}
+              <h2 class="porutham-table-title" style="color:#008000; font-size:15px">Matching Stars ({{ porutham_count }} Poruthams)</h2>
+              <table class="porutham-table porutham-star">
+                <tr>
+                  <td><p style="color:#008000;">{{ stars|default:"N/A" }}</p></td>
+                </tr>
+              </table>
+            {% endfor %}
+      </table>
+</div>
     <div class="upload-horo-bg mt-5">
     <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
   </div>

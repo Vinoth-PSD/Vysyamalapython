@@ -1,0 +1,37 @@
+
+<table class="table-div">
+  <tr>
+    <td class="border-right">
+      <table class="inner-table">
+        <tr>
+          <td>
+            <p><strong>Address: </strong></p>
+            <!-- <p>Rasi Kattam:  </p> -->
+          </td>
+          <td>
+            <p><strong> {{ address|safe }}</strong></p>
+          </td>
+        </tr>
+      </table>
+    </td>
+
+    <td>
+      <table class="inner-table">
+        <tr>
+          <td>
+            <p><strong>Mobile :</strong></p>
+            <p>Alternate Mobile:</p>
+            <p>Whatsapp:</p>
+            <p>Email:</p>
+          </td>
+          <td>
+            <p><strong>{{ contact }}</strong></p>
+            <P>{{ alternate_number }}</P>
+            <p>{{ whatsapp }}</p>
+            <p>{{ email }}</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

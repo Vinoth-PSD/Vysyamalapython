@@ -1,2 +1,24 @@
+{% if horoscope_content_admin is not empty %}
+<div class="upload-horo-bg">
+  <img
+    src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png"
+  />
+</div>
 
-{{horoscope_content|safe}}
+<table class="upload-horo-image">
+  <tr>
+    <td>{{horoscope_content|safe}}</td>
+  </tr>
+</table>
+<div class="upload-horo-bg">
+  <img
+    src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png"
+  />
+</div>
+{% else %}
+<div class="upload-horo-bg">
+  <img
+    src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png"
+  />
+</div>
+{% endif %}

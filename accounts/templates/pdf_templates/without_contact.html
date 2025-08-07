@@ -4,17 +4,23 @@
       <table class="inner-table">
         <tr>
           <td>
-            <p><strong>Name </strong></p>
-            <p>DOB / POB</p>
-            <p>Complexion</p>
-            <p>Education</p>
+            <p><strong>Name</strong></p>
           </td>
           <td>
             <p><strong>{{name}}</strong></p>
-            <p>{{dob}} / {{birth_place}}</p>
-            <p>{{complexion}}</p>
-            <p>{{highest_education}}</p>
           </td>
+        </tr>
+        <tr>
+          <td><p>DOB / POB</p></td>
+          <td><p>{{dob}} / {{birth_place}}</p></td>
+        </tr>
+        <tr>
+          <td><p>Complexion</p></td>
+          <td><p>{{complexion}}</p></td>
+        </tr>
+        <tr>
+          <td><p>Education</p></td>
+          <td><p>{{highest_education}}</p></td>
         </tr>
       </table>
     </td>
@@ -23,19 +29,27 @@
       <table class="inner-table">
         <tr>
           <td>
-            <p><strong>Vysyamala Id : </strong></p>
-            <p>Height / Photos</p>
-            <p>Annual Income</p>
-            <p>Profession/Place of stay</p>
-            <p>{{occupation_title}}</p>
+            <p><strong>Vysyamala Id :</strong></p>
           </td>
           <td>
             <p><strong>{{profile_id}}</strong></p>
-            <p>{{height}} / {{image_status}}</p>
-            <p>{{annual_income}}</p>
-            <p>{{profession}} / {{work_place}}</p>
-            <p>{{occupation}}</p>
           </td>
+        </tr>
+        <tr>
+          <td><p>Height / Photos</p></td>
+          <td><p>{{height}} / {{image_status}}</p></td>
+        </tr>
+        <tr>
+          <td><p>Annual Income</p></td>
+          <td><p>{{annual_income}}</p></td>
+        </tr>
+        <tr>
+          <td><p>Profession / Place of stay</p></td>
+          <td><p>{{profession}} / {{work_place}}</p></td>
+        </tr>
+        <tr>
+          <td><p>{{occupation_title}}</p></td>
+          <td><p>{{occupation}}</p></td>
         </tr>
       </table>
     </td>
@@ -48,17 +62,23 @@
       <table class="inner-table">
         <tr>
           <td>
-            <p><strong>Father Name </strong></p>
-            <p>Father Occupation</p>
-            <p>Family Status</p>
-            <p>Brothers/Married</p>
+            <p><strong>Father Name</strong></p>
           </td>
           <td>
             <p><strong>{{father_name}}</strong></p>
-            <p>{{father_occupation}}</p>
-            <p>{{family_status}}</p>
-            <p>{{no_of_brother_married}}</p>
           </td>
+        </tr>
+        <tr>
+          <td><p>Father Occupation</p></td>
+          <td><p>{{father_occupation}}</p></td>
+        </tr>
+        <tr>
+          <td><p>Family Status</p></td>
+          <td><p>{{family_status}}</p></td>
+        </tr>
+        <tr>
+          <td><p>Brothers/Married</p></td>
+          <td><p>{{no_of_brother}}/{{no_of_brother_married}}</p></td>
         </tr>
       </table>
     </td>
@@ -74,7 +94,7 @@
           <td>
             <p><strong>{{mother_name}}</strong></p>
             <p>{{mother_occupation}}</p>
-            <p>{{no_of_sister_married}}</p>
+            <p>{{no_of_sister}}/{{no_of_sister_married}}</p>
           </td>
         </tr>
       </table>
@@ -92,7 +112,7 @@
             <p>Nalikai</p>
           </td>
           <td>
-            <p><strong>{{birth_star}}, {{birth_rasi}}</strong></p>
+            <p style="font-size:12px"><strong>{{birth_star}}, {{birth_rasi}}</strong></p>
             <p>{{lagnam}}</p>
             <p>{{nalikai}}</p>
           </td>
@@ -118,4 +138,3 @@
     </td>
   </tr>
 </table>
-

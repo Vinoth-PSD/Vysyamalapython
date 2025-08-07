@@ -1,0 +1,53 @@
+
+<style>
+.porutham-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 24px;
+    background-color: #fff9c7;
+    font-size: 14px;
+}
+
+.porutham-table th {
+    background-color: #008000;
+    color: #ffffff;
+    font-size: 16px;
+    padding: 12px 10px;
+    text-align: center;
+    border: 1px solid #bcbcbc;
+}
+
+.porutham-table td {
+    padding: 10px;
+    text-align: center;
+    font-weight: 500;
+    border: 1px solid #bcbcbc;
+}
+
+.porutham-table tr:nth-child(even) {
+    background-color: #fef5b3;
+}
+
+.matching-score {
+    font-size: 36px;
+    font-weight: bold;
+    color: #008000;
+    margin-bottom: 10px;
+}
+
+.porutham-table td span {
+    font-size: 14px;
+    font-weight: 600;
+}
+</style>
+<div class="porutham-page">
+    <h2 class="porutham-table-title" style="text-align:center; color:#008000;">Nakshatra Porutham & Rasi Porutham</h2>
+    <table class="porutham-table">
+        <tr>
+            <th>Porutham Name</th>
+            <th>Status</th>
+            <th>Matching Score</th>
+        </tr>
+        {{porutham_rows | safe}}
+    </table>
+</div>

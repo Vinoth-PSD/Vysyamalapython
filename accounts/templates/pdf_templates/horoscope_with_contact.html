@@ -16,58 +16,11 @@ td.inner-tabledata {
 
 
 <div class="section">
-  <!-- <h2>Horoscope With Contact + Address</h2>
-  <p><strong>Birth Star:</strong> {{ birth_star }}</p>
-  <p><strong>Birth Rasi:</strong> {{ birth_rasi }}</p>
-  <p><strong>Birth Place:</strong> {{ birth_place }}</p>
-  <p><strong>Address:</strong> {{ address|safe }}</p>
-  <p><strong>Rasi Kattam: </strong></p> -->
-
-  <table class="table-div">
-                            <tr>
-                                <td class="border-right">
-                                <table class="inner-table">
-                                    <tr>
-                                    <td>
-                                    <p><strong>Birth Star:</strong></p>
-                                    <p>Birth Rasi: </p>
-                                   
-                                   
-                                    </td>
-                                    <td>
-                                    <p><strong>{{ birth_star }}</strong></p>
-                                    <p>{{ birth_rasi }}</p>
-                                    
-                                    
-                                    </td>
-                                    </tr>
-                                    </table>
-                                    
-                                </td>
-                                
-                                <td>
-                                <table class="inner-table">
-                                    <tr>
-                                        <td>
-                                            <p><strong>Birth Place: </strong></p>
-                                            <!-- <p>Rasi Kattam:  </p> -->
-                                            
-                                        </td> 
-                                        <td>
-                                            <p><strong>{{ birth_place }}</strong></p>
-                                        
-                                            
-                                        </td> 
-                                    </tr>
-                                </table>
-                                </td>
-                            </tr>
-                        </table>
-                        <!-- <hr class="divider"> -->
     <table class="outer">
         <tr>
             <td>
                 <table class="inner">
+                    <h2 class="porutham-table-title highlight" style="color:#008000;">Rasi kattam</h2>
                     <tr>
                         <td class="inner-tabledata">{{rasi_kattam_data.0|replace_br|safe}}</td>
                         <td class="inner-tabledata">{{rasi_kattam_data.1|replace_br|safe}}</td>
@@ -105,15 +58,16 @@ td.inner-tabledata {
                     <tr>
                         <td>
                             <p><strong>Dasa Balance</strong></p>
-                            <p>Years: {{dasa_year}}</p>
-                            <p>Months: {{dasa_month}}</p>
-                            <p>Days: {{dasa_day}}</p>
+                            <p>{{dasa_year|default:"0"}} Years</p>
+                            <p>{{dasa_month|default:"0"}} Months</p>
+                            <p>{{dasa_day|default:"0"}} Days</p>
                         </td>
                     </tr>
                 </table>
             </td>
             <td>
                 <table class="inner">
+                    <h2 class="porutham-table-title highlight" style="color:#008000;">Amsam kattam</h2>
                     <tr>
                         <td>{{amsa_kattam_data.0|replace_br|safe}}</td>
                         <td>{{amsa_kattam_data.1|replace_br|safe}}</td>
@@ -138,10 +92,21 @@ td.inner-tabledata {
                         <td>{{amsa_kattam_data.6|replace_br|safe}}</td>
                     </tr>
                 </table>
+                 
             </td>
-            
             
         </tr>
     </table>
-     
+   
+</div>
+<div class="section">
+    <table class="add-info"> 
+    <tr>
+        <td>
+            <p><b>Horoscope Hints: </b>{{horo_hint}}</p>
+        </td>
+    </tr>
+    <tr>
+    <td>
+    </table>
 </div>
