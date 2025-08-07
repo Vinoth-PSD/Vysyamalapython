@@ -51,9 +51,16 @@ class PropertySerializer(serializers.ModelSerializer):
 
 
 class GothramSerializer(serializers.ModelSerializer):
+    
+    sanketha_namam = serializers.SerializerMethodField()
+
     class Meta:
         model = Gothram
-        fields = '__all__'  # You can customize which fields you want to expose
+        fields = ['id', 'gothram_name', 'rishi', 'sanketha_namam']
+
+    def get_sanketha_namam(self, obj):
+        # Split the name by '-', strip whitespace and return as list
+        return [name.strip() for name in obj.sanketha_namam.split('-')]
 
 
 class EducationLevelSerializer(serializers.ModelSerializer):
