@@ -28,7 +28,12 @@ SECRET_KEY = 'django-insecure-exf4)ko=9saty)7$_o-b36_&bx=45lyhfr#-j5$0-08tr5ip%n
 DEBUG = True
 
 # ALLOWED_HOSTS = ['103.214.132.20','127.0.0.1','matrimonyapp.rainyseasun.com','tamizhimart.com', 'www.tamizhimart.com','192.168.1.8','192.168.1.11','192.168.1.5','192.168.1.19','vysyaadmin.rainyseasun.com','apiupg.rainyseasun.com','matrimonyapi.rainyseasun.com']
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['*']
+
+ALLOWED_HOSTS = ['polite-pond-0783ff91e.1.azurestaticapps.net','vysyamala.com','admin.vysyamala.com','calm-moss-0d969331e.2.azurestaticapps.net','localhost', '127.0.0.1']
+
+
+
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
 
@@ -261,23 +266,13 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
-    "http://192.168.1.15:5173",
-    "http://matrimonyapp.rainyseasun.com",
     "http://localhost:5174",
-    "http://192.168.1.8:5173",
-    "http://192.168.1.11:5173",
-    "http://192.168.1.5:5173",
-    "http://192.168.1.19:5173",
-    "http://vysyaadmin.rainyseasun.com",
-    "http://apiupg.rainyseasun.com",
-    "https://apiupg.rainyseasun.com",
-    "http://matrimonyapi.rainyseasun.com",
-    "https://white-pebble-02665321e.6.azurestaticapps.net",
-    "https://polite-sea-09bf2e91e.6.azurestaticapps.net",
-    "https://ambitious-wave-0eef3eb1e.6.azurestaticapps.net",
-    "https://lemon-stone-015f4361e.6.azurestaticapps.net",
     "https://polite-pond-0783ff91e.1.azurestaticapps.net",
     "https://calm-moss-0d969331e.2.azurestaticapps.net",
+    "https://vysyamala.com",
+    "https://admin.vysyamala.com",
+    "https://vysyamala.com",
+    "https://www.vysyamala.com",
 ]
 
 
