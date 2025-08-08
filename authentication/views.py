@@ -8841,7 +8841,7 @@ class GetFeaturedList(APIView):
             SELECT ProfileId FROM logindetails
             WHERE gender != %s
             AND ProfileId != %s
-            AND Plan_id IN (2, 3, 15)
+            AND Plan_id IN (2, 15)
             AND Profile_dob IS NOT NULL
         """
         params = [gender, profile_id]
@@ -10379,7 +10379,7 @@ class FeaturedProfile(APIView):
                 WHERE
                     LOWER(Gender) = LOWER(%s) AND
                     Status = 1 AND
-                    Plan_id IN (2, 3, 15)
+                    Plan_id IN (2, 15)
                 ORDER BY RAND()
                 LIMIT 10
             """

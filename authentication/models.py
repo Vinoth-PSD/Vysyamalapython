@@ -1293,7 +1293,7 @@ class Get_profiledata(models.Model):
                         
                         
                     view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END "
-                    plan_priority = "FIELD(a.Plan_id, '3','17','2','15','1','14','11','12','13','6','7','8','9') "
+                    plan_priority = "FIELD(a.Plan_id, '2','15','1','14','11','12','13','6','7','8','9') "
                     photo_priority = "CASE WHEN i.image IS NOT NULL AND i.image != '' THEN 0 ELSE 1 END "
                    # print('plan_priority',plan_priority)         
                     try:
