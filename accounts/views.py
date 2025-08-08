@@ -3965,7 +3965,7 @@ def send_bulk_email(request):
                             <tr>
                                 <td align="center">
                                     <!-- Static Logo Image from URL -->
-                                    <img src="https://vysyamala.com/img/newlogo.png" alt="Logo" style="max-width: 200px;"/>
+                                    <img src="https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png" alt="Logo" style="max-width: 200px;"/>
                                 </td>
                             </tr>
                             <tr>
@@ -7413,7 +7413,7 @@ class AdminProfilePDFView(APIView):
                         horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
         else:
             horoscope_content = """<div class="upload-horo-bg">
-    <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
+    <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
   </div> """
             
         if horoscope_data.horoscope_file_admin:
@@ -7424,7 +7424,7 @@ class AdminProfilePDFView(APIView):
                         horoscope_content_admin = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
         else:
             horoscope_content_admin = """<div class="upload-horo-bg">
-    <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
+    <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
   </div> """
                 # Get matching stars data
         birthstar = safe_get_value(models.BirthStar, 'id', horoscope_data.birthstar_name, 'star')
@@ -7725,7 +7725,7 @@ class AdminMatchProfilePDFView(APIView):
                         horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                 else:
                     horoscope_content = """<div class="upload-horo-bg">
-    <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
+    <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
   </div> """
                 if horoscope_data.horoscope_file_admin:
                     horoscope_image_url = horoscope_data.horoscope_file_admin.url
@@ -7735,7 +7735,7 @@ class AdminMatchProfilePDFView(APIView):
                         horoscope_content_admin = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                 else:
                     horoscope_content_admin = """<div class="upload-horo-bg">
-    <img src="https://vysyamaladev2025.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
+    <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
   </div> """
                 birthstar = safe_get_value(models.BirthStar, 'id', horoscope_data.birthstar_name, 'star')
                 birth_rasi = safe_get_value(models.Rasi, 'id', horoscope_data.birth_rasi_name, 'name')

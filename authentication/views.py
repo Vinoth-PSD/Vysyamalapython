@@ -10003,7 +10003,8 @@ class ResetPassword(APIView):
             try:
                 user = models.Registration1.objects.get(ProfileId=profile_id)
 
-                user.Password = make_password(new_password)  
+                # user.Password = make_password(new_password) 
+                user.password = new_password
                 user.Reset_OTP = '' 
                 user.Reset_OTP_Time = timezone.now()  
                 
