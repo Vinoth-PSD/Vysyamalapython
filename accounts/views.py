@@ -7026,7 +7026,7 @@ def GetPhotoProofDetails(request):
 
                         try:
                             container_name = 'vysyamala'
-                            connection_string = 'DefaultEndpointsProtocol=https;AccountName=vysyamaladev2025;AccountKey=1mdfx0CBr1DTTNuVVK0qL5JXEpRNQnyWVEbIzndIPPlHXNERQIYGjsGWf3zXcX1EpRyCSu/hegkp+AStd8nkfQ==;EndpointSuffix=core.windows.net'
+                            connection_string = settings.AZURE_CONNECTION_STRING
                             source_folder = "profile_images/"  # from where image is fetched
                             dest_folder = "blurred_images/"    # where blurred image is saved
 
@@ -7412,9 +7412,7 @@ class AdminProfilePDFView(APIView):
                     else:
                         horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
         else:
-            horoscope_content = """<div class="upload-horo-bg">
-    <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
-  </div> """
+            horoscope_content = "empty"
             
         if horoscope_data.horoscope_file_admin:
                     horoscope_image_url = horoscope_data.horoscope_file_admin.url
@@ -7423,9 +7421,7 @@ class AdminProfilePDFView(APIView):
                     else:
                         horoscope_content_admin = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
         else:
-            horoscope_content_admin = """<div class="upload-horo-bg">
-    <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
-  </div> """
+            horoscope_content_admin = "empty"
                 # Get matching stars data
         birthstar = safe_get_value(models.BirthStar, 'id', horoscope_data.birthstar_name, 'star')
         birth_rasi = safe_get_value(models.Rasi, 'id', horoscope_data.birth_rasi_name, 'name')
@@ -7724,9 +7720,7 @@ class AdminMatchProfilePDFView(APIView):
                     else:
                         horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                 else:
-                    horoscope_content = """<div class="upload-horo-bg">
-    <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
-  </div> """
+                    horoscope_content = "empty"
                 if horoscope_data.horoscope_file_admin:
                     horoscope_image_url = horoscope_data.horoscope_file_admin.url
                     if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
@@ -7734,9 +7728,7 @@ class AdminMatchProfilePDFView(APIView):
                     else:
                         horoscope_content_admin = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                 else:
-                    horoscope_content_admin = """<div class="upload-horo-bg">
-    <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
-  </div> """
+                    horoscope_content_admin = "empty"
                 birthstar = safe_get_value(models.BirthStar, 'id', horoscope_data.birthstar_name, 'star')
                 birth_rasi = safe_get_value(models.Rasi, 'id', horoscope_data.birth_rasi_name, 'name')
 

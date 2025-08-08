@@ -2009,15 +2009,26 @@ class Login_with_mobileno(APIView):
             mobile_number = serializer.validated_data.get('Mobile_no')
             # print("Validated mobile number:", mobile_number)  # Debugging statement
             
-            mobile_number='91'+mobile_number
+            
 
             print('mobile_number',mobile_number)
             # Check if the mobile number exists in Registration table
-            try:
-                profile = models.Registration1.objects.get(Mobile_no=mobile_number)
-            except models.Registration1.DoesNotExist:
-                return JsonResponse({"status": 0, "message": "Invalid mobile number."}, status=status.HTTP_200_OK)
+            normalized_input = mobile_number.strip()
+            if len(normalized_input) == 10:
+                normalized_input_with_prefix = '91' + normalized_input
+            elif len(normalized_input) == 12 and normalized_input.startswith('91'):
+                normalized_input_with_prefix = normalized_input
+                normalized_input = normalized_input[2:]  # Strip '91' for 10-digit version
+            else:
+                return JsonResponse({"status": 0, "message": "Invalid mobile number format."}, status=status.HTTP_200_OK)
 
+            # Try matching either format
+            try:
+                profile = models.Registration1.objects.get(
+                    Q(Mobile_no=normalized_input) | Q(Mobile_no=normalized_input_with_prefix)
+                )
+            except models.Registration1.DoesNotExist:
+                return JsonResponse({"status": 0, "message": "Invalid Number"}, status=status.HTTP_200_OK)
             # Generate OTP
             otp = self.generate_otp()
 
@@ -2054,10 +2065,20 @@ class Login_verifyotp(APIView):
         if serializer.is_valid():
             mobile_number = serializer.validated_data.get('Mobile_no')
             otp = serializer.validated_data.get('Otp')
-            mobile_number='91'+mobile_number
-            # Check if the mobile number exists and OTP is correct
+            normalized_input = mobile_number.strip()
+            if len(normalized_input) == 10:
+                normalized_input_with_prefix = '91' + normalized_input
+            elif len(normalized_input) == 12 and normalized_input.startswith('91'):
+                normalized_input_with_prefix = normalized_input
+                normalized_input = normalized_input[2:]  # Strip '91' for 10-digit version
+            else:
+                return JsonResponse({"status": 0, "message": "Invalid mobile number format."}, status=status.HTTP_200_OK)
+
+            # Try matching either format
             try:
-                profile = models.Registration1.objects.get(Mobile_no=mobile_number,Otp=otp)
+                profile = models.Registration1.objects.get(
+                    Q(Mobile_no=normalized_input,Otp=otp) | Q(Mobile_no=normalized_input_with_prefix,Otp=otp)
+                )
                 user, created = User.objects.get_or_create(username=profile.ProfileId)
 
                 if created:
@@ -10004,7 +10025,7 @@ class ResetPassword(APIView):
                 user = models.Registration1.objects.get(ProfileId=profile_id)
 
                 # user.Password = make_password(new_password) 
-                user.password = new_password
+                user.Password = new_password
                 user.Reset_OTP = '' 
                 user.Reset_OTP_Time = timezone.now()  
                 

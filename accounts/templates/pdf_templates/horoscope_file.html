@@ -1,4 +1,13 @@
-{% if horoscope_content_admin is not empty %}
+{% if horoscope_content_admin  == "empty"  %}
+<div class="upload-horo-bg">
+  <img
+    src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png"
+  />
+</div>
+
+{% else %}
+  
+  <div style="page-break-before: always;"></div>
 <div class="upload-horo-bg">
   <img
     src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png"
@@ -10,12 +19,6 @@
     <td>{{horoscope_content_admin|safe}}</td>
   </tr>
 </table>
-<div class="upload-horo-bg">
-  <img
-    src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png"
-  />
-</div>
-{% else %}
 <div class="upload-horo-bg">
   <img
     src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png"
