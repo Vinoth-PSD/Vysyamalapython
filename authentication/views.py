@@ -8588,7 +8588,7 @@ class GetSearchResults(APIView):
         JOIN mastereducation g ON f.highest_education = g.RowId 
         JOIN masterannualincome h ON h.id = f.anual_income
         JOIN profile_images  pi ON pi.profile_id=a.ProfileId
-        WHERE a.gender != %s AND a.ProfileId != %s
+        WHERE a.gender != %s AND a.ProfileId != %s  AND a.plan_status NOT IN (16, 17, 3) AND a.status=1
         """
 
         # Prepare the query parameters
@@ -10536,7 +10536,7 @@ class Search_byprofile_id(APIView):
         JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
         JOIN mastereducation g ON f.highest_education = g.RowId 
         JOIN masterannualincome h ON h.id = f.anual_income
-        WHERE a.gender != %s AND a.ProfileId != %s AND (a.ProfileId = %s
+        WHERE a.gender != %s AND a.ProfileId != %s AND a.plan_status NOT IN (16, 17, 3) AND (a.ProfileId = %s
        OR a.Profile_name LIKE CONCAT('%%', %s, '%%'));
         """
         
