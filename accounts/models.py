@@ -534,7 +534,7 @@ class LoginDetails(models.Model):
     Video_url= models.CharField(max_length=255, null=True,blank=True)
     #DateOfJoin = models.DateField(null=True)
     DateOfJoin = models.CharField(max_length=100,null=True,blank=True)
-    Last_login_date= models.CharField(max_length=100)  
+    Last_login_date= models.CharField(max_length=100,null=True,blank=True)  
     # Profile_idproof = models.CharField(max_length=255,null=True,blank=True)
     # Profile_divorceproof = models.CharField(max_length=255,null=True,blank=True)  # Add this field for file upload
     Profile_idproof = models.FileField(upload_to=upload_to_profile_basic,storage=AzureMediaStorage(),blank=True,null=True)
