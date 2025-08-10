@@ -8578,7 +8578,7 @@ class GetSearchResults(APIView):
 
         # Initialize the query with the base structure
         base_query = """
-        SELECT a.ProfileId, a.Profile_name, a.Profile_marital_status, a.Profile_dob, a.Profile_height, a.Profile_city, 
+        SELECT distinct(a.ProfileId),a.ProfileId, a.Profile_name, a.Profile_marital_status, a.Profile_dob, a.Profile_height, a.Profile_city, 
                f.profession, f.highest_education, g.EducationLevel, d.star, h.income , e.birthstar_name , e.birth_rasi_name
                        ,a.Photo_protection,a.Gender        FROM logindetails a 
         JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
@@ -8627,7 +8627,7 @@ class GetSearchResults(APIView):
                 query_params.append(field_ofstudy)
 
             if people_withphoto:
-                base_query += " AND pi.profile_id IS NOT NULL"
+                base_query += " AND pi.profile_id IS NOT NULL AND pi.image_approved=1"
                 
             # Add income filter
             if income:
@@ -8639,13 +8639,23 @@ class GetSearchResults(APIView):
                 base_query += " AND d.star = %s"
                 query_params.append(star)
 
-            if chevvai_dhosam:
-                base_query += " AND e.calc_chevvai_dhosham = %s"
-                query_params.append(chevvai_dhosam)
+            # if chevvai_dhosam:
+            #     base_query += " AND e.chevvai_dosaham = %s"
+            #     query_params.append(chevvai_dhosam)
             
-            if ragukethu_dhosam:
-                base_query += " AND e.calc_raguketu_dhosham = %s"
-                query_params.append(ragukethu_dhosam)
+            # if ragukethu_dhosam:
+            #     base_query += " AND e.ragu_dosham = %s"
+            #     query_params.append(ragukethu_dhosam)
+
+            if chevvai_dhosam and chevvai_dhosam.lower() == 'yes':
+                base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
+            elif chevvai_dhosam and chevvai_dhosam.lower() == 'no':
+                base_query += " AND LOWER(e.ragu_dosham) = 'no'"
+
+            if ragukethu_dhosam and ragukethu_dhosam.lower() == 'yes':
+                base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+            elif ragukethu_dhosam and ragukethu_dhosam.lower() == 'no':
+                base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
 
             if native_state:
                 base_query += " AND a.Profile_state = %s"
