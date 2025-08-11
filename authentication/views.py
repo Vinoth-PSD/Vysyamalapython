@@ -4160,7 +4160,7 @@ def validate_image_url(url):
 
 def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
-    print("Execution time before return image ",datetime.now())
+    # print("Execution time before return image ",datetime.now())
     
 
     #base_url='http://103.214.132.20:8000'
@@ -4181,7 +4181,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
         
             if(no_of_image==1):
 
-                print('no_of_image','1')
+                # print('no_of_image','1')
 
                 get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()           
             
@@ -4192,7 +4192,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                         # return serializer.data['image']
                         image_url = serializer.data['image']
 
-                        print('image_url',image_url)
+                        # print('image_url',image_url)
                         try:
                             response = requests.head(image_url, timeout=5)
                             if response.status_code == 200:
@@ -4201,7 +4201,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                             pass  # Fall back to default if request fails
                         
                         # Return default image if no image found or image does not exist
-                        print("Execution time before return one image ",datetime.now())
+                        # print("Execution time before return one image ",datetime.now())
                         return  base_url + default_img
 
                 else:
@@ -4227,12 +4227,12 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                         for index, entry in enumerate(serializer.data)
                     }
                     #print(images_dict)
-                    print("Execution time before return all image ",datetime.now())
+                    # print("Execution time before return all image ",datetime.now())
                     return images_dict
                     
                 else:                
                     default_img = default_img_bride if gender == 'male' else default_img_groom
-                    print("Execution time before return default image ",datetime.now())
+                    # print("Execution time before return default image ",datetime.now())
                     return {"1":  base_url + default_img,"2":  base_url + default_img}
                 
     else:
@@ -4251,7 +4251,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                     img_base64=get_blurred_image(serializer.data['image'])
                     
                     
-                    print("Execution time when blur image return ",datetime.now())
+                    # print("Execution time when blur image return ",datetime.now())
                     return img_base64,
             else :
                 
@@ -4276,7 +4276,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                                 # Return only the status
                     img_base64=get_blurred_image(serializer.data['image'])
 
-                    print("Execution time when return blur image failed ",datetime.now())
+                    # print("Execution time when return blur image failed ",datetime.now())
                     
                     return {"1": img_base64}
                         
@@ -4286,13 +4286,13 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                 else:
                     if(gender=='male'):
 
-                        print("Execution time when return blur image failed ",datetime.now())
+                        # print("Execution time when return blur image failed ",datetime.now())
                         
                         return {"1": base_url+default_img_bride }
                                 
                     if(gender=='female'):
 
-                        print("Execution time when return blur image failed ",datetime.now())
+                        # print("Execution time when return blur image failed ",datetime.now())
                                     
                         return {"1": base_url+default_img_groom }
 
@@ -10395,25 +10395,28 @@ class FeaturedProfile(APIView):
         try:
             # Raw SQL query to fetch random profiles
             query = """
-                SELECT ProfileId, Profile_name, Gender, Profile_dob, Profile_height,
-                       Profile_city, Photo_protection
-                FROM logindetails
-                INNER JOIN (
-                        SELECT *
-                        FROM (
-                            SELECT *,
-                                ROW_NUMBER() OVER (PARTITION BY profile_id ORDER BY id ASC) AS rn
-                            FROM profile_images
-                            WHERE image_approved = 1 AND is_deleted = 0
-                        ) AS ranked_images
-                        WHERE rn = 1
-                    ) AS i ON i.profile_id = ProfileId
-                WHERE
-                    LOWER(Gender) = LOWER(%s) AND
-                    Status = 1 AND
-                    Plan_id IN (2, 15)
-                ORDER BY RAND()
-                LIMIT 10
+            SELECT 
+                    ld.ProfileId,ld.Profile_name,  ld.Gender,  ld.Profile_dob, ld.Profile_height, ld.Profile_city, ld.Photo_protection FROM (
+                    SELECT ProfileId
+                    FROM logindetails
+                    WHERE LOWER(Gender) = LOWER(%s)
+                    AND Status = 1
+                    AND Plan_id IN (2, 15)
+                    ORDER BY RAND()
+                    LIMIT 10
+                ) AS rand_ld
+                JOIN logindetails ld ON ld.ProfileId = rand_ld.ProfileId
+                JOIN (
+                    SELECT pi1.*
+                    FROM profile_images pi1
+                    INNER JOIN (
+                        SELECT profile_id, MIN(id) AS min_id
+                        FROM profile_images
+                        WHERE image_approved = 1 
+                        AND is_deleted = 0
+                        GROUP BY profile_id
+                    ) AS pi2 ON pi1.id = pi2.min_id
+                ) AS i ON i.profile_id = ld.ProfileId;
             """
             with connection.cursor() as cursor:
                 cursor.execute(query, [normalized_gender])
