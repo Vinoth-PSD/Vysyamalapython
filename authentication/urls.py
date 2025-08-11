@@ -234,6 +234,7 @@ urlpatterns = [
      path('without-address-send-email/', views.WithoutAddressSendEmailAPI.as_view(), name='without_address_send_email'),
     # path('horoscope/kattam/', HoroscopeKattamAPI.as_view(), name='horoscope_kattam'),
     
+     path('health_check/', views.health_check.as_view()),
 
 
 

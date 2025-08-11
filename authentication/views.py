@@ -16455,6 +16455,13 @@ class WithoutAddressSendEmailAPI(APIView):
 
 
 
+
+class health_check(APIView):
+
+    def get(self,request):
+        return JsonResponse({"status": "ok"}, status=200)
+
+
 class WithoutAddressPrintPDF(APIView):
     def post(self, request):
         """API to generate and merge horoscope PDFs (without address) into a single response and log the process."""
