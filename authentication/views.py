@@ -4957,7 +4957,7 @@ class Get_profile_det_match(APIView):
 
 
 
-class Get_profile_det_match_new(APIView):
+class Get_profile_det_match_old(APIView):
     # Cache settings (seconds)
     PROFILE_CACHE_TTL = 60
     PERMISSION_CACHE_TTL = 300
@@ -4991,7 +4991,7 @@ class Get_profile_det_match_new(APIView):
     def post(self, request):
         start_time = time.time()
         
-        # 1. Initial Validation (Fast Fail)
+        # 1. Initial Validation
         serializer = serializers.GetproflistSerializer_details(data=request.data)
         if not serializer.is_valid():
             return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -5000,15 +5000,15 @@ class Get_profile_det_match_new(APIView):
         user_profile_id = request.data['user_profile_id']
         page_id = request.data.get('page_id', '1')
 
-        # 2. Check View Limits (Cached check)
+        # 2. Check View Limits
         if not (can_get_viewd_profile_count(profile_id, user_profile_id) or 
-               (page_id and int(page_id) != 1)):
+            (page_id and int(page_id) != 1)):
             return JsonResponse(
-                {'status': 'failure', 'message': 'Limit Reached'}, 
+                {'status': 'failure', 'message': 'Limit Reached to view the profile'}, 
                 status=status.HTTP_201_CREATED
             )
 
-        # 3. Parallel Data Fetching
+        # 3. Get Profiles with Caching
         my_profile = self._get_cached_profile(profile_id)
         user_profile = self._get_cached_profile(user_profile_id)
         
@@ -5018,273 +5018,313 @@ class Get_profile_det_match_new(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # 4. Bulk Permission Check (Single Cache Lookup)
+        # 4. Get Permissions
         permissions = {
-            'photo': self._get_cached_permission(profile_id, 'photo_viewing'),
-            'vys': self._get_cached_permission(profile_id, 'vys_assist'),
-            'contact': self._get_cached_permission(profile_id, 'contact_details'),
-            'horoscope': self._get_cached_permission(profile_id, 'horoscope_grid_details'),
+            'photo_viewing': self._get_cached_permission(profile_id, 'photo_viewing'),
+            'vys_assist': self._get_cached_permission(profile_id, 'vys_assist'),
+            'contact_details': self._get_cached_permission(profile_id, 'contact_details'),
+            'horoscope_grid': self._get_cached_permission(profile_id, 'horoscope_grid_details'),
             'eng_print': self._get_cached_permission(profile_id, 'eng_print')
         }
 
-        # 5. Prepare Core Response (Minimal DB queries)
+        # 5. Prepare Response Data (Maintaining Original Structure)
         response_data = {
-            'basic_details': self._prepare_basic_details(my_profile, user_profile, permissions),
-            'photo_protection': user_profile['Photo_protection'],
-            'photo_request': self._get_photo_request_status(user_profile),
-            'user_images': None,  # Will be lazy-loaded
-            'personal_details': self._prepare_personal_details(user_profile),
-            'education_details': self._prepare_education_details(user_profile),
-            'family_details': self._prepare_family_details(user_profile),
-            'horoscope_details': self._prepare_horoscope_details(user_profile, permissions['horoscope'])
-        }
-
-        # 6. Lazy-load Heavy Components
-        if permissions['photo']:
-            response_data['user_images'] = get_profile_image_azure_optimized(
+            "basic_details": self._prepare_basic_details_full(my_profile, user_profile, permissions),
+            "photo_protection": user_profile['Photo_protection'],
+            "photo_request": self._get_photo_request_status(user_profile),
+            "user_images": self._get_profile_images(
                 user_profile['ProfileId'],
                 my_profile['Gender'],
-                'all',
+                permissions['photo_viewing'],
                 user_profile['Photo_protection']
-            )
-
-        # 7. Add Conditional Fields Last
-        if permissions['contact']:
-            response_data['contact_details'] = self._prepare_contact_details(user_profile)
-
-        # 8. Add Vysya Assist if Needed
-        if permissions['vys']:
-            response_data['basic_details'].update(
-                self._prepare_vysya_assist(profile_id, user_profile_id)
-            )
-
-        logger.info(f"API executed in {time.time() - start_time:.2f}s")
-        return JsonResponse(response_data, status=status.HTTP_200_OK)
-
-    # --- Optimized Helper Methods ---
-    def _prepare_basic_details(self, my_profile, user_profile, permissions):
-        """All basic details with minimal queries"""
-        return {
-            'profile_id': user_profile['ProfileId'],
-            'profile_name': user_profile['Profile_name'],
-            'age': calculate_age(user_profile['Profile_dob']),
-            'height': user_profile['Profile_height'],
-            'star': user_profile['star_name'],
-            'matching_score': self._get_matching_score(my_profile, user_profile),
-            'plan_subscribed': 1 if my_profile['Plan_id'] and 
-                                 models.PlanDetails.objects.filter(
-                                     id=my_profile['Plan_id']).exists() else 0,
-            'vysy_assist_enable': permissions['vys'],
-            # ... other fields ...
+            ) if permissions['photo_viewing'] else {},
+            "personal_details": self._prepare_personal_details_full(user_profile),
+            "education_details": self._prepare_education_details_full(user_profile),
+            "family_details": self._prepare_family_details_full(user_profile),
+            "horoscope_details": self._prepare_horoscope_details_full(user_profile, permissions['horoscope_grid'])
         }
 
-    def _prepare_contact_details(self, profile_data):
-        """Optimized contact details preparation with cached location lookups"""
-        # Initialize with direct profile data
-        contact_data = {
+        # 6. Add Contact Details if Permitted
+        if permissions['contact_details']:
+            response_data["contact_details"] = self._prepare_contact_details_full(user_profile)
+
+        logger.info(f"Profile API executed in {time.time() - start_time:.2f}s")
+        return JsonResponse(response_data, status=status.HTTP_200_OK)
+
+    # Full Detail Preparation Helpers (Maintaining Original Structure)
+    def _prepare_basic_details_full(self, my_profile, user_profile, permissions):
+        """Maintains all original basic_details fields"""
+        return {
+            "profile_id": user_profile['ProfileId'],
+            "profile_name": user_profile['Profile_name'],
+            "age": calculate_age(user_profile['Profile_dob']),
+            "weight": user_profile.get('weight', '0'),
+            "height": user_profile['Profile_height'],
+            "star": user_profile['star_name'],
+            "profession": self._get_profession_name(user_profile.get('profession')),
+            "education": f"{self._get_education_level(user_profile.get('highest_education'))} {self._get_field_of_study(user_profile.get('field_ofstudy'))}".strip(),
+            "about": user_profile.get('about_self', ''),
+            "gothram": user_profile.get('suya_gothram', ''),
+            "horoscope_available": 1 if user_profile.get('horoscope_file_admin') and permissions['eng_print'] else 0,
+            "horoscope_available_text": "Horoscope Available" if user_profile.get('horoscope_file_admin') and permissions['eng_print'] else "Not available",
+            "horoscope_link": f"{settings.MEDIA_URL}{user_profile['horoscope_file_admin']}" if user_profile.get('horoscope_file_admin') and permissions['eng_print'] else '',
+            "user_status": self._get_user_status(user_profile['Last_login_date']),
+            "verified": user_profile['Profile_verified'],
+            "last_visit": self._format_last_visit(user_profile['Last_login_date']),
+            "user_profile_views": count_records(models.Profile_visitors, {'status': 1, 'viewed_profile': user_profile['ProfileId']}),
+            "wish_list": Get_wishlist(my_profile['ProfileId'], user_profile['ProfileId']),
+            "express_int": Get_expressstatus(my_profile['ProfileId'], user_profile['ProfileId']),
+            "personal_notes": Get_personalnotes_value(my_profile['ProfileId'], user_profile['ProfileId']),
+            "matching_score": get_matching_score_util(
+                my_profile['birthstar_name'],
+                my_profile['birth_rasi_name'],
+                user_profile['birthstar_name'],
+                user_profile['birth_rasi_name'],
+                my_profile['Gender']
+            ),
+            "plan_subscribed": 1 if my_profile['Plan_id'] and models.PlanDetails.objects.filter(id=my_profile['Plan_id']).exists() else 0,
+            "vysy_assist_enable": permissions['vys_assist'],
+            "vys_assits": self._has_vysya_assist(my_profile['ProfileId'], user_profile['ProfileId']),
+            "vys_list": self._get_vysya_assist_data(my_profile['ProfileId'], user_profile['ProfileId'])
+        }
+
+    def _prepare_personal_details_full(self, profile_data):
+        """Maintains all original personal_details fields"""
+        return {
+            "profile_name": profile_data['Profile_name'],
+            "gender": profile_data['Gender'],
+            "age": calculate_age(profile_data['Profile_dob']),
+            "dob": format_date_of_birth(profile_data['Profile_dob']),
+            "place_of_birth": profile_data.get('place_of_birth', ''),
+            "time_of_birth": format_time_am_pm(profile_data.get('time_of_birth', '')),
+            "height": profile_data['Profile_height'],
+            "marital_status": self._get_marital_status(profile_data.get('Profile_marital_status')),
+            "blood_group": profile_data.get('blood_group', ''),
+            "about_self": profile_data.get('about_self', ''),
+            "complexion": self._get_complexion(profile_data.get('Profile_complexion')),
+            "hobbies": profile_data.get('hobbies', ''),
+            "physical_status": "No" if profile_data.get('Pysically_changed', 0) == 0 
+                          else "1" if profile_data.get('Pysically_changed', 0) == 1 
+                          else profile_data.get('Pysically_changed', 0),
+            "eye_wear": profile_data.get('eye_wear', '0'),
+            "weight": profile_data.get('weight', '0'),
+            "body_type": profile_data.get('body_type', ''),
+            "profile_created_by": self._get_profile_creator(profile_data.get('Profile_for'))
+        }
+
+    def _prepare_education_details_full(self, profile_data):
+        """Maintains all original education_details fields"""
+        return {
+            "education_level": f"{self._get_education_level(profile_data.get('highest_education'))} {self._get_field_of_study(profile_data.get('field_ofstudy'))}".strip(),
+            "education_detail": " ",
+            "ug_degeree": get_degree(profile_data.get('ug_degeree', '')),
+            "about_education": profile_data.get('about_edu', ''),
+            "profession": self._get_profession_name(profile_data.get('profession')),
+            "designation": profile_data.get('designation', ''),
+            "company_name": profile_data.get('company_name', ''),
+            "business_name": profile_data.get('business_name', ''),
+            "business_address": profile_data.get('business_address', ''),
+            "annual_income": self._get_annual_income(profile_data.get('anual_income')),
+            "gross_annual_income": profile_data.get('actual_income', ''),
+            "place_of_stay": get_place_of_work(profile_data)
+        }
+
+    def _prepare_family_details_full(self, profile_data):
+        """Maintains all original family_details fields"""
+        return {
+            "about_family": profile_data.get('about_family', ''),
+            "father_name": profile_data.get('father_name', ''),
+            "father_occupation": profile_data.get('father_occupation', ''),
+            "mother_name": profile_data.get('mother_name', ''),
+            "mother_occupation": profile_data.get('mother_occupation', ''),
+            "family_status": self._get_family_status(profile_data.get('family_status')),
+            "no_of_sisters": profile_data.get('no_of_sister', '0'),
+            "no_of_brothers": profile_data.get('no_of_brother', '0'),
+            "no_of_sis_married": profile_data.get('no_of_sis_married', '0'),
+            "no_of_bro_married": profile_data.get('no_of_bro_married', '0'),
+            "property_details": profile_data.get('property_details', ''),
+            "father_alive": profile_data.get('father_alive'),
+            "mother_alive": profile_data.get('mother_alive'),
+        }
+
+    def _prepare_horoscope_details_full(self, profile_data, horoscope_permission):
+        """Maintains all original horoscope_details fields"""
+        details = {
+            "rasi": self._get_rasi_name(profile_data.get('birth_rasi_name')),
+            "star_name": self._get_star_name(profile_data.get('birthstar_name')),
+            "lagnam": self._get_lagnam_didi(profile_data.get('lagnam_didi')),
+            "nallikai": profile_data.get('nalikai', ''),
+            "didi": profile_data.get('didi', ''),
+            "surya_gothram": profile_data.get('suya_gothram', ''),
+            "dasa_name": get_dasa_name(profile_data.get('dasa_name', '')),
+            "dasa_balance": dasa_format_date(profile_data.get('dasa_balance', '')),
+            "chevvai_dosham": self._format_dosham_value(profile_data.get('chevvai_dosaham', 0)),
+            "sarpadosham": self._format_dosham_value(profile_data.get('ragu_dosham', 0)),
+            "madulamn": profile_data.get('madulamn', '')
+        }
+        
+        if horoscope_permission:
+            details.update({
+                "rasi_kattam": profile_data.get('rasi_kattam', ''),
+                "amsa_kattam": profile_data.get('amsa_kattam', '')
+            })
+        
+        return details
+
+
+
+    def _has_vysya_assist(self, profile_from, profile_to):
+        """Check if Vysya assist exists with caching"""
+        cache_key = f"vys_exists_{profile_from}_{profile_to}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+        
+        exists = models.Profile_vysassist.objects.filter(
+            profile_from=profile_from,
+            profile_to=profile_to
+        ).exists()
+        cache.set(cache_key, exists, 300)  # Cache for 5 minutes
+        return exists
+
+    def _get_vysya_assist_data(self, profile_from, profile_to):
+        """Get Vysya assist data with caching"""
+        cache_key = f"vys_data_{profile_from}_{profile_to}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        try:
+            assist = models.Profile_vysassist.objects.filter(
+                profile_from=profile_from,
+                profile_to=profile_to
+            ).prefetch_related(
+                Prefetch('followups', 
+                    queryset=models.ProfileVysAssistFollowup.objects
+                        .order_by('-update_at')[:5]
+                )
+            ).first()
+
+            if not assist:
+                return None
+
+            followups = assist.followups.all()
+            data = serializers.ProfileVysAssistFollowupSerializer(
+                followups, many=True
+            ).data if followups else [{
+                "comments": f"{assist.to_message} (Request sent)",
+                "update_at": assist.req_datetime
+            }]
+            
+            cache.set(cache_key, data, 300)  # Cache for 5 minutes
+            return data
+        except Exception as e:
+            logger.error(f"Vysya assist error: {str(e)}")
+            return None
+
+
+
+
+    def _prepare_contact_details_full(self, profile_data):
+        """Maintains all original contact_details fields"""
+        return {
             "address": profile_data.get('Profile_address', ''),
+            "city": get_city_name(profile_data.get('Profile_city')),
+            "district": get_district_name(profile_data.get('Profile_district')),
+            "state": get_state_name(profile_data.get('Profile_state')),
+            "country": get_country_name(profile_data.get('Profile_country')),
             "phone": profile_data.get('Profile_alternate_mobile', ''),
             "mobile": profile_data.get('Mobile_no', ''),
             "whatsapp": profile_data.get('Profile_whatsapp', ''),
             "email": profile_data.get('EmailId', '')
         }
-        
-        # Location lookups with caching
-        location_fields = {
-            'city': ('Profile_city', get_city_name),
-            'district': ('Profile_district', get_district_name),
-            'state': ('Profile_state', get_state_name),
-            'country': ('Profile_country', get_country_name)
-        }
-        
-        for field, (profile_field, getter_func) in location_fields.items():
-            field_id = profile_data.get(profile_field)
-            if field_id:
-                cache_key = f"loc_{profile_field}_{field_id}"
-                cached = cache.get(cache_key)
-                if cached:
-                    contact_data[field] = cached
-                else:
-                    try:
-                        value = getter_func(field_id) or ''
-                        cache.set(cache_key, value, 3600)  # Cache for 1 hour
-                        contact_data[field] = value
-                    except Exception as e:
-                        logger.warning(f"Failed to get {field}: {str(e)}")
-                        contact_data[field] = ''
-            else:
-                contact_data[field] = ''
-        
-        return contact_data
-
-    def _get_matching_score(self, my_profile, user_profile):
-        """Cached matching score calculation"""
-        cache_key = f"match_{my_profile['ProfileId']}_{user_profile['ProfileId']}"
+    
+    def _get_profession_name(self, profession_id):
+        """Get profession name with caching"""
+        if not profession_id:
+            return None
+        cache_key = f"prof_{profession_id}"
         cached = cache.get(cache_key)
         if cached:
             return cached
-            
-        score = get_matching_score_util(
-            my_profile['birthstar_name'],
-            my_profile['birth_rasi_name'],
-            user_profile['birthstar_name'],
-            user_profile['birth_rasi_name'],
-            my_profile['Gender']
-        )
-        cache.set(cache_key, score, 300)  # Cache for 5 minutes
-        return score
+        try:
+            profession = models.Profespref.objects.filter(
+                RowId=profession_id
+            ).values_list('profession', flat=True).first()
+            cache.set(cache_key, profession, 3600)  # Cache for 1 hour
+            return profession
+        except Exception:
+            return None
 
-    def _prepare_personal_details(self, profile):
-        """Efficient personal details preparation"""
-        marital_status = models.ProfileMaritalstatus.objects.filter(
-            StatusId=profile['Profile_marital_status']
-        ).values_list('MaritalStatus', flat=True).first()
+    def _get_education_level(self, education_id):
+        """Get education level with caching"""
+        if not education_id:
+            return ''
+        cache_key = f"edu_{education_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        try:
+            education = models.Edupref.objects.filter(
+                RowId=education_id
+            ).values_list('EducationLevel', flat=True).first() or ''
+            cache.set(cache_key, education, 3600)
+            return education
+        except Exception:
+            return ''
 
-        return {
-            'profile_name': profile['Profile_name'],
-            'marital_status': marital_status,
-            # ... other fields ...
-        }
-    
-    def _prepare_education_details(self, profile_data):
-        """Optimized education details preparation with cached lookups"""
-        # Get education data with fallbacks
-        education = ''
-        field_study = ''
+    def _get_field_of_study(self, field_id):
+        """Get field of study with caching"""
+        if not field_id:
+            return ''
+        cache_key = f"field_{field_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        try:
+            field = models.Profilefieldstudy.objects.filter(
+                id=field_id
+            ).values_list('field_of_study', flat=True).first() or ''
+            cache.set(cache_key, field, 3600)
+            return field
+        except Exception:
+            return ''
+
+    def _get_user_status(self, last_login):
+        """Determine user activity status with caching"""
+        if not last_login or last_login == '0000-00-00 00:00:00':
+            return "Newly registered"
         
-        # Highest education
-        if profile_data.get('highest_education'):
-            try:
-                education = models.Edupref.objects.filter(
-                    RowId=profile_data['highest_education']
-                ).values_list('EducationLevel', flat=True).first() or ''
-            except Exception:
-                pass
+        cache_key = f"status_{last_login}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
         
-        # Field of study
-        if profile_data.get('field_ofstudy'):
-            try:
-                field_study = models.Profilefieldstudy.objects.filter(
-                    id=profile_data['field_ofstudy']
-                ).values_list('field_of_study', flat=True).first() or ''
-            except Exception:
-                pass
+        try:
+            one_month_ago = timezone.now() - timedelta(days=30)
+            status = "Active User" if last_login > one_month_ago else "In Active User"
+            cache.set(cache_key, status, 3600)
+            return status
+        except Exception:
+            return "Newly registered"
+
+    def _format_last_visit(self, last_login):
+        """Format last visit date with caching"""
+        if not last_login or last_login == '0000-00-00 00:00:00':
+            return ''
         
-        # Profession (cached lookup)
-        profession = None
-        if profile_data.get('profession'):
-            try:
-                profession = models.Profespref.objects.filter(
-                    RowId=profile_data['profession']
-                ).values_list('profession', flat=True).first()
-            except Exception:
-                pass
+        cache_key = f"lastvisit_{last_login}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
         
-        # Annual income
-        annual_income = ''
-        if profile_data.get('anual_income'):
-            try:
-                annual_income = models.Annualincome.objects.filter(
-                    id=profile_data['anual_income']
-                ).values_list('income', flat=True).first() or ''
-            except Exception:
-                pass
+        try:
+            formatted = last_login.strftime("(%B %d, %Y)")
+            cache.set(cache_key, formatted, 3600)
+            return formatted
+        except Exception:
+            return ''
 
-        return {
-            'education_level': f"{education} {field_study}".strip(),
-            'education_detail': " ",
-            'ug_degeree': get_degree(profile_data.get('ug_degeree', '')),
-            'about_education': profile_data.get('about_edu', ''),
-            'profession': profession,
-            'designation': profile_data.get('designation', ''),
-            'company_name': profile_data.get('company_name', ''),
-            'business_name': profile_data.get('business_name', ''),
-            'business_address': profile_data.get('business_address', ''),
-            'annual_income': annual_income,
-            'gross_annual_income': profile_data.get('actual_income', ''),
-        }
-
-    def _prepare_family_details(self, profile_data):
-            """Optimized family details preparation"""
-            # Family status lookup
-            family_status = None
-            if profile_data.get('family_status'):
-                try:
-                    family_status = models.Familystatus.objects.filter(
-                        id=profile_data['family_status']
-                    ).values_list('status', flat=True).first()
-                except Exception:
-                    pass
-
-            return {
-                'about_family': profile_data.get('about_family', ''),
-                'father_name': profile_data.get('father_name', ''),
-                'father_occupation': profile_data.get('father_occupation', ''),
-                'mother_name': profile_data.get('mother_name', ''),
-                'mother_occupation': profile_data.get('mother_occupation', ''),
-                'family_status': family_status,
-                'no_of_sisters': profile_data.get('no_of_sister', 0),
-                'no_of_brothers': profile_data.get('no_of_brother', 0),
-                'no_of_sis_married': profile_data.get('no_of_sis_married', 0),
-                'no_of_bro_married': profile_data.get('no_of_bro_married', 0),
-                'property_details': profile_data.get('property_details', ''),
-                'father_alive': profile_data.get('father_alive', 0),
-                'mother_alive': profile_data.get('mother_alive', 0),
-            }
-    def _prepare_horoscope_details(self, profile_data, horoscope_permission):
-                """Optimized horoscope details with permission check"""
-                # Star and rasi lookups
-                star_name = None
-                rasi_name = None
-                lagnam_didi = None
-                
-                try:
-                    star_name = models.Birthstar.objects.filter(
-                        id=profile_data['birthstar_name']
-                    ).values_list('star', flat=True).first()
-                except Exception:
-                    pass
-                
-                try:
-                    rasi_name = models.Rasi.objects.filter(
-                        id=profile_data['birth_rasi_name']
-                    ).values_list('name', flat=True).first()
-                except Exception:
-                    pass
-                
-                # Lagnam didi lookup
-                if profile_data.get('lagnam_didi'):
-                    try:
-                        lagnam_didi = models.Lagnamdidi.objects.filter(
-                            id=profile_data['lagnam_didi']
-                        ).values_list('name', flat=True).first()
-                    except Exception:
-                        pass
-
-                base_details = {
-                    'rasi': rasi_name,
-                    'star_name': star_name,
-                    'lagnam': lagnam_didi,
-                    'nallikai': profile_data.get('nalikai', ''),
-                    'didi': profile_data.get('didi', ''),
-                    'surya_gothram': profile_data.get('suya_gothram', ''),
-                    'dasa_name': get_dasa_name(profile_data.get('dasa_name', '')),
-                    'dasa_balance': dasa_format_date(profile_data.get('dasa_balance', '')),
-                    'chevvai_dosham': self.dosham_value_formatter(profile_data.get('chevvai_dosaham', 0)),
-                    'sarpadosham': self.dosham_value_formatter(profile_data.get('ragu_dosham', 0)),
-                    'madulamn': profile_data.get('madulamn', ''),
-                }
-
-                # Add grid details only if permitted
-                if horoscope_permission:
-                    base_details.update({
-                        'rasi_kattam': profile_data.get('rasi_kattam', ''),
-                        'amsa_kattam': profile_data.get('amsa_kattam', ''),
-                    })
-
-                return base_details
-    
-    
     def dosham_value_formatter(self,value):
             if isinstance(value, str):
                         return {"0": "Unknown", "1": "Yes", "2": "No"}.get(value, value)
@@ -5329,40 +5369,221 @@ class Get_profile_det_match_new(APIView):
         return 1 if not models.Image_Upload.objects.filter(
             profile_id=profile['ProfileId']
         ).exists() else 0
+    def _get_profile_images(self, profile_id, gender, photo_viewing_permission, photo_protection):
+        """Get profile images with appropriate protection settings"""
+        if photo_viewing_permission == 1:
+            return get_profile_image_azure_optimized(profile_id, gender, 'all', photo_protection)
+        return get_profile_image_azure_optimized(profile_id, gender, 'all', 1)
+    
+    def _get_marital_status(self, status_id):
+        """Get marital status with caching"""
+        if not status_id:
+            return None
+        
+        cache_key = f"marital_{status_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        try:
+            status = models.ProfileMaritalstatus.objects.filter(
+                StatusId=status_id
+            ).values_list('MaritalStatus', flat=True).first()
+            cache.set(cache_key, status, 86400)  # Cache for 24 hours
+            return status
+        except Exception:
+            return None
+
+    def _get_complexion(self, complexion_id):
+        """Get complexion description with caching"""
+        if not complexion_id:
+            return None
+        
+        cache_key = f"complexion_{complexion_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        try:
+            complexion = models.Profilecomplexion.objects.filter(
+                complexion_id=complexion_id
+            ).values_list('complexion_desc', flat=True).first()
+            cache.set(cache_key, complexion, 86400)  # Cache for 24 hours
+            return complexion
+        except Exception:
+            return None
+
+    def _get_profile_creator(self, creator_type):
+        """Get profile creator type with caching"""
+        if not creator_type:
+            return None
+        
+        cache_key = f"creator_{creator_type}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        try:
+            creator = models.Profileholder.objects.filter(
+                Mode=creator_type
+            ).values_list('ModeName', flat=True).first()
+            cache.set(cache_key, creator, 86400)  # Cache for 24 hours
+            return creator
+        except Exception:
+            return None
+    
+    def _get_annual_income(self, income_id):
+        """Get formatted annual income with caching"""
+        if not income_id:
+            return ''
+        
+        cache_key = f"income_{income_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        try:
+            income = models.Annualincome.objects.filter(
+                id=income_id
+            ).values_list('income', flat=True).first() or ''
+            cache.set(cache_key, income, 86400)  # Cache for 24 hours
+            return income
+        except Exception:
+            return ''
+
+    def _get_family_status(self, status_id):
+        """Get family status description with caching"""
+        if not status_id:
+            return None
+        
+        cache_key = f"family_status_{status_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        try:
+            status = models.Familystatus.objects.filter(
+                id=status_id
+            ).values_list('status', flat=True).first()
+            cache.set(cache_key, status, 86400)  # Cache for 24 hours
+            return status
+        except Exception:
+            return None
+
+    def _get_rasi_name(self, rasi_id):
+        """Get rasi name with caching"""
+        if not rasi_id:
+            return None
+        
+        cache_key = f"rasi_{rasi_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        try:
+            rasi = models.Rasi.objects.filter(
+                id=rasi_id
+            ).values_list('name', flat=True).first()
+            cache.set(cache_key, rasi, 86400)  # Cache for 24 hours
+            return rasi
+        except Exception:
+            return None
+
+    def _get_star_name(self, star_id):
+        """Get birth star name with caching"""
+        if not star_id:
+            return None
+        
+        cache_key = f"star_{star_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        try:
+            star = models.Birthstar.objects.filter(
+                id=star_id
+            ).values_list('star', flat=True).first()
+            cache.set(cache_key, star, 86400)  # Cache for 24 hours
+            return star
+        except Exception:
+            return None
+
+    def _get_lagnam_didi(self, didi_id):
+        """Get lagnam didi name with caching"""
+        if not didi_id:
+            return None
+        
+        cache_key = f"didi_{didi_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        try:
+            didi = models.Lagnamdidi.objects.filter(
+                id=didi_id
+            ).values_list('name', flat=True).first()
+            cache.set(cache_key, didi, 86400)  # Cache for 24 hours
+            return didi
+        except Exception:
+            return None
+
+    def _format_dosham_value(self, value):
+        """
+        Format dosham values consistently
+        Converts both string and integer inputs to standardized text
+        """
+        if value is None:
+            return "Unknown"
+        
+        if isinstance(value, str):
+            return {
+                "0": "Unknown",
+                "1": "Yes", 
+                "2": "No"
+            }.get(value.strip(), value)
+        
+        if isinstance(value, int):
+            return {
+                0: "Unknown",
+                1: "Yes",
+                2: "No"
+            }.get(value, str(value))
+        
+        return str(value)
 
 
 
 def get_place_of_work(profile_details):
-    profile = profile_details[0]
+        profile = profile_details
 
-    parts = []
+        parts = []
 
-    country = get_country_name(profile.get('work_country'))
-    if country:
-        parts.append(country)
+        country = get_country_name(profile.get('work_country'))
+        if country:
+            parts.append(country)
 
-    state = get_state_name(profile.get('work_state'))
-    if state:
-        parts.append(state)
+        state = get_state_name(profile.get('work_state'))
+        if state:
+            parts.append(state)
 
-    district = get_district_name(profile.get('work_district'))
-    if district:
-        parts.append(district)
+        district = get_district_name(profile.get('work_district'))
+        if district:
+            parts.append(district)
 
-    city = get_city_name(profile.get('work_city'))
-    if city:
-        parts.append(city)
+        city = get_city_name(profile.get('work_city'))
+        if city:
+            parts.append(city)
 
-    return " / ".join(parts) if parts else None
+        return " / ".join(parts) if parts else None
 
 
 def format_date_of_birth(Profile_dob):
-    if Profile_dob:
-        try:
-            return Profile_dob.strftime("%d-%m-%Y")
-        except AttributeError:
-            return None  # In case dob is not a valid date object
-    return None
+        if Profile_dob:
+            try:
+                return Profile_dob.strftime("%d-%m-%Y")
+            except AttributeError:
+                return None  # In case dob is not a valid date object
+        return None
 
 
 
