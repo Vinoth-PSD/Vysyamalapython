@@ -11282,12 +11282,17 @@ class JustRegisteredAPIView(APIView):
             age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
 
             education = models.Edudetails.objects.filter(profile_id=user.ProfileId).first()
+            if education is not None:
+                field_id = getattr(education, 'field_ofstudy', None)
 
-            if education and education.highest_education:
-                education_obj = models.Highesteducation.objects.filter(id=education.highest_education).first()
-                education_value = education_obj.degree if education_obj else "Not available"
-            else:
-                education_value = "Not available"
+                if field_id:
+                    try:
+                        education_field_obj = models.Profilefieldstudy.objects.get(id=field_id)
+                        education_field= education_field_obj.field_of_study
+                    except models.Profilefieldstudy.DoesNotExist:
+                        education_field = "Not available"
+                else:
+                    education_field = "Not available"
 
             horoscope = models.Horoscope.objects.filter(profile_id=user.ProfileId).first()
 
@@ -11301,7 +11306,7 @@ class JustRegisteredAPIView(APIView):
                 "profile_id": user.ProfileId,
                 "age": age,
                 "birthstar": birthstar_name,
-                "education": education_value,
+                "education": education_field,
                 "gender": user.Gender,
             })
 
