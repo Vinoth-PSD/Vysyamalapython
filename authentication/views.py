@@ -2872,6 +2872,7 @@ class Get_Gallery_lists(APIView):
                 JOIN logindetails ld ON pi.profile_id = ld.ProfileId
                 WHERE ld.Photo_protection != 1
                 AND ld.ProfileId IN ({placeholders})
+                ORDER BY ld.DateOfJoin DESC
             )
             SELECT id, profile_id, image
             FROM RankedImages
