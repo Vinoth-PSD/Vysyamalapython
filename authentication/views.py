@@ -4256,12 +4256,12 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
             else :
                 
                 if(gender=='male'):
-                        print("Execution time when blur image failed ",datetime.now())
+                        # print("Execution time when blur image failed ",datetime.now())
                         
                         return base_url+default_img_bride
                                 
                 if(gender=='female'):
-                        print("Execution time when blur image failed ",datetime.now())
+                        # print("Execution time when blur image failed ",datetime.now())
                                     
                         return base_url+default_img_groom
 
@@ -9005,7 +9005,7 @@ class SuggestedProfiles1(APIView):
         )
         suggested_ids = set([r['ProfileId'] for r in suggested_results])
 
-        print('suggested_ids',suggested_ids)
+        # print('suggested_ids',suggested_ids)
 
         # Get all user preference profile IDs
         partner_results = models.Get_profiledata.get_profile_list_for_pref_type(
@@ -9013,7 +9013,7 @@ class SuggestedProfiles1(APIView):
             use_suggested=False
         )
         partner_ids = set([r['ProfileId'] for r in partner_results])
-        print('partner_ids',partner_ids)
+        # print('partner_ids',partner_ids)
 
         # Subtract
         unique_ids = list(suggested_ids - partner_ids)
@@ -9419,15 +9419,15 @@ def transform_data(original_data,my_profile_id,my_gender,source_rasi_id,source_s
 
     photo_viewing=get_permission_limits(my_profile_id,'photo_viewing')
 
-    print(original_data.get("Photo_protection"),'photo protecion')
-    print(my_gender,'my_gender')
-    print(my_profile_id,'my_profile_id')
+    # print(original_data.get("Photo_protection"),'photo protecion')
+    # print(my_gender,'my_gender')
+    # print(my_profile_id,'my_profile_id')
 
     if photo_viewing == 1:
-                print("Execution time before image starts ",datetime.now())
+                # print("Execution time before image starts ",datetime.now())
                 image_function = lambda detail: get_profile_image_azure_optimized(original_data.get("ProfileId"), my_gender, 1, original_data.get("Photo_protection"))
     else:
-                print("Execution time before blur image starts ",datetime.now())
+                # print("Execution time before blur image starts ",datetime.now())
                 image_function = lambda detail: get_profile_image_azure_optimized(original_data.get("ProfileId"), my_gender, 1,1)
 
     transformed_data = {
@@ -9836,8 +9836,8 @@ class RazorpayWebhookView(APIView):
                 hashlib.sha256
             ).hexdigest()  # Convert to hex
 
-            print(f"Expected Signature: {generated_signature}")
-            print(f"Received Signature: {received_signature}")
+            # print(f"Expected Signature: {generated_signature}")
+            # print(f"Received Signature: {received_signature}")
 
             if generated_signature != received_signature:
                 return JsonResponse({"status": "error", "message": "Signature verification failed"}, status=400)
@@ -10471,7 +10471,7 @@ class FeaturedProfile(APIView):
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            print(f"Error: {e}")
+            # print(f"Error: {e}")
             return JsonResponse({"Status": 0, "message": f"An error occurred: {e}"}, status=status.HTTP_200_OK)
         
 
@@ -10615,7 +10615,7 @@ class Send_vysassist_request(APIView):
 
             get_limits=can_get_vysassist_profile(profile_from)
 
-            print('get_limits',get_limits)
+            # print('get_limits',get_limits)
 
             if get_limits is True: 
         
@@ -11257,34 +11257,31 @@ class ActiveProfilesAndHappyCustomersAPIView(APIView):
         })
         
         
-        
-
-
 
 class JustRegisteredAPIView(APIView):
     def post(self, request):
         recent_users = models.Registration1.objects.all().order_by('-DateOfJoin')[:10]
         active_profiles_count = models.Registration1.objects.filter(Status=1).count()
         happy_customers_count = 32272  
-
-
+ 
+ 
         users_data = []
         today = now().date()
-
+ 
         for user in recent_users:
             dob = user.Profile_dob
-
+ 
             if isinstance(dob, str):
                 dob = datetime.strptime(dob, "%Y-%m-%d").date()  
             elif isinstance(dob, datetime):
                 dob = dob.date()  
-
+ 
             age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-
+ 
             education = models.Edudetails.objects.filter(profile_id=user.ProfileId).first()
             if education is not None:
                 field_id = getattr(education, 'field_ofstudy', None)
-
+ 
                 if field_id:
                     try:
                         education_field_obj = models.Profilefieldstudy.objects.get(id=field_id)
@@ -11293,15 +11290,15 @@ class JustRegisteredAPIView(APIView):
                         education_field = "Not available"
                 else:
                     education_field = "Not available"
-
+ 
             horoscope = models.Horoscope.objects.filter(profile_id=user.ProfileId).first()
-
+ 
             if horoscope and horoscope.birthstar_name:
                 birthstar_obj = models.Birthstar.objects.filter(id=horoscope.birthstar_name).first()
                 birthstar_name = birthstar_obj.star if birthstar_obj else "Not available"
             else:
                 birthstar_name = "Not available"
-
+ 
             users_data.append({
                 "profile_id": user.ProfileId,
                 "age": age,
@@ -11309,7 +11306,7 @@ class JustRegisteredAPIView(APIView):
                 "education": education_field,
                 "gender": user.Gender,
             })
-
+ 
         return JsonResponse({
             "status": "success",
             "message": "Just registered users fetched successfully",
