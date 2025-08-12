@@ -1,56 +1,48 @@
-
-<style>
-  .porutham-star tr td p {
-    text-align: left !important;
-  }
-.porutham-table {
-    border-collapse: collapse;
-    width: 100%;
-    margin-bottom: 24px;
-    background-color: #fff9c7;
-    font-size: 14px;
-}
-</style>
-
-<div class=" porutham-match">
+<div class="porutham-match">
   <!-- <h2>Matching Stars</h2> -->
 
-    <table class="porutham-page mt-5">
-                <br>
-                <table class="porutham-header">
-                    <tr>
-                        <td>
-                            <img src="https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png">
-                        </td>
-                        <td>
-                            <p style="color:#008000;">www.vysyamala.com</p>
-                        </td>
-                    </tr>
-                </table>
-                <h2 class="porutham-table-title" style="color:#008000;">Matching Stars Report</h2>
-                <table class="porutham-table">
-                     <tr>
-                        <td><p style="color:#008000;">Name</p></td>
-                        <td><p style="color:#008000;">{{name}}</p></td>
-                        <td><p style="color:#008000;">Vysyamala ID</p></td>
-                        <td><p style="color:#008000;">{{profile_id}}</p></td>
-                    </tr>
-                    <tr>
-                        <td><p style="color:#008000;">Birth Star</p></td>
-                        <td><p style="color:#008000;">{{birth_star}}</p></td>
-                        <td><p style="color:#008000;">Age</p></td>
-                        <td><p style="color:#008000;">{{age}}</p></td>
-                    </tr>
-                </table>
-            {% for porutham_count, stars in porutham_stars.items %}
-              <h2 class="porutham-table-title" style="color:#008000;">Matching Stars ({{ porutham_count }} Poruthams)</h2>
-              <table class="porutham-table porutham-star">
-                <tr>
-                  <td><p style="color:#008000;">{{ stars|default:"N/A" }}</p></td>
-                </tr>
-              </table>
-            {% endfor %}
-      </table>
+  <table class="porutham-page">
+    <tr>
+      <td>
+        <br />
+        <table class="porutham-header">
+          <tr>
+            <td>
+              <img
+                src="https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png"
+              />
+            </td>
+            <td>
+              <p>www.vysyamala.com</p>
+            </td>
+          </tr>
+        </table>
+        <h2 class="porutham-table-title">Matching Stars Report</h2>
+        <table class="porutham-table">
+          <tr>
+            <td><p>Name</p></td>
+            <td><p>{{name}}</p></td>
+            <td><p>Vysyamala ID</p></td>
+            <td><p>{{profile_id}}</p></td>
+          </tr>
+          <tr>
+            <td><p>Birth Star</p></td>
+            <td><p>{{birth_star}}</p></td>
+            <td><p>Age</p></td>
+            <td><p>{{age}}</p></td>
+          </tr>
+        </table>
+        {% for porutham_count, stars in porutham_stars.items %}
+        <h2 class="porutham-table-title">
+          Matching Stars ({{ porutham_count }} Poruthams)
+        </h2>
+        <table class="porutham-table porutham-star">
+          <tr>
+            <td><p>{{ stars|default:"N/A" }}</p></td>
+          </tr>
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
 </div>
-
-

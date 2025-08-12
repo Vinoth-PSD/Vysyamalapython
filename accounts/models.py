@@ -526,7 +526,7 @@ class LoginDetails(models.Model):
     Profile_country = models.CharField(max_length=200, null=True)
     Profile_state = models.CharField(max_length=200, null=True)
     Profile_city = models.CharField(max_length=200, null=True)
-    Profile_district = models.CharField(max_length=200, null=True)
+    Profile_district = models.CharField(max_length=200, null=True,blank=True)
     Profile_pincode = models.CharField(max_length=200, null=True)
 
     Profile_whatsapp = models.CharField(max_length=200, null=True)
@@ -659,24 +659,24 @@ class ProfileFamilyDetails(models.Model):
     eye_wear = models.CharField(max_length=100, null=True, blank=True)
     body_type = models.CharField(max_length=250, null=True)
     about_self = models.TextField(null=True)
-    hobbies = models.TextField(null=True)
+    hobbies = models.TextField(null=True, blank=True)
     blood_group = models.CharField(max_length=50, null=True)
     Pysically_changed = models.CharField(max_length=20, null=True)
-    no_of_brother = models.CharField(max_length=20, null=True)
-    no_of_sister = models.CharField(max_length=20, null=True)
+    no_of_brother = models.CharField(max_length=20,null=True, blank=True)
+    no_of_sister = models.CharField(max_length=20, null=True, blank=True)
     no_of_bro_married = models.CharField(max_length=20, null=True)
     no_of_sis_married = models.CharField(max_length=20, null=True)
-    family_type = models.CharField(max_length=100, null=True)
-    family_value = models.CharField(max_length=100, null=True)
-    family_status = models.CharField(max_length=100, null=True)
-    property_details = models.TextField(null=True)
-    property_worth = models.CharField(max_length=100, null=True)
+    family_type = models.CharField(max_length=100, null=True, blank=True)
+    family_value = models.CharField(max_length=100, null=True, blank=True)
+    family_status = models.CharField(max_length=100, null=True, blank=True)
+    property_details = models.TextField(null=True,  blank=True)
+    property_worth = models.CharField(max_length=100, null=True, blank=True)
     suya_gothram = models.CharField(max_length=100, null=True)
     uncle_gothram = models.CharField(max_length=100, null=True)
     suya_gothram_admin = models.CharField(max_length=200, null=True)
     uncle_gothram_admin = models.CharField(max_length=200, null=True)
     ancestor_origin = models.TextField(null=True , blank=True)
-    about_family = models.TextField(null=True)
+    about_family = models.TextField( null=True, blank=True)
     no_of_children = models.IntegerField(max_length=10 , null=True)
     madulamn = models.CharField(max_length=10 ,null=True,blank=True)
     father_alive = models.CharField(max_length=10 ,null=True,blank=True)
@@ -690,17 +690,17 @@ class ProfileEduDetails(models.Model):
     highest_education = models.CharField(max_length=100, null=False, blank=False)
     degree = models.CharField(max_length=100, null=False, blank=True)
     ug_degeree = models.CharField(max_length=100, null=False, blank=True)
-    about_edu = models.TextField( null=False, blank=False)
+    about_edu = models.TextField( null=True, blank=True)
     profession = models.CharField(max_length=100, null=False, blank=False)  # Added missing field
-    anual_income = models.CharField(max_length=100, null=False, blank=False)
-    actual_income = models.CharField(max_length=100, null=False, blank=False)  # Added missing field
-    work_country = models.CharField(max_length=100, null=False, blank=False)
+    anual_income = models.CharField(max_length=100, null=True, blank=True)
+    actual_income = models.CharField(max_length=100, null=True, blank=True)  # Added missing field
+    work_country = models.CharField(max_length=100, null=True, blank=True)
     work_state = models.CharField(max_length=100, null=True, blank=True)
     work_city = models.CharField(max_length=100, null=True, blank=True)  # Added missing field
     work_district = models.CharField(max_length=100, null=True, blank=True) 
     work_place = models.CharField(max_length=100, null=True, blank=True)  # Added missing field
     work_pincode = models.CharField(max_length=10,null=False, blank=True)
-    career_plans = models.TextField( null=False, blank=False)
+    career_plans = models.TextField( null=False, blank=True)
     currency = models.CharField(max_length=250,null=False, blank=True)
     company_name = models.CharField(max_length=250,null=False, blank=True)
     designation = models.CharField(max_length=250,null=False, blank=True)
@@ -746,8 +746,8 @@ class ProfilePartnerPref(models.Model):
 
 class ProfileSuggestedPref(models.Model):
     profile_id = models.CharField(max_length=50, unique=True, primary_key=True)
-    pref_age_differences = models.CharField(max_length=10)
-    pref_height_from = models.CharField(max_length=10)
+    pref_age_differences = models.CharField(max_length=10, null=True, blank=True)
+    pref_height_from = models.CharField(max_length=10, null=True, blank=True)
     pref_height_to = models.CharField(max_length=50, null=True, blank=True)  # Added missing field
     pref_marital_status = models.CharField(max_length=100, null=True, blank=True)
     pref_profession = models.CharField(max_length=100, null=True, blank=True)
@@ -756,11 +756,11 @@ class ProfileSuggestedPref(models.Model):
     pref_anual_income = models.CharField(max_length=100, null=True, blank=True)
     pref_anual_income_max = models.CharField(max_length=100, null=True, blank=True)
 
-    pref_chevvai = models.CharField(max_length=10)
+    pref_chevvai = models.CharField(max_length=10, null=True, blank=True)
     
-    pref_ragukethu = models.CharField(max_length=10)
+    pref_ragukethu = models.CharField(max_length=10, null=True, blank=True)
    
-    pref_foreign_intrest = models.CharField(max_length=100)
+    pref_foreign_intrest = models.CharField(max_length=100, null=True, blank=True)
    
     pref_porutham_star = models.CharField(max_length=1000, null=True, blank=True)
     pref_porutham_star_rasi	 = models.TextField(null=True, blank=True)
@@ -909,10 +909,11 @@ class Award(models.Model):
 
 
 class SuccessStory(models.Model):
+    id = models.AutoField(primary_key=True)
     couple_name = models.CharField(max_length=255)
     photo = models.ImageField(upload_to='success_stories/photos/',storage=AzureMediaStorage())
     date_of_marriage = models.DateField()
-    details = models.TextField()
+    details = models.TextField(blank=True, null=True)
     status = models.IntegerField(default=1)  
     deleted = models.BooleanField(default=False)  
 
@@ -2712,10 +2713,10 @@ class ProfileVisibility(models.Model):
     visibility_age_to = models.CharField(max_length=50)
     visibility_height_from = models.CharField(max_length=50)
     visibility_height_to = models.CharField(max_length=50)
-    visibility_profession = models.CharField(max_length=50)  
-    visibility_education = models.CharField(max_length=50)
-    visibility_anual_income = models.CharField(max_length=255)
-    visibility_family_status = models.CharField(max_length=50)
+    visibility_profession = models.CharField(max_length=50,null=True, blank=True)  
+    visibility_education = models.CharField(max_length=50,null=True, blank=True)
+    visibility_anual_income = models.CharField(max_length=255,null=True, blank=True)
+    visibility_family_status = models.CharField(max_length=50,null=True, blank=True)
     visibility_chevvai = models.CharField(max_length=20)  
     visibility_ragukethu = models.CharField(max_length=20)
     visibility_foreign_interest = models.CharField(max_length=20)

@@ -2046,8 +2046,6 @@ class SubmitProfileAPIView(APIView):
         # Success response
         return Response({"status": "success", "ProfileId": profile_id}, status=status.HTTP_201_CREATED)
 
-
-
 def parse_membership_date(date_str):
     if not date_str:
         return None
@@ -2098,7 +2096,7 @@ class EditProfileAPIView(APIView):
         if login_serializer.is_valid():
             login_serializer.save()
         else:
-            errors['login_details'] = login_serializer.errors
+            errors['login_details'] = login_serializer.errors 
 
         # Step 2: Retrieve and update ProfileFamilyDetails
         if family_data:
@@ -2220,7 +2218,7 @@ class EditProfileAPIView(APIView):
                     profile_id=profile_id
                 )
 
-            suggested_pref_serializer = ProfilePartnerPrefSerializer(instance=suggested_pref_detail, data=suggested_pref_data, partial=True)
+            suggested_pref_serializer = ProfileSuggestedPrefSerializer(instance=suggested_pref_detail, data=suggested_pref_data, partial=True)
             if suggested_pref_serializer.is_valid():
                 suggested_pref_serializer.save()
             else:
@@ -7280,9 +7278,9 @@ def get_district_name(district_id):
         return district_id 
 
 class AdminProfilePDFView(APIView):
-    def post(self, request):
-        profile_id = request.data.get('profile_id')
-        format_type = request.data.get('format') or "shortprofile"
+    def get(self, request, profile_id=None, pdf_format=None):
+        profile_id = profile_id or request.query_params.get('profile_id')
+        format_type = pdf_format or request.query_params.get('pdf_format')
         
         # get details
         login = get_object_or_404(models.Registration1, ProfileId=profile_id)
@@ -7554,7 +7552,7 @@ class AdminProfilePDFView(APIView):
                 ("6", format_star_names(porutham_data.get("6 Poruthams"))),
                 ("5", format_star_names(porutham_data.get("5 Poruthams"))),
             ]),
-            "view_profile_url": f"https://calm-moss-0d969331e.2.azurestaticapps.net/viewProfile?profileId={login.ProfileId}/"
+            "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}/"
         }
 
 
@@ -7581,11 +7579,13 @@ class AdminProfilePDFView(APIView):
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 class AdminMatchProfilePDFView(APIView):
-    def post(self, request):
-        profile_ids = request.data.get('profile_id')
-        format_type = request.data.get('format')
-        profile_to = request.data.get('profile_to') 
+    def get(self, request, profile_ids=None, pdf_format=None, profile_to=None):
+        # Prefer path params; fall back to query params for flexibility
+        profile_ids = profile_ids or request.query_params.get('profile_ids')
+        format_type = pdf_format or request.query_params.get('pdf_format')  
+        profile_to = profile_to or request.query_params.get('profile_to')
 
+        print("format_type", format_type)
         if not profile_ids:
             return JsonResponse({"status": "error", "message": "profile_id is required"}, status=400)
         elif not format_type:
@@ -7877,7 +7877,7 @@ class AdminMatchProfilePDFView(APIView):
                         ("5", format_star_names(porutham_data1.get("5 Poruthams")or [])),
                     ]),
                     "porutham_rows":porutham_rows ,
-                    "view_profile_url": f"https://calm-moss-0d969331e.2.azurestaticapps.net/viewProfile?profileId={login.ProfileId}/"
+                    "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}/"
                 }
 
                 template_map = {

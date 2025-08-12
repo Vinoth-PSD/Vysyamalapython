@@ -229,13 +229,13 @@ class LoginDetailsSerializer(serializers.ModelSerializer):
     Profile_dob = serializers.DateField(required=True)
    
     Profile_complexion = serializers.CharField(required=True)
-    Profile_address = serializers.CharField(required=True)
-    Profile_country = serializers.CharField(required=True)
-    Profile_state = serializers.CharField(required=True)
-    Profile_city = serializers.CharField(required=True)
-    Profile_district = serializers.CharField(required=True)
+    Profile_address = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    Profile_country = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    Profile_state = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    Profile_city = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    Profile_district = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     Gender = serializers.CharField(required=True)
-    Profile_pincode = serializers.CharField(required=True)
+    Profile_pincode = serializers.CharField(required=False,allow_blank=True, allow_null=True)
     
     Notifcation_enabled = serializers.CharField(required=False , allow_blank=True, allow_null=True)
     Addon_package = serializers.CharField(required=False , allow_blank=True, allow_null=True)
@@ -282,13 +282,13 @@ class LoginEditSerializer(serializers.ModelSerializer):
     Profile_dob = serializers.DateField(required=True)
    
     Profile_complexion = serializers.CharField(required=True)
-    Profile_address = serializers.CharField(required=True)
-    Profile_country = serializers.CharField(required=True)
-    Profile_state = serializers.CharField(required=True,allow_null=True, allow_blank=True)
-    Profile_city = serializers.CharField(required=True)
-    Profile_district = serializers.CharField(required=True,allow_null=True, allow_blank=True)
+    Profile_address = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+    Profile_country = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+    Profile_state = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+    Profile_city = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+    Profile_district = serializers.CharField(required=False,allow_null=True, allow_blank=True)
     Gender = serializers.CharField(required=False,allow_null=True)
-    Profile_pincode = serializers.CharField(required=True)
+    Profile_pincode = serializers.CharField(required=True,allow_null=True, allow_blank=True)
 
     Notifcation_enabled = serializers.CharField(required=False ,allow_blank=True, allow_null=True)
     Addon_package = serializers.CharField(required=False ,allow_blank=True, allow_null=True)
@@ -303,33 +303,44 @@ class LoginEditSerializer(serializers.ModelSerializer):
     def validate(self, data):
         profile_country = str(data.get('Profile_country')).strip()
 
+        if not profile_country:
+            # Skip validation and clear state/district
+            data['Profile_state'] = None
+            data['Profile_district'] = None
+            return data
+
         if profile_country == '1':
             if not data.get('Profile_state'):
-                raise serializers.ValidationError({'Profile_state': 'This field is required when Profile_country is 1.'})
+                raise serializers.ValidationError({
+                    'Profile_state': 'This field is required when Profile_country is 1.'
+                })
             if not data.get('Profile_district'):
-                raise serializers.ValidationError({'Profile_district': 'This field is required when Profile_country is 1.'})
+                raise serializers.ValidationError({
+                    'Profile_district': 'This field is required when Profile_country is 1.'
+                })
         else:
             data['Profile_state'] = None
             data['Profile_district'] = None
 
         return data
 
+
 class ProfileFamilyDetailsSerializer(serializers.ModelSerializer):
-    profile_id = serializers.CharField(required=False , allow_null=True)
+    profile_id = serializers.CharField(required=False , allow_blank=True, allow_null=True)
     father_name = serializers.CharField(required=True)
-    mother_name = serializers.CharField(required=True)
-    family_name = serializers.CharField(required=False , allow_null=True) 
-    about_self = serializers.CharField(required=True)
-    blood_group = serializers.CharField(required=True)
-    Pysically_changed = serializers.CharField(required=True)
-    father_occupation = serializers.CharField(required=True)
-    mother_occupation = serializers.CharField(required=True)
-    weight = serializers.CharField(required=False , allow_null=True)
-    eye_wear = serializers.CharField(required=False , allow_null=True)
-    suya_gothram = serializers.CharField(required=False , allow_null=True)
-    uncle_gothram = serializers.CharField(required=False , allow_null=True)
-    suya_gothram_admin = serializers.CharField(required=False , allow_null=True)
-    uncle_gothram_admin = serializers.CharField(required=False , allow_null=True)
+    mother_name = serializers.CharField(required=True, allow_blank=True, allow_null=True)
+    family_name = serializers.CharField(required=False , allow_blank=True, allow_null=True) 
+    about_self = serializers.CharField(required=True, allow_blank=True, allow_null=True)
+    blood_group = serializers.CharField(required=True, allow_blank=True, allow_null=True)
+    Pysically_changed = serializers.CharField(required=True, allow_blank=True, allow_null=True)
+    father_occupation = serializers.CharField(required=True, allow_blank=True, allow_null=True)
+    mother_occupation = serializers.CharField(required=True, allow_blank=True, allow_null=True)
+    weight = serializers.CharField(required=False , allow_blank=True, allow_null=True)
+    eye_wear = serializers.CharField(required=False , allow_blank=True, allow_null=True)
+    suya_gothram = serializers.CharField(required=False , allow_blank=True, allow_null=True)
+    uncle_gothram = serializers.CharField(required=False , allow_blank=True, allow_null=True)
+    suya_gothram_admin = serializers.CharField(required=False , allow_blank=True, allow_null=True)
+    uncle_gothram_admin = serializers.CharField(required=False , allow_blank=True, allow_null=True)
     father_alive = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     mother_alive = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     class Meta:
@@ -362,41 +373,41 @@ class ProfileEduDetailsSerializer(serializers.ModelSerializer):
 
 class ProfilePartnerPrefSerializer(serializers.ModelSerializer):
     profile_id = serializers.CharField(required=False , allow_null=True) 
-    pref_porutham_star_rasi = serializers.CharField(required=False , allow_null=True)
-    pref_porutham_star = serializers.CharField(required=False, allow_null=True)
+    pref_porutham_star_rasi = serializers.CharField(required=False , allow_null=True,allow_blank=True)
+    pref_porutham_star = serializers.CharField(required=False, allow_null=True,allow_blank=True)
     pref_height_to =  serializers.CharField(required=True)
     
-    pref_family_status =  serializers.CharField(required=False, allow_null=True)
-    pref_state =  serializers.CharField(required=False, allow_null=True)
+    pref_family_status =  serializers.CharField(required=False, allow_null=True,allow_blank=True)
+    pref_state =  serializers.CharField(required=False, allow_null=True,allow_blank=True)
     class Meta:
         model = ProfilePartnerPref
         fields = '__all__'
        
 class ProfileSuggestedPrefSerializer(serializers.ModelSerializer):
     profile_id = serializers.CharField(required=False , allow_null=True) 
-    pref_porutham_star_rasi = serializers.CharField(required=False , allow_null=True)
-    pref_porutham_star = serializers.CharField(required=False, allow_null=True)
-    pref_height_to =  serializers.CharField(required=True)
+    pref_porutham_star_rasi = serializers.CharField(required=False , allow_null=True,allow_blank=True)
+    pref_porutham_star = serializers.CharField(required=False, allow_null=True,allow_blank=True)
+    pref_height_to =  serializers.CharField(required=True, allow_null=True,allow_blank=True)
 
-    pref_family_status =  serializers.CharField(required=False, allow_null=True)
-    pref_state =  serializers.CharField(required=False, allow_null=True)
+    pref_family_status =  serializers.CharField(required=False, allow_null=True,allow_blank=True)
+    pref_state =  serializers.CharField(required=False, allow_null=True,allow_blank=True)
     class Meta:
         model = ProfileSuggestedPref
         fields = '__all__'
 
 class ProfileVisibilitySerializer(serializers.ModelSerializer):
-    visibility_age_from = serializers.CharField(required=False , allow_null=True)
-    visibility_age_to = serializers.CharField(required=False , allow_null=True)
-    visibility_height_from = serializers.CharField(required=False , allow_null=True)
-    visibility_height_to = serializers.CharField(required=False , allow_null=True)
+    visibility_age_from = serializers.CharField(required=False , allow_null=True,allow_blank=True)
+    visibility_age_to = serializers.CharField(required=False , allow_null=True,allow_blank=True)
+    visibility_height_from = serializers.CharField(required=False , allow_null=True,allow_blank=True)
+    visibility_height_to = serializers.CharField(required=False , allow_null=True,allow_blank=True)
 
-    visibility_profession = serializers.CharField(required=False , allow_null=True)
-    visibility_education = serializers.CharField(required=False , allow_null=True)
-    visibility_anual_income = serializers.CharField(required=False , allow_null=True)
-    visibility_family_status = serializers.CharField(required=False , allow_null=True)
-    visibility_chevvai = serializers.CharField(required=False , allow_null=True)
-    visibility_ragukethu = serializers.CharField(required=False , allow_null=True)
-    visibility_foreign_interest = serializers.CharField(required=False , allow_null=True)
+    visibility_profession = serializers.CharField(required=False , allow_null=True,allow_blank=True)
+    visibility_education = serializers.CharField(required=False , allow_null=True,allow_blank=True)
+    visibility_anual_income = serializers.CharField(required=False , allow_null=True,allow_blank=True)
+    visibility_family_status = serializers.CharField(required=False , allow_null=True,allow_blank=True)
+    visibility_chevvai = serializers.CharField(required=False , allow_null=True,allow_blank=True)
+    visibility_ragukethu = serializers.CharField(required=False , allow_null=True,allow_blank=True)
+    visibility_foreign_interest = serializers.CharField(required=False , allow_null=True,allow_blank=True)
     status = serializers.CharField(required=False , allow_null=True)
    
     
@@ -713,7 +724,7 @@ class VysassistSerializer(serializers.ModelSerializer):
 class ProfileHoroscopeSerializer(serializers.ModelSerializer):
     profile_id = serializers.CharField(required=False , allow_null=True) 
     horoscope_hints = serializers.CharField(required=False ,allow_blank=True , allow_null=True) 
-    dasa_name = serializers.CharField(required=False , allow_null=True) 
+    dasa_name = serializers.CharField(required=False,allow_blank=True , allow_null=True) 
     amsa_kattam = serializers.CharField(required=False, allow_null=True)
     rasi_kattam = serializers.CharField(required=False ,allow_null=True)
     horoscope_file = serializers.FileField(required=False)
