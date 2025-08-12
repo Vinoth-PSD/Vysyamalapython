@@ -1601,24 +1601,7 @@ class Get_profiledata(models.Model):
 
     @staticmethod
     def get_profile_details(profile_ids):
-        # query = '''SELECT l.*, pi.*, pp.*, pf.*, ph.*, pe.*
-        #     FROM logindetails l 
-        #     LEFT JOIN profile_edudetails pe ON pe.profile_id = l.ProfileId 
-        #     LEFT JOIN profile_familydetails pf ON pf.profile_id = l.ProfileId 
-        #     LEFT JOIN profile_horoscope ph ON ph.profile_id = l.ProfileId 
-        #     LEFT JOIN profile_images pi ON pi.profile_id = l.ProfileId 
-        #     LEFT JOIN profile_partner_pref pp ON pp.profile_id = l.ProfileId 
-        #     WHERE l.ProfileId IN %s  '''
-
-        # Below query is without joining the birth start and rsi start tables
-        # query = '''SELECT l.*, pp.*, pf.*, ph.*, pe.*
-        #     FROM logindetails l 
-        #     LEFT JOIN profile_edudetails pe ON pe.profile_id = l.ProfileId 
-        #     LEFT JOIN profile_familydetails pf ON pf.profile_id = l.ProfileId 
-        #     LEFT JOIN profile_horoscope ph ON ph.profile_id = l.ProfileId 
-        #     LEFT JOIN profile_partner_pref pp ON pp.profile_id = l.ProfileId 
-        #     WHERE l.ProfileId IN %s  '''
-        
+ 
         query = '''SELECT l.*, pp.*, pf.*, ph.*, pe.*,mr.name as rasi_name,mb.star as star_name , mp.Profession as profession_name
             FROM logindetails l 
             LEFT JOIN profile_edudetails pe ON pe.profile_id = l.ProfileId 
