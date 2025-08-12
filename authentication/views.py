@@ -89,6 +89,13 @@ from django.core.cache import caches
 import hashlib
 from pathlib import Path
 from django.forms.models import model_to_dict
+import time  # For performance measurement
+import logging
+from functools import lru_cache
+from django.db.models import Prefetch
+
+
+
 
 class LoginView(APIView):
     # authentication_classes = []
@@ -4551,7 +4558,7 @@ class Get_profile_det_match(APIView):
       if serializer.is_valid():   
 
        getviewlimits=can_get_viewd_profile_count(profile_id,user_profile_id) #Check Limits for the profile id based on their plan
-       print('getviewlimits',getviewlimits)
+    #    print('getviewlimits',getviewlimits)
     #    if getviewlimits is True or int(page_id)!=1 :   #if page id is not 1 than it is not a new profile details view 
 
        if getviewlimits is True or (page_id is not None and int(page_id) != 1):
@@ -4561,10 +4568,6 @@ class Get_profile_det_match(APIView):
 
                 profile_ids = [user_profile_id]
                 profile_details = get_profile_details(profile_ids)
-
-                #   print('birthstar_name',profile_details[0]['birthstar_name'])
-                #   print('birth_rasi_name',profile_details[0]['birth_rasi_name'])
-
                 my_profile_id =[profile_id]
 
                 my_profile_details = get_profile_details(my_profile_id)
@@ -4587,30 +4590,22 @@ class Get_profile_det_match(APIView):
                 else:
                         Plan_subscribed=0
 
-                        # Plan_subscribed = None
-
-
-
-                #   print('Profile_id',profile_details[0]['ProfileId'])
-                
-                #   user_images = Get_profile_image(profile_details[0]['ProfileId'], profile_details[0]['Gender'], 'all',profile_details[0]['Photo_protection'])  
-                # user_images = Get_profile_image(profile_details[0]['ProfileId'], my_gender, 'all',profile_details[0]['Photo_protection']) 
 
 
                 photo_viewing=get_permission_limits(profile_id,'photo_viewing')
                 
                 #commented by vinoth 16-05-25
 
-                print("Execution time before image ",datetime.now())
+                # print("Execution time before image ",datetime.now())
 
                 if photo_viewing == 1:
-                     print("Execution time before image ",datetime.now())
+                    #  print("Execution time before image ",datetime.now())
                      user_images =  lambda detail: get_profile_image_azure_optimized(profile_details[0]['ProfileId'], my_gender, 'all', profile_details[0]['Photo_protection'])
-                     print("Execution time after image  ",datetime.now())
+                    #  print("Execution time after image  ",datetime.now())
                 else:
-                    print("Execution time before image ",datetime.now())
+                    # print("Execution time before image ",datetime.now())
                     user_images = lambda detail: get_profile_image_azure_optimized(profile_details[0]['ProfileId'], my_gender,'all',1)
-                    print("Execution time after image  ",datetime.now())
+                    # print("Execution time after image  ",datetime.now())
                
                 try:
                     complexion_id = profile_details[0].get('Profile_complexion')
@@ -4649,12 +4644,6 @@ class Get_profile_det_match(APIView):
                 except models.Profespref.DoesNotExist:
                     Profile_profession = None
 
-                # try:
-                #         Profile_ug_degree = models.Ugdegree.objects.get(id=profile_details[0]['ug_degeree']).degree
-                # except models.Ugdegree.DoesNotExist:
-                #         Profile_ug_degree = None 
-
-
                 try:
                         Profile_owner = models.Profileholder.objects.get(Mode=profile_details[0]['Profile_for']).ModeName
                 except models.Profileholder.DoesNotExist:
@@ -4664,17 +4653,6 @@ class Get_profile_det_match(APIView):
                         Profile_marital_status = models.ProfileMaritalstatus.objects.get(StatusId=profile_details[0]['Profile_marital_status']).MaritalStatus
                 except models.ProfileMaritalstatus.DoesNotExist:
                         Profile_marital_status = None
-
-             
-                # try:
-                #             Profile_mother_ocup = models.Parentoccupation.objects.get(id=profile_details[0]['mother_occupation']).occupation
-                # except models.Parentoccupation.DoesNotExist:
-                #             Profile_mother_ocup = None
-                    
-                # try:
-                #             Profile_father_ocup = models.Parentoccupation.objects.get(id=profile_details[0]['father_occupation']).occupation
-                # except models.Parentoccupation.DoesNotExist:
-                #             Profile_father_ocup = None
                 
                 try:
                     family_status_id = profile_details[0].get('family_status')
@@ -4685,37 +4663,11 @@ class Get_profile_det_match(APIView):
                 except models.Familystatus.DoesNotExist:
                     Profile_family_status = None
 
-
-                #Profile_status_active = profile_details[0]['Profile_verified']
-
-                #   now = timezone.now()
-                #   one_month_ago = now - timedelta(days=30)
-
                 now = timezone.now()
 
                     # Convert now to a naive datetime
                 now_naive = now.replace(tzinfo=None)
                 one_month_ago = now_naive - timedelta(days=30)
-
-                #   Profile_status_active = ''
-
-                    # Ensure Last_login_date is not None and convert it to a datetime object
-                #   if profile_details[0]['Last_login_date']:
-                #         try:
-                #             # Assuming the date format is "%Y-%m-%d %H:%M:%S"
-                #             last_login_date = datetime.strptime(profile_details[0]['Last_login_date'], "%Y-%m-%d %H:%M:%S")
-
-                #             # Compare the last_login_date with one_month_ago
-                #             if last_login_date < one_month_ago:
-                #                 Profile_status_active = "In Active User"  # Mark as inactive if last login is older than one month
-                #             else:
-                #                 Profile_status_active = "Active User"
-                #         except ValueError:
-                #             Profile_status_active = "Invalid Date Format"  # Handle invalid date format
-                #   else:
-                #         Profile_status_active = "No Last Login Date"  # Handle case where Last_login_date is None or empty
-
-
                 Profile_status_active = ''
                 last_login_date=profile_details[0]['Last_login_date']
                 last_visit=''
@@ -4727,19 +4679,11 @@ class Get_profile_det_match(APIView):
                         Profile_status_active = "Newly registered"
                         # print(last_login_date,'last_login_date0000')
                     else:
-                            # print('Hai')
-                            # if isinstance(last_login_date, str):
-                            #     print(last_login_date,'last_login_date123')
+
                             try:
-                                    # Convert string to datetime
-                                    # print(last_login_date,'last_login_date12345')                          
 
                                     last_visit =profile_details[0]['Last_login_date'].strftime("(%B %d, %Y)") 
                                         
-
-                                    #last_login_date = datetime.strptime(last_login_date, "%Y-%m-%d %H:%M:%S")
-
-
                             except ValueError:
                                 last_login_date = None
                             last_login_date = None
@@ -4761,19 +4705,6 @@ class Get_profile_det_match(APIView):
                         profile_rasi_name = models.Rasi.objects.get(id=profile_details[0]['birth_rasi_name']).name
                 except models.Rasi.DoesNotExist:
                         profile_rasi_name = None
-
-                # try:
-                #         profile_state_name = models.Profilestate.objects.get(id=profile_details[0]['Profile_state']).name
-                # except models.Profilestate.DoesNotExist:
-                #         profile_state_name = None
-                
-                # try:
-                #         profile_country_name = models.Profilecountry.objects.get(id=profile_details[0]['Profile_country']).name
-                # except models.Profilecountry.DoesNotExist:
-                #         profile_country_name = None
-
-
-                #   profile_details[0]['birth_rasi_name']  
 
                 Profile_horoscope=0
                 Profile_horoscope_txt='Not available'
@@ -4808,8 +4739,8 @@ class Get_profile_det_match(APIView):
                 permission_contact_details=get_permission_limits(profile_id, 'contact_details')
                 permission_horosocpegrid_details=get_permission_limits(profile_id, 'horoscope_grid_details')
 
-                print('permission_contact_details',permission_contact_details)
-                print('permission_horosocpegrid_details',permission_horosocpegrid_details)
+                # print('permission_contact_details',permission_contact_details)
+                # print('permission_horosocpegrid_details',permission_horosocpegrid_details)
 
                 
                 eng_print=get_permission_limits(profile_id,'eng_print')  #user uploaded horoscope grid download permision
@@ -5023,6 +4954,381 @@ class Get_profile_det_match(APIView):
     
       return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+
+
+class Get_profile_det_match_new(APIView):
+    # Cache settings (seconds)
+    PROFILE_CACHE_TTL = 60
+    PERMISSION_CACHE_TTL = 300
+    
+    @lru_cache(maxsize=128)
+    def _get_cached_permission(self, profile_id, permission_type):
+        """Cached permission check with fallback to DB"""
+        cache_key = f"perm_{profile_id}_{permission_type}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+        result = get_permission_limits(profile_id, permission_type)
+        cache.set(cache_key, result, self.PERMISSION_CACHE_TTL)
+        return result
+
+    def _get_cached_profile(self, profile_id):
+        """Fetch profile with optimized queries and caching"""
+        cache_key = f"profile_full_{profile_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+            
+        # Optimized query with prefetching
+        profile = get_profile_details([profile_id])
+        if not profile:
+            return None
+            
+        cache.set(cache_key, profile[0], self.PROFILE_CACHE_TTL)
+        return profile[0]
+
+    def post(self, request):
+        start_time = time.time()
+        
+        # 1. Initial Validation (Fast Fail)
+        serializer = serializers.GetproflistSerializer_details(data=request.data)
+        if not serializer.is_valid():
+            return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        profile_id = request.data['profile_id']
+        user_profile_id = request.data['user_profile_id']
+        page_id = request.data.get('page_id', '1')
+
+        # 2. Check View Limits (Cached check)
+        if not (can_get_viewd_profile_count(profile_id, user_profile_id) or 
+               (page_id and int(page_id) != 1)):
+            return JsonResponse(
+                {'status': 'failure', 'message': 'Limit Reached'}, 
+                status=status.HTTP_201_CREATED
+            )
+
+        # 3. Parallel Data Fetching
+        my_profile = self._get_cached_profile(profile_id)
+        user_profile = self._get_cached_profile(user_profile_id)
+        
+        if not my_profile or not user_profile:
+            return JsonResponse(
+                {'status': 'failure', 'message': 'Profile not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # 4. Bulk Permission Check (Single Cache Lookup)
+        permissions = {
+            'photo': self._get_cached_permission(profile_id, 'photo_viewing'),
+            'vys': self._get_cached_permission(profile_id, 'vys_assist'),
+            'contact': self._get_cached_permission(profile_id, 'contact_details'),
+            'horoscope': self._get_cached_permission(profile_id, 'horoscope_grid_details'),
+            'eng_print': self._get_cached_permission(profile_id, 'eng_print')
+        }
+
+        # 5. Prepare Core Response (Minimal DB queries)
+        response_data = {
+            'basic_details': self._prepare_basic_details(my_profile, user_profile, permissions),
+            'photo_protection': user_profile['Photo_protection'],
+            'photo_request': self._get_photo_request_status(user_profile),
+            'user_images': None,  # Will be lazy-loaded
+            'personal_details': self._prepare_personal_details(user_profile),
+            'education_details': self._prepare_education_details(user_profile),
+            'family_details': self._prepare_family_details(user_profile),
+            'horoscope_details': self._prepare_horoscope_details(user_profile, permissions['horoscope'])
+        }
+
+        # 6. Lazy-load Heavy Components
+        if permissions['photo']:
+            response_data['user_images'] = get_profile_image_azure_optimized(
+                user_profile['ProfileId'],
+                my_profile['Gender'],
+                'all',
+                user_profile['Photo_protection']
+            )
+
+        # 7. Add Conditional Fields Last
+        if permissions['contact']:
+            response_data['contact_details'] = self._prepare_contact_details(user_profile)
+
+        # 8. Add Vysya Assist if Needed
+        if permissions['vys']:
+            response_data['basic_details'].update(
+                self._prepare_vysya_assist(profile_id, user_profile_id)
+            )
+
+        logger.info(f"API executed in {time.time() - start_time:.2f}s")
+        return JsonResponse(response_data, status=status.HTTP_200_OK)
+
+    # --- Optimized Helper Methods ---
+    def _prepare_basic_details(self, my_profile, user_profile, permissions):
+        """All basic details with minimal queries"""
+        return {
+            'profile_id': user_profile['ProfileId'],
+            'profile_name': user_profile['Profile_name'],
+            'age': calculate_age(user_profile['Profile_dob']),
+            'height': user_profile['Profile_height'],
+            'star': user_profile['star_name'],
+            'matching_score': self._get_matching_score(my_profile, user_profile),
+            'plan_subscribed': 1 if my_profile['Plan_id'] and 
+                                 models.PlanDetails.objects.filter(
+                                     id=my_profile['Plan_id']).exists() else 0,
+            'vysy_assist_enable': permissions['vys'],
+            # ... other fields ...
+        }
+
+    def _prepare_contact_details(self, profile_data):
+        """Optimized contact details preparation with cached location lookups"""
+        # Initialize with direct profile data
+        contact_data = {
+            "address": profile_data.get('Profile_address', ''),
+            "phone": profile_data.get('Profile_alternate_mobile', ''),
+            "mobile": profile_data.get('Mobile_no', ''),
+            "whatsapp": profile_data.get('Profile_whatsapp', ''),
+            "email": profile_data.get('EmailId', '')
+        }
+        
+        # Location lookups with caching
+        location_fields = {
+            'city': ('Profile_city', get_city_name),
+            'district': ('Profile_district', get_district_name),
+            'state': ('Profile_state', get_state_name),
+            'country': ('Profile_country', get_country_name)
+        }
+        
+        for field, (profile_field, getter_func) in location_fields.items():
+            field_id = profile_data.get(profile_field)
+            if field_id:
+                cache_key = f"loc_{profile_field}_{field_id}"
+                cached = cache.get(cache_key)
+                if cached:
+                    contact_data[field] = cached
+                else:
+                    try:
+                        value = getter_func(field_id) or ''
+                        cache.set(cache_key, value, 3600)  # Cache for 1 hour
+                        contact_data[field] = value
+                    except Exception as e:
+                        logger.warning(f"Failed to get {field}: {str(e)}")
+                        contact_data[field] = ''
+            else:
+                contact_data[field] = ''
+        
+        return contact_data
+
+    def _get_matching_score(self, my_profile, user_profile):
+        """Cached matching score calculation"""
+        cache_key = f"match_{my_profile['ProfileId']}_{user_profile['ProfileId']}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+            
+        score = get_matching_score_util(
+            my_profile['birthstar_name'],
+            my_profile['birth_rasi_name'],
+            user_profile['birthstar_name'],
+            user_profile['birth_rasi_name'],
+            my_profile['Gender']
+        )
+        cache.set(cache_key, score, 300)  # Cache for 5 minutes
+        return score
+
+    def _prepare_personal_details(self, profile):
+        """Efficient personal details preparation"""
+        marital_status = models.ProfileMaritalstatus.objects.filter(
+            StatusId=profile['Profile_marital_status']
+        ).values_list('MaritalStatus', flat=True).first()
+
+        return {
+            'profile_name': profile['Profile_name'],
+            'marital_status': marital_status,
+            # ... other fields ...
+        }
+    
+    def _prepare_education_details(self, profile_data):
+        """Optimized education details preparation with cached lookups"""
+        # Get education data with fallbacks
+        education = ''
+        field_study = ''
+        
+        # Highest education
+        if profile_data.get('highest_education'):
+            try:
+                education = models.Edupref.objects.filter(
+                    RowId=profile_data['highest_education']
+                ).values_list('EducationLevel', flat=True).first() or ''
+            except Exception:
+                pass
+        
+        # Field of study
+        if profile_data.get('field_ofstudy'):
+            try:
+                field_study = models.Profilefieldstudy.objects.filter(
+                    id=profile_data['field_ofstudy']
+                ).values_list('field_of_study', flat=True).first() or ''
+            except Exception:
+                pass
+        
+        # Profession (cached lookup)
+        profession = None
+        if profile_data.get('profession'):
+            try:
+                profession = models.Profespref.objects.filter(
+                    RowId=profile_data['profession']
+                ).values_list('profession', flat=True).first()
+            except Exception:
+                pass
+        
+        # Annual income
+        annual_income = ''
+        if profile_data.get('anual_income'):
+            try:
+                annual_income = models.Annualincome.objects.filter(
+                    id=profile_data['anual_income']
+                ).values_list('income', flat=True).first() or ''
+            except Exception:
+                pass
+
+        return {
+            'education_level': f"{education} {field_study}".strip(),
+            'education_detail': " ",
+            'ug_degeree': get_degree(profile_data.get('ug_degeree', '')),
+            'about_education': profile_data.get('about_edu', ''),
+            'profession': profession,
+            'designation': profile_data.get('designation', ''),
+            'company_name': profile_data.get('company_name', ''),
+            'business_name': profile_data.get('business_name', ''),
+            'business_address': profile_data.get('business_address', ''),
+            'annual_income': annual_income,
+            'gross_annual_income': profile_data.get('actual_income', ''),
+        }
+
+    def _prepare_family_details(self, profile_data):
+            """Optimized family details preparation"""
+            # Family status lookup
+            family_status = None
+            if profile_data.get('family_status'):
+                try:
+                    family_status = models.Familystatus.objects.filter(
+                        id=profile_data['family_status']
+                    ).values_list('status', flat=True).first()
+                except Exception:
+                    pass
+
+            return {
+                'about_family': profile_data.get('about_family', ''),
+                'father_name': profile_data.get('father_name', ''),
+                'father_occupation': profile_data.get('father_occupation', ''),
+                'mother_name': profile_data.get('mother_name', ''),
+                'mother_occupation': profile_data.get('mother_occupation', ''),
+                'family_status': family_status,
+                'no_of_sisters': profile_data.get('no_of_sister', 0),
+                'no_of_brothers': profile_data.get('no_of_brother', 0),
+                'no_of_sis_married': profile_data.get('no_of_sis_married', 0),
+                'no_of_bro_married': profile_data.get('no_of_bro_married', 0),
+                'property_details': profile_data.get('property_details', ''),
+                'father_alive': profile_data.get('father_alive', 0),
+                'mother_alive': profile_data.get('mother_alive', 0),
+            }
+    def _prepare_horoscope_details(self, profile_data, horoscope_permission):
+                """Optimized horoscope details with permission check"""
+                # Star and rasi lookups
+                star_name = None
+                rasi_name = None
+                lagnam_didi = None
+                
+                try:
+                    star_name = models.Birthstar.objects.filter(
+                        id=profile_data['birthstar_name']
+                    ).values_list('star', flat=True).first()
+                except Exception:
+                    pass
+                
+                try:
+                    rasi_name = models.Rasi.objects.filter(
+                        id=profile_data['birth_rasi_name']
+                    ).values_list('name', flat=True).first()
+                except Exception:
+                    pass
+                
+                # Lagnam didi lookup
+                if profile_data.get('lagnam_didi'):
+                    try:
+                        lagnam_didi = models.Lagnamdidi.objects.filter(
+                            id=profile_data['lagnam_didi']
+                        ).values_list('name', flat=True).first()
+                    except Exception:
+                        pass
+
+                base_details = {
+                    'rasi': rasi_name,
+                    'star_name': star_name,
+                    'lagnam': lagnam_didi,
+                    'nallikai': profile_data.get('nalikai', ''),
+                    'didi': profile_data.get('didi', ''),
+                    'surya_gothram': profile_data.get('suya_gothram', ''),
+                    'dasa_name': get_dasa_name(profile_data.get('dasa_name', '')),
+                    'dasa_balance': dasa_format_date(profile_data.get('dasa_balance', '')),
+                    'chevvai_dosham': self.dosham_value_formatter(profile_data.get('chevvai_dosaham', 0)),
+                    'sarpadosham': self.dosham_value_formatter(profile_data.get('ragu_dosham', 0)),
+                    'madulamn': profile_data.get('madulamn', ''),
+                }
+
+                # Add grid details only if permitted
+                if horoscope_permission:
+                    base_details.update({
+                        'rasi_kattam': profile_data.get('rasi_kattam', ''),
+                        'amsa_kattam': profile_data.get('amsa_kattam', ''),
+                    })
+
+                return base_details
+    
+    
+    def dosham_value_formatter(self,value):
+            if isinstance(value, str):
+                        return {"0": "Unknown", "1": "Yes", "2": "No"}.get(value, value)
+            elif isinstance(value, int):
+                        return {0: "Unknown", 1: "Yes", 2: "No"}.get(value, value)
+            return value
+    
+    def _prepare_vysya_assist(self, profile_from, profile_to):
+        """Optimized Vysya assist data loading"""
+        try:
+            assist = models.Profile_vysassist.objects.filter(
+                profile_from=profile_from,
+                profile_to=profile_to
+            ).prefetch_related(
+                Prefetch('followups', 
+                    queryset=models.ProfileVysAssistFollowup.objects
+                        .order_by('-update_at')[:5]  # Limit to 5 most recent
+                )
+            ).first()
+
+            if not assist:
+                return {'vys_assits': False}
+
+            followups = assist.followups.all()
+            return {
+                'vys_assits': True,
+                'vys_list': serializers.ProfileVysAssistFollowupSerializer(
+                    followups, many=True
+                ).data if followups else [{
+                    "comments": f"{assist.to_message} (Request sent)",
+                    "update_at": assist.req_datetime
+                }]
+            }
+        except Exception as e:
+            logger.error(f"Vysya assist error: {str(e)}")
+            return {'vys_assits': False}
+
+    def _get_photo_request_status(self, profile):
+        """Efficient photo request check"""
+        if profile['Photo_protection'] == 1:
+            return 1
+        return 1 if not models.Image_Upload.objects.filter(
+            profile_id=profile['ProfileId']
+        ).exists() else 0
 
 
 
