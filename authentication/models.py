@@ -1115,9 +1115,7 @@ class Get_profiledata(models.Model):
                         a.Profile_height, e.birthstar_name, e.birth_rasi_name, f.ug_degeree,
                         f.profession, f.highest_education, g.EducationLevel, d.star, h.income,
                         v.viewed_profile,
-                        (SELECT image FROM profile_images 
-                        WHERE profile_id = a.ProfileId AND image_approved = 1 AND is_deleted = 0 
-                        ORDER BY id ASC LIMIT 1) AS image
+                        pi.first_image_id AS has_image
                     FROM logindetails a
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
                     JOIN profile_horoscope e ON a.ProfileId = e.profile_id
@@ -1126,6 +1124,7 @@ class Get_profiledata(models.Model):
                         ON a.ProfileId = f.profile_id
                     JOIN mastereducation g ON f.highest_education = g.RowId
                     JOIN masterannualincome h ON h.id = f.anual_income
+                    LEFT JOIN vw_profile_images pi ON a.ProfileId = pi.profile_id
                     LEFT JOIN profile_visit_logs v
                         ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
                     WHERE a.Status = 1 
@@ -1205,7 +1204,8 @@ class Get_profiledata(models.Model):
                     # Updated ordering logic with proper image priority
                     plan_priority = "FIELD(a.Plan_id, 2,15,1,14,11,12,13,6,7,8,9)"
                     # Changed to ensure profiles with images come first
-                    photo_priority = "CASE WHEN (SELECT 1 FROM profile_images WHERE profile_id = a.ProfileId AND image_approved = 1 AND is_deleted = 0 LIMIT 1) IS NOT NULL THEN 0 ELSE 1 END"
+                    # photo_priority = "CASE WHEN (SELECT 1 FROM profile_images WHERE profile_id = a.ProfileId AND image_approved = 1 AND is_deleted = 0 LIMIT 1) IS NOT NULL THEN 0 ELSE 1 END"
+                    photo_priority = "CASE WHEN pi.first_image_id IS NOT NULL THEN 0 ELSE 1 END"
                     view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END"
 
                     try:
