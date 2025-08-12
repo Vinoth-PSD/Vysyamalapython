@@ -4998,34 +4998,40 @@ class Get_profile_det_match(APIView):
 
         profile_id = request.data['profile_id']
         user_profile_id = request.data['user_profile_id']
-        page_id = request.data.get('page_id', '1')
+        page_id = str(request.data.get('page_id', '1'))
 
-        # 2. Check View Limits
+        # ===== 1. Try full-response cache first =====
+        cache_key = f"profile_api_resp_{profile_id}_{user_profile_id}_{page_id}"
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            logger.info(f"Profile API served from cache in {time.time() - start_time:.2f}s")
+            return JsonResponse(cached_response, status=status.HTTP_200_OK)
+
+        # ===== 2. Check limits =====
         if not (can_get_viewd_profile_count(profile_id, user_profile_id) or 
-            (page_id and int(page_id) != 1)):
+                (page_id and int(page_id) != 1)):
             return JsonResponse(
                 {'status': 'failure', 'message': 'Limit Reached to view the profile'}, 
                 status=status.HTTP_201_CREATED
             )
 
-        # 3. Get Profiles with Caching
-        my_profile = self._get_cached_profile(profile_id)
-        user_profile = self._get_cached_profile(user_profile_id)
-        
+        # ===== 3. Batch load both profiles (with related data to avoid N+1 queries) =====
+        profiles = get_profile_details([profile_id, user_profile_id])  # Should internally use select_related/prefetch_related
+        profile_map = {p['ProfileId']: p for p in profiles}
+
+        my_profile = profile_map.get(profile_id)
+        user_profile = profile_map.get(user_profile_id)
+
         if not my_profile or not user_profile:
             return JsonResponse(
                 {'status': 'failure', 'message': 'Profile not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # 4. Get Permissions
-        permissions = {
-            'photo_viewing': self._get_cached_permission(profile_id, 'photo_viewing'),
-            'vys_assist': self._get_cached_permission(profile_id, 'vys_assist'),
-            'contact_details': self._get_cached_permission(profile_id, 'contact_details'),
-            'horoscope_grid': self._get_cached_permission(profile_id, 'horoscope_grid_details'),
-            'eng_print': self._get_cached_permission(profile_id, 'eng_print')
-        }
+        # ===== 4. Batch load permissions in one go =====
+        perm_types = ['photo_viewing', 'vys_assist', 'contact_details', 'horoscope_grid_details', 'eng_print']
+        permissions = {perm: self._get_cached_permission(profile_id, perm) for perm in perm_types}
+
 
         # 5. Prepare Response Data (Maintaining Original Structure)
         response_data = {
@@ -5041,7 +5047,7 @@ class Get_profile_det_match(APIView):
             "personal_details": self._prepare_personal_details_full(user_profile),
             "education_details": self._prepare_education_details_full(user_profile),
             "family_details": self._prepare_family_details_full(user_profile),
-            "horoscope_details": self._prepare_horoscope_details_full(user_profile, permissions['horoscope_grid'])
+            "horoscope_details": self._prepare_horoscope_details_full(user_profile, permissions['horoscope_grid_details'])
         }
 
         # 6. Add Contact Details if Permitted
