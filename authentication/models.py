@@ -1227,21 +1227,21 @@ class Get_profiledata(models.Model):
                 query = base_query + height_conditions + search_profile_id_cond + search_profession_cond + search_location_cond + orderby_cond
                 count_query_params = query_params.copy()
 
-                # with connection.cursor() as cursor1:
-                #     cursor1.execute(query, query_params)
-                #     profile_with_indices = {}
-                #     index = 1
-                #     fetch_size = 200
+                with connection.cursor() as cursor1:
+                    cursor1.execute(query, query_params)
+                    profile_with_indices = {}
+                    index = 1
+                    fetch_size = 200
 
-                #     while True:
-                #         rows = cursor1.fetchmany(fetch_size)
-                #         if not rows:
-                #             break
-                #         for row in rows:
-                #             profile_with_indices[str(index)] = row[0]
-                #             index += 1
+                    while True:
+                        rows = cursor1.fetchmany(fetch_size)
+                        if not rows:
+                            break
+                        for row in rows:
+                            profile_with_indices[str(index)] = row[0]
+                            index += 1
 
-                # total_count = index - 1
+                total_count = index - 1
 
                 query += " LIMIT %s, %s"
                 query_params.extend([start, per_page])
@@ -1275,7 +1275,7 @@ class Get_profiledata(models.Model):
                     if rows:
                         columns = [col[0] for col in cursor.description]
                         results = [dict(zip(columns, row)) for row in rows]
-                        return results,  0, {}
+                        return results, total_count, profile_with_indices
                     else:
                         return [], 0, {}
 
