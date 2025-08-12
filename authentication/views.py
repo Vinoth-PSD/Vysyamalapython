@@ -4544,7 +4544,7 @@ class Get_prof_list_match(APIView):
 
 
 
-class Get_profile_det_match(APIView):
+class Get_profile_det_match_old(APIView):
 
  def post(self, request):
         #profile_id = 'VY240013'
@@ -4957,7 +4957,7 @@ class Get_profile_det_match(APIView):
 
 
 
-class Get_profile_det_match_old(APIView):
+class Get_profile_det_match(APIView):
     # Cache settings (seconds)
     PROFILE_CACHE_TTL = 60
     PERMISSION_CACHE_TTL = 300
