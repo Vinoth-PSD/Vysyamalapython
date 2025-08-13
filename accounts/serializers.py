@@ -222,13 +222,13 @@ class UpdateAdminComments_Serializer(serializers.ModelSerializer):
 class LoginDetailsSerializer(serializers.ModelSerializer):
     LoginId = serializers.CharField(required=False, allow_null=True)
     ProfileId = serializers.CharField(required=False, allow_null=True)
-    EmailId = serializers.EmailField(required=True)
+    EmailId = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
     Password = serializers.CharField(required=True)
     Profile_name = serializers.CharField(required=True)
     Profile_marital_status = serializers.CharField(required=True)
     Profile_dob = serializers.DateField(required=True)
    
-    Profile_complexion = serializers.CharField(required=True)
+    Profile_complexion = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     Profile_address = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     Profile_country = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     Profile_state = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -275,13 +275,13 @@ class LoginDetailsSerializer(serializers.ModelSerializer):
 
 class LoginEditSerializer(serializers.ModelSerializer):
     ProfileId = serializers.CharField(required=False, allow_null=True)
-    EmailId = serializers.EmailField(required=True)
+    EmailId = serializers.EmailField(required=False,allow_null=True, allow_blank=True)
     Password = serializers.CharField(required=True)
     Profile_name = serializers.CharField(required=False,allow_null=True)
     Profile_marital_status = serializers.CharField(required=True)
     Profile_dob = serializers.DateField(required=True)
    
-    Profile_complexion = serializers.CharField(required=True)
+    Profile_complexion = serializers.CharField(required=False,allow_null=True, allow_blank=True)
     Profile_address = serializers.CharField(required=False,allow_null=True, allow_blank=True)
     Profile_country = serializers.CharField(required=False,allow_null=True, allow_blank=True)
     Profile_state = serializers.CharField(required=False,allow_null=True, allow_blank=True)

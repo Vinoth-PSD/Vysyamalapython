@@ -726,11 +726,11 @@ class ProfilePartnerPref(models.Model):
     pref_anual_income = models.CharField(max_length=100, null=True, blank=True)
     pref_anual_income_max = models.CharField(max_length=100, null=True, blank=True)
 
-    pref_chevvai = models.CharField(max_length=10)
+    pref_chevvai = models.CharField(max_length=10, null=True, blank=True)
     
-    pref_ragukethu = models.CharField(max_length=10)
+    pref_ragukethu = models.CharField(max_length=10, null=True, blank=True)
    
-    pref_foreign_intrest = models.CharField(max_length=100)
+    pref_foreign_intrest = models.CharField(max_length=100, null=True, blank=True)
    
     pref_porutham_star = models.CharField(max_length=1000, null=True, blank=True)
     pref_porutham_star_rasi	 = models.TextField(null=True, blank=True)
