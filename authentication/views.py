@@ -2032,7 +2032,8 @@ class Login_with_mobileno(APIView):
             # Try matching either format
             try:
                 profile = models.Registration1.objects.get(
-                    Q(Mobile_no=normalized_input) | Q(Mobile_no=normalized_input_with_prefix)
+                    Q(Mobile_no=normalized_input) | Q(Mobile_no=normalized_input_with_prefix),
+                    Status__in=[0, 1, 2, 3]
                 )
             except models.Registration1.DoesNotExist:
                 return JsonResponse({"status": 0, "message": "Invalid Number"}, status=status.HTTP_200_OK)
@@ -2084,7 +2085,8 @@ class Login_verifyotp(APIView):
             # Try matching either format
             try:
                 profile = models.Registration1.objects.get(
-                    Q(Mobile_no=normalized_input,Otp=otp) | Q(Mobile_no=normalized_input_with_prefix,Otp=otp)
+                    Q(Mobile_no=normalized_input,Otp=otp) | Q(Mobile_no=normalized_input_with_prefix,Otp=otp,
+                    Status__in=[0, 1, 2, 3])
                 )
                 user, created = User.objects.get_or_create(username=profile.ProfileId)
 
