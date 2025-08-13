@@ -2031,10 +2031,16 @@ class Login_with_mobileno(APIView):
 
             # Try matching either format
             try:
-                profile = models.Registration1.objects.get(
-                    Q(Mobile_no=normalized_input) | Q(Mobile_no=normalized_input_with_prefix),
-                    Status__in=[0, 1, 2, 3]
+                profile = (
+                    models.Registration1.objects
+                    .filter(
+                        Q(Mobile_no=normalized_input) | Q(Mobile_no=normalized_input_with_prefix),
+                        Status__in=[0, 1, 2, 3],
+                    )
+                    .order_by('DateOfJoin')  # or 'created_at' if you have it
+                    .first()
                 )
+
             except models.Registration1.DoesNotExist:
                 return JsonResponse({"status": 0, "message": "Invalid Number"}, status=status.HTTP_200_OK)
             # Generate OTP
@@ -2084,17 +2090,33 @@ class Login_verifyotp(APIView):
 
             # Try matching either format
             try:
-                profile = models.Registration1.objects.get(
-                    Q(Mobile_no=normalized_input,Otp=otp) | Q(Mobile_no=normalized_input_with_prefix,Otp=otp,
-                    Status__in=[0, 1, 2, 3])
+                profile = (
+                    models.Registration1.objects
+                    .filter(
+                        Q(Mobile_no=normalized_input) | Q(Mobile_no=normalized_input_with_prefix),Otp=otp,
+                        Status__in=[0, 1, 2, 3],
+                    )
+                    .order_by('DateOfJoin')  # or 'created_at' if you have it
+                    .first()
                 )
-                user, created = User.objects.get_or_create(username=profile.ProfileId)
+                print('profile',profile.ProfileId)
 
-                if created:
-                    # Handle user creation logic if needed
-                    pass
+                # Get or create user safely without unpacking error
+                try:
+                    user, created = User.objects.get_or_create(username=profile.ProfileId)
+                except User.MultipleObjectsReturned:
+                    # Filter and get a consistent user if duplicates exist
+                    user = User.objects.filter(username=profile.ProfileId).order_by('id').first()
+                    created = False
 
-                token, created = Token.objects.get_or_create(user=user)
+                # Print if needed
+                print("User:", user, "Created:", created)
+
+                # Get or create auth token, same pattern
+                try:
+                    token, _ = Token.objects.get_or_create(user=user)
+                except Token.MultipleObjectsReturned:
+                    token = Token.objects.filter(user=user).order_by('created').first()
                 
                 profile_id=profile.ProfileId
 
@@ -9403,7 +9425,7 @@ class GetFeaturedList(APIView):
             WHERE gender != %s
             AND ProfileId != %s
             AND Plan_id IN (2, 15)
-            AND Profile_dob IS NOT NULL
+            AND Profile_dob IS NOT NULL AND status =1
         """
         params = [gender, profile_id]
 
