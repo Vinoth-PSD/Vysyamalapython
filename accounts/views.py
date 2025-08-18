@@ -1934,9 +1934,7 @@ class SubmitProfileAPIView(APIView):
         login_detail.primary_status=0
         login_detail.secondary_status=26
         login_detail.plan_status=7
-
-
-
+        login_detail.Profile_for = 8
         login_detail.save()
 
         profile_idproof_file = request.FILES.get('Profile_idproof')
@@ -2091,12 +2089,12 @@ class EditProfileAPIView(APIView):
             login_detail = LoginDetails.objects.get(ProfileId=profile_id)
         except LoginDetails.DoesNotExist:
             return Response({'error': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-        login_serializer = LoginEditSerializer(instance=login_detail, data=login_data, partial=True)
-        if login_serializer.is_valid():
-            login_serializer.save()
-        else:
-            errors['login_details'] = login_serializer.errors 
+        if login_data:
+            login_serializer = LoginEditSerializer(instance=login_detail, data=login_data, partial=True)
+            if login_serializer.is_valid():
+                login_serializer.save()
+            else:
+                errors['login_details'] = login_serializer.errors 
 
         # Step 2: Retrieve and update ProfileFamilyDetails
         if family_data:

@@ -301,7 +301,8 @@ class LoginEditSerializer(serializers.ModelSerializer):
         model = LoginDetails
         fields = '__all__'
     def validate(self, data):
-        profile_country = str(data.get('Profile_country')).strip()
+        profile_country = data.get('Profile_country')
+
         if profile_country == '1':
             if not data.get('Profile_state'):
                 raise serializers.ValidationError({
@@ -359,6 +360,7 @@ class ProfileEduDetailsSerializer(serializers.ModelSerializer):
             if not data.get('work_district'):
                 raise serializers.ValidationError({'work_district': 'This field is required when work_country is 1.'})
         else:
+            print("it happened in edu")
             data['work_state'] = None
             data['work_district'] = None
 
