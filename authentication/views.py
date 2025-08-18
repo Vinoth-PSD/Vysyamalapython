@@ -11797,7 +11797,7 @@ class ActiveProfilesAndHappyCustomersAPIView(APIView):
     def post(self, request):
         active_profiles_count = models.Registration1.objects.filter(status=1).count()
 
-        happy_customers_count = 32272  
+        happy_customers_count = 56555  
         
         return JsonResponse({
             "status": "success",
