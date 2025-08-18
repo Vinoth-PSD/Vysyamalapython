@@ -8207,16 +8207,19 @@ class GetMyProfileEducation(APIView):
 
             work_state_id = education_serializer.data.get("work_state")
 
-            if isinstance(work_state_id, str) and not work_state_id.isdigit():
+            if work_state_id is None:
+                work_state_name = None
+            elif isinstance(work_state_id, str) and not work_state_id.isdigit():
                 # If it's a string and not a number, assign it directly
                 work_state_name = work_state_id.strip()  # Remove accidental spaces
             else:
-                # Convert ID to integer (if valid) and fetch from database
                 try:
+                    # Convert to int only if it's a valid number
                     work_state = models.Profilestate.objects.filter(id=int(work_state_id)).first()
                     work_state_name = work_state.name if work_state else None
-                except ValueError:
-                    work_state_name = None  # Handle case where ID is invalid (not convertible to int)
+                except (ValueError, TypeError):
+                    work_state_name = None  # Handle invalid ID
+
             
 
             # work_city_id = education_serializer.data.get("work_city")
