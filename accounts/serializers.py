@@ -302,13 +302,6 @@ class LoginEditSerializer(serializers.ModelSerializer):
         fields = '__all__'
     def validate(self, data):
         profile_country = str(data.get('Profile_country')).strip()
-
-        if not profile_country:
-            # Skip validation and clear state/district
-            data['Profile_state'] = None
-            data['Profile_district'] = None
-            return data
-
         if profile_country == '1':
             if not data.get('Profile_state'):
                 raise serializers.ValidationError({
@@ -719,7 +712,20 @@ class VysassistSerializer(serializers.ModelSerializer):
     class Meta:
         model = VysAssistcomment
         fields = ['id', 'comment_text']
-        
+   
+def dasa_format_date(value):
+        """
+        Format the date based on the input format.
+        If input is like "12/7/5", convert to "day:12, month:7, year:5".
+        If already in desired format, return as-is.
+        """
+        if isinstance(value, str) and '/' in value:
+            parts = value.split('/')
+            if len(parts) == 3:
+                day, month, year = parts
+                #return f"{day} Days, {month} Months , {year} Years"
+                return f"{day} Years, {month} Months, {year} Days"
+        return value     
 
 class ProfileHoroscopeSerializer(serializers.ModelSerializer):
     profile_id = serializers.CharField(required=False , allow_null=True) 
@@ -729,6 +735,7 @@ class ProfileHoroscopeSerializer(serializers.ModelSerializer):
     rasi_kattam = serializers.CharField(required=False ,allow_null=True)
     horoscope_file = serializers.FileField(required=False)
     star_name = serializers.SerializerMethodField()
+    dasa_balance= serializers.SerializerMethodField()
     
     class Meta:
         model = ProfileHoroscope
@@ -741,7 +748,9 @@ class ProfileHoroscopeSerializer(serializers.ModelSerializer):
             birthstar = BirthStar.objects.get(id=obj.birthstar_name, is_deleted=False)
             return birthstar.star
         except BirthStar.DoesNotExist:
-            return None
+            return None 
+    def get_dasa_balance(self, obj):
+        return dasa_format_date(obj.dasa_balance)
 
 
 class HomepageSerializer(serializers.ModelSerializer):
