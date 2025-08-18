@@ -1312,31 +1312,29 @@ class Get_profiledata_Matching(models.Model):
 
             # Base query
             base_query = """
-                SELECT DISTINCT a.ProfileId, a.Plan_id, a.DateOfJoin, a.Photo_protection,
-                    a.Profile_city, a.Profile_verified, a.Profile_name, a.Profile_dob,
-                    a.Profile_height, e.birthstar_name, e.birth_rasi_name,
-                    f.ug_degeree, f.profession, f.highest_education,
-                    g.EducationLevel, d.star, h.income,
-                    v.viewed_profile, i.image
-                FROM logindetails a
-                JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
-                JOIN profile_horoscope e ON a.ProfileId = e.profile_id
-                JOIN masterbirthstar d ON d.id = e.birthstar_name
-                JOIN profile_edudetails f ON a.ProfileId = f.profile_id
-                JOIN mastereducation g ON f.highest_education = g.RowId
-                JOIN masterannualincome h ON h.id = f.anual_income
-                LEFT JOIN (
-                    SELECT * FROM (
-                        SELECT *, ROW_NUMBER() OVER (PARTITION BY profile_id ORDER BY id ASC) AS rn
-                        FROM profile_images
-                        WHERE image_approved = 1 AND is_deleted = 0
-                    ) AS ranked
-                    WHERE rn = 1
-                ) AS i ON i.profile_id = a.ProfileId
-                LEFT JOIN profile_visit_logs v ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
-                WHERE a.Status = 1 AND a.Plan_id NOT IN (16, 18, 3)
-                AND a.gender != %s AND a.ProfileId != %s
-                AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
+                SELECT DISTINCT 
+                        a.ProfileId, a.Plan_id, a.DateOfJoin, a.Photo_protection,
+                        a.Profile_city, a.Profile_verified, a.Profile_name, a.Profile_dob,
+                        a.Profile_height, e.birthstar_name, e.birth_rasi_name, f.ug_degeree,
+                        f.profession, f.highest_education, g.EducationLevel, d.star, h.income,
+                        v.viewed_profile,
+                        pi.first_image_id AS has_image
+                    FROM logindetails a
+                    JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
+                    JOIN profile_horoscope e ON a.ProfileId = e.profile_id
+                    JOIN masterbirthstar d ON d.id = e.birthstar_name
+                    JOIN profile_edudetails f
+                        ON a.ProfileId = f.profile_id
+                    JOIN mastereducation g ON f.highest_education = g.RowId
+                    JOIN masterannualincome h ON h.id = f.anual_income
+                    LEFT JOIN vw_profile_images pi ON a.ProfileId = pi.profile_id
+                    LEFT JOIN profile_visit_logs v
+                        ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
+                    WHERE a.Status = 1 
+                    AND a.Plan_id NOT IN (3, 16, 18)
+                    AND a.gender != %s
+                    AND a.ProfileId != %s
+                    AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
             """
 
             query_params = [profile_id, gender, profile_id, min_age, max_age]
@@ -1429,9 +1427,13 @@ class Get_profiledata_Matching(models.Model):
             except:
                 order_by = None
 
-            view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END "
-            plan_priority = "FIELD(a.Plan_id, '3','17','2','15','1','14','11','12','13','6','7','8','9') "
-            photo_priority = "CASE WHEN i.image IS NOT NULL AND i.image != '' THEN 0 ELSE 1 END "
+            # view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END "
+            # plan_priority = "FIELD(a.Plan_id, '3','17','2','15','1','14','11','12','13','6','7','8','9') "
+            # photo_priority = "CASE WHEN i.image IS NOT NULL AND i.image != '' THEN 0 ELSE 1 END "
+
+            plan_priority = "FIELD(a.Plan_id, 2,15,1,14,11,12,13,6,7,8,9)"
+            photo_priority = "CASE WHEN pi.first_image_id IS NOT NULL THEN 0 ELSE 1 END"
+            view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END"
 
             if order_by == 1:
                 order_cond = f" ORDER BY a.DateOfJoin ASC"
@@ -1746,28 +1748,25 @@ class Get_profiledata_Matching(models.Model):
             # Build base query for COUNT
             base_query = f"""
                 SELECT COUNT(*) as match_count
-                FROM logindetails a
-                JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
-                JOIN profile_horoscope e ON a.ProfileId = e.profile_id
-                JOIN masterbirthstar d ON d.id = e.birthstar_name
-                JOIN profile_edudetails f ON a.ProfileId = f.profile_id
-                JOIN mastereducation g ON f.highest_education = g.RowId
-                JOIN masterannualincome h ON h.id = f.anual_income
-                LEFT JOIN (
-                SELECT * FROM (
-                    SELECT *, ROW_NUMBER() OVER (PARTITION BY profile_id ORDER BY id ASC) AS rn
-                    FROM profile_images
-                    WHERE image_approved = 1 AND is_deleted = 0
-                ) ranked
-                WHERE rn = 1
-            ) i ON i.profile_id = a.ProfileId
-                WHERE a.gender != %s AND a.ProfileId != %s
-                AND a.Status = 1
-                AND a.Plan_id NOT IN (16, 18, 3)
-                AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
+                    FROM logindetails a
+                    JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
+                    JOIN profile_horoscope e ON a.ProfileId = e.profile_id
+                    JOIN masterbirthstar d ON d.id = e.birthstar_name
+                    JOIN profile_edudetails f
+                        ON a.ProfileId = f.profile_id
+                    JOIN mastereducation g ON f.highest_education = g.RowId
+                    JOIN masterannualincome h ON h.id = f.anual_income
+                    LEFT JOIN vw_profile_images pi ON a.ProfileId = pi.profile_id
+                    LEFT JOIN profile_visit_logs v
+                        ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
+                    WHERE a.Status = 1 
+                    AND a.Plan_id NOT IN (3, 16, 18)
+                    AND a.gender != %s
+                    AND a.ProfileId != %s
+                    AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
             """
 
-            params = [gender, profile_id, min_age,max_age]
+            params = [profile_id,gender, profile_id, min_age,max_age]
 
             if min_income and max_income:
                 base_query += " AND h.income_amount BETWEEN %s AND %s"
@@ -1810,8 +1809,8 @@ class Get_profiledata_Matching(models.Model):
                     base_query += " AND f.work_country != '1'"
                 elif pref_foreign.lower() == "no":
                     base_query += " AND f.work_country = '1'"
-            plan_priority = "FIELD(a.Plan_id, '3','17','2','15','1','14','11','12','13','6','7','8','9') "
-            photo_priority = "CASE WHEN i.image IS NOT NULL AND i.image != '' THEN 0 ELSE 1 END "
+            plan_priority = "FIELD(a.Plan_id, 2,15,1,14,11,12,13,6,7,8,9)"
+            photo_priority = "CASE WHEN pi.first_image_id IS NOT NULL THEN 0 ELSE 1 END"
             order_by=""
             if order_by == 1:
                 order_cond = f" ORDER BY a.DateOfJoin ASC"
