@@ -2079,7 +2079,7 @@ class EditProfileAPIView(APIView):
         profile_visibility_data=request.data.get('profile_visibility_details', {})
 
 
-        print(profile_visibility_data,'123456')
+        # print(profile_visibility_data,'123456')
 
         # Initialize error tracking
         errors = {}
@@ -2267,7 +2267,7 @@ class EditProfileAPIView(APIView):
                 "primary_status":profile_common_data.get("primary_status"),
                 "secondary_status":profile_common_data.get("secondary_status"),
                 "plan_status":profile_common_data.get("secondary_status"),
-                "plan_id":profile_common_data.get("secondary_status"),
+                "plan_id": str(profile_common_data.get("secondary_status")),
                 "Otp_verify":profile_common_data.get("mobile_otp_verify"),
             })
             family_common_data=clean_none_fields({
@@ -2316,6 +2316,7 @@ class EditProfileAPIView(APIView):
 
             plan_id = profile_common_data.get("secondary_status")
             plan_features = models.PlanFeatureLimit.objects.filter(plan_id=plan_id).values().first()
+            
 
             if plan_features:
                 # Remove the 'id' field if present
@@ -2354,7 +2355,7 @@ class EditProfileAPIView(APIView):
                     # print("Addon Package ID 1 found. Updating Profile_plan_feature...")
 
                     # Example: update all rows (or filter if needed)
-                    Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(vys_assist=1,vys_assist_count=10)
+                    Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(vys_assist=1,vys_assist_count=5)
      
         # If there are any validation errors, return them
         if errors:
