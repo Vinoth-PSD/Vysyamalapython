@@ -5014,6 +5014,17 @@ class Get_profile_det_match(APIView):
         return profile[0]
 
     def post(self, request):
+        
+        from_profile = get_object_or_404(models.Registration1, ProfileId=request.data['profile_id'])
+        to_profile = get_object_or_404(models.Registration1, ProfileId=request.data['user_profile_id'])
+ 
+        if from_profile.Gender == to_profile.Gender:
+            return JsonResponse(
+            {'status': 'failure', 'message': 'Cant view the same Gender Profile'},
+            status=status.HTTP_201_CREATED
+        )
+ 
+ 
         start_time = time.time()
         
         # 1. Initial Validation
@@ -7976,11 +7987,13 @@ class UpdateMyProfileFamily(APIView):
 
 
 def format_time_am_pm(time_str):
+    if not time_str:  # Handles None or empty strings
+        return "N/A"
     try:
-        time_obj = datetime.strptime(time_str, "%H:%M:%S")
+        time_obj = datetime.strptime(str(time_str), "%H:%M:%S")
         return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
     except ValueError:
-        return time_str  # Return original if parsing fails
+        return str(time_str)
 
 
 
@@ -13135,11 +13148,13 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 didi = horoscope.didi or "N/A"
                 nalikai = horoscope.nalikai or "N/A"
                 def format_time_am_pm(time_str):
+                    if not time_str:  # Handles None or empty strings
+                        return "N/A"
                     try:
-                        time_obj = datetime.strptime(time_str, "%H:%M:%S")
+                        time_obj = datetime.strptime(str(time_str), "%H:%M:%S")
                         return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
                     except ValueError:
-                        return time_str
+                        return str(time_str)
                     
                 birth_time=format_time_am_pm(time_of_birth)
                 # Age calculation
@@ -14301,11 +14316,13 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 nalikai =  horoscope.nalikai or "N/A"
                 
                 def format_time_am_pm(time_str):
+                    if not time_str:  # Handles None or empty strings
+                        return "N/A"
                     try:
-                        time_obj = datetime.strptime(time_str, "%H:%M:%S")
+                        time_obj = datetime.strptime(str(time_str), "%H:%M:%S")
                         return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
                     except ValueError:
-                        return time_str
+                        return str(time_str)
                 birth_time=format_time_am_pm(time_of_birth)
                 # Age calculation
                 age = calculate_age(login_details.Profile_dob) or "N/A"
@@ -15188,11 +15205,13 @@ def generate_porutham_pdf(request):
         final_education_to = (highest_education_to.EducationLevel + ' ' + fieldof_study_to).strip() or about_edu_to
         
         def format_time_am_pm(time_str):
+            if not time_str:  # Handles None or empty strings
+                return "N/A"
             try:
-                time_obj = datetime.strptime(time_str, "%H:%M:%S")
+                time_obj = datetime.strptime(str(time_str), "%H:%M:%S")
                 return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
             except ValueError:
-                return time_str
+                return str(time_str)
             
         horo_from_time = format_time_am_pm(horoscope_from.time_of_birth)
         horo_to_time = format_time_am_pm(horoscope_to.time_of_birth)
@@ -15646,11 +15665,13 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
         final_education_to = (highest_education_to.EducationLevel + ' ' + fieldof_study_to).strip() or about_edu_to
         
         def format_time_am_pm(time_str):
+            if not time_str:  # Handles None or empty strings
+                return "N/A"
             try:
-                time_obj = datetime.strptime(time_str, "%H:%M:%S")
+                time_obj = datetime.strptime(str(time_str), "%H:%M:%S")
                 return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
             except ValueError:
-                return time_str
+                return str(time_str)
             
         horo_from_time = format_time_am_pm(horoscope_from.time_of_birth)
         horo_to_time = format_time_am_pm(horoscope_to.time_of_birth)
@@ -18028,11 +18049,13 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 nalikai =  horoscope.nalikai  or "N/A"
 
                 def format_time_am_pm(time_str):
+                    if not time_str:  # Handles None or empty strings
+                        return "N/A"
                     try:
-                        time_obj = datetime.strptime(time_str, "%H:%M:%S")
+                        time_obj = datetime.strptime(str(time_str), "%H:%M:%S")
                         return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
                     except ValueError:
-                        return time_str
+                        return str(time_str)
 
                 birth_time=format_time_am_pm(time_of_birth)
                 age = calculate_age(login_details.Profile_dob)   or "N/A"
@@ -19016,12 +19039,13 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 place_of_birth = horoscope.place_of_birth
             
                 def format_time_am_pm(time_str):
+                    if not time_str:  # Handles None or empty strings
+                        return "N/A"
                     try:
-                        time_obj = datetime.strptime(time_str, "%H:%M:%S")
+                        time_obj = datetime.strptime(str(time_str), "%H:%M:%S")
                         return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
                     except ValueError:
-                        return time_str
-                    
+                        return str(time_str)
                 birth_time=format_time_am_pm(time_of_birth)
                 
                 try:

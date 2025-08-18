@@ -2266,7 +2266,8 @@ class EditProfileAPIView(APIView):
                 "Profile_for": profile_common_data.get("Profile_for"),
                 "primary_status":profile_common_data.get("primary_status"),
                 "secondary_status":profile_common_data.get("secondary_status"),
-                "plan_status":profile_common_data.get("plan_status"),
+                "plan_status":profile_common_data.get("secondary_status"),
+                "plan_id":profile_common_data.get("secondary_status"),
                 "Otp_verify":profile_common_data.get("mobile_otp_verify"),
             })
             family_common_data=clean_none_fields({
@@ -2313,10 +2314,31 @@ class EditProfileAPIView(APIView):
             else:
                 return Response({'error': horoscope_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Update profileplan Details
+            plan_id = profile_common_data.get("secondary_status")
+            plan_features = models.PlanFeatureLimit.objects.filter(plan_id=plan_id).values().first()
+
+            if plan_features:
+                # Remove the 'id' field if present
+                plan_features.pop('id', None)
+                plan_features.pop('plan_id', None)  # optional, if you don't want to override plan_id
+
+                # Add membership dates
+                plan_features.update({
+                    'plan_id': plan_id,
+                    'membership_fromdate': parse_membership_date(profile_common_data.get("membership_fromdate")),
+                    'membership_todate': parse_membership_date(profile_common_data.get("membership_todate")),
+                    'status':1
+                })
+                # print(plan_features,'plan features updated')
+                # Update the profile_plan_features row for profile_id
+                models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(**plan_features)
+                # print(pro_plan,'profile plan feature updated')
+                
+            # # Update profileplan Details
             profileplan_detail = Profile_PlanFeatureLimit.objects.get(profile_id=profile_id,status=1)
             profileplan_serializer = ProfileplanSerializer(instance=profileplan_detail, data=profileplan_common_data, partial=True)
             if profileplan_serializer.is_valid():
+                print('profile plan serializer is valid', profileplan_serializer.validated_data)
                 profileplan_serializer.save()
             else:
                 return Response({'error': profileplan_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -2453,7 +2475,7 @@ class GetProfEditDetailsAPIView(APIView):
 
         try:
             profile_plan_features = Profile_PlanFeatureLimit.objects.get(profile_id=profile_id)
-
+            print(profile_plan_features.plan_id,'profile_plan_features')
             if isinstance(profile_plan_features.membership_fromdate, str):
                 profile_plan_features.membership_fromdate = datetime.strptime(
                     profile_plan_features.membership_fromdate, "%Y-%m-%d %H:%M:%S"
