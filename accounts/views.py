@@ -7946,3 +7946,78 @@ class AdminMatchProfilePDFView(APIView):
         else:
             return JsonResponse({"status": "error", "message": f"PDF generated with errors for: {', '.join(errors)}"}, status=206)
 
+class RenewalProfilesView(generics.ListAPIView):
+    serializer_class = Getnewprofiledata_new
+    pagination_class = StandardResultsPaging
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['ProfileId', 'Gender', 'EmailId', 'Profile_dob', 'Profile_city']
+
+
+    def get_queryset(self):
+        search_query = self.request.query_params.get('search', None)
+        plan_ids=self.request.query_params.get('plan_ids', None)
+        status_id = 1
+            
+        sql = """
+                SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId, 
+                    ld.Profile_dob,  ld.Profile_whatsapp, ld.Profile_alternate_mobile, ld.Plan_id, ld.status, 
+                    ld.DateOfJoin, ld.Last_login_date, ld.Profile_for, ms.MaritalStatus, cm.complexion_desc, s.name AS state_name, 
+                    cy.city_name AS Profile_city, cy.city_name , c.name AS country_name, d.name AS district_name,
+                    pfd.family_status, ped.highest_education, ped.anual_income, ph.birthstar_name , mp.profession AS profession,ld.membership_enddate,ld.membership_startdate
+                FROM logindetails ld
+                LEFT JOIN maritalstatusmaster ms ON ld.Profile_marital_status = ms.StatusId
+                LEFT JOIN complexionmaster cm ON ld.Profile_complexion = cm.complexion_id
+                LEFT JOIN masterstate s ON ld.Profile_state = s.id
+                LEFT JOIN mastercity cy ON ld.Profile_city = cy.id
+                LEFT JOIN mastercountry c ON ld.Profile_country = c.id
+                LEFT JOIN masterdistrict d ON ld.Profile_district = d.name
+                LEFT JOIN profile_familydetails pfd ON ld.ProfileId = pfd.profile_id
+                LEFT JOIN profile_edudetails ped ON ld.ProfileId = ped.profile_id
+                LEFT JOIN profile_horoscope ph ON ld.ProfileId = ph.profile_id 
+                LEFT JOIN masterprofession mp ON ped.profession = mp.RowId 
+                LEFT JOIN profile_plan_feature_limits pfl ON ld.ProfileId = pfl.profile_id
+                """
+            
+        if search_query:
+            sql += """
+            WHERE (
+                ld.ProfileId LIKE %s OR
+                ld.temp_profileid LIKE %s OR
+                ld.Gender LIKE %s OR
+                ld.Mobile_no LIKE %s OR
+                ld.EmailId LIKE %s OR
+                ms.MaritalStatus LIKE %s OR
+                ld.Profile_dob LIKE %s OR
+                cm.complexion_desc LIKE %s OR
+                ld.Profile_address LIKE %s OR
+                ld.Profile_country LIKE %s OR
+                s.name LIKE %s OR
+                cy.city_name LIKE %s OR
+                ld.Profile_pincode LIKE %s
+            ) AND ld.status = %s
+                AND ld.membership_enddate <= CURDATE() + INTERVAL 7 DAY
+            
+            """
+            search_pattern = f'%{search_query}%'
+            params = [search_pattern] * 13 +  [status_id]  # Same pattern for all fields
+        else:
+            sql += "WHERE ld.status = %s AND ld.membership_enddate <= CURDATE() + INTERVAL 7 DAY"
+            params = [status_id]
+
+        if plan_ids is not None:
+            plan_id_list = [pid.strip() for pid in plan_ids.split(',') if pid.strip()]
+            if plan_id_list:
+                placeholders = ','.join(['%s'] * len(plan_id_list))
+                sql += f" AND ld.Plan_id IN ({placeholders})"
+                params.extend(plan_id_list)
+        
+        sql += " ORDER BY ld.DateOfJoin DESC"
+        
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            rows = dictfetchall(cursor)  # Fetch rows as a dictionary
+
+        # Return the rows to the serializer
+        return rows
+    

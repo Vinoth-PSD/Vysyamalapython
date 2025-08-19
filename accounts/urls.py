@@ -17,7 +17,7 @@ from .views import MarriageSettleDetailsCreateView, MarriageSettleDetailsListVie
 from .views import PaymentTransactionCreateView, PaymentTransactionListView
 from .views import GenerateInvoicePDF
 from . import views
-from .views import CommonProfileSearchAPIView
+from .views import CommonProfileSearchAPIView,RenewalProfilesView
 
 router = DefaultRouter()
 
@@ -185,5 +185,6 @@ urlpatterns = [
     path('admin-users/list/', AdminUserDropdownAPIView.as_view(), name='admin-user-dropdown'),
     path('common-search/',CommonProfileSearchAPIView.as_view(),name='common-search'),
     path('admin-pdf-with-format/',views.AdminProfilePDFView.as_view(),name="admin-pdf-with-format"),
-    path('admin-match-pdf-with-format/',views.AdminMatchProfilePDFView.as_view(),name='admin-match-pdf-with-format')
+    path('admin-match-pdf-with-format/',views.AdminMatchProfilePDFView.as_view(),name='admin-match-pdf-with-format'),
+    path('renewal-profiles/', views.RenewalProfilesView.as_view(), name='renewal-profiles'),
 ]
