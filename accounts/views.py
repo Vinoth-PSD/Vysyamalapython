@@ -1952,7 +1952,7 @@ class SubmitProfileAPIView(APIView):
         edu_data['profile_id'] = profile_id 
         horoscope_data['profile_id'] = profile_id
         partner_pref_data['profile_id'] = profile_id
-
+        suggested_pref_data['profile_id'] = profile_id
         # Save ProfileFamilyDetails
         if family_serializer:
             family_serializer = ProfileFamilyDetailsSerializer(data=family_data)
@@ -3489,7 +3489,9 @@ class ProfileImages(APIView):
         if not images.exists():
             message = "No images found for the provided profile_id." if profile_id else "No images found."
             return Response({"message": message}, status=status.HTTP_404_NOT_FOUND)
-
+        images = images.exclude(
+            Q(image='') | Q(image_approved=1) | Q(is_deleted=1)
+        )
         # Create a dictionary to group images by profile_id
         profile_images = {}
         for image in images:
@@ -7469,6 +7471,8 @@ class AdminProfilePDFView(APIView):
         except models.Rasi.DoesNotExist:
             lagnam = "Unknown"
         def format_time_am_pm(time_str):
+            if not time_str:  # Handles None or empty strings
+                return "N/A"
             try:
                 time_obj = datetime.strptime(time_str, "%H:%M:%S")
                 return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
@@ -7768,6 +7772,8 @@ class AdminMatchProfilePDFView(APIView):
                 didi = horoscope_data.lagnam_didi or "Not specified"
                 nalikai = horoscope_data.nalikai or "Not specified"
                 def format_time_am_pm(time_str):
+                    if not time_str:  # Handles None or empty strings
+                        return "N/A"
                     try:
                         time_obj = datetime.strptime(time_str, "%H:%M:%S")
                         return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
