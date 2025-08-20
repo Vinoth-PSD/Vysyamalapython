@@ -5023,6 +5023,13 @@ class Get_profile_det_match(APIView):
             {'status': 'failure', 'message': 'Cant view the same Gender Profile'},
             status=status.HTTP_201_CREATED
         )
+
+
+        if from_profile.Status==0:
+            return JsonResponse(
+            {'status': 'failure', 'message': 'Your Profile is not activated Yet'},
+            status=status.HTTP_201_CREATED
+        )
  
  
         start_time = time.time()
