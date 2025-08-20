@@ -737,7 +737,7 @@ class ProfileHoroscopeSerializer(serializers.ModelSerializer):
     rasi_kattam = serializers.CharField(required=False ,allow_null=True)
     horoscope_file = serializers.FileField(required=False)
     star_name = serializers.SerializerMethodField()
-    dasa_balance= serializers.SerializerMethodField()
+    dasa_balance_display = serializers.SerializerMethodField()
     
     class Meta:
         model = ProfileHoroscope
@@ -751,7 +751,7 @@ class ProfileHoroscopeSerializer(serializers.ModelSerializer):
             return birthstar.star
         except BirthStar.DoesNotExist:
             return None 
-    def get_dasa_balance(self, obj):
+    def get_dasa_balance_display(self, obj):
         return dasa_format_date(obj.dasa_balance)
 
 

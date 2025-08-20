@@ -9825,7 +9825,8 @@ class Photo_Id_Settings(APIView):
         if not profile_id:
             return JsonResponse({"error": "profile_id is required"}, status=status.HTTP_400_BAD_REQUEST)
           
-        horoscope_file = request.FILES.get('horoscope_file')
+        horoscope_file = request.FILES.get('horoscope_file') 
+        horoscope_file_admin = request.FILES.get('horoscope_file_admin')
         idproof_file = request.FILES.get('idproof_file')
         divorcepf_file = request.FILES.get('divorcepf_file')
         photo_password = request.data.get('photo_password')
@@ -9854,6 +9855,18 @@ class Photo_Id_Settings(APIView):
                     return JsonResponse({"error": "Invalid horoscope file type. Accepted formats are: doc, docx, pdf, png, jpeg, jpg"}, status=status.HTTP_400_BAD_REQUEST)
 
                 horoscope_instance.horoscope_file.save(horoscope_file.name, ContentFile(horoscope_file.read()), save=True)
+                horoscope_instance.horo_file_updated = timezone.now()
+                horoscope_instance.save()
+
+            if horoscope_file_admin:
+                if horoscope_file_admin.size > max_file_size:
+                    return JsonResponse({"error": "Horoscope file size should be less than 10MB"}, status=status.HTTP_400_BAD_REQUEST)
+
+                file_extension = os.path.splitext(horoscope_file_admin.name)[1][1:].lower()
+                if file_extension not in valid_extensions:
+                    return JsonResponse({"error": "Invalid horoscope file type. Accepted formats are: doc, docx, pdf, png, jpeg, jpg"}, status=status.HTTP_400_BAD_REQUEST)
+
+                horoscope_instance.horoscope_file_admin.save(horoscope_file_admin.name, ContentFile(horoscope_file_admin.read()), save=True)
                 horoscope_instance.horo_file_updated = timezone.now()
                 horoscope_instance.save()
 
