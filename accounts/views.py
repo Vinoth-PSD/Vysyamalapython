@@ -7003,6 +7003,7 @@ def GetPhotoProofDetails(request):
                     'id_proof': login.Profile_idproof.url if login.Profile_idproof else None,
                     'divorce_certificate': login.Profile_divorceproof.url if login.Profile_divorceproof else None,
                     'horoscope_file': horoscope.horoscope_file.url if horoscope.horoscope_file else None,
+                    'horoscope_file_admin': horoscope.horoscope_file_admin.url if horoscope.horoscope_file_admin else None,
                     'profile_images': image_list,
                     'profile_martial_status': login.Profile_marital_status,
                 }
