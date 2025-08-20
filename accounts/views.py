@@ -2261,13 +2261,13 @@ class EditProfileAPIView(APIView):
                 "Profile_name": profile_common_data.get("Profile_name"),
                 "Gender": profile_common_data.get("Gender"),
                 "Mobile_no": profile_common_data.get("Mobile_no"),
-                "membership_startdate": profile_common_data.get("membership_startdate"),
-                "membership_enddate": profile_common_data.get("membership_enddate"),
+                "membership_startdate": parse_membership_date(profile_common_data.get("membership_fromdate")),
+                "membership_enddate": parse_membership_date(profile_common_data.get("membership_todate")),
                 "Profile_for": profile_common_data.get("Profile_for"),
                 "primary_status":profile_common_data.get("primary_status"),
                 "secondary_status":profile_common_data.get("secondary_status"),
                 "plan_status":profile_common_data.get("secondary_status"),
-                "plan_id": str(profile_common_data.get("secondary_status")),
+                "Plan_id": str(profile_common_data.get("secondary_status")),
                 "Otp_verify":profile_common_data.get("mobile_otp_verify"),
             })
             family_common_data=clean_none_fields({
@@ -3491,7 +3491,7 @@ class ProfileImages(APIView):
             return Response({"message": message}, status=status.HTTP_404_NOT_FOUND)
         images = images.exclude(
             Q(image='') | Q(image_approved=1) | Q(is_deleted=1)
-        )
+        ).order_by('-id')
         # Create a dictionary to group images by profile_id
         profile_images = {}
         for image in images:
@@ -7970,7 +7970,7 @@ class RenewalProfilesView(generics.ListAPIView):
                     ld.Profile_dob,  ld.Profile_whatsapp, ld.Profile_alternate_mobile, ld.Plan_id, ld.status, 
                     ld.DateOfJoin, ld.Last_login_date, ld.Profile_for, ms.MaritalStatus, cm.complexion_desc, s.name AS state_name, 
                     cy.city_name AS Profile_city, cy.city_name , c.name AS country_name, d.name AS district_name,
-                    pfd.family_status, ped.highest_education, ped.anual_income, ph.birthstar_name , mp.profession AS profession,ld.membership_enddate,ld.membership_startdate
+                    pfd.family_status, ped.highest_education, ped.anual_income, ph.birthstar_name , mp.profession AS profession,ld.membership_startdate,ld.membership_enddate
                 FROM logindetails ld
                 LEFT JOIN maritalstatusmaster ms ON ld.Profile_marital_status = ms.StatusId
                 LEFT JOIN complexionmaster cm ON ld.Profile_complexion = cm.complexion_id
@@ -7985,9 +7985,12 @@ class RenewalProfilesView(generics.ListAPIView):
                 LEFT JOIN profile_plan_feature_limits pfl ON ld.ProfileId = pfl.profile_id
                 """
             
+        where_clauses = ["ld.status = %s"]
+        params = [status_id]
+
         if search_query:
-            sql += """
-            WHERE (
+            search_pattern = f'%{search_query}%'
+            where_clauses.insert(0, """(
                 ld.ProfileId LIKE %s OR
                 ld.temp_profileid LIKE %s OR
                 ld.Gender LIKE %s OR
@@ -8001,23 +8004,23 @@ class RenewalProfilesView(generics.ListAPIView):
                 s.name LIKE %s OR
                 cy.city_name LIKE %s OR
                 ld.Profile_pincode LIKE %s
-            ) AND ld.status = %s
-                AND ld.membership_enddate <= CURDATE() + INTERVAL 7 DAY
-            
-            """
-            search_pattern = f'%{search_query}%'
-            params = [search_pattern] * 13 +  [status_id]  # Same pattern for all fields
-        else:
-            sql += "WHERE ld.status = %s AND ld.membership_enddate <= CURDATE() + INTERVAL 7 DAY"
-            params = [status_id]
+            )""")
+            params = [search_pattern] * 13 + params
 
-        if plan_ids is not None:
+        # Add current month filter
+        where_clauses.append("MONTH(pfl.membership_todate) = MONTH(CURDATE())")
+        where_clauses.append("YEAR(pfl.membership_todate) = YEAR(CURDATE())")
+
+        # Add plan_id filter
+        if plan_ids:
             plan_id_list = [pid.strip() for pid in plan_ids.split(',') if pid.strip()]
             if plan_id_list:
                 placeholders = ','.join(['%s'] * len(plan_id_list))
-                sql += f" AND ld.Plan_id IN ({placeholders})"
+                where_clauses.append(f"ld.Plan_id IN ({placeholders})")
                 params.extend(plan_id_list)
-        
+
+        # Combine all WHERE clauses
+        sql += " WHERE " + " AND ".join(where_clauses)
         sql += " ORDER BY ld.DateOfJoin DESC"
         
 
