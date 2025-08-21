@@ -3668,7 +3668,11 @@ class Get_prof_list_match(APIView):
             matching_stars=request.data.get('matching_stars'),
             min_anual_income=request.data.get('min_anual_income'),
             max_anual_income=request.data.get('max_anual_income'),
-            membership=request.data.get('membership')
+            membership=request.data.get('membership'),
+            ragu=request.data.get('ragu'),
+            chev=request.data.get('chev'),
+            father_alive=request.data.get('father_alive'),
+            mother_alive=request.data.get('mother_alive'),
         )
 
         if not profile_details:
