@@ -5106,6 +5106,7 @@ class Get_profile_det_match(APIView):
             "star": user_profile['star_name'],
             "profession": self._get_profession_name(user_profile.get('profession')),
             "education": f"{self._get_education_level(user_profile.get('highest_education'))} {self._get_field_of_study(user_profile.get('field_ofstudy'))}".strip(),
+            "degeree":self._get_degree_name(user_profile.get('degree'),user_profile.get('other_degree')),
             "about": user_profile.get('about_self', ''),
             "gothram": user_profile.get('suya_gothram', ''),
             "horoscope_available": 1 if user_profile.get('horoscope_file_admin') and permissions['eng_print'] else 0,
@@ -5163,6 +5164,7 @@ class Get_profile_det_match(APIView):
             "ug_degeree": get_degree(profile_data.get('ug_degeree', '')),
             "about_education": profile_data.get('about_edu', ''),
             "profession": self._get_profession_name(profile_data.get('profession')),
+            "degeree":self._get_degree_name(profile_data.get('degree'),profile_data.get('other_degree')),
             "designation": profile_data.get('designation', ''),
             "company_name": profile_data.get('company_name', ''),
             "business_name": profile_data.get('business_name', ''),
@@ -5298,6 +5300,56 @@ class Get_profile_det_match(APIView):
             return profession
         except Exception:
             return None
+    
+    def _get_degree_name(self, degree_ids, other_degree):
+
+        print('degree_ids',degree_ids)
+        print('other_degree',other_degree)
+        """Get degree names with caching"""
+        if not degree_ids:
+            # If only other_degree is provided, return it directly
+            return other_degree if other_degree else None
+
+        # Make a consistent cache key
+        cache_key = f"prof_{degree_ids}_{other_degree or ''}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+
+        try:
+            
+            # Convert comma-separated IDs into list of integers
+            id_list = [int(x) for x in str(degree_ids).split(',') if x.strip().isdigit()]
+            id_list = [x for x in id_list if x != 86]
+
+            # Fetch all degree names
+            degree_names = list(
+                models.Profileedu_degree.objects.filter(id__in=id_list)
+                .values_list("degeree_name", flat=True)
+            )
+
+            print('degree_names',degree_names)
+            
+
+
+            # Append other_degree if provided
+            if other_degree:
+                degree_names.append(other_degree)
+
+            
+            print('appended other_degree',degree_names)
+
+            # Join into comma-separated string
+            final_names = ", ".join(degree_names) if degree_names else None
+
+            # Cache result
+            cache.set(cache_key, final_names, 3600)  # Cache for 1 hour
+            return final_names
+
+        except Exception:
+            return None
+
+    
 
     def _get_education_level(self, education_id):
         """Get education level with caching"""
