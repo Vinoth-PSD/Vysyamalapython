@@ -1128,7 +1128,7 @@ class Get_profiledata(models.Model):
                     LEFT JOIN profile_visit_logs v
                         ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
                     WHERE a.Status = 1 
-                    AND a.Plan_id NOT IN (3, 16, 18)
+                    AND a.Plan_id NOT IN (0,3, 16, 18)
                     AND a.gender != %s
                     AND a.ProfileId != %s
                     AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s"""
@@ -1362,7 +1362,7 @@ class Get_profiledata(models.Model):
                     JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
                     JOIN mastereducation g ON f.highest_education = g.RowId 
                     JOIN masterannualincome h ON h.id = f.anual_income
-                    WHERE a.Status=1 AND a.Plan_id NOT IN (16, 18, 3) AND a.gender != %s AND a.ProfileId != %s 
+                    WHERE a.Status=1 AND a.Plan_id NOT IN (0,16, 18, 3) AND a.gender != %s AND a.ProfileId != %s 
                     AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
             """
             
@@ -1506,7 +1506,7 @@ class Get_profiledata(models.Model):
                     JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
                     JOIN mastereducation g ON f.highest_education = g.RowId 
                     JOIN masterannualincome h ON h.id = f.anual_income
-                    WHERE a.Status=1 AND a.Plan_id NOT IN (16, 18, 3) AND a.gender != %s AND a.ProfileId != %s 
+                    WHERE a.Status=1 AND a.Plan_id NOT IN (0,16, 18, 3) AND a.gender != %s AND a.ProfileId != %s 
                     AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
             """
             
