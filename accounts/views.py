@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from .serializers import ChangePasswordSerializer, ProfileEduDetailsSerializer, ProfileFamilyDetailsSerializer, ProfileHoroscopeSerializer, ProfilePartnerPrefSerializer 
 from rest_framework import viewsets
 from .models import Country, ProfileEduDetails, ProfileFamilyDetails, ProfilePartnerPref, State, District, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, BirthStar, Rasi, Lagnam, DasaBalance, FamilyType, FamilyStatus, FamilyValue, LoginDetailsTemp ,Get_profiledata , Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , City , Express_interests , Profile_visitors, Profile_wishlists , Photo_request , PlanDetails , Image_Upload  ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1 , Get_profiledata_Matching , Profespref , Profile_vysassist , Homepage,ProfileLoginLogs,ProfileSendFromAdmin , ProfileSubStatus , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref , Profile_callogs , ProfileHoroscope , MasterhighestEducation ,PlanSubscription , ProfileVisibility ,Addonpackages
-
+from collections import defaultdict
 from .serializers import CountrySerializer, StateSerializer, DistrictSerializer,ProfileHolderSerializer, MaritalStatusSerializer, HeightSerializer, ComplexionSerializer, ParentsOccupationSerializer, HighestEducationSerializer, UgDegreeSerializer, AnnualIncomeSerializer,BirthStarSerializer, RasiSerializer, LagnamSerializer, DasaBalanceSerializer, FamilyTypeSerializer, FamilyStatusSerializer, FamilyValueSerializer, LoginDetailsTempSerializer,Getnewprofiledata , ModeSerializer, PropertySerializer , GothramSerializer , EducationLevelSerializer ,ProfessionSerializer , MatchSerializer ,MasterStatePrefSerializer , CitySerializer , Getnewprofiledata_new , QuickUploadSerializer , ProfileStatusSerializer , LoginEditSerializer , GetproflistSerializer , ImageGetSerializer , MatchingscoreSerializer , HomepageSerializer, Profile_idValidationSerializer , UpdateAdminComments_Serializer , ProfileSubStatusSerializer , PlandetailsSerializer ,ProfileplanSerializer , ProfileVysAssistFollowupSerializer , VysassistSerializer , ProfileSuggestedPrefSerializer  , AdminUserDropdownSerializer , ProfileVisibilitySerializer
 from rest_framework.decorators import action
 from rest_framework import generics, filters
@@ -3477,49 +3477,72 @@ class ProfileImages(APIView):
     pagination_class = StandardResultsPaging
 
     def get(self, request):
+        search_term = request.query_params.get('search')
         profile_id = request.query_params.get('profile_id')
+        from_date = request.query_params.get('from_date')
+        to_date = request.query_params.get('to_date')
 
-        # Fetch images based on whether profile_id is provided
+        # Build login filter
+        login_filter = Q()
+        if search_term:
+            login_filter |= Q(ProfileId__icontains=search_term)
+            login_filter |= Q(Profile_name__icontains=search_term)
+            login_filter |= Q(Gender__iexact=search_term)
+            login_filter |= Q(EmailId__icontains=search_term)
+            try:
+                parsed_dob = datetime.strptime(search_term, "%Y-%m-%d").date()
+                login_filter |= Q(Profile_dob=parsed_dob)
+            except ValueError:
+                login_filter |= Q(Profile_dob__icontains=search_term)
+
         if profile_id:
-            images = Image_Upload.objects.filter(profile_id=profile_id)
-        else:
-            images = Image_Upload.objects.all()
+            login_filter &= Q(ProfileId=profile_id)
 
-        # Check if images exist
-        if not images.exists():
-            message = "No images found for the provided profile_id." if profile_id else "No images found."
-            return Response({"message": message}, status=status.HTTP_404_NOT_FOUND)
-        images = images.exclude(
-            Q(image='') | Q(image_approved=1) | Q(is_deleted=1)
+        filtered_login_details = LoginDetails.objects.filter(login_filter)
+        filtered_profile_ids = list(filtered_login_details.values_list('ProfileId', flat=True))
+
+        # Build image filter
+        image_filter = Q(profile_id__in=filtered_profile_ids)
+        if from_date:
+            image_filter &= Q(uploaded_at__date__gte=from_date)
+        if to_date:
+            image_filter &= Q(uploaded_at__date__lte=to_date)
+
+        images = Image_Upload.objects.filter(image_filter).exclude(
+            Q(image='') | Q(image_approved=True) | Q(is_deleted=True)
         ).order_by('-id')
-        # Create a dictionary to group images by profile_id
-        profile_images = {}
-        for image in images:
-            if image.profile_id not in profile_images:
-                profile_images[image.profile_id] = []
 
+        if not images.exists():
+            return Response({"message": "No images found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Group images by profile_id
+        profile_images = defaultdict(list)
+        for image in images:
             profile_images[image.profile_id].append({
                 "image_url": request.build_absolute_uri(image.image.url),
                 "image_approved": image.image_approved,
                 "is_deleted": image.is_deleted
             })
 
-        # Convert the dictionary to the desired list format
+        login_details_map = {ld.ProfileId: ld for ld in filtered_login_details}
+
         result = []
-        for profile_id, images_data in profile_images.items():
+        for pid, images_data in profile_images.items():
+            ld = login_details_map.get(pid)
             result.append({
-                "profile_id": profile_id,
-                "images": images_data  # List of image details
+                "profile_id": pid,
+                "Profile_name": ld.Profile_name if ld else "N/A",
+                "Profile_mobile_no": ld.Mobile_no if ld else "N/A",
+                "Profile_dob": ld.Profile_dob.isoformat() if ld and ld.Profile_dob else None,
+                "profile_gender": ld.Gender if ld else "N/A",
+                "Profile_email": ld.EmailId if ld else "N/A",
+                "profile_whats_app_no": ld.Profile_whatsapp if ld else "N/A",
+                "images": images_data
             })
 
-        # Implement pagination
         paginator = self.pagination_class()
         paginated_result = paginator.paginate_queryset(result, request)
-
-        if paginated_result is not None:
-            return paginator.get_paginated_response(paginated_result)
-
-        return Response(result, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(paginated_result)
 
 
 
