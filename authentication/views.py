@@ -1835,9 +1835,9 @@ class Get_palns(APIView):
                 
                 # plan = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,plan_id=plan_id).first()
 
-                plan = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,plan_id__in=[1, 2, 3]).first()
-                print("plan",plan)
-                print("plan_id",plan_id)
+                plan = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id,plan_id__in=[1, 2, 3,14,15,17]).first()
+                # print("plan",plan)
+                # print("plan_id",plan_id)
                 # current_date = now().date()
                 current_time = timezone.now()
                 current_date = current_time.date()
