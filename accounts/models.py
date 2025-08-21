@@ -560,6 +560,7 @@ class LoginDetails(models.Model):
     Otp_verify = models.SmallIntegerField(max_length=10,blank=True, null=True)    
     Profile_height = models.CharField(max_length=250,blank=True, null=True)
     Photo_password = models.CharField(max_length=255,blank=True, null=True)
+    Photo_protection = models.BooleanField(default=False)
 
 
     class Meta:
@@ -970,7 +971,6 @@ class ProfileHoroscope(models.Model):
     calc_raguketu_dhosham = models.CharField(max_length=100, null=True, blank=True)  # Added missing field
     horoscope_file_admin = models.FileField(upload_to=upload_to_profile_horoscope_admin,storage=AzureMediaStorage(),null=True, blank=True)
     didi = models.CharField(max_length=50, null=True, blank=True)
-
     class Meta:
         db_table = 'profile_horoscope'
     
@@ -1272,7 +1272,7 @@ class Get_profiledata_Matching(models.Model):
         city=None, state=None, education=None, foreign_intrest=None, has_photos=None,
         height_from=None, height_to=None,
         matching_stars=None, min_anual_income=None, max_anual_income=None, membership=None,ragu=None, chev=None,
-        father_alive=None, mother_alive=None
+        father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None
     ):
         try:
             profile = get_object_or_404(Registration1, ProfileId=profile_id)
@@ -1300,7 +1300,10 @@ class Get_profiledata_Matching(models.Model):
                 pref_education = education 
             else:
                 pref_education = partner_pref.pref_education
-            marital_status = partner_pref.pref_marital_status
+            if marital_status:
+                marital_status = marital_status
+            else:
+                marital_status = partner_pref.pref_marital_status
             porutham_star_rasi = matching_stars or partner_pref.pref_porutham_star_rasi
             pref_foreign = foreign_intrest or partner_pref.pref_foreign_intrest
             ragukethu = partner_pref.pref_ragukethu
@@ -1337,7 +1340,7 @@ class Get_profiledata_Matching(models.Model):
                     LEFT JOIN profile_visit_logs v
                         ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
                     WHERE a.Status = 1 
-                    AND a.Plan_id NOT IN (3, 16, 18)
+                    AND a.Plan_id NOT IN (0,3, 16, 18)
                     AND a.gender != %s
                     AND a.ProfileId != %s
                     AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
@@ -1345,6 +1348,14 @@ class Get_profiledata_Matching(models.Model):
 
             query_params = [profile_id, gender, profile_id, min_age, max_age]
 
+            if family_status:
+                statuses = [s.strip() for s in str(family_status).split(',') if s.strip()]
+                if statuses:
+                    family_status_filters = []
+                    for status in statuses:
+                        family_status_filters.append("FIND_IN_SET(%s, c.family_status) > 0")
+                        query_params.append(status)
+                    base_query += " AND (" + " OR ".join(family_status_filters) + ")"
             # Apply filters with null/empty checks
             if pref_education and pref_education.strip():
                 edu_list = [e.strip() for e in pref_education.split(',') if e.strip().isdigit()]
@@ -1366,9 +1377,11 @@ class Get_profiledata_Matching(models.Model):
                     base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
                     query_params.append(porutham_star_rasi.strip())
 
-            if marital_status and marital_status.strip():
+            if marital_status:
+                marital_status_str = ",".join(marital_status) if isinstance(marital_status, list) else marital_status.strip()
                 base_query += " AND FIND_IN_SET(a.Profile_marital_status, %s) > 0"
-                query_params.append(marital_status.strip())
+                query_params.append(marital_status_str)
+
 
             inc_min = min_anual_income or min_income
             inc_max = max_anual_income or max_income
@@ -1587,7 +1600,7 @@ class Get_profiledata_Matching(models.Model):
                 JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
                 JOIN mastereducation g ON f.highest_education = g.RowId 
                 JOIN masterannualincome h ON h.id = f.anual_income
-                WHERE a.Status=1 AND a.Plan_id NOT IN (16, 18, 3) AND a.gender != %s AND a.ProfileId != %s
+                WHERE a.Status=1 AND a.Plan_id NOT IN (0,16, 18, 3) AND a.gender != %s AND a.ProfileId != %s
                 AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
             """
             query_params = [gender, profile_id, min_age, max_age]

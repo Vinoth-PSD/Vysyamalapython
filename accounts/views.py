@@ -931,7 +931,7 @@ class Newprofile_get(generics.ListAPIView):
                 sql += f" AND ld.Plan_id IN ({placeholders})"
                 params.extend(plan_id_list)
         
-        sql += " ORDER BY ld.DateOfJoin DESC"
+        sql += " ORDER BY ld.ContentId DESC"
         
 
         with connection.cursor() as cursor:
@@ -2289,7 +2289,7 @@ class EditProfileAPIView(APIView):
 
             })
 
-
+            # print('login_common_data', login_common_data)
             # Update Login Details
             login_detail = LoginDetails.objects.get(ProfileId=profile_id)
             login_serializer = LoginEditSerializer(instance=login_detail, data=login_common_data, partial=True)
@@ -3696,6 +3696,9 @@ class Get_prof_list_match(APIView):
             chev=request.data.get('chev'),
             father_alive=request.data.get('father_alive'),
             mother_alive=request.data.get('mother_alive'),
+            marital_status=request.data.get('marital_status') ,
+            family_status=request.data.get('family_status'),
+            whatsapp_field=request.data.get('whatsapp_field')
         )
 
         if not profile_details:
@@ -7501,10 +7504,10 @@ class AdminProfilePDFView(APIView):
             if not time_str:  # Handles None or empty strings
                 return "N/A"
             try:
-                time_obj = datetime.strptime(time_str, "%H:%M:%S")
+                time_obj = datetime.strptime(str(time_str), "%H:%M:%S")
                 return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
             except ValueError:
-                return time_str
+                return str(time_str)
 
         dob = login.Profile_dob
         age = calculate_age(dob) if dob else "N/A"
@@ -7802,10 +7805,10 @@ class AdminMatchProfilePDFView(APIView):
                     if not time_str:  # Handles None or empty strings
                         return "N/A"
                     try:
-                        time_obj = datetime.strptime(time_str, "%H:%M:%S")
+                        time_obj = datetime.strptime(str(time_str), "%H:%M:%S")
                         return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
                     except ValueError:
-                        return time_str
+                        return str(time_str)
                     
                 birth_time=format_time_am_pm(horoscope_data.time_of_birth)
                 horo_hint = horoscope_data.horoscope_hints or "N/A"
@@ -7989,7 +7992,7 @@ class RenewalProfilesView(generics.ListAPIView):
 
     def get_queryset(self):
         search_query = self.request.query_params.get('search', None)
-        plan_ids=self.request.query_params.get('plan_ids', None)
+        plan_ids="1,2,3,4"
         status_id = 1
             
         sql = """
