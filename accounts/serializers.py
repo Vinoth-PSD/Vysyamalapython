@@ -409,7 +409,7 @@ class ProfileVisibilitySerializer(serializers.ModelSerializer):
     class Meta:
         model = ProfileVisibility
         fields = ('profile_id', 'visibility_age_from', 'visibility_age_to' ,'visibility_height_from', 'visibility_height_to', 
-                  'visibility_profession', 'visibility_education', 'visibility_anual_income', 'visibility_family_status','visibility_chevvai',
+                  'visibility_profession', 'visibility_education', 'visibility_anual_income','visibility_anual_income_max', 'visibility_family_status','visibility_chevvai',
                   'visibility_ragukethu', 'visibility_foreign_interest','status')
 
 class ProfileplanSerializer(serializers.ModelSerializer):
@@ -1078,3 +1078,7 @@ class CommonProfileSearchSerializer(serializers.Serializer):
     per_page = serializers.IntegerField(default=10)
     page_number = serializers.IntegerField(default=1)
 
+class LoginLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Registration1
+        fields = ['ProfileId', 'Profile_name', 'Last_login_date', 'EmailId', 'Mobile_no']

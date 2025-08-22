@@ -1547,7 +1547,12 @@ class Get_profiledata_Matching(models.Model):
     
     @staticmethod
     def get_suggest_profile_list(gender, profile_id, start, per_page, search_profile_id,
-                                order_by, search_profession, search_age, search_location):
+                                order_by, search_profession, search_age, search_location,complexion=None,
+                                city=None, state=None, education=None, foreign_intrest=None, has_photos=None,
+                                height_from=None, height_to=None,
+                                matching_stars=None, min_anual_income=None, max_anual_income=None, membership=None,ragu=None, chev=None,
+                                father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None
+                                ):
         try:
             profile = get_object_or_404(Registration1, ProfileId=profile_id)
             gender = profile.Gender
@@ -2775,6 +2780,7 @@ class ProfileVisibility(models.Model):
     visibility_chevvai = models.CharField(max_length=20)  
     visibility_ragukethu = models.CharField(max_length=20)
     visibility_foreign_interest = models.CharField(max_length=20)
+    visibility_anual_income_max = models.CharField(max_length=255,null=True, blank=True)
     status = models.IntegerField()   
     
     class Meta:

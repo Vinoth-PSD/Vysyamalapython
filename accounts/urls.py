@@ -187,4 +187,5 @@ urlpatterns = [
     path('admin-pdf-with-format/',views.AdminProfilePDFView.as_view(),name="admin-pdf-with-format"),
     path('admin-match-pdf-with-format/',views.AdminMatchProfilePDFView.as_view(),name='admin-match-pdf-with-format'),
     path('renewal-profiles/', views.RenewalProfilesView.as_view(), name='renewal-profiles'),
+    path('login-logs/', views.LoginLogView.as_view(), name='login-logs'),
 ]

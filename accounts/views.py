@@ -59,6 +59,9 @@ from .serializers import MarriageSettleDetailsSerializer
 from .models import PaymentTransaction
 from .serializers import PaymentTransactionSerializer
 from .serializers import InvoiceSerializer
+from .serializers import LoginLogSerializer
+from django.db.models.functions import Cast
+from django.db.models import DateTimeField
 from .models import Invoice
 import tempfile
 from xhtml2pdf import pisa
@@ -3811,7 +3814,26 @@ class Get_suggest_list_match(APIView):
                 order_by=order_by,
                 search_profession=search_profession,
                 search_age=search_age,
-                search_location=search_location
+                search_location=search_location,
+                complexion=request.data.get('complexion'),
+                city=request.data.get('city'),
+                state=request.data.get('state'),
+                education=request.data.get('education'),
+                foreign_intrest=request.data.get('foreign_intrest'),
+                has_photos=request.data.get('has_photos'),
+                height_from=request.data.get('height_from'),
+                height_to=request.data.get('height_to'),
+                matching_stars=request.data.get('matching_stars'),
+                min_anual_income=request.data.get('min_anual_income'),
+                max_anual_income=request.data.get('max_anual_income'),
+                membership=request.data.get('membership'),
+                ragu=request.data.get('ragu'),
+                chev=request.data.get('chev'),
+                father_alive=request.data.get('father_alive'),
+                mother_alive=request.data.get('mother_alive'),
+                marital_status=request.data.get('marital_status') ,
+                family_status=request.data.get('family_status'),
+                whatsapp_field=request.data.get('whatsapp_field')
                 )
             print("total_count",total_count)
             print('profile_details',len(profile_details))
@@ -8061,3 +8083,50 @@ class RenewalProfilesView(generics.ListAPIView):
         # Return the rows to the serializer
         return rows
     
+class CustomPageNumberPagination(PageNumberPagination):
+    page_size = 10  # Default
+    page_size_query_param = 'per_page'
+    page_query_param = 'page_number'
+    max_page_size = 100    
+
+class LoginLogView(generics.ListAPIView):
+    serializer_class = LoginLogSerializer
+    pagination_class = CustomPageNumberPagination
+
+    def get_queryset(self):
+        qs = Registration1.objects.annotate(
+            login_datetime=Cast('Last_login_date', output_field=DateTimeField())
+        ).filter(login_datetime__isnull=False)
+
+        # Filters
+        date_str = self.request.GET.get('date')
+        start_date_str = self.request.GET.get('from_date')
+        end_date_str = self.request.GET.get('to_date')
+
+        if date_str:
+            try:
+                date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                qs = qs.filter(login_datetime__date=date)
+            except ValueError:
+                pass
+
+        if start_date_str and end_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                qs = qs.filter(login_datetime__range=(start_date, end_date))
+            except ValueError:
+                pass
+
+        return qs.order_by('-login_datetime')
+
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
