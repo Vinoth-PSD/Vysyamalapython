@@ -1611,7 +1611,7 @@ class Get_profiledata(models.Model):
             LEFT JOIN masterrasi mr ON mr.id = ph.birth_rasi_name 
             LEFT JOIN masterbirthstar mb ON mb.id = ph.birthstar_name
             LEFT JOIN masterprofession mp ON mp.RowId = pe.profession
-            WHERE l.ProfileId IN %s  '''
+            WHERE l.status=1 AND l.ProfileId IN %s  '''
 
 
         with connection.cursor() as cursor:
