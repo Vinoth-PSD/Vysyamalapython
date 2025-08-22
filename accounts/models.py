@@ -1442,7 +1442,7 @@ class Get_profiledata_Matching(models.Model):
 
 
             # Foreign interest
-            if pref_foreign and pref_foreign.strip():
+            if pref_foreign and pref_foreign.strip().lower() in ['yes', 'no']:
                 if pref_foreign.lower() == "yes":
                     base_query += " AND b.pref_foreign_intrest = 'yes'"
                 elif pref_foreign.lower() == "no":
@@ -1467,12 +1467,12 @@ class Get_profiledata_Matching(models.Model):
             elif chevvai and chevvai.lower() == 'no':
                 base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
 
-            if father_alive is not None:
+            if father_alive is not None and father_alive.strip().lower() in ['yes', 'no']:
                 if father_alive =='yes':
                     base_query += " AND c.father_alive = 'yes'"
                 else:
                     base_query += " AND c.father_alive = 'no'"
-            if mother_alive is not None:
+            if mother_alive is not None and mother_alive.strip().lower() in ['yes', 'no']:
                 if mother_alive == 'yes':
                     base_query += " AND c.mother_alive = 'yes'"
                 else:
