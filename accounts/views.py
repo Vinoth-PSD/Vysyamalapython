@@ -7354,6 +7354,28 @@ def get_district_name(district_id):
     except Exception as e:
         return district_id 
 
+def get_degree_name(degree_ids, other_degree):
+        if not degree_ids:
+            print("not degree")
+            # If only other_degree is provided, return it directly
+            return other_degree if other_degree else None
+
+        try:
+            id_list = [int(x) for x in str(degree_ids).split(',') if x.strip().isdigit()]
+            id_list = [x for x in id_list if x != 86]
+            degree_names = list(
+                models.Profileedu_degree.objects.filter(id__in=id_list)
+                .values_list("degeree_name", flat=True)
+            )
+            print(" degree")
+            if other_degree:
+                degree_names.append(other_degree)
+            final_names = ", ".join(degree_names) if degree_names else None
+            return final_names
+        except Exception as e:
+            print("exception",str(e))
+            return None
+
 class AdminProfilePDFView(APIView):
     def get(self, request, profile_id=None, pdf_format=None):
         profile_id = profile_id or request.query_params.get('profile_id')
@@ -7377,8 +7399,8 @@ class AdminProfilePDFView(APIView):
                 no_of_bro_married = family_detail.no_of_bro_married
                 suya_gothram = family_detail.suya_gothram
                 madulamn = family_detail.madulamn if family_detail.madulamn != None else "N/A" 
-                no_of_sister = family_detail.no_of_sister or 0
-                no_of_brother = family_detail.no_of_brother
+                no_of_sister = family_detail.no_of_sister or "No"
+                no_of_brother = family_detail.no_of_brother or "No"
         else:
             # Handle case where no family details are found
             father_name = father_occupation = family_status = ""
@@ -7423,7 +7445,11 @@ class AdminProfilePDFView(APIView):
         about_edu=education_details.about_edu
         
         final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
-        
+        try:
+            degree= get_degree_name(education_details.degree,education_details.other_degree)
+        except Exception:
+            degree=None
+
         annual_income = "Unknown"
         actual_income = str(education_details.actual_income).strip()
         annual_income_id = education_details.anual_income
@@ -7591,12 +7617,13 @@ class AdminProfilePDFView(APIView):
             "madulamn":madulamn if madulamn not in [None, ""] else "N/A",
             "work_place":work_place if work_place not in [None, ""] else "N/A",
             "highest_education":final_education if final_education not in [None, ""] else "N/A",
+            'degree':degree if degree not in [None,""] else "N/A",
             "annual_income":annual_income if annual_income not in [None, ""] else "N/A",
             "father_occupation":father_occupation if father_occupation not in [None, ""] else "N/A",
             "family_status":family_status if family_status not in [None, ""] else "N/A",
             "no_of_brother_married":no_of_bro_married if no_of_bro_married not in [None, ""] else "N/A",
-            "no_of_sister": no_of_sister if no_of_sister not in [None, ""] else "0",
-            "no_of_brother": no_of_brother if no_of_brother not in [None, ""] else "0 ",
+            "no_of_sister": no_of_sister if no_of_sister not in [None, ""] else "No",
+            "no_of_brother": no_of_brother if no_of_brother not in [None, ""] else "No ",
             "mother_name":mother_name if mother_name not in [None, ""] else "N/A",
             "mother_occupation":mother_occupation if mother_occupation not in [None, ""] else "N/A",
             "no_of_sister_married":no_of_sis_married if no_of_sis_married not in [None, ""] else "N/A",
@@ -7692,8 +7719,8 @@ class AdminMatchProfilePDFView(APIView):
                         no_of_bro_married = family_detail.no_of_bro_married
                         suya_gothram = family_detail.suya_gothram
                         madulamn = family_detail.madulamn if family_detail.madulamn != None else "N/A" 
-                        no_of_sister = family_detail.no_of_sister
-                        no_of_brother = family_detail.no_of_brother
+                        no_of_sister = family_detail.no_of_sister or "No"
+                        no_of_brother = family_detail.no_of_brother or "No"
                 else:
                     # Handle case where no family details are found
                     father_name = father_occupation = family_status = ""
@@ -7719,6 +7746,11 @@ class AdminMatchProfilePDFView(APIView):
 
                 if no_of_brother=="0" or no_of_brother =='':
                     no_of_bro_married="No"
+
+                try:
+                    degree= get_degree_name(education_details.degree,education_details.other_degree)
+                except Exception:
+                    degree=None
                 complexion_id = login.Profile_complexion
                 complexion = "Unknown"
                 if complexion_id:
@@ -7913,6 +7945,7 @@ class AdminMatchProfilePDFView(APIView):
                     "height":login.Profile_height,
                     "didi":didi,
                     "nalikai":nalikai,
+                    "degree":degree if degree not in [None,""] else "N/a",
                     "father_name": father_name if father_name not in [None, ""] else "N/A" ,
                     "suya_gothram":suya_gothram if suya_gothram not in [None, ""] else "N/A",
                     "madulamn":madulamn if madulamn not in [None, ""] else "N/A",
@@ -7924,11 +7957,11 @@ class AdminMatchProfilePDFView(APIView):
                     "father_occupation":father_occupation if father_occupation not in [None, ""] else "N/A",
                     "family_status":family_status if family_status not in [None, ""] else "N/A",
                     "no_of_brother_married":no_of_bro_married if no_of_bro_married not in [None, ""] else "N/A",
-                    "no_of_brother":no_of_brother if no_of_brother not in [None, ""] else "0",
+                    "no_of_brother":no_of_brother if no_of_brother not in [None, ""] else "No",
                     "mother_name":mother_name if mother_name not in [None, ""] else "N/A",
                     "mother_occupation":mother_occupation if mother_occupation not in [None, ""] else "N/A",
                     "no_of_sister_married":no_of_sis_married if no_of_sis_married not in [None, ""] else "N/A",
-                    "no_of_sister":no_of_sister if no_of_sister not in [None, ""] else "0",
+                    "no_of_sister":no_of_sister if no_of_sister not in [None, ""] else "No",
                     "contact": login.Mobile_no if login.Mobile_no not in [None, ""] else "N/A",
                     "whatsapp": login.Profile_whatsapp,
                     "alternate_number":login.Profile_alternate_mobile if login.Profile_alternate_mobile not in [None, ""] else "N/A",
