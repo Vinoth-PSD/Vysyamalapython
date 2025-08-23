@@ -18415,6 +18415,22 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 about_edu=education_details.about_edu
                 
                 final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
+                
+                
+                
+                highest_education_id_my = education_my.highest_education
+                highest_education_my="N/A"
+                if highest_education_id_my:
+                    highest_education_my = models.Edupref.objects.filter(RowId=highest_education_id_my).values_list('EducationLevel', flat=True).first() or "N/A"
+
+                field_ofstudy_id_my = education_my.field_ofstudy
+                fieldof_study_my=" "
+                if field_ofstudy_id_my:
+                    fieldof_study_my = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id_my).values_list('field_of_study', flat=True).first() or "N/A"
+                
+                about_edu=education_my.about_edu
+                
+                final_education_my = (highest_education_my + ' ' + fieldof_study_my).strip() or about_edu
 
 
                 annual_income = "Unknown"
@@ -19389,7 +19405,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 </tr>
                 <tr>
                 <td class="data-row">
-                    <p> {final_education}</p>
+                    <p> {final_education_my}</p>
                 </td>
                 <td class="data-row">
                     <p> {final_education}</p>
@@ -19591,6 +19607,22 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 about_edu=education_details.about_edu
                 
                 final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
+                
+                
+                
+                highest_education_id_my = education_my.highest_education
+                highest_education_my="N/A"
+                if highest_education_id_my:
+                    highest_education_my = models.Edupref.objects.filter(RowId=highest_education_id_my).values_list('EducationLevel', flat=True).first() or "N/A"
+
+                field_ofstudy_id_my = education_my.field_ofstudy
+                fieldof_study_my=" "
+                if field_ofstudy_id_my:
+                    fieldof_study_my = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id_my).values_list('field_of_study', flat=True).first() or "N/A"
+                
+                about_edu=education_my.about_edu
+                
+                final_education_my = (highest_education_my + ' ' + fieldof_study_my).strip() or about_edu
 
 
 
@@ -20629,7 +20661,7 @@ h2.porutham-table-title{{
                 </tr>
                 <tr>
                 <td class="data-row">
-                    <p> {final_education}</p>
+                    <p> {final_education_my}</p>
                 </td>
                 <td class="data-row">
                     <p> {final_education}</p>
