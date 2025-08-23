@@ -5061,7 +5061,7 @@ class Get_profile_det_match(APIView):
             print('profile Deleted')
             return JsonResponse(
                 {'status': 'failure', 'message': 'The Profile is Deleted'},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_400_BAD_REQUEST
             )
         
         if not my_profile or not user_profile:
