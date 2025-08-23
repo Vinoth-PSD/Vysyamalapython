@@ -1601,7 +1601,7 @@ class Get_profiledata(models.Model):
 
     @staticmethod
     def get_profile_details(profile_ids):
- 
+        
         query = '''SELECT l.*,l.status as pstatus, pp.*, pf.*, ph.*, pe.*,mr.name as rasi_name,mb.star as star_name , mp.Profession as profession_name
             FROM logindetails l 
             LEFT JOIN profile_edudetails pe ON pe.profile_id = l.ProfileId 
@@ -1611,7 +1611,7 @@ class Get_profiledata(models.Model):
             LEFT JOIN masterrasi mr ON mr.id = ph.birth_rasi_name 
             LEFT JOIN masterbirthstar mb ON mb.id = ph.birthstar_name
             LEFT JOIN masterprofession mp ON mp.RowId = pe.profession
-            WHERE l.ProfileId IN %s  '''
+            WHERE  l.ProfileId IN %s  '''
 
 
         with connection.cursor() as cursor:
