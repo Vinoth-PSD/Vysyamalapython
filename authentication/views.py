@@ -5055,13 +5055,13 @@ class Get_profile_det_match(APIView):
         my_profile = self._get_cached_profile(profile_id)
         user_profile = self._get_cached_profile(user_profile_id)
 
-        print('status',user_profile['pstatus'])
+        # print('status',user_profile['pstatus'])
         
         if user_profile['pstatus']==4:
-            print('profile Deleted')
+            # print('profile Deleted')
             return JsonResponse(
                 {'status': 'failure', 'message': 'The Profile is Deleted'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status=status.HTTP_200_OK
             )
         
         if not my_profile or not user_profile:
