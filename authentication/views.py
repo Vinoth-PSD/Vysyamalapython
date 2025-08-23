@@ -5054,6 +5054,8 @@ class Get_profile_det_match(APIView):
         # 3. Get Profiles with Caching
         my_profile = self._get_cached_profile(profile_id)
         user_profile = self._get_cached_profile(user_profile_id)
+
+        # print('status',user_profile['pstatus'])
         
         if user_profile['pstatus']==4:
             # print('profile Deleted')
@@ -5067,7 +5069,6 @@ class Get_profile_det_match(APIView):
                 {'status': 'failure', 'message': 'Profile not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
 
         # 4. Get Permissions
         permissions = {
@@ -5311,8 +5312,8 @@ class Get_profile_det_match(APIView):
     
     def _get_degree_name(self, degree_ids, other_degree):
 
-        # print('degree_ids',degree_ids)
-        # print('other_degree',other_degree)
+        print('degree_ids',degree_ids)
+        print('other_degree',other_degree)
         """Get degree names with caching"""
         if not degree_ids:
             # If only other_degree is provided, return it directly
@@ -11910,7 +11911,7 @@ class JustRegisteredAPIView(APIView):
     def post(self, request):
         recent_users = models.Registration1.objects.all().order_by('-DateOfJoin')[:10]
         active_profiles_count = models.Registration1.objects.filter(Status=1).count()
-        happy_customers_count = 56555
+        happy_customers_count = 32272  
  
  
         users_data = []
@@ -13035,25 +13036,6 @@ class HomepageListView(APIView):
         else:
             return JsonResponse({'status': 'error', 'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-def get_degree_name(degree_ids, other_degree):
-        if not degree_ids:
-            # If only other_degree is provided, return it directly
-            return other_degree if other_degree else None
-
-        try:
-            id_list = [int(x) for x in str(degree_ids).split(',') if x.strip().isdigit()]
-            id_list = [x for x in id_list if x != 86]
-            degree_names = list(
-                models.Profileedu_degree.objects.filter(id__in=id_list)
-                .values_list("degeree_name", flat=True)
-            )
-            if other_degree:
-                degree_names.append(other_degree)
-            final_names = ", ".join(degree_names) if degree_names else None
-            return final_names
-        except Exception:
-            return None
-
 def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirthchart"):
 
                 # print('1234567')
@@ -13087,10 +13069,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                         <p>WhatsApp: {login_details.Profile_whatsapp or 'N/A'}</p>
                         <p>Email: {login_details.EmailId or 'N/A'}</p>
                 """
-                try:
-                    degree= get_degree_name(education_details.degree,education_details.other_degree)  
-                except Exception as e:
-                    degree = None
+                
                 # family details
                 family_details = models.Familydetails.objects.filter(profile_id=user_profile_id)
                 if family_details.exists():
@@ -13829,10 +13808,6 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                         <td><p>Education</p></td>
                                         <td><p>{final_education}</p></td>
                                     </tr>
-                                    <tr>
-                                        <td><p>Degree</p></td>
-                                        <td><p>{degree}</p></td>
-                                    </tr>
                                     </table>
                                     
                                 </td>
@@ -14265,11 +14240,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                         <p>WhatsApp: {login_details.Profile_whatsapp or 'N/A'}</p>
                         <p>Email: {login_details.EmailId or 'N/A'}</p>
                 """
-                try:
-                    degree= get_degree_name(education_details.degree,education_details.other_degree)
-                except Exception:
-                    degree=None
-                    
+                
                 # family details
                 family_details = models.Familydetails.objects.filter(profile_id=user_profile_id)
                 if family_details.exists():
@@ -14982,10 +14953,6 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                         <td><p>Education</p></td>
                                         <td><p>{final_education}</p></td>
                                     </tr>
-                                    <tr>
-                                        <td><p>Degree</p></td>
-                                        <td><p>{degree}</p></td>
-                                    </tr>
                                     </table>
                                     
                                 </td>
@@ -15285,15 +15252,6 @@ def generate_porutham_pdf(request):
         education_from_details = models.Edudetails.objects.get(profile_id=profile_from)
         education_to_details = models.Edudetails.objects.get(profile_id=profile_to)
 
-        try:
-            degree_from= get_degree_name(education_from_details.degree,education_from_details.other_degree)  
-        except Exception as e:
-            degree_from = None
-            
-        try:
-            degree_to= get_degree_name(education_to_details.degree,education_to_details.other_degree)  
-        except Exception as e:
-            degree_to = None
         # Defensive check for null fields
         if not horoscope_from.birthstar_name or not horoscope_to.birthstar_name:
             return JsonResponse({'status': 'error', 'message': 'Missing birth star data'}, status=400)
@@ -15355,17 +15313,7 @@ def generate_porutham_pdf(request):
         rasi_kattam_to = parse_data(horoscope_to.rasi_kattam or "")
         rasi_kattam_from.extend(['-'] * (12 - len(rasi_kattam_from)))
         rasi_kattam_to.extend(['-'] * (12 - len(rasi_kattam_to)))
-        if horoscope_from.rasi_kattam or  horoscope_from.amsa_kattam:
-            rasi_kattam_data_from = parse_data(horoscope_from.rasi_kattam)
-        else:
-            rasi_kattam_data_from=parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
-        rasi_kattam_data_from.extend([default_placeholder] * (12 - len(rasi_kattam_data_from)))
 
-        if horoscope_to.rasi_kattam or  horoscope_to.amsa_kattam:
-            rasi_kattam_data_to = parse_data(horoscope_to.rasi_kattam)
-        else:
-            rasi_kattam_data_to=parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
-        rasi_kattam_data_to.extend([default_placeholder] * (12 - len(rasi_kattam_data_to)))     
         # Get porutham data
         porutham_data = fetch_porutham_details(profile_from, profile_to)
 
@@ -15463,11 +15411,11 @@ def generate_porutham_pdf(request):
                             }}
                             .porutham-table td {{
                                 border:1px solid #538135;
-                                color: #538135;
+                                  color: #538135;
                                 font-size:15px;
                                 font-weight:400;
                                 text-align:center;
-                                padding: 8px 5px;
+                                padding: 5px 0px 0px 0px;
                             }}
                             .porutham-table tr td p{{
                                 color: #538135;
@@ -15591,73 +15539,6 @@ def generate_porutham_pdf(request):
                             .data-value {{
                                 padding: 4px;
                             }}
-                            table.outer {{
-                                width: 100%;
-                                text-align: center;
-                                font-family: Arial, sans-serif;
-                                margin: 0;
-                                padding: 0;
-                                margin-bottom: 10px;
-                            }}
-                            .outer tr td {{
-                                padding: 0 20px;
-                            }}
-                            table.inner {{
-                                width: 45%;
-                                border-collapse: collapse;
-                                text-align: center;
-                                font-family: Arial, sans-serif;
-                                margin: 10px;
-                                display: inline-block;
-                                vertical-align: top;
-                                background-color: #fff9c7;
-                            }}
-
-                            .inner-tabledata {{
-                                width: 25%;
-                                height: 80px;
-
-                            }}
-
-                            .inner td {{
-                                width: 25%;
-                                height: 80px;
-                                border: 2px solid #d6d6d6;
-                                padding: 10px;
-                                color: #008000;
-                                font-weight: bold;
-                                font-size: 12px;
-                                white-space: pre-line;
-                                /* Ensures new lines are respected */
-                            }}
-
-                            .inner-table tr td p {{
-                                white-space: pre-line;
-                                word-break: break-all;
-                                word-wrap: normal;
-                                word-wrap: break-word;
-                                overflow: hidden;
-
-                            }}
-
-                            .inner .highlight {{
-                                background-color: #ffffff;
-                                text-align: center;
-                                width: 100%;
-                                height: 100%;
-                                font-size: 24px;
-                                font-weight: 700;
-                                color: #008000;
-                                vertical-align: middle;
-                                padding: 10px;
-
-                            }}
-
-                            .inner .highlight p {{
-                                font-size: 16px;
-                                font-weight: 400;
-                                color: #008000;
-                            }}
         
                 </style>
             </head>
@@ -15740,73 +15621,13 @@ def generate_porutham_pdf(request):
                 <tr>
                 <td class="data-row">
                     <p> {final_education_from}</p>
-                    <p> {degree_from} </p>
                 </td>
                 <td class="data-row">
                     <p> {final_education_to}</p>
-                    <p> {degree_to} </p>
                 </td>
                 </tr>
             </table>
-                <table class="outer">
-                        <tr>
-                            <td>
-                                <table class="inner">
-                                    <tr>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[0].replace('/', '<br>')}</td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[1].replace('/', '<br>')}</td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[2].replace('/', '<br>')}</td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[3].replace('/', '<br>')}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[11].replace('/', '<br>')}</td>
-                                        <td colspan="2" rowspan="2" class="highlight">
-                                            Rasi
-                                            <p>vysyamala.com</p>
-                                        </td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[4].replace('/', '<br>')}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[10].replace('/', '<br>')}</td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[5].replace('/', '<br>')}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[9].replace('/', '<br>')}</td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[8].replace('/', '<br>')}</td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[7].replace('/', '<br>')}</td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[6].replace('/', '<br>')}</td>
-                                    </tr>
-                                </table>
-                            </td>
-                            <td>
-                                <table class="inner">
-                                    <tr>
-                                        <td>{rasi_kattam_data_to[0].replace('/', '<br>')}</td>
-                                        <td>{rasi_kattam_data_to[1].replace('/', '<br>')}</td>
-                                        <td>{rasi_kattam_data_to[2].replace('/', '<br>')}</td>
-                                        <td>{rasi_kattam_data_to[3].replace('/', '<br>')}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{rasi_kattam_data_to[11].replace('/', '<br>')}</td>
-                                        <td colspan="2" rowspan="2" class="highlight">Rasi
-                                            <p>vysyamala.com</p>
-                                        </td>
-                                        <td>{rasi_kattam_data_to[4].replace('/', '<br>')}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{rasi_kattam_data_to[10].replace('/', '<br>')}</td>
-                                        <td>{rasi_kattam_data_to[5].replace('/', '<br>')}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{rasi_kattam_data_to[9].replace('/', '<br>')}</td>
-                                        <td>{rasi_kattam_data_to[8].replace('/', '<br>')}</td>
-                                        <td>{rasi_kattam_data_to[7].replace('/', '<br>')}</td>
-                                        <td>{rasi_kattam_data_to[6].replace('/', '<br>')}</td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                    </table>
+                
             <h2 class="report-title" >Nakshatra Porutham & Rasi Porutham</h2>
            <table class="porutham-table">
                 <tr>
@@ -15833,7 +15654,6 @@ def generate_porutham_pdf(request):
         </html>"""
 
             # Log profile view
-        
         save_logs, created = models.Profile_docviewlogs.objects.get_or_create(
             profile_id=profile_from,
             viewed_profile=profile_to,
@@ -15891,15 +15711,6 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
         horoscope_to = models.Horoscope.objects.get(profile_id=profile_to)
         education_from_details = models.Edudetails.objects.get(profile_id=profile_from)
         education_to_details = models.Edudetails.objects.get(profile_id=profile_to)
-
-        try:
-            degree_from= get_degree_name(education_from_details.degree,education_from_details.other_degree)  
-        except Exception as e:
-            degree_from = None
-        try:
-            degree_to= get_degree_name(education_to_details.degree,education_to_details.other_degree)  
-        except Exception as e:
-            degree_to = None
 
         # Defensive check for null fields
         if not horoscope_from.birthstar_name or not horoscope_to.birthstar_name:
@@ -15963,17 +15774,7 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
         rasi_kattam_to = parse_data(horoscope_to.rasi_kattam or "")
         rasi_kattam_from.extend(['-'] * (12 - len(rasi_kattam_from)))
         rasi_kattam_to.extend(['-'] * (12 - len(rasi_kattam_to)))
-        if horoscope_from.rasi_kattam or  horoscope_from.amsa_kattam:
-            rasi_kattam_data_from = parse_data(horoscope_from.rasi_kattam)
-        else:
-            rasi_kattam_data_from=parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
-        rasi_kattam_data_from.extend([default_placeholder] * (12 - len(rasi_kattam_data_from)))
 
-        if horoscope_to.rasi_kattam or  horoscope_to.amsa_kattam:
-            rasi_kattam_data_to = parse_data(horoscope_to.rasi_kattam)
-        else:
-            rasi_kattam_data_to=parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
-        rasi_kattam_data_to.extend([default_placeholder] * (12 - len(rasi_kattam_data_to)))     
         # Get porutham data
         porutham_data = fetch_porutham_details(profile_from, profile_to)
 
@@ -16198,74 +15999,7 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                             .data-value {{
                                 padding: 4px;
                             }}
-                              table.outer {{
-                                width: 100%;
-                                text-align: center;
-                                font-family: Arial, sans-serif;
-                                margin: 0;
-                                padding: 0;
-                                margin-bottom: 10px;
-                            }}
-                            .outer tr td {{
-                                padding: 0 20px;
-                            }}
-                            table.inner {{
-                                width: 45%;
-                                border-collapse: collapse;
-                                text-align: center;
-                                font-family: Arial, sans-serif;
-                                margin: 10px;
-                                display: inline-block;
-                                vertical-align: top;
-                                background-color: #fff9c7;
-                            }}
-
-                            .inner-tabledata {{
-                                width: 25%;
-                                height: 80px;
-
-                            }}
-
-                            .inner td {{
-                                width: 25%;
-                                height: 80px;
-                                border: 2px solid #d6d6d6;
-                                padding: 10px;
-                                color: #008000;
-                                font-weight: bold;
-                                font-size: 12px;
-                                white-space: pre-line;
-                                /* Ensures new lines are respected */
-                            }}
-
-                            .inner-table tr td p {{
-                                white-space: pre-line;
-                                word-break: break-all;
-                                word-wrap: normal;
-                                word-wrap: break-word;
-                                overflow: hidden;
-
-                            }}
-
-                            .inner .highlight {{
-                                background-color: #ffffff;
-                                text-align: center;
-                                width: 100%;
-                                height: 100%;
-                                font-size: 24px;
-                                font-weight: 700;
-                                color: #008000;
-                                vertical-align: middle;
-                                padding: 10px;
-
-                            }}
-
-                            .inner .highlight p {{
-                                font-size: 16px;
-                                font-weight: 400;
-                                color: #008000;
-                            }}
-                            
+        
                 </style>
             </head>
         <body>
@@ -16347,99 +16081,13 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                 <tr>
                 <td class="data-row">
                     <p> {final_education_from}</p>
-                    <p> {degree_from} </p>
                 </td>
                 <td class="data-row">
                     <p> {final_education_to}</p>
-                    <p> {degree_to} </p>
                 </td>
                 </tr>
             </table>
-              
-
-               <br>
-               <br>
-                
-
-                    <br>  
-                    <br>  
-
-                    </td>
-                    </tr>
-                    </table>
-    <br>  
-                    <br>  
-    <br>  
-                    <br>  
-
-                    <table class="outer">
-                        <tr>
-                            <td>
-                                <table class="inner">
-                                    <tr>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[0].replace('/', '<br>')}</td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[1].replace('/', '<br>')}</td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[2].replace('/', '<br>')}</td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[3].replace('/', '<br>')}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[11].replace('/', '<br>')}</td>
-                                        <td colspan="2" rowspan="2" class="highlight">
-                                            Rasi
-                                            <p>vysyamala.com</p>
-                                        </td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[4].replace('/', '<br>')}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[10].replace('/', '<br>')}</td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[5].replace('/', '<br>')}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[9].replace('/', '<br>')}</td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[8].replace('/', '<br>')}</td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[7].replace('/', '<br>')}</td>
-                                        <td class="inner-tabledata">{rasi_kattam_data_from[6].replace('/', '<br>')}</td>
-                                    </tr>
-                                </table>
-                            </td>
-                            <td>
-                                <table class="inner">
-                                    <tr>
-                                        <td>{rasi_kattam_data_to[0].replace('/', '<br>')}</td>
-                                        <td>{rasi_kattam_data_to[1].replace('/', '<br>')}</td>
-                                        <td>{rasi_kattam_data_to[2].replace('/', '<br>')}</td>
-                                        <td>{rasi_kattam_data_to[3].replace('/', '<br>')}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{rasi_kattam_data_to[11].replace('/', '<br>')}</td>
-                                        <td colspan="2" rowspan="2" class="highlight">Rasi
-                                            <p>vysyamala.com</p>
-                                        </td>
-                                        <td>{rasi_kattam_data_to[4].replace('/', '<br>')}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{rasi_kattam_data_to[10].replace('/', '<br>')}</td>
-                                        <td>{rasi_kattam_data_to[5].replace('/', '<br>')}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>{rasi_kattam_data_to[9].replace('/', '<br>')}</td>
-                                        <td>{rasi_kattam_data_to[8].replace('/', '<br>')}</td>
-                                        <td>{rasi_kattam_data_to[7].replace('/', '<br>')}</td>
-                                        <td>{rasi_kattam_data_to[6].replace('/', '<br>')}</td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                    </table>
-
-                      <br>  
-                    <br>  
-                    <br>
-                        <br>  
-                    <br>  
-    <br>  
-                    <br>  
-
+               
             <h2 class="report-title" >Nakshatra Porutham & Rasi Porutham</h2>
            <table class="porutham-table">
                 <tr>
@@ -16450,7 +16098,7 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                  {porutham_rows}
                  </table>        
               <table class="profile-addtional-info">
-                <tr>
+                <tr >
                 <td class="data-row"  style="width:100%;">
                 <p>
                 Our best wishes for finding your soulmate in Vyasyamala soon. Please inform Vyasyamala if your marriage is fixed. Share your engagement photo and receive a surprise gift. No commissions / hidden charges. Jai Vasavi!
@@ -18294,9 +17942,8 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
                 login_details = get_object_or_404(models.Registration1, ProfileId=user_profile_id)
                 education_details = get_object_or_404(models.Edudetails, profile_id=user_profile_id)
-                login_my  = get_object_or_404(models.Registration1, ProfileId=my_profile_id)
-                horoscope_my = get_object_or_404(models.Horoscope, profile_id=my_profile_id)
-                education_my = get_object_or_404(models.Edudetails, profile_id=my_profile_id)
+                
+
                 if all(not str(val).strip() for val in [
                     login_details.Profile_address,
                     get_district_name(login_details.Profile_district),
@@ -18331,11 +17978,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                         mobile_email_content = f"""<p> Get full access - upgrade your package today </p>"""
 
 
-                try:
-                    degree= get_degree_name(education_details.degree,education_details.other_degree)
-                except Exception:
-                    degree=None
-                    
+
                 # family details
                 family_details = models.Familydetails.objects.filter(profile_id=user_profile_id)
                 if family_details.exists():
@@ -18415,22 +18058,6 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 about_edu=education_details.about_edu
                 
                 final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
-                
-                
-                
-                highest_education_id_my = education_my.highest_education
-                highest_education_my="N/A"
-                if highest_education_id_my:
-                    highest_education_my = models.Edupref.objects.filter(RowId=highest_education_id_my).values_list('EducationLevel', flat=True).first() or "N/A"
-
-                field_ofstudy_id_my = education_my.field_ofstudy
-                fieldof_study_my=" "
-                if field_ofstudy_id_my:
-                    fieldof_study_my = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id_my).values_list('field_of_study', flat=True).first() or "N/A"
-                
-                about_edu=education_my.about_edu
-                
-                final_education_my = (highest_education_my + ' ' + fieldof_study_my).strip() or about_edu
 
 
                 annual_income = "Unknown"
@@ -18494,15 +18121,9 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 star_obj = get_model_instance(models.Birthstar, horoscope.birthstar_name)
                 star_name = star_obj.star if star_obj else "N/A"
 
-                star_obj_my = get_model_instance(models.Birthstar, horoscope_my.birthstar_name)
-                star_name_my = star_obj_my.star if star_obj_my else "N/A"
-                
                 rasi_obj = get_model_instance(models.Rasi, horoscope.birth_rasi_name)
                 rasi_name = rasi_obj.name if rasi_obj else "N/A"
 
-                rasi_obj_my = get_model_instance(models.Rasi, horoscope_my.birth_rasi_name)
-                rasi_name_my = rasi_obj_my.name if rasi_obj_my else "N/A"
-                
                 lagnam_obj = get_model_instance(models.Rasi, horoscope.lagnam_didi)
                 lagnam = lagnam_obj.name if lagnam_obj else "N/A"
 
@@ -18594,7 +18215,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 birth_star_id = horoscope.birthstar_name
                 birth_rasi_id = horoscope.birth_rasi_name
                 gender = login_details.Gender
-                porutham_data = fetch_porutham_details(user_profile_id, my_profile_id)
+                porutham_data = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
             
                 horo_hint = horoscope.horoscope_hints or "N/A"
                 def is_grid_data_empty(grid_data):
@@ -18617,23 +18238,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 dasa_name = get_dasa_name(horoscope.dasa_name)
                 image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
 
-                porutham_rows = ""
-                for idx, porutham in enumerate(porutham_data['porutham_results']):
-                    extra_td = ""
-                    if idx == 0:
-                        extra_td = (
-                            f"<td rowspan='{len(porutham_data['porutham_results'])}'>"
-                            f"<p class='matching-score'>{porutham_data['matching_score']}</p>"
-                            f"<p style='font-weight:500; font-size:13px;'>Please check with your astrologer for detailed compatibility.</p>"
-                            f"<p style='margin-top:10px;'>Jai Vasavi</p>"
-                            f"</td>"
-                        )
-                    porutham_rows += (
-                        f"<tr>"
-                        f"<td>{porutham['porutham_name']}</td>"
-                        f"<td><span style='color: {'green' if porutham['status'].startswith('YES') else 'red'};'>{porutham['status']}</span></td>"
-                        f"{extra_td}"
-                        f"</tr>")
+                print("Image_status",image_status)
 
                 charts_html = ""
 
@@ -18968,7 +18573,39 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 font-weight: 700;
                                 color:#000000;
                             }}
-                           
+                            h2.porutham-table-title{{
+                                font-size: 24px;
+                                font-weight: 700;
+                                margin-bottom: 20px;
+                                padding:0px 0px;
+                            }}
+                            porutham-table{{
+                                border:1px solid #bcbcbc;
+                                border-collapse: collapse;
+                                margin-bottom: 24px;
+                            }}
+                            .porutham-table td {{
+                                border:1px solid #bcbcbc;
+                            }}
+                            .porutham-table td p{{
+                                color: #000;
+                                font-size:16px;
+                                font-weight:700;
+                                text-align:center;
+                                padding: 10px 0;
+                            }}
+                            .porutham-stars tr td p{{
+                                text-align:left;
+                                padding: 20px 20px;
+                            }}
+                            .porutham-note{{
+                                font-size: 17px;
+                                font-weight:400;
+                                color: #000000;
+                                padding:20px 0px;
+                            }}
+
+
                             .upload-horo-bg img{{
                                width:100%;
                                height:auto;
@@ -18992,164 +18629,6 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                              
                             }}
                             
-
-                            .compatibility-page-wrapper {{
-                                 margin:0px auto;
-                                text-align:center;
-                                width:100%;
-                            }}
-                            .compatibility-page-wrapper tr {{
-                                margin: auto;
-                                text-align:center;
-                                width:100%;
-                            }}
-                            
-                            .compatibility-page-wrapper tr td{{
-                                background-color: #ffd966;
-                                width:100%;
-                                text-align:center;
-                                margin: auto;
-                               
-                            }}
-
-                            .report-title {{
-                                background-color: #ffd966;
-                                color: #538135;
-                                font-weight: bold;
-                                text-align: center;
-                                padding: 10px 0px 0px;
-                                font-size: 16px;
-                            }}
-                             .report-table {{
-                                width: 100%;
-                                border-collapse: collapse;
-                                background-color: #538135;
-                                
-                            }}
-                             .report-table  tr {{
-                                background-color: #538135;
-
-                             }}
-                             .report-table  tr  td{{
-                                background-color: #538135;
-                                color:#ffd966;
-                                border:1px solid #ffd966;
-
-                             }}
-                             .report-table  tr  td p{{
-                                background-color: #538135;
-                                color:#ffd966;
-                                font-size:14px;
-                                width:100%;
-
-                             }}
-                             .profile-name{{
-                                color:#ffd966;
-                             }}
-                            .header-cell {{
-                                background-color: #538135;
-                                color: #fff;
-                                font-weight: bold;
-                                text-align: center;
-                                padding: 6px;
-                            }}
-                            .sub-header {{
-                                background-color:#538135;
-                                color: #000;
-                                text-align: center;
-                                padding: 4px;
-                            }}
-                            .profile-addtional-info{{
-                                width: 100%;
-                                background-color: #ffd966;
-                                border:1px solid #538135;
-
-                            }}
-                              .profile-addtional-info  tr {{
-                                background-color: #ffd966;
-                                border:none;
-
-                             }}
-                            
-                             .profile-addtional-info  tr  td p{{
-                                background-color: #ffd966;
-                                color:#538135;
-                                font-size:14px;
-                                width:100%;
-
-                             }}
-   .data-row {{
-                                padding: 2px 0px;
-                            }}
-                            .data-label {{
-                                font-weight: bold;
-                                width: 40%;
-                                padding: 4px;
-                            }}
-                            .data-value {{
-                                padding: 4px;
-                            }}
-
-
-                             .porutham-header p {{
-                                font-size:22px;
-                                font-weight: 700;
-                                color:#000000;
-                            }}
-
-                            h2.porutham-table-title{{
-                                font-size: 24px;
-                                font-weight: 700;
-                                margin-bottom: 20px;
-                                padding:0px 0px;
-                            }}
-                            .porutham-table{{
-                                border:1px solid #538135;
-                                border-collapse: collapse;
-                                margin-bottom: 10px;
-                            }}
-                            .porutham-table th {{
-                                padding: 5px 0;
-                                  background-color: #538135;
-                                  color:#f4c542;
-                                font-size:16px;
-                                font-weight:700;
-                                text-align:center;
-                                padding: 5px 0 0 0;
-                            }}
-                            .porutham-table td {{
-                                border:1px solid #538135;
-                                color: #538135;
-                                font-size:15px;
-                                font-weight:400;
-                                text-align:center;
-                                padding: 8px 5px;
-                            }}
-                            .porutham-table tr td p{{
-                                color: #538135;
-                                font-size:15px;
-                                font-weight:700;
-                                text-align:center;
-                                padding: 5px 0;
-                            }}
-                          
-                            .porutham-stars tr td p{{
-                                text-align:left;
-                                padding: 20px 20px;
-                            }}
-                            .porutham-note{{
-                                font-size: 17px;
-                                font-weight:400;
-                                color: #000000;
-                                padding:20px 0px;
-                            }}
-
-
-                            .matching-score{{
-                                font-size:30px ;
-                                font-weight:700;
-                            }}
-                        
 
                         </style>
                     </head>
@@ -19187,10 +18666,6 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                     <tr>
                                         <td><p>Education</p></td>
                                         <td><p>{final_education}</p></td>
-                                    </tr>
-                                    <tr>
-                                        <td><p>Degree</p></td>
-                                        <td><p>{degree}</p></td>
                                     </tr>
                                     </table>
                                     
@@ -19335,112 +18810,82 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 </table>
                 </div>
 
-
-                
-
-              
-                <table class="compatibility-page-wrapper" >
-            <tr>
-            <td style="text-align:center;margin:0 auto; padding:0px 20px;">
-                        
-            <h2 class="report-title">Marriage Compatibility Report</h2>
-        
-            <table class="report-table" border="0">
-                <tr>
-                <td class="header-cell">
-                    <p class="profile-name">{login_my.Profile_name} - {login_my.ProfileId}</p>
-                </td>
-                <td class="header-cell">
-                    <p class="profile-name"> {login_details.Profile_name} - {login_details.ProfileId}</p>   
-                 </td>
-                </tr>
-                <tr>
-                <td class="sub-header">
-                    <p class="profile-rasi-star"> {rasi_name_my} - {star_name_my}</p>
-                </td>
-                <td class="sub-header">
-                    <p class="profile-rasi-star"> {rasi_name} - {star_name}</p>
-                </td>
-                </tr>
-            </table>
-            <br>
-        
-            <table class="profile-addtional-info" >
-                <tr>
-                <td class="data-row">
-                     <p> Place of Birth : {horoscope_my.place_of_birth}</p>
-                </td>
-                <td class="data-row">
-                    <p> Place of Birth : {horoscope.place_of_birth}</p>
-                </td>
-                </tr>
-                <tr>
-                <td class="data-row">
-                    <p> Time of Birth : {horoscope_my.time_of_birth}</p>
-                </td>
-                <td class="data-row">
-                    <p>  Time of Birth : {horoscope.time_of_birth}</p>
-                </td>
-                </tr>
-                <tr>
-                <td class="data-row">
-                    <p> Date Of Birth : {login_my.Profile_dob}</p>
-                </td>
-                <td class="data-row">
-                    <p> Date Of Birth : {login_details.Profile_dob}</p>
-                </td>
-                </tr>
-            </table>
-            <br>
-        
-              <table class="profile-addtional-info">
-                <tr>
-                <td class="data-row">
-                    <p> Height : {login_my.Profile_height}</p>
-                </td>
-                <td class="data-row">
-                        <p> Height : {login_details.Profile_height}</p>
-        
-                </td>
-                </tr>
-                <tr>
-                <td class="data-row">
-                    <p> {final_education_my}</p>
-                </td>
-                <td class="data-row">
-                    <p> {final_education}</p>
-                </td>
-                </tr>
-            </table>
-                
-            <h2 class="report-title" >Nakshatra Porutham & Rasi Porutham</h2>
-           <table class="porutham-table">
-                <tr>
-                    <th>Porutham Name</th>
-                    <th>Status</th>
-                    <th>Matching Score</th>
-                </tr>
-                 {porutham_rows}
-                 </table>        
-              <table class="profile-addtional-info">
-                <tr >
-                <td class="data-row"  style="width:100%;">
-                <p>
-                Our best wishes for finding your soulmate in Vyasyamala soon. Please inform Vyasyamala if your marriage is fixed. Share your engagement photo and receive a surprise gift. No commissions / hidden charges. Jai Vasavi!
-                </p>
-                </td>
-                </tr>
-                </table>
-                <br>
-            </td>
-            </tr>
-            </table>
-
                 <table class="porutham-page">
                 <tr>
                 <td>
                 <br>
-               
+                <table class="porutham-header">
+                    <tr>
+                        <td>
+                            <img src="https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png">
+                        </td>
+                        <td>
+                            <p>www.vysyamala.com</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <h2 class="porutham-table-title">Matching Stars Report</h2>
+                <table class="porutham-table">
+                     <tr>
+                        <td><p>Name</p></td>
+                        <td><p>{name}</p></td>
+                        <td><p>Vysyamala ID</p></td>
+                        <td><p>{user_profile_id}</p></td>
+                    </tr>
+                    <tr>
+                        <td><p>Birth Star</p></td>
+                        <td><p>{star_name}</p></td>
+                        <td><p>Age</p></td>
+                        <td><p>{age}</p></td>
+                    </tr>
+                </table>
+
+                <h2 class="porutham-table-title">Matching Stars (9 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["9 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (8 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["8 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (7 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["7 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (6 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["6 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (5 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["5 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <p class="porutham-note">Note: This is system generated report, please confirm the same with your astrologer.</p>
+                </td>
+                </tr>
+                </table>
 
 
                 <div class="upload-horo-bg" >
@@ -19487,9 +18932,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
                 login_details = get_object_or_404(models.Registration1, ProfileId=user_profile_id)
                 education_details = get_object_or_404(models.Edudetails, profile_id=user_profile_id)
-                login_my  = get_object_or_404(models.Registration1, ProfileId=my_profile_id)
-                horoscope_my = get_object_or_404(models.Horoscope, profile_id=my_profile_id)
-                education_my = get_object_or_404(models.Edudetails, profile_id=my_profile_id)
+
 
                 attached_horoscope_enable=get_permission_limits(my_profile_id,'attached_horoscope')
                 contact_enable=get_permission_limits(my_profile_id,'contact_details')
@@ -19518,11 +18961,6 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                         <p>WhatsApp: {login_details.Profile_whatsapp or 'N/A'}</p>
                         <p>Email: {login_details.EmailId or 'N/A'}</p>
                 """
-
-                try:
-                    degree= get_degree_name(education_details.degree,education_details.other_degree)
-                except Exception:
-                    degree=None
 
                 if contact_enable:
                     address_content
@@ -19607,22 +19045,6 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 about_edu=education_details.about_edu
                 
                 final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
-                
-                
-                
-                highest_education_id_my = education_my.highest_education
-                highest_education_my="N/A"
-                if highest_education_id_my:
-                    highest_education_my = models.Edupref.objects.filter(RowId=highest_education_id_my).values_list('EducationLevel', flat=True).first() or "N/A"
-
-                field_ofstudy_id_my = education_my.field_ofstudy
-                fieldof_study_my=" "
-                if field_ofstudy_id_my:
-                    fieldof_study_my = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id_my).values_list('field_of_study', flat=True).first() or "N/A"
-                
-                about_edu=education_my.about_edu
-                
-                final_education_my = (highest_education_my + ' ' + fieldof_study_my).strip() or about_edu
 
 
 
@@ -19686,11 +19108,6 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 except models.Birthstar.DoesNotExist:
                     star_name = "N/A"
 
-                try:
-                    star_my = models.Birthstar.objects.get(pk=horoscope_my.birthstar_name)
-                    star_name_my = star_my.star  # Or use star.tamil_series, telugu_series, etc. as per your requirement
-                except models.Birthstar.DoesNotExist:
-                    star_name_my = "N/A"
                 # Fetch rasi name from Rasi model
                 try:
                     if horoscope.birth_rasi_name:
@@ -19701,14 +19118,6 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 except models.Rasi.DoesNotExist:
                     rasi_name = "N/As"
                     
-                try:
-                    if horoscope_my.birth_rasi_name:
-                        rasi_my = models.Rasi.objects.get(pk=horoscope_my.birth_rasi_name)
-                        rasi_name_my = rasi_my.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
-                    else:
-                        rasi_name_my="N/A"
-                except models.Rasi.DoesNotExist:
-                    rasi_name_my = "N/As"
 
                 time_of_birth = horoscope.time_of_birth
                 place_of_birth = horoscope.place_of_birth
@@ -19822,7 +19231,8 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 birth_star_id = horoscope.birthstar_name
                 birth_rasi_id = horoscope.birth_rasi_name
                 gender = login_details.Gender
-                porutham_data = fetch_porutham_details(my_profile_id,user_profile_id)
+                porutham_data = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
+            
                 # Prepare the Porutham sections for the PDF
                 def format_star_names(poruthams):
                     return ', '.join([f"{item['matching_starname']} - {item['matching_rasiname'].split('/')[0]}" for item in poruthams])
@@ -19837,23 +19247,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                     # Dynamic HTML content including Rasi and Amsam charts
                 image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
 
-                porutham_rows = ""
-                for idx, porutham in enumerate(porutham_data['porutham_results']):
-                    extra_td = ""
-                    if idx == 0:
-                        extra_td = (
-                            f"<td rowspan='{len(porutham_data['porutham_results'])}'>"
-                            f"<p class='matching-score'>{porutham_data['matching_score']}</p>"
-                            f"<p style='font-weight:500; font-size:13px;'>Please check with your astrologer for detailed compatibility.</p>"
-                            f"<p style='margin-top:10px;'>Jai Vasavi</p>"
-                            f"</td>"
-                        )
-                    porutham_rows += (
-                        f"<tr>"
-                        f"<td>{porutham['porutham_name']}</td>"
-                        f"<td><span style='color: {'#000000' if porutham['status'].startswith('YES') else '#000000'};'>{porutham['status']}</span></td>"
-                        f"{extra_td}"
-                        f"</tr>")
+                print("Image_status",image_status)
 
                 charts_html = ""
 
@@ -20261,151 +19655,6 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                              
                             }}
                             
-.compatibility-page-wrapper {{
-    margin:0px auto;
-    text-align:center;
-    width:100%;
-}}
-.compatibility-page-wrapper tr {{
-    margin: auto;
-    text-align:center;
-    width:100%;
-}}
-
-.compatibility-page-wrapper tr td{{
-    background-color: #ffffff;
-    width:100%;
-    text-align:center;
-    margin: auto;
-}}
-
-.report-title {{
-    background-color: #ffffff;
-    color: #000000;
-    font-weight: bold;
-    text-align: center;
-    padding: 10px 0px 0px;
-    font-size: 16px;
-}}
-.report-table {{
-    width: 100%;
-    border-collapse: collapse;
-    background-color: #ffffff;
-}}
-.report-table  tr {{
-    background-color: #ffffff;
-}}
-.report-table  tr  td{{
-    background-color: #ffffff;
-    color:#000000;
-    border:1px solid #000000;
-}}
-.report-table  tr  td p{{
-    background-color: #ffffff;
-    color:#000000;
-    font-size:14px;
-    width:100%;
-}}
-.profile-name{{
-    color:#000000;
-}}
-.header-cell {{
-    background-color: #ffffff;
-    color: #000000;
-    font-weight: bold;
-    text-align: center;
-    padding: 6px;
-}}
-.sub-header {{
-    background-color:#000000;
-    color: #ffffff;
-    text-align: center;
-    padding: 4px;
-}}
-.profile-addtional-info{{
-    width: 100%;
-    background-color: #ffffff;
-    border:1px solid #000000;
-}}
-.profile-addtional-info  tr {{
-    background-color: #ffffff;
-    border:none;
-}}
-.profile-addtional-info  tr  td p{{
-    background-color: #ffffff;
-    color:#000000;
-    font-size:14px;
-    width:100%;
-}}
-.data-row {{
-    padding: 2px 0px;
-}}
-.data-label {{
-    font-weight: bold;
-    width: 40%;
-    padding: 4px;
-}}
-.data-value {{
-    padding: 4px;
-}}
-
-.porutham-header p {{
-    font-size:22px;
-    font-weight: 700;
-    color:#000000;
-}}
-
-h2.porutham-table-title{{
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 20px;
-    padding:0px 0px;
-}}
-.porutham-table{{
-    border:1px solid #000000;
-    border-collapse: collapse;
-    margin-bottom: 10px;
-}}
-.porutham-table th {{
-    padding: 5px 0;
-    background-color: #ffffff;
-    color:#000000;
-    font-size:16px;
-    font-weight:700;
-    text-align:center;
-    padding: 5px 0 0 0;
-}}
-.porutham-table td {{
-    border:1px solid #000000;
-    color: #000000;
-    font-size:15px;
-    font-weight:400;
-    text-align:center;
-    padding: 8px 5px;
-}}
-.porutham-table tr td p{{
-    color: #000000;
-    font-size:15px;
-    font-weight:700;
-    text-align:center;
-    padding: 5px 0;
-}}
-
-.porutham-stars tr td p{{
-    text-align:left;
-    padding: 20px 20px;
-}}
-.porutham-note{{
-    font-size: 17px;
-    font-weight:400;
-    color: #000000;
-    padding:20px 0px;
-}}
-
-.matching-score{{
-    font-size:30px ;
-    font-weight:700;
-}}
 
                         </style>
                     </head>
@@ -20443,10 +19692,6 @@ h2.porutham-table-title{{
                                     <tr>
                                         <td><p>Education</p></td>
                                         <td><p>{final_education}</p></td>
-                                    </tr>
-                                    <tr>
-                                        <td><p>Degree</p></td>
-                                        <td><p>{degree}</p></td>
                                     </tr>
                                     </table>
                                     
@@ -20593,110 +19838,83 @@ h2.porutham-table-title{{
                 </table>
                 </div>
 
-
-
-                <table class="compatibility-page-wrapper" >
-            <tr>
-            <td style="text-align:center;margin:0 auto; padding:0px 20px;">
-                        
-            <h2 class="report-title">Marriage Compatibility Report</h2>
-        
-            <table class="report-table" border="0">
-                <tr>
-                <td class="header-cell">
-                    <p class="profile-name">{login_my.Profile_name} - {login_my.ProfileId}</p>
-                </td>
-                <td class="header-cell">
-                    <p class="profile-name"> {login_details.Profile_name} - {login_details.ProfileId}</p>   
-                 </td>
-                </tr>
-                <tr>
-                <td class="sub-header">
-                    <p class="profile-rasi-star"> {rasi_name_my} - {star_name_my}</p>
-                </td>
-                <td class="sub-header">
-                    <p class="profile-rasi-star"> {rasi_name} - {star_name}</p>
-                </td>
-                </tr>
-            </table>
-            <br>
-        
-            <table class="profile-addtional-info" >
-                <tr>
-                <td class="data-row">
-                     <p> Place of Birth : {horoscope_my.place_of_birth}</p>
-                </td>
-                <td class="data-row">
-                    <p> Place of Birth : {horoscope.place_of_birth}</p>
-                </td>
-                </tr>
-                <tr>
-                <td class="data-row">
-                    <p> Time of Birth : {horoscope_my.time_of_birth}</p>
-                </td>
-                <td class="data-row">
-                    <p>  Time of Birth : {horoscope.time_of_birth}</p>
-                </td>
-                </tr>
-                <tr>
-                <td class="data-row">
-                    <p> Date Of Birth : {login_my.Profile_dob}</p>
-                </td>
-                <td class="data-row">
-                    <p> Date Of Birth : {login_details.Profile_dob}</p>
-                </td>
-                </tr>
-            </table>
-            <br>
-        
-              <table class="profile-addtional-info">
-                <tr>
-                <td class="data-row">
-                    <p> Height : {login_my.Profile_height}</p>
-                </td>
-                <td class="data-row">
-                        <p> Height : {login_details.Profile_height}</p>
-        
-                </td>
-                </tr>
-                <tr>
-                <td class="data-row">
-                    <p> {final_education_my}</p>
-                </td>
-                <td class="data-row">
-                    <p> {final_education}</p>
-                </td>
-                </tr>
-            </table>
-                
-            <h2 class="report-title" >Nakshatra Porutham & Rasi Porutham</h2>
-           <table class="porutham-table">
-                <tr>
-                    <th>Porutham Name</th>
-                    <th>Status</th>
-                    <th>Matching Score</th>
-                </tr>
-                 {porutham_rows}
-                 </table>        
-              <table class="profile-addtional-info">
-                <tr >
-                <td class="data-row"  style="width:100%;">
-                <p>
-                Our best wishes for finding your soulmate in Vyasyamala soon. Please inform Vyasyamala if your marriage is fixed. Share your engagement photo and receive a surprise gift. No commissions / hidden charges. Jai Vasavi!
-                </p>
-                </td>
-                </tr>
-                </table>
-                <br>
-            </td>
-            </tr>
-            </table>
-
                 <table class="porutham-page">
                 <tr>
                 <td>
                 <br>
-               
+                <table class="porutham-header">
+                    <tr>
+                        <td>
+                            <img src="https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png">
+                        </td>
+                        <td>
+                            <p>www.vysyamala.com</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <h2 class="porutham-table-title">Matching Stars Report</h2>
+                <table class="porutham-table">
+                                        <tr>
+                            <td><p>Name</p></td>
+                            <td><p>{name}</p></td>
+                            <td><p>Vysyamala ID</p></td>
+                            <td><p>{user_profile_id}</p></td>
+                        </tr>
+                        <tr>
+                            <td><p>Birth Star</p></td>
+                            <td><p>{star_name}</p></td>
+                            <td><p>Age</p></td>
+                            <td><p>{age}</p></td>
+                        </tr>
+                </table>
+
+                <h2 class="porutham-table-title">Matching Stars (9 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["9 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (8 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["8 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (7 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["7 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (6 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["6 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+                <h2 class="porutham-table-title">Matching Stars (5 Poruthams)</h2>
+                <table class="porutham-table porutham-stars">
+                    <tr>
+                        <td>
+                            <p>{format_star_names(porutham_data["5 Poruthams"])}</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <p class="porutham-note">Note: This is system generated report, please confirm the same with your astrologer.</p>
+                </td>
+                </tr>
+                </table>
+
 
                 <div class="upload-horo-bg" >
                     <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
