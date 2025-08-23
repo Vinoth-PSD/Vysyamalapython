@@ -5054,6 +5054,15 @@ class Get_profile_det_match(APIView):
         # 3. Get Profiles with Caching
         my_profile = self._get_cached_profile(profile_id)
         user_profile = self._get_cached_profile(user_profile_id)
+
+        print('status',user_profile['pstatus'])
+        
+        if user_profile['pstatus']==4:
+            print('profile Deleted')
+            return JsonResponse(
+                {'status': 'failure', 'message': 'The Profile is Deleted'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         
         if not my_profile or not user_profile:
             return JsonResponse(
