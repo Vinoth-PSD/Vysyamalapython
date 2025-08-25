@@ -7364,7 +7364,7 @@ def get_degree_name(degree_ids, other_degree):
             id_list = [int(x) for x in str(degree_ids).split(',') if x.strip().isdigit()]
             id_list = [x for x in id_list if x != 86]
             degree_names = list(
-                models.Profileedu_degree.objects.filter(id__in=id_list)
+                models.MasterhighestEducation.objects.filter(id__in=id_list)
                 .values_list("degeree_name", flat=True)
             )
             print(" degree")
@@ -7375,6 +7375,25 @@ def get_degree_name(degree_ids, other_degree):
         except Exception as e:
             print("exception",str(e))
             return None
+def get_primary_sign(value):
+    if not value:
+        return "N/A"
+    return value.split('/')[0]
+
+def cm_to_feet_inches(cm):
+    if cm is None or cm == "":
+        return "N/A"
+
+    try:
+        cm = float(cm)
+    except ValueError:
+        return "N/A"
+
+    total_inches = cm / 2.54
+    feet = int(total_inches // 12)
+    inches = round(total_inches % 12)
+
+    return f"{feet} ft {inches} in"
 
 class AdminProfilePDFView(APIView):
     def get(self, request, profile_id=None, pdf_format=None):
@@ -7423,9 +7442,12 @@ class AdminProfilePDFView(APIView):
             no_of_bro_married="No"
         if no_of_sister=="0" or no_of_sister =='':
             no_of_sis_married="No"
+            no_of_sister ='No'
 
         if no_of_brother=="0" or no_of_brother =='':
             no_of_bro_married="No"
+            no_of_brother ='No'
+            
         complexion_id = login.Profile_complexion
         complexion = "Unknown"
         if complexion_id:
@@ -7525,7 +7547,7 @@ class AdminProfilePDFView(APIView):
             horoscope_content_admin = "empty"
                 # Get matching stars data
         birthstar = safe_get_value(models.BirthStar, 'id', horoscope_data.birthstar_name, 'star')
-        birth_rasi = safe_get_value(models.Rasi, 'id', horoscope_data.birth_rasi_name, 'name')
+        birth_rasi = get_primary_sign(safe_get_value(models.Rasi, 'id', horoscope_data.birth_rasi_name, 'name'))
 
         complexion_id = login.Profile_complexion
         complexion = safe_get_value(models.Complexion, 'complexion_id', complexion_id, 'complexion_desc')
@@ -7545,7 +7567,7 @@ class AdminProfilePDFView(APIView):
         try:
             if horoscope_data.lagnam_didi and str(horoscope_data.lagnam_didi).isdigit() and int(horoscope_data.lagnam_didi) > 0:
                 lagnam = models.Rasi.objects.filter(pk=int(horoscope_data.lagnam_didi)).first()
-                lagnam= lagnam.name
+                lagnam= get_primary_sign(lagnam.name)
         except models.Rasi.DoesNotExist:
             lagnam = "Unknown"
         def format_time_am_pm(time_str):
@@ -7606,7 +7628,7 @@ class AdminProfilePDFView(APIView):
         context_data = {
             "profile_id": login.ProfileId,
             "name": login.Profile_name,
-            "height":login.Profile_height,
+            "height":cm_to_feet_inches(login.Profile_height),
             "image_status":image_status,
             "dob": date,
             "age":age,
@@ -7743,9 +7765,11 @@ class AdminMatchProfilePDFView(APIView):
                     no_of_bro_married="No"
                 if no_of_sister=="0" or no_of_sister =='':
                     no_of_sis_married="No"
+                    no_of_sister ='No'
 
                 if no_of_brother=="0" or no_of_brother =='':
                     no_of_bro_married="No"
+                    no_of_brother ='No'
 
                 try:
                     degree= get_degree_name(education_details.degree,education_details.other_degree)
@@ -7841,7 +7865,7 @@ class AdminMatchProfilePDFView(APIView):
                 else:
                     horoscope_content_admin = "empty"
                 birthstar = safe_get_value(models.BirthStar, 'id', horoscope_data.birthstar_name, 'star')
-                birth_rasi = safe_get_value(models.Rasi, 'id', horoscope_data.birth_rasi_name, 'name')
+                birth_rasi = get_primary_sign(safe_get_value(models.Rasi, 'id', horoscope_data.birth_rasi_name, 'name'))
 
                 complexion_id = login.Profile_complexion
                 complexion = safe_get_value(models.Complexion, 'complexion_id', complexion_id, 'complexion_desc')
@@ -7920,7 +7944,7 @@ class AdminMatchProfilePDFView(APIView):
                 try:
                     if horoscope_data.lagnam_didi and str(horoscope_data.lagnam_didi).isdigit() and int(horoscope_data.lagnam_didi) > 0:
                         lagnam = models.Rasi.objects.filter(pk=int(horoscope_data.lagnam_didi)).first()
-                        lagnam= lagnam.name or "N/A"
+                        lagnam= get_primary_sign(lagnam.name) or "N/A"
                 except models.Rasi.DoesNotExist:
                     lagnam = "Unknown"
                     
@@ -7942,7 +7966,7 @@ class AdminMatchProfilePDFView(APIView):
                     "dob": date,
                     "age":age,
                     "image_status":image_status,
-                    "height":login.Profile_height,
+                    "height":cm_to_feet_inches(login.Profile_height),
                     "didi":didi,
                     "nalikai":nalikai,
                     "degree":degree if degree not in [None,""] else "N/a",
