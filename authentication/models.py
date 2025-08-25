@@ -894,14 +894,14 @@ class Partnerpref(models.Model):
     pref_age_differences = models.CharField(max_length=50)
     pref_height_from = models.CharField(max_length=50)
     pref_height_to = models.CharField(max_length=50)
-    pref_marital_status = models.CharField(max_length=50)
-    pref_profession = models.CharField(max_length=50)  # Changed from CharField to TextField
-    pref_education = models.CharField(max_length=50)
-    pref_anual_income = models.CharField(max_length=50)
-    pref_anual_income_max = models.CharField(max_length=255)
-    pref_chevvai = models.CharField(max_length=20)  # Changed from CharField to TextField
-    pref_ragukethu = models.CharField(max_length=20)
-    pref_foreign_intrest = models.CharField(max_length=20)
+    pref_marital_status = models.CharField(max_length=50,null=True, blank=True)
+    pref_profession = models.CharField(max_length=50,null=True, blank=True)  # Changed from CharField to TextField
+    pref_education = models.CharField(max_length=50,null=True, blank=True)
+    pref_anual_income = models.CharField(max_length=50,null=True, blank=True)
+    pref_anual_income_max = models.CharField(max_length=255,null=True, blank=True)
+    pref_chevvai = models.CharField(max_length=20,null=True, blank=True)  # Changed from CharField to TextField
+    pref_ragukethu = models.CharField(max_length=20,null=True, blank=True)
+    pref_foreign_intrest = models.CharField(max_length=20,null=True, blank=True)
     pref_porutham_star = models.TextField(null=True, blank=True)
     pref_porutham_star_rasi = models.TextField(null=True, blank=True)
     status = models.IntegerField()   # Changed from CharField to TextField

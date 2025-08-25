@@ -1560,10 +1560,10 @@ class Get_profiledata_Matching(models.Model):
 
             partner_pref = get_object_or_404(ProfileSuggestedPref, profile_id=profile_id)
             pref_annual_income = partner_pref.pref_anual_income
-            pref_marital_status = partner_pref.pref_marital_status
-            partner_pref_education = partner_pref.pref_education
-            partner_pref_height_from = partner_pref.pref_height_from
-            partner_pref_height_to = partner_pref.pref_height_to
+            pref_marital_status =marital_status or partner_pref.pref_marital_status
+            partner_pref_education =education or partner_pref.pref_education
+            partner_pref_height_from =height_from or  partner_pref.pref_height_from
+            partner_pref_height_to = height_to or partner_pref.pref_height_to
             partner_pref_porutham_star_rasi = partner_pref.pref_porutham_star_rasi
             partner_pref_foreign_interest = partner_pref.pref_foreign_intrest
             partner_pref_ragukethu = partner_pref.pref_ragukethu
@@ -1600,11 +1600,14 @@ class Get_profiledata_Matching(models.Model):
                     g.EducationLevel, d.star, h.income
                 FROM logindetails a
                 JOIN profile_suggested_pref s ON a.ProfileId = s.profile_id 
+                JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
+                JOIN profile_familydetails c ON a.ProfileId = c.profile_id
                 JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
                 JOIN masterbirthstar d ON d.id = e.birthstar_name 
                 JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
                 JOIN mastereducation g ON f.highest_education = g.RowId 
                 JOIN masterannualincome h ON h.id = f.anual_income
+                JOIN profile_images pi ON a.ProfileId = pi.profile_id 
                 WHERE a.Status=1 AND a.Plan_id NOT IN (0,16, 18, 3) AND a.gender != %s AND a.ProfileId != %s
                 AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
             """
@@ -1617,8 +1620,11 @@ class Get_profiledata_Matching(models.Model):
 
             # Education
             if partner_pref_education and partner_pref_education.strip():
-                base_query += " AND FIND_IN_SET(g.RowId, %s) > 0"
-                query_params.append(partner_pref_education.strip())
+                edu_list = [e.strip() for e in partner_pref_education.split(',') if e.strip().isdigit()]
+                if edu_list:
+                    placeholders = ','.join(['%s'] * len(edu_list))
+                    base_query += f" AND g.RowId IN ({placeholders})"
+                    query_params.extend(edu_list)
 
             # Porutham star/rasi
             if partner_pref_porutham_star_rasi and partner_pref_porutham_star_rasi.strip():
@@ -1627,30 +1633,35 @@ class Get_profiledata_Matching(models.Model):
 
             # Marital status
             if pref_marital_status and pref_marital_status.strip():
+                marital_status_str = ",".join(pref_marital_status) if isinstance(pref_marital_status, list) else pref_marital_status.strip()
                 base_query += " AND FIND_IN_SET(a.Profile_marital_status, %s) > 0"
-                query_params.append(pref_marital_status.strip())
+                query_params.append(marital_status_str)
 
             # Foreign interest
-            if partner_pref_foreign_interest and partner_pref_foreign_interest.strip():
-                if partner_pref_foreign_interest.lower() == 'yes':
-                    base_query += " AND f.work_country != '1'"
-                elif partner_pref_foreign_interest.lower() == 'no':
-                    base_query += " AND f.work_country = '1'"
+            pref_foreign =foreign_intrest or partner_pref_foreign_interest
+            if pref_foreign and pref_foreign.strip().lower() in ['yes', 'no']:
+                if pref_foreign.lower() == "yes":
+                    base_query += " AND b.pref_foreign_intrest = 'yes'"
+                elif pref_foreign.lower() == "no":
+                    base_query += " AND b.pref_foreign_intrest = 'no'"
 
-            # Ragukethu
-            if partner_pref_ragukethu and partner_pref_ragukethu.strip():
-                if partner_pref_ragukethu.lower() == 'yes':
-                    base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
-                elif partner_pref_ragukethu.lower() == 'no':
-                    base_query += " AND LOWER(e.ragu_dosham) = 'no'"
+            if ragu == 'yes':
+                base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
+            elif ragu == 'no':
+                base_query += " AND LOWER(e.ragu_dosham) = 'no'"
+            elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'yes':
+                base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
+            elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'no':
+                base_query += " AND LOWER(e.ragu_dosham) = 'no'"
 
-            # Chevvai
-            if partner_pref_chevvai and partner_pref_chevvai.strip():
-                if partner_pref_chevvai.lower() == 'yes':
-                    base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
-                elif partner_pref_chevvai.lower() == 'no':
-                    base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
-
+            if chev == 'yes':
+                base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+            elif chev == 'no':
+                base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
+            elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'yes':
+                base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+            elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'no':
+                base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
             # Height filters
             if partner_pref_height_from and partner_pref_height_to:
                 base_query += " AND a.Profile_height BETWEEN %s AND %s"
@@ -1668,14 +1679,74 @@ class Get_profiledata_Matching(models.Model):
                 query_params.extend([search_profile_id, f"%{search_profile_id}%"])
 
             if search_profession:
-                base_query += " AND f.profession = %s"
-                query_params.append(search_profession)
+                profession_list = [p.strip() for p in search_profession.split(',') if p.strip().isdigit()]
+                if profession_list:
+                    placeholders = ','.join(['%s'] * len(profession_list))
+                    base_query += f" AND f.profession IN ({placeholders})"
+                    query_params.extend(profession_list)
 
             if search_location:
                 base_query += " AND a.Profile_state = %s"
                 query_params.append(search_location)
 
-            # Ordering
+            # Matching stars
+            if matching_stars and matching_stars.strip():
+                star_ids = [s.strip() for s in matching_stars.split(',') if s.strip().isdigit()]
+                if star_ids:
+                    placeholders = ','.join(['%s'] * len(star_ids))
+                    base_query += f" AND e.birthstar_name IN ({placeholders})"
+                    query_params.extend(star_ids)
+            elif partner_pref_porutham_star_rasi and partner_pref_porutham_star_rasi.strip():
+                base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
+                query_params.append(partner_pref_porutham_star_rasi.strip())
+                
+            if complexion:
+                complexion_list = [c.strip() for c in complexion.split(',') if c.strip().isdigit()]
+                if complexion_list:
+                    placeholders = ','.join(['%s'] * len(complexion_list))
+                    base_query += f" AND a.Profile_complexion IN ({placeholders})"
+                    query_params.extend(complexion_list)
+                 
+            if has_photos and has_photos.lower() == "yes":
+                base_query += " AND pi.image_approved = 1"   
+            if city:
+                base_query += " AND a.Profile_city = %s"
+                query_params.append(city)
+
+            if state:
+                base_query += " AND a.Profile_state = %s"
+                query_params.append(state)
+                
+            if membership:
+                membership_ids = [m.strip() for m in membership.split(",") if m.strip().isdigit()]
+                if membership_ids:
+                    placeholders = ','.join(['%s'] * len(membership_ids))
+                    base_query += f" AND a.Plan_id IN ({placeholders})"
+                    query_params.extend(membership_ids)
+                    
+            if father_alive and father_alive.strip().lower() in ['yes', 'no']:
+                base_query += " AND c.father_alive = %s"
+                query_params.append(father_alive.strip().lower())
+
+            if mother_alive and mother_alive.strip().lower() in ['yes', 'no']:
+                base_query += " AND c.mother_alive = %s"
+                query_params.append(mother_alive.strip().lower())
+            
+            if family_status:
+                statuses = [s.strip() for s in str(family_status).split(',') if s.strip()]
+                if statuses:
+                    family_status_filters = []
+                    for status in statuses:
+                        family_status_filters.append("FIND_IN_SET(%s, c.family_status) > 0")
+                        query_params.append(status)
+                    base_query += " AND (" + " OR ".join(family_status_filters) + ")"
+                    
+            final_min_income = min_anual_income or min_income
+            final_max_income = max_anual_income or max_income
+
+            if final_min_income and final_max_income:
+                base_query += " AND h.income_amount BETWEEN %s AND %s"
+                query_params.extend([final_min_income, final_max_income])
             try:
                 order_by = int(order_by)
             except (ValueError, TypeError):
@@ -2058,7 +2129,7 @@ class Get_profiledata_Matching(models.Model):
                                 complexion=None, city=None, state=None, education=None,
                                 foreign_intrest=None, has_photos=None, height_from=None, height_to=None,
                                 matching_stars=None, min_anual_income=None, max_anual_income=None,
-                                membership=None,profile_name=None):
+                                membership=None,profile_name=None,father_alive=None,mother_alive=None,martial_status=None):
 
         try:
             base_query = """
@@ -2069,6 +2140,7 @@ class Get_profiledata_Matching(models.Model):
                     h.income, i.image
                 FROM logindetails a
                 LEFT JOIN profile_horoscope e ON a.ProfileId = e.profile_id
+                LEFT JOIN profile_familydetails c ON a.ProfileId = c.profile_id
                 LEFT JOIN profile_edudetails f ON a.ProfileId = f.profile_id
                 LEFT JOIN mastereducation g ON f.highest_education = g.RowId
                 LEFT JOIN masterannualincome h ON f.anual_income = h.id
@@ -2129,17 +2201,24 @@ class Get_profiledata_Matching(models.Model):
 
             # Complexion
             if complexion and complexion != "0":
-                base_query += " AND a.Profile_complexion = %s"
-                query_params.append(complexion)
+                complexion_list = [c.strip() for c in complexion.split(',') if c.strip()]
+                placeholders = ', '.join(['%s'] * len(complexion_list))
+                base_query += f" AND a.Profile_complexion IN ({placeholders})"
+                query_params.extend(complexion_list)
 
+            if martial_status and martial_status != "0":
+                martial_status_list = [c.strip() for c in martial_status.split(',') if c.strip()]
+                placeholders = ', '.join(['%s'] * len(martial_status_list))
+                base_query += f" AND a.Profile_marital_status IN ({placeholders})"
+                query_params.extend(martial_status_list)
             if profile_name:
                 base_query += " AND a.Profile_name LIKE %s"
                 query_params.append(f"%{profile_name}%")
             
             # City
-            if city and city != "0":
-                base_query += " AND a.Profile_city = %s"
-                query_params.append(city)
+            if city and city != "":
+                base_query += "AND LOWER(TRIM(a.Profile_city)) LIKE LOWER(%s)"
+                query_params.append(f"%{city}%")
 
             # State
             if state and state != "0":
@@ -2182,17 +2261,13 @@ class Get_profiledata_Matching(models.Model):
                 base_query += " AND a.Plan_id = %s"
                 query_params.append(membership)
 
-            def normalize_dosham(val):
-                val = str(val).strip().lower()
-                return "1" if val in ["yes", "true", "1"] else "0"
-
             if chevvai_dosham:
                 base_query += " AND e.chevvai_dosaham = %s"
-                query_params.append(normalize_dosham(chevvai_dosham))
+                query_params.append(chevvai_dosham)
 
             if ragu_dosham:
                 base_query += " AND e.ragu_dosham = %s"
-                query_params.append(normalize_dosham(ragu_dosham))
+                query_params.append(ragu_dosham)
 
             # Income range
             if min_anual_income and max_anual_income:
@@ -2231,6 +2306,14 @@ class Get_profiledata_Matching(models.Model):
                 base_query += " AND a.Profile_height <= %s"
                 query_params.append(height_to)
 
+            if father_alive and father_alive.strip().lower() in ['yes', 'no']:
+                base_query += " AND c.father_alive = %s"
+                query_params.append(father_alive.strip().lower())
+
+            if mother_alive and mother_alive.strip().lower() in ['yes', 'no']:
+                base_query += " AND c.mother_alive = %s"
+                query_params.append(mother_alive.strip().lower())
+            
             # Order by clause
             if order_by:
                 try:
