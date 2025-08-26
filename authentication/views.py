@@ -7169,14 +7169,28 @@ class GetMyProfilePersonal(APIView):
             highest_qualification_name = safe_get_by_id(models.Edupref, education_details_serializer.data.get('highest_education'), 'EducationLevel')
             field_of_study_name = safe_get_by_id(models.Profilefieldstudy, education_details_serializer.data.get('field_ofstudy'), 'field_of_study')
             #city_name = safe_get_by_id(models.Profilecity, education_details_serializer.data.get('work_city'), 'city_name')
+            
+            country_name=get_country_name(education_details_serializer.data.get('work_country'))
+            state_name=get_country_name(education_details_serializer.data.get('work_state'))
+            district_name=get_country_name(education_details_serializer.data.get('work_district'))
             city_name=get_city_name(education_details_serializer.data.get('work_city'))
 
-            qualification_name= highest_qualification_name +' '+field_of_study_name
+            location_name = next((name for name in [city_name, district_name, state_name, country_name] if name),None)
 
-            print('Highest edu Name ',education_details_serializer.data.get('highest_education'))
-            print('Work city Name ',education_details_serializer.data.get('work_city'))
-            print(qualification_name)
-            print(city_name)
+            # qualification_name=  highest_qualification_name +' '+field_of_study_name
+
+            qualification_name_1=  get_degree_name(education_details_serializer.data.get('degree'),education_details_serializer.data.get('other_degree'))
+            # print('qualification_name',qualification_name)
+            if not qualification_name_1:
+                # print('Not qualification_name',qualification_name)
+                qualification_name=  field_of_study_name
+            else :
+                qualification_name=qualification_name_1
+
+            # print('Highest edu Name ',education_details_serializer.data.get('highest_education'))
+            # print('Work city Name ',education_details_serializer.data.get('work_city'))
+            # print(qualification_name)
+            # print(city_name)
             
             myself = familydetails_serializer.data.get("about_self")
 
@@ -7185,9 +7199,10 @@ class GetMyProfilePersonal(APIView):
                     "name": registration_serializer.data.get("Profile_name"),
                     "profession": Profile_prosession,
                     "company": education_details_serializer.data.get('company_name'),
+                    "designation": education_details_serializer.data.get('designation'),
                     "business": education_details_serializer.data.get('business_name'),
                     "qualification": qualification_name,
-                    "location": city_name,
+                    "location": location_name,
                     "profile_type": education_details_serializer.data.get('profession')
                 }
                 myself = generate_about_myself_summary(profile)
@@ -7209,6 +7224,7 @@ class GetMyProfilePersonal(APIView):
                 "personal_blood_group": familydetails_serializer.data.get("blood_group"),
                 #"personal_about_self": familydetails_serializer.data.get("about_self"),
                 "personal_about_self": myself,
+                "personal_about_self_original": familydetails_serializer.data.get("about_self"),
                 "personal_profile_complexion_id": registration_serializer.data.get("Profile_complexion"),
                 "personal_profile_complexion_name": complexion_name,
                 "personal_hobbies": familydetails_serializer.data.get("hobbies"),
@@ -7234,7 +7250,7 @@ class GetMyProfilePersonal(APIView):
                 "gothram":familydetails_serializer.data.get("suya_gothram"),
                 "uncle_gothram":familydetails_serializer.data.get("uncle_gothram"),
                 # "heightest_education":Profile_high_edu,
-                "heightest_education": f"{Profile_high_edu} {Profile_field_edu} {about_edu}",
+                "heightest_education": f"{Profile_high_edu} {Profile_field_edu} {qualification_name_1} {about_edu}",
                 "prosession":Profile_prosession,
                 "mobile_no":registration.Mobile_no
             }
@@ -7263,6 +7279,7 @@ def generate_about_myself_summary(profile):
     profession = profile.get("profession", "your profession")
     business = profile.get("business", "your business")
     company = profile.get("company", "your company")
+    designation =  profile.get("designation", "your designation")
     qualification = profile.get("qualification", "your qualification")
     institution = profile.get("institution", None)
     location = profile.get("location", "your location")
@@ -7270,7 +7287,7 @@ def generate_about_myself_summary(profile):
 
     if profile_type == "1":
         summary = (
-            f"I am {name}, currently working as a {profession} at {company}. "
+            f"I am {name}, currently working as a {designation} at {company}. "
             f"I hold a degree in {qualification}"
         )
         #if institution:
@@ -14220,6 +14237,10 @@ def fetch_porutham_details(profile_from, profile_to):
         if matching_score == 0:
             porutham_results = [{'porutham_name': porutham.protham_name, 'status': 'NO ✖'} for porutham in porutham_names]
             matching_score_fraction = '0/10'
+        
+        elif matching_score == 15:
+             matching_score_fraction=0/10
+        
         else:
             matching_score_fraction = f'{min(matching_score, max_score)}/10'
 
