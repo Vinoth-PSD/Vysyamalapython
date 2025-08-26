@@ -3032,13 +3032,14 @@ class My_intrests_list(APIView):
                     my_rasi_id=horo_data.birth_rasi_name
             
                     my_gender=profile_data.Gender
+                    my_status=profile_data.Status
 
                     # sent_intrest_count = {'status': 1,'profile_from':profile_id}
                     # sent_int_count = count_records(models.Express_interests, sent_intrest_count)
                     
                     photo_viewing=get_permission_limits(profile_id,'photo_viewing')
                
-                    if photo_viewing == 1:
+                    if photo_viewing == 1 and my_status != 0:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
                     else:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
@@ -3157,9 +3158,11 @@ class Get_mutual_intrests(APIView):
             
                     my_gender=profile_data.Gender
 
+                    my_status=profile_data.Status
+
                     photo_viewing=get_permission_limits(profile_id,'photo_viewing')
                
-                    if photo_viewing == 1:
+                    if photo_viewing == 1 and my_status != 0:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
                     else:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
@@ -3317,14 +3320,16 @@ class Get_profile_wishlist(APIView):
                     my_rasi_id=horo_data.birth_rasi_name
             
                     my_gender=profile_data.Gender
-
+                    my_status=profile_data.Status
                     # wishlist_condition = {'status': 1,'profile_from':profile_id}
                     
                     # wishlist_count = count_records(models.Profile_wishlists, wishlist_condition)
 
                     photo_viewing=get_permission_limits(profile_id,'photo_viewing')
+
+
                
-                    if photo_viewing == 1:
+                    if photo_viewing == 1 and my_status!=0:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
                     else:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
@@ -3440,14 +3445,14 @@ class My_profile_visit(APIView):
                     my_rasi_id=horo_data.birth_rasi_name
             
                     my_gender=profile_data.Gender
-
+                    my_status=profile_data.Status
                     # my_vistor_count = {'status': 1,'viewed_profile':profile_id}
 
                     # myvisitor_count = count_records(models.Profile_visitors, my_vistor_count)
                     # total_records=myvisitor_count
                     photo_viewing=get_permission_limits(profile_id,'photo_viewing')
                
-                    if photo_viewing == 1:
+                    if photo_viewing == 1 and my_status!=0:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
                     else:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
@@ -3536,10 +3541,11 @@ class My_viewed_profiles(APIView):
                     my_rasi_id=horo_data.birth_rasi_name
             
                     my_gender=profile_data.Gender
+                    my_status=profile_data.Status
 
                     photo_viewing=get_permission_limits(profile_id,'photo_viewing')
                
-                    if photo_viewing == 1:
+                    if photo_viewing == 1 and my_status!= 0:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
                     else:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
@@ -3662,6 +3668,8 @@ class Get_personal_notes(APIView):
                     my_rasi_id=horo_data.birth_rasi_name
             
                     my_gender=profile_data.Gender
+                    my_status=profile_data.Status
+                    
 
 
 
@@ -3680,7 +3688,7 @@ class Get_personal_notes(APIView):
                     # personal_notes_count = count_records(models.Profile_personal_notes, personal_notes_condition)
                     photo_viewing=get_permission_limits(profile_id,'photo_viewing')
                
-                    if photo_viewing == 1:
+                    if photo_viewing == 1 and my_status != 0:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
                     else:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
@@ -4446,31 +4454,31 @@ class Get_prof_list_match(APIView):
 
                 # Calculate the starting record for the SQL LIMIT clause
             start = (page_number - 1) * per_page
-            print("Execution time before matching list fetch ",datetime.now())
+            # print("Execution time before matching list fetch ",datetime.now())
             profile_details , total_count ,profile_with_indices = models.Get_profiledata.get_profile_list(gender,profile_id,start,per_page,search_profile_id,order_by,search_profession,search_age,search_location)
-            print("Execution time after matching list fetch ",datetime.now())
+            # print("Execution time after matching list fetch ",datetime.now())
             my_profile_id = [profile_id]   
 
             # print('my_profile_id',my_profile_id) 
 
             # print('profile_details',profile_details)        
 
-            print("Execution time before matching list details get ",datetime.now())
+            # print("Execution time before matching list details get ",datetime.now())
             my_profile_details = get_profile_details(my_profile_id)
-            print("Execution time after matching list details get ",datetime.now())
+            # print("Execution time after matching list details get ",datetime.now())
             # print('my_profile_details',my_profile_details)
-            
+            my_pstatus=my_profile_details[0]['pstatus']
             my_gender=my_profile_details[0]['Gender']
             my_star_id=my_profile_details[0]['birthstar_name']
             my_rasi_id=my_profile_details[0]['birth_rasi_name']
 
             photo_viewing=get_permission_limits(profile_id,'photo_viewing')
 
-            if photo_viewing == 1:
-                print("Execution time before image starts ",datetime.now())
+            if photo_viewing == 1 and my_pstatus !=0:
+                # print("Execution time before image starts ",datetime.now())
                 image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
             else:
-                print("Execution time before blur image starts ",datetime.now())
+                # sprint("Execution time before blur image starts ",datetime.now())
                 image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
 
 
@@ -5929,6 +5937,8 @@ class Get_photo_request_list(APIView):
             
                     my_gender=profile_data.Gender
 
+                    my_status=profile_data.Status
+
                     # print('fetch_data',fetch_data)
                     # print('profile_ids',profile_ids)
 
@@ -5938,7 +5948,7 @@ class Get_photo_request_list(APIView):
                     
                     photo_viewing=get_permission_limits(profile_id,'photo_viewing')
                
-                    if photo_viewing == 1:
+                    if photo_viewing == 1 and my_status !=0:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
                     else:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
@@ -9141,6 +9151,8 @@ class GetSearchResults(APIView):
         if not profile_id:
             return JsonResponse({'status': 'failure', 'message': 'Profile ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
         
+        
+        
         # Need to get gender from logindetails table
         try:
             with connection.cursor() as cursor:
@@ -10071,7 +10083,15 @@ def transform_data(original_data,my_profile_id,my_gender,source_rasi_id,source_s
     # print(my_gender,'my_gender')
     # print(my_profile_id,'my_profile_id')
 
-    if photo_viewing == 1:
+    
+    profile_data =  models.Registration1.objects.get(ProfileId=my_profile_id)
+
+
+    my_status=profile_data.Status
+    
+    
+    
+    if photo_viewing == 1 and my_status!= 0:
                 # print("Execution time before image starts ",datetime.now())
                 image_function = lambda detail: get_profile_image_azure_optimized(original_data.get("ProfileId"), my_gender, 1, original_data.get("Photo_protection"))
     else:
@@ -11402,6 +11422,14 @@ class My_vysassist_list(APIView):
                     my_rasi_id=horo_data.birth_rasi_name
             
                     my_gender=profile_data.Gender
+                    my_status=profile_data.Status
+
+                    photo_viewing=get_permission_limits(profile_id,'photo_viewing')
+               
+                    if photo_viewing == 1 and my_status != 0:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
+                    else:
+                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
 
                     # vysassist_cond = {'status': 1,'profile_from':profile_id}
                     # vysassist_count = count_records(models.Profile_vysassist, vysassist_cond)
@@ -11410,7 +11438,8 @@ class My_vysassist_list(APIView):
                         {
                             "vys_profileid": detail.get("ProfileId"),
                             "vys_profile_name": detail.get("Profile_name"),
-                            "vys_Profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                            #"vys_Profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
+                            "vys_Profile_img": image_function(detail),
                             "vys_profile_age": calculate_age(detail.get("Profile_dob")),
                             "vys_verified":detail.get("Profile_verified"),
                             "vys_height":detail.get("Profile_height"),
