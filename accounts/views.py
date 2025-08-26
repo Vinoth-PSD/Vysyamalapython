@@ -2527,13 +2527,21 @@ class GetProfEditDetailsAPIView(APIView):
         
         profession_name = safe_get_by_id(Profession, edu_detail.profession, 'profession')
         qualification_name = safe_get_by_id(MasterhighestEducation, edu_detail.highest_education, 'degeree_name')
-        city_name = safe_get_by_id(City, login_detail.Profile_city, 'city_name')
         
-        print('12345',profession_name,qualification_name , city_name )
         
-        print("Profession to match:", repr(edu_detail.profession))
-        print("Degree to match:", repr(edu_detail.highest_education))
-        print("City to match:", repr(login_detail.Profile_city))
+        country_name=safe_get_by_id(Country,edu_detail.work_country,'name')
+        state_name=safe_get_by_id(State,edu_detail.work_state,'name')
+        district_name=safe_get_by_id(District,edu_detail.work_district,'name')
+        city_name = safe_get_by_id(City, edu_detail.work_city, 'city_name')
+        
+
+        location_name = next((name for name in [city_name, district_name, state_name, country_name] if name),None)
+
+        # print('12345',profession_name,qualification_name , city_name )
+        
+        # print("Profession to match:", repr(edu_detail.profession))
+        # print("Degree to match:", repr(edu_detail.highest_education))
+        # print("City to match:", repr(login_detail.Profile_city))
 
         about_self = response_data['family_details'].get('about_self')
         if not about_self:  # Checks for None, '', or missing
@@ -2542,9 +2550,10 @@ class GetProfEditDetailsAPIView(APIView):
                 "name": login_detail.Profile_name,
                 "profession": profession_name,
                 "company": edu_detail.company_name,
+                "designation": edu_detail.designation,
                 "business": edu_detail.business_name,
                 "qualification": qualification_name,
-                "location": city_name,
+                "location": location_name,
                 "profile_type": edu_detail.profession
             }
             myself = generate_about_myself_summary(profile)
@@ -2697,6 +2706,7 @@ def safe_get_by_id(model, pk_value, return_field):
 def generate_about_myself_summary(profile):
     name = profile.get("name", "Name")
     profession = profile.get("profession", "your profession")
+    designation= profile.get("designation", "your designation")
     business = profile.get("business", "your business")
     company = profile.get("company", "your company")
     qualification = profile.get("qualification", "your qualification")
@@ -2706,7 +2716,7 @@ def generate_about_myself_summary(profile):
 
     if profile_type == "1":
         summary = (
-            f"I am {name}, currently working as a {profession} at {company}. "
+            f"I am {name}, currently working as a {designation} at {company}. "
             f"I hold a degree in {qualification}"
         )
         #if institution:
