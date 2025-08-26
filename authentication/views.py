@@ -2454,7 +2454,37 @@ class Get_profile_intrests_list(APIView):
             return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+def Get_image(user_profile_id,gender):
+    base_url=settings.MEDIA_URL
+    default_img_bride='default_bride.png'
+    default_img_groom='default_groom.png'
+    default_img='default_img.png'
+    
+    if user_profile_id:
+        get_image = models.Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0).first()           
+    
+        if get_image:
+            serializer = serializers.ImageGetSerializer(get_image)
+            image_url = serializer.data['image']
+            try:
+                response = requests.head(image_url, timeout=5)
+                if response.status_code == 200:
+                    return image_url
+            except requests.RequestException:
+                pass 
+            return  base_url + default_img
 
+        else:
+            if(gender.lower()=='male'):
+                
+                return base_url+default_img_bride
+            
+            if(gender.lower()=='female'):
+                return base_url+default_img_groom
+            
+        return  base_url + default_img 
+    else:
+        return  base_url + default_img 
 
 class Get_dashboard_details(APIView):
     def post(self, request):
@@ -2661,7 +2691,7 @@ class Get_dashboard_details(APIView):
                             "completion_per":int(result_percen['completion_percentage']),
                             "empty_fields":result_percen['empty_fields'],
                             #"profile_image":"http://matrimonyapp.rainyseasun.com/assets/Groom-Cdjk7JZo.png"
-                            "profile_image": Get_profile_image(profile_details[0]['ProfileId'],my_oposit_gender,1,0)
+                            "profile_image": Get_image(profile_details[0]['ProfileId'],my_oposit_gender)
                            
                         }
 
@@ -2685,7 +2715,6 @@ class Get_dashboard_details(APIView):
             return JsonResponse({"Status": 1, "message": "Fetched Dashboard details successfully", "data": combined_data}, status=status.HTTP_200_OK)
         else:
             return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 def matching_gallery(profile_id):
     try:
