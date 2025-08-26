@@ -888,7 +888,7 @@ class Newprofile_get(generics.ListAPIView):
                    ld.Profile_dob,  ld.Profile_whatsapp, ld.Profile_alternate_mobile, ld.Plan_id, ld.status, 
                    ld.DateOfJoin, ld.Last_login_date, ld.Profile_for, ms.MaritalStatus, cm.complexion_desc, s.name AS state_name, 
                    cy.city_name AS Profile_city, cy.city_name , c.name AS country_name, d.name AS district_name,
-                   pfd.family_status, ped.highest_education, ped.anual_income, ph.birthstar_name , mp.profession AS profession
+                   pfd.family_status, ped.highest_education, ped.anual_income, ph.birthstar_name , mp.profession AS profession ,pl.plan_name ,ld.Owner_id
             FROM logindetails ld
             LEFT JOIN maritalstatusmaster ms ON ld.Profile_marital_status = ms.StatusId
             LEFT JOIN complexionmaster cm ON ld.Profile_complexion = cm.complexion_id
@@ -899,6 +899,7 @@ class Newprofile_get(generics.ListAPIView):
             LEFT JOIN profile_familydetails pfd ON ld.ProfileId = pfd.profile_id
             LEFT JOIN profile_edudetails ped ON ld.ProfileId = ped.profile_id
             LEFT JOIN profile_horoscope ph ON ld.ProfileId = ph.profile_id 
+            LEFT JOIN plan_master pl ON ld.Plan_id = pl.id 
             LEFT JOIN masterprofession mp ON ped.profession = mp.RowId 
             """
         

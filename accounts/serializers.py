@@ -456,7 +456,8 @@ class Getnewprofiledata_new(serializers.Serializer):
     Profile_dob = serializers.DateField()
     Profile_city = serializers.CharField()
     Plan_id = serializers.CharField()
-    status = serializers.CharField()
+    plan_name = serializers.CharField()
+    status = serializers.SerializerMethodField()
     
     # Custom field to handle datetime to date conversion for DateOfJoin
     DateOfJoin = serializers.SerializerMethodField()
@@ -566,6 +567,16 @@ class Getnewprofiledata_new(serializers.Serializer):
     def get_DateOfJoin(self, obj):
         # Convert datetime to date if it's a datetime field
         return obj['DateOfJoin'].date() if obj.get('DateOfJoin') else None
+    
+    def get_status(self, obj):
+        try:
+            status = ProfileStatus.objects.get(status_code=obj.get('status'))
+            return status.status_name 
+        except (ValueError, ProfileStatus.DoesNotExist):
+            return None
+        except Exception as e:
+            return None
+
     # The calculate_age function
 # def calculate_age(dob):
 #     """
