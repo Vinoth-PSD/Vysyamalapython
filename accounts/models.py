@@ -2181,15 +2181,19 @@ class Get_profiledata_Matching(models.Model):
 
             if 'age_from' in locals() or 'age_to' in locals():
                 if age_from and age_to:
+                    age_from = int(age_from)  # Cast string to int
+                    age_to = int(age_to)
                     dob_from = today - timedelta(days=(age_to * 365.25))  # older date
                     dob_to = today - timedelta(days=(age_from * 365.25))  # newer date
                     base_query += " AND a.Profile_dob BETWEEN %s AND %s"
                     query_params.extend([dob_from, dob_to])
                 elif age_from:
+                    age_from = int(age_from)
                     dob_to = today - timedelta(days=(age_from * 365.25))
                     base_query += " AND a.Profile_dob <= %s"
                     query_params.append(dob_to)
                 elif age_to:
+                    age_to = int(age_to)
                     dob_from = today - timedelta(days=(age_to * 365.25))
                     base_query += " AND a.Profile_dob >= %s"
                     query_params.append(dob_from)

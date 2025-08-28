@@ -49,7 +49,7 @@ from .models import SentShortProfilePrintwpLog
 from .models import CallType
 from .serializers import CallTypeSerializer
 from .models import CallStatus
-from .serializers import CallStatusSerializer
+from .serializers import CallStatusSerializer,PersonalnotesSerializer
 from .models import CallAction
 from .serializers import CallActionSerializer
 from .models import ProfileCallManagement
@@ -4192,9 +4192,9 @@ def get_degree(degeree):
     
     try:
         
-        Profile_ug_degree = models.Ugdegree.objects.get(id=degeree).degree
+        Profile_ug_degree = models.UgDegree.objects.get(id=degeree).degree
     
-    except models.Ugdegree.DoesNotExist:
+    except models.UgDegree.DoesNotExist:
         Profile_ug_degree = None 
     
     return Profile_ug_degree
@@ -6049,7 +6049,15 @@ def get_state_name(state_id):
     
 
     #Print short profiles code
-
+def get_country_name(country_id):
+    try:
+        # Attempt to retrieve the city object using the string city_id
+        country = models.Country.objects.get(id=country_id)
+        return country.name  # Return the city name if found
+    except models.Country.DoesNotExist:
+        return country_id  # Return city_id if the city does not exist
+    except Exception as e:
+        return country_id 
 
 
 from django.shortcuts import get_object_or_404
@@ -7366,7 +7374,7 @@ def get_district_name(district_id):
     except Exception as e:
         return district_id 
 
-def get_degree_name(degree_ids, other_degree):
+def get_degree_name(degree_ids, other_degree,highest_edu,field_ofstudy_id,about_edu):
         if not degree_ids:
             print("not degree")
             # If only other_degree is provided, return it directly
@@ -7383,10 +7391,22 @@ def get_degree_name(degree_ids, other_degree):
             if other_degree:
                 degree_names.append(other_degree)
             final_names = ", ".join(degree_names) if degree_names else None
-            return final_names
-        except Exception as e:
-            print("exception",str(e))
-            return None
+            if final_names:
+                return final_names
+            else:
+                if highest_edu:
+                    highest_education = models.EducationLevel.objects.filter(RowId=highest_edu).values_list('EducationLevel', flat=True).first() or "Unknown"
+                    if field_ofstudy_id:
+                        fieldof_study = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id).values_list('field_of_study', flat=True).first() or "Unknown"
+                    
+                        about_edu=about_edu
+                    
+                        final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
+                        return final_education
+                    return highest_education
+                return "N/A"
+        except Exception:
+            return "N/A"
 def get_primary_sign(value):
     if not value:
         return "N/A"
@@ -7406,6 +7426,23 @@ def cm_to_feet_inches(cm):
     inches = round(total_inches % 12)
 
     return f"{feet} ft {inches} in"
+
+def get_work_address(city, district, state, country):
+    try:
+        parts = []
+
+        if city:
+            parts.append(city)
+        if district:
+            parts.append(get_district_name(district))
+        if state:
+            parts.append(get_state_name(state))
+        if country:
+            parts.append(get_country_name(country))
+
+        return "-".join(parts) if parts else "N/A"
+    except Exception:
+        return " "
 
 class AdminProfilePDFView(APIView):
     def get(self, request, profile_id=None, pdf_format=None):
@@ -7480,7 +7517,7 @@ class AdminProfilePDFView(APIView):
         
         final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
         try:
-            degree= get_degree_name(education_details.degree,education_details.other_degree)
+            degree= get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)
         except Exception:
             degree=None
 
@@ -7500,7 +7537,7 @@ class AdminProfilePDFView(APIView):
         if profession_id:
             profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
-        work_place=education_details.work_city
+        work_place =get_work_address(city=education_details.work_city,state=education_details.work_state,district=education_details.work_district,country=education_details.work_country)
         occupation_title=''
         occupation=''
 
@@ -7784,7 +7821,7 @@ class AdminMatchProfilePDFView(APIView):
                     no_of_brother ='No'
 
                 try:
-                    degree= get_degree_name(education_details.degree,education_details.other_degree)
+                    degree= get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)
                 except Exception:
                     degree=None
                 complexion_id = login.Profile_complexion
@@ -7823,7 +7860,7 @@ class AdminMatchProfilePDFView(APIView):
                 if profession_id:
                     profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
-                work_place=education_details.work_city
+                work_place =get_work_address(city=education_details.work_city,state=education_details.work_state,district=education_details.work_district,country=education_details.work_country)
                 occupation_title=''
                 occupation=''
 
@@ -8187,7 +8224,7 @@ class LoginLogView(generics.ListAPIView):
             except ValueError:
                 pass
 
-        return qs.order_by('-login_datetime')
+        return qs.order_by('-login_datetime')[:100]
 
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()

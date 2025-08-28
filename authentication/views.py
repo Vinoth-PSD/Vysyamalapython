@@ -13110,7 +13110,7 @@ class HomepageListView(APIView):
         else:
             return JsonResponse({'status': 'error', 'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-def get_degree_name(degree_ids, other_degree):
+def get_degree_name(degree_ids, other_degree,highest_edu,field_ofstudy_id,about_edu):
         if not degree_ids:
             # If only other_degree is provided, return it directly
             return other_degree if other_degree else None
@@ -13125,9 +13125,40 @@ def get_degree_name(degree_ids, other_degree):
             if other_degree:
                 degree_names.append(other_degree)
             final_names = ", ".join(degree_names) if degree_names else None
-            return final_names
+            
+            if final_names:
+                return final_names
+            else:
+                if highest_edu:
+                    highest_education = models.Edupref.objects.filter(RowId=highest_edu).values_list('EducationLevel', flat=True).first() or "Unknown"
+                    if field_ofstudy_id:
+                        fieldof_study = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id).values_list('field_of_study', flat=True).first() or "Unknown"
+                    
+                        about_edu=about_edu
+                    
+                        final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
+                        return final_education
+                    return highest_education
+                return "N/A"
         except Exception:
-            return None
+            return "N/A"
+
+def get_work_address(city, district, state, country):
+    try:
+        parts = []
+
+        if city:
+            parts.append(city)
+        if district:
+            parts.append(get_district_name(district))
+        if state:
+            parts.append(get_state_name(state))
+        if country:
+            parts.append(get_country_name(country))
+
+        return "-".join(parts) if parts else "N/A"
+    except Exception:
+        return " "
 
 def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirthchart"):
 
@@ -13163,7 +13194,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                         <p>Email: {login_details.EmailId or 'N/A'}</p>
                 """
                 try:
-                    degree= get_degree_name(education_details.degree,education_details.other_degree)  
+                    degree= get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)  
                 except Exception as e:
                     degree = None
                 # family details
@@ -13274,7 +13305,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 profession = safe_get_value(models.Profespref, 'RowId', profession_id, 'profession')
 
                 # Work place and occupation details
-                work_place = education_details.work_city or "N/A"
+                work_place =get_work_address(city=education_details.work_city,state=education_details.work_state,district=education_details.work_district,country=education_details.work_country)
                 occupation_title = ''
                 occupation = ''
 
@@ -13903,10 +13934,6 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                         <td><p>{complexion}</p></td>
                                     </tr>
                                     <tr>
-                                        <td><p>Education</p></td>
-                                        <td><p>{final_education}</p></td>
-                                    </tr>
-                                    <tr>
                                         <td><p>Degree</p></td>
                                         <td><p>{degree}</p></td>
                                     </tr>
@@ -13929,12 +13956,12 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                         <td><p>{annual_income}</p></td>
                                     </tr>
                                     <tr>
-                                        <td><p>Profession / Place of stay </p></td>
-                                        <td><p>{profession} / {work_place}</p></td>
+                                        <td><p>Profession</p></td>
+                                        <td><p>{profession}/{occupation}</p></td>
                                     </tr>
-                                    <tr>
-                                        <td><p>{occupation_title}</p></td>
-                                        <td><p>{occupation}</p></td>
+                                     <tr>
+                                        <td><p> Place of stay </p></td>
+                                        <td><p>{work_place}</p></td>
                                     </tr>
                                 </table>
                                 </td>
@@ -14347,7 +14374,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                         <p>Email: {login_details.EmailId or 'N/A'}</p>
                 """
                 try:
-                    degree= get_degree_name(education_details.degree,education_details.other_degree)
+                    degree= get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)  
                 except Exception:
                     degree=None
                     
@@ -14447,7 +14474,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                     profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
                 # Workplace logic
-                work_place = education_details.work_city or ""
+                work_place =get_work_address(city=education_details.work_city,state=education_details.work_state,district=education_details.work_district,country=education_details.work_country)
                 occupation_title = ''
                 occupation = ''
 
@@ -15062,10 +15089,6 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                         <td><p>{complexion}</p></td>
                                     </tr>
                                     <tr>
-                                        <td><p>Education</p></td>
-                                        <td><p>{final_education}</p></td>
-                                    </tr>
-                                    <tr>
                                         <td><p>Degree</p></td>
                                         <td><p>{degree}</p></td>
                                     </tr>
@@ -15088,12 +15111,12 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                         <td><p>{annual_income}</p></td>
                                     </tr>
                                     <tr>
-                                        <td><p>Profession / Place of stay </p></td>
-                                        <td><p>{profession} / {work_place}</p></td>
+                                        <td><p>Profession</p></td>
+                                        <td><p>{profession}/{occupation}</p></td>
                                     </tr>
-                                    <tr>
-                                        <td><p>{occupation_title}</p></td>
-                                        <td><p>{occupation}</p></td>
+                                     <tr>
+                                        <td><p> Place of stay </p></td>
+                                        <td><p>{work_place}</p></td>
                                     </tr>
                                 </table>
                                 </td>
@@ -18438,7 +18461,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
 
 
                 try:
-                    degree= get_degree_name(education_details.degree,education_details.other_degree)
+                    degree= get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)  
                 except Exception:
                     degree=None
                     
@@ -18557,7 +18580,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 if profession_id:
                     profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
-                work_place=education_details.work_city
+                work_place =get_work_address(city=education_details.work_city,state=education_details.work_state,district=education_details.work_district,country=education_details.work_country)
                 occupation_title=''
                 occupation=''
 
@@ -19293,10 +19316,6 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                         <td><p>{complexion}</p></td>
                                     </tr>
                                     <tr>
-                                        <td><p>Education</p></td>
-                                        <td><p>{final_education}</p></td>
-                                    </tr>
-                                    <tr>
                                         <td><p>Degree</p></td>
                                         <td><p>{degree}</p></td>
                                     </tr>
@@ -19319,12 +19338,12 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                         <td><p>{annual_income}</p></td>
                                     </tr>
                                     <tr>
-                                        <td><p>Profession / Place of stay </p></td>
-                                        <td><p>{profession} / {work_place}</p></td>
+                                        <td><p>Profession</p></td>
+                                        <td><p>{profession}/{occupation}</p></td>
                                     </tr>
-                                    <tr>
-                                        <td><p>{occupation_title}</p></td>
-                                        <td><p>{occupation}</p></td>
+                                     <tr>
+                                        <td><p> Place of stay </p></td>
+                                        <td><p>{work_place}</p></td>
                                     </tr>
                                 </table>
                                 </td>
@@ -19628,7 +19647,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 """
 
                 try:
-                    degree= get_degree_name(education_details.degree,education_details.other_degree)
+                    degree= get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)  
                 except Exception:
                     degree=None
 
@@ -19752,7 +19771,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 if profession_id:
                     profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
-                work_place=education_details.work_city
+                work_place =get_work_address(city=education_details.work_city,state=education_details.work_state,district=education_details.work_district,country=education_details.work_country)
                 occupation_title=''
                 occupation=''
 
@@ -20550,10 +20569,6 @@ h2.porutham-table-title{{
                                         <td><p>{complexion}</p></td>
                                     </tr>
                                     <tr>
-                                        <td><p>Education</p></td>
-                                        <td><p>{final_education}</p></td>
-                                    </tr>
-                                    <tr>
                                         <td><p>Degree</p></td>
                                         <td><p>{degree}</p></td>
                                     </tr>
@@ -20576,12 +20591,12 @@ h2.porutham-table-title{{
                                         <td><p>{annual_income}</p></td>
                                     </tr>
                                     <tr>
-                                        <td><p>Profession / Place of stay </p></td>
-                                        <td><p>{profession} / {work_place}</p></td>
+                                        <td><p>Profession</p></td>
+                                        <td><p>{profession}/{occupation}</p></td>
                                     </tr>
-                                    <tr>
-                                        <td><p>{occupation_title}</p></td>
-                                        <td><p>{occupation}</p></td>
+                                     <tr>
+                                        <td><p> Place of stay </p></td>
+                                        <td><p>{work_place}</p></td>
                                     </tr>
                                 </table>
                                 </td>
