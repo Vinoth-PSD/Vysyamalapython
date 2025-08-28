@@ -7110,41 +7110,42 @@ def GetPhotoProofDetails(request):
                         image.save()
                         updated_images.append(image.id)
 
-                        try:
-                            container_name = 'vysyamala'
-                            connection_string = settings.AZURE_CONNECTION_STRING
-                            source_folder = "profile_images/"  # from where image is fetched
-                            dest_folder = "blurred_images/"    # where blurred image is saved
+                        if image.image_approved:
+                            try:
+                                container_name = 'vysyamala'
+                                connection_string = settings.AZURE_CONNECTION_STRING
+                                source_folder = "profile_images/"  # from where image is fetched
+                                dest_folder = "blurred_images/"    # where blurred image is saved
 
-                            file_name = os.path.basename(image.image.name)  # replace this with your image field name
-                            source_blob_name = f"{source_folder}{file_name}"
-                            dest_blob_name = f"{dest_folder}{file_name}"
+                                file_name = os.path.basename(image.image.name)  # replace this with your image field name
+                                source_blob_name = f"{source_folder}{file_name}"
+                                dest_blob_name = f"{dest_folder}{file_name}"
 
-                            blob_service = BlobServiceClient.from_connection_string(connection_string)
-                            container_client = blob_service.get_container_client(container_name)
+                                blob_service = BlobServiceClient.from_connection_string(connection_string)
+                                container_client = blob_service.get_container_client(container_name)
 
-                            # Download original image from blob storage
-                            blob_client = container_client.get_blob_client(source_blob_name)
+                                # Download original image from blob storage
+                                blob_client = container_client.get_blob_client(source_blob_name)
 
-                            if blob_client.exists():
-                                image_data = blob_client.download_blob().readall()
+                                if blob_client.exists():
+                                    image_data = blob_client.download_blob().readall()
 
-                                # Apply blur
-                                blurred_img = process_and_blur_image(image_data)
+                                    # Apply blur
+                                    blurred_img = process_and_blur_image(image_data)
 
-                                # Upload blurred image
-                                container_client.get_blob_client(dest_blob_name).upload_blob(
-                                    blurred_img,
-                                    overwrite=True,
-                                    content_settings=ContentSettings(content_type="image/jpeg")
-                                )
+                                    # Upload blurred image
+                                    container_client.get_blob_client(dest_blob_name).upload_blob(
+                                        blurred_img,
+                                        overwrite=True,
+                                        content_settings=ContentSettings(content_type="image/jpeg")
+                                    )
 
-                                update_summary.setdefault('blurred_images_uploaded', []).append(file_name)
-                            else:
-                                update_summary.setdefault('blurred_images_skipped', []).append(file_name)
+                                    update_summary.setdefault('blurred_images_uploaded', []).append(file_name)
+                                else:
+                                    update_summary.setdefault('blurred_images_skipped', []).append(file_name)
 
-                        except Exception as blur_e:
-                            update_summary.setdefault('blur_errors', []).append({'image_id': image.id, 'error': str(blur_e)})
+                            except Exception as blur_e:
+                                update_summary.setdefault('blur_errors', []).append({'image_id': image.id, 'error': str(blur_e)})
 
                     except Image_Upload.DoesNotExist:
                         continue
