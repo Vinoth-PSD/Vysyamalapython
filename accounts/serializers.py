@@ -300,24 +300,6 @@ class LoginEditSerializer(serializers.ModelSerializer):
     class Meta:
         model = LoginDetails
         fields = '__all__'
-    def validate(self, data):
-        profile_country = data.get('Profile_country')
-
-        if profile_country == '1':
-            if not data.get('Profile_state'):
-                raise serializers.ValidationError({
-                    'Profile_state': 'This field is required when Profile_country is 1.'
-                })
-            if not data.get('Profile_district'):
-                raise serializers.ValidationError({
-                    'Profile_district': 'This field is required when Profile_country is 1.'
-                })
-        else:
-            data['Profile_state'] = None
-            data['Profile_district'] = None
-
-        return data
-
 
 class ProfileFamilyDetailsSerializer(serializers.ModelSerializer):
     profile_id = serializers.CharField(required=False , allow_blank=True, allow_null=True)
