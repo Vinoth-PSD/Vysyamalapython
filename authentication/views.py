@@ -7208,7 +7208,7 @@ class GetMyProfilePersonal(APIView):
 
             # qualification_name=  highest_qualification_name +' '+field_of_study_name
 
-            qualification_name_1=  get_degree_name(education_details_serializer.data.get('degree'),education_details_serializer.data.get('other_degree'))
+            qualification_name_1=  get_degree_name(education_details_serializer.data.get('degree'),education_details_serializer.data.get('other_degree'),'','','')
             # print('qualification_name',qualification_name)
             if not qualification_name_1:
                 # print('Not qualification_name',qualification_name)
