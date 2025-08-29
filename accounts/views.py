@@ -2286,6 +2286,7 @@ class EditProfileAPIView(APIView):
                 "exp_int_lock":profile_common_data.get("exp_int_lock"),
                 "express_int_count":profile_common_data.get("exp_int_count"),
                 "profile_permision_toview":profile_common_data.get("visit_count"),
+                "plan_id":profile_common_data.get("secondary_status"),
                 # "membership_fromdate":profile_common_data.get("membership_fromdate"),
                 # "membership_todate":profile_common_data.get("membership_todate")
                 "membership_fromdate": parse_membership_date(profile_common_data.get("membership_fromdate")),
@@ -2419,7 +2420,14 @@ def clean_none_fields(data_dict):
 
 #         # Return all the gathered data
 #         return Response(response_data, status=status.HTTP_200_OK)
-
+def format_time_am_pm(time_str):
+    if not time_str:  # Handles None or empty strings
+        return "N/A"
+    try:
+        time_obj = datetime.strptime(str(time_str), "%H:%M:%S")
+        return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
+    except ValueError:
+        return str(time_str)
 
 class GetProfEditDetailsAPIView(APIView):
     """
@@ -2454,7 +2462,14 @@ class GetProfEditDetailsAPIView(APIView):
         # Step 4: Fetch ProfileHoroscope
         try:
             horoscope_detail = ProfileHoroscope.objects.get(profile_id=profile_id)
-            response_data['horoscope_details'] = ProfileHoroscopeSerializer(horoscope_detail).data
+            serialized_data = ProfileHoroscopeSerializer(horoscope_detail).data
+            raw_time = serialized_data.get('time_of_birth')
+            formatted_time = format_time_am_pm(raw_time)
+
+            # Inject the formatted time back into the response
+            serialized_data['time_of_birth'] = formatted_time
+            response_data['horoscope_details'] = serialized_data
+            
         except ProfileHoroscope.DoesNotExist:
             response_data['horoscope_details'] = {}  # Return an empty object if not found
 

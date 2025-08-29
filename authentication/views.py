@@ -9288,7 +9288,7 @@ class GetSearchResults(APIView):
         query_params = [gender, profile_id]
 
         # Check if additional filters are provided, and add them to the query
-        if from_age or to_age or from_height or to_height or marital_status or profession or education or income or star:
+        if from_age or to_age or from_height or to_height or marital_status or profession or education or income or star or chevvai_dhosam or ragukethu_dhosam:
             # Add age filter
             age_condition_operator = "BETWEEN %s AND %s" if from_age and to_age else ">=" if from_age else "<=" if to_age else None
             if age_condition_operator:
@@ -9300,15 +9300,19 @@ class GetSearchResults(APIView):
             
             # Add marital status filter
             if marital_status:
-                # base_query += " AND a.Profile_marital_status = %s"
-                base_query += " AND FIND_IN_SET(%s, a.Profile_marital_status)"
-                query_params.append(marital_status)
+                statuses = [s.strip() for s in marital_status.split(',') if s.strip()]
+                if statuses:
+                    condition = " OR ".join(["FIND_IN_SET(%s, a.Profile_marital_status) > 0" for _ in statuses])
+                    base_query += f" AND ({condition})"
+                    query_params.extend(statuses)
 
             # Add profession filter
             if profession:
-                # base_query += " AND f.profession = %s"
-                base_query += " AND FIND_IN_SET(%s, f.profession)"
-                query_params.append(profession)
+                prof_list = [p.strip() for p in profession.split(',') if p.strip()]
+                if prof_list:
+                    condition = " OR ".join(["FIND_IN_SET(%s, f.profession) > 0" for _ in prof_list])
+                    base_query += f" AND ({condition})"
+                    query_params.extend(prof_list)
 
             # Add education filter
             if education:
@@ -9316,15 +9320,17 @@ class GetSearchResults(APIView):
                 query_params.append(education)
 
             if field_ofstudy:
-                base_query += " AND f.field_ofstudy = %s"
-                query_params.append(field_ofstudy)
+                fields = [f.strip() for f in field_ofstudy.split(',') if f.strip()]
+                conditions = ' OR '.join(["FIND_IN_SET(%s, f.field_ofstudy) > 0" for _ in fields])
+                base_query += f" AND ({conditions})"
+                query_params.extend(fields)
 
             if people_withphoto:
                 base_query += " AND pi.profile_id IS NOT NULL AND pi.image_approved=1"
                 
             # Add income filter
             if income:
-                base_query += " AND h.income >= %s"
+                base_query += " AND h.income_amount >= %s"
                 query_params.append(income)
 
             # Add star filter
@@ -9340,15 +9346,33 @@ class GetSearchResults(APIView):
             #     base_query += " AND e.ragu_dosham = %s"
             #     query_params.append(ragukethu_dhosam)
 
+            conditions = []
+
             if chevvai_dhosam and chevvai_dhosam.lower() == 'yes':
-                base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
-            elif chevvai_dhosam and chevvai_dhosam.lower() == 'no':
-                base_query += " AND LOWER(e.ragu_dosham) = 'no'"
+                conditions.append("""
+                    (
+                        LOWER(e.calc_chevvai_dhosham) = 'yes'
+                        OR LOWER(e.calc_chevvai_dhosham) = 'true'
+                        OR e.calc_chevvai_dhosham = '1'
+                        OR e.calc_chevvai_dhosham = 1
+                        OR e.calc_chevvai_dhosham IS NULL
+                    )
+                """)
 
             if ragukethu_dhosam and ragukethu_dhosam.lower() == 'yes':
-                base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
-            elif ragukethu_dhosam and ragukethu_dhosam.lower() == 'no':
-                base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
+                conditions.append("""
+                    (
+                        LOWER(e.calc_raguketu_dhosham) = 'yes'
+                        OR LOWER(e.calc_raguketu_dhosham) = 'true'
+                        OR e.calc_raguketu_dhosham = '1'
+                        OR e.calc_raguketu_dhosham = 1
+                        OR e.calc_raguketu_dhosham IS NULL
+                    )
+                """)
+
+            if conditions:
+                base_query += f"\nAND ({' OR '.join(conditions)})"
+
 
             if native_state:
                 base_query += " AND a.Profile_state = %s"
@@ -9359,8 +9383,20 @@ class GetSearchResults(APIView):
                 query_params.append(search_worklocation)
 
             if min_income and max_income:
-                    base_query += " AND a.anual_income BETWEEN %s AND %s"
-                    query_params.extend([min_income, max_income])
+                try:
+                    with connection.cursor() as cursor:
+                        cursor.execute(
+                            "SELECT income_amount FROM masterannualincome WHERE id IN (%s, %s)",
+                            [min_income, max_income]
+                        )
+                        amounts = [row[0] for row in cursor.fetchall()]
+                        if len(amounts) == 2:
+                            lower_income = min(amounts)
+                            upper_income = max(amounts)
+                            base_query += " AND h.income_amount BETWEEN %s AND %s"
+                            query_params.extend([lower_income, upper_income])
+                except Exception as e:
+                    pass
     
             # Handle height conditions
             if from_height and to_height:
