@@ -1061,15 +1061,15 @@ class ImageSetUpload(APIView):
             # Open the image
             img = PILImage.open(file)
 
-            # Define the target dimensions (desired size)
-            target_width = 201
-            target_height = 200
+            # # Define the target dimensions (desired size)
+            # target_width = 201
+            # target_height = 200
 
-            # Check if resizing is necessary (only if the image is larger than target size)
-            img_width, img_height = img.size
-            if img_width > target_width or img_height > target_height:
-                # Resize the image to fit within the target size, maintaining aspect ratio
-                img.thumbnail((target_width, target_height), PILImage.LANCZOS)
+            # # Check if resizing is necessary (only if the image is larger than target size)
+            # img_width, img_height = img.size
+            # if img_width > target_width or img_height > target_height:
+            #     # Resize the image to fit within the target size, maintaining aspect ratio
+            #     img.thumbnail((target_width, target_height), PILImage.LANCZOS)
 
             # Add the logo watermark
             try:
@@ -6306,7 +6306,7 @@ class ImageSetEdit(APIView):
 
             # Image processing (resize, watermark, etc.)
             img = PILImage.open(file)
-            img = img.resize((201, 200))  # Resize the main image
+            # img = img.resize((201, 200))  # Resize the main image
 
             logo_path = 'vysya_color_logo.png'
             try:
