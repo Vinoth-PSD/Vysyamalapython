@@ -9273,7 +9273,7 @@ class GetSearchResults(APIView):
         base_query = """
         SELECT distinct(a.ProfileId),a.ProfileId, a.Profile_name, a.Profile_marital_status, a.Profile_dob, a.Profile_height, a.Profile_city, 
                f.profession, f.highest_education, g.EducationLevel, d.star, h.income , e.birthstar_name , e.birth_rasi_name
-                       ,a.Photo_protection,a.Gender        FROM logindetails a 
+                       ,a.Photo_protection,a.Gender ,a.DateOfJoin       FROM logindetails a 
         JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
         JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
         JOIN masterbirthstar d ON d.id = e.birthstar_name 
@@ -9281,7 +9281,7 @@ class GetSearchResults(APIView):
         JOIN mastereducation g ON f.highest_education = g.RowId 
         JOIN masterannualincome h ON h.id = f.anual_income
         JOIN profile_images  pi ON pi.profile_id=a.ProfileId
-        WHERE a.gender != %s AND a.ProfileId != %s  AND a.plan_status NOT IN (16, 17, 3) AND a.status=1
+        WHERE a.gender != %s AND a.ProfileId != %s  AND a.plan_id NOT IN (0,16, 17, 3) AND a.status=1
         """
 
         # Prepare the query parameters
@@ -9409,7 +9409,7 @@ class GetSearchResults(APIView):
                 base_query += " AND a.Profile_height <= %s"
                 query_params.append(to_height)
 
-
+            base_query += " ORDER BY a.DateOfJoin DESC "
         try:
             with connection.cursor() as cursor:
                     cursor.execute(base_query, query_params)
@@ -11299,7 +11299,7 @@ class Search_byprofile_id(APIView):
         JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
         JOIN mastereducation g ON f.highest_education = g.RowId 
         JOIN masterannualincome h ON h.id = f.anual_income
-        WHERE a.gender != %s AND a.ProfileId != %s AND a.plan_status NOT IN (16, 17, 3) AND (a.ProfileId = %s
+        WHERE a.gender != %s AND a.ProfileId != %s AND a.plan_id NOT IN (0,16, 17, 3) AND (a.ProfileId = %s
        OR a.Profile_name LIKE CONCAT('%%', %s, '%%'));
         """
         
