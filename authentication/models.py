@@ -831,6 +831,7 @@ class Familydetails(models.Model):
     property_details = models.CharField(max_length=1000)
     property_worth = models.CharField(max_length=1000)
     suya_gothram = models.CharField(max_length=100)
+    suya_gothram_admin = models.CharField(max_length=100,null=True,blank=True)
     uncle_gothram = models.CharField(max_length=100)
     ancestor_origin = models.CharField(max_length=1000)
     about_family = models.CharField(max_length=1000)
@@ -1063,6 +1064,12 @@ class Get_profiledata(models.Model):
             partner_pref = get_object_or_404(Partnerpref, profile_id=profile_id)
             age_difference_str = partner_pref.pref_age_differences
 
+
+            my_family= get_object_or_404(Familydetails, profile_id=profile_id)
+
+            my_suya_gothram=my_family.suya_gothram
+            my_suya_gothram_admin=my_family.suya_gothram_admin
+
             try:
                 age_diff = int(age_difference_str) if age_difference_str else 5  # Default to 5 if None
             except (ValueError, TypeError):
@@ -1114,7 +1121,7 @@ class Get_profiledata(models.Model):
                         a.Profile_city, a.Profile_verified, a.Profile_name, a.Profile_dob,
                         a.Profile_height, e.birthstar_name, e.birth_rasi_name, f.ug_degeree,
                         f.profession, f.highest_education, g.EducationLevel, d.star, h.income,
-                        v.viewed_profile,
+                        v.viewed_profile, f1.suya_gothram_admin,f1.suya_gothram,
                         pi.first_image_id AS has_image
                     FROM logindetails a
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
@@ -1122,6 +1129,8 @@ class Get_profiledata(models.Model):
                     JOIN masterbirthstar d ON d.id = e.birthstar_name
                     JOIN profile_edudetails f
                         ON a.ProfileId = f.profile_id
+                    JOIN profile_familydetails f1
+                        ON a.ProfileId = f1.profile_id
                     JOIN mastereducation g ON f.highest_education = g.RowId
                     JOIN masterannualincome h ON h.id = f.anual_income
                     LEFT JOIN vw_profile_images pi ON a.ProfileId = pi.profile_id
@@ -1134,6 +1143,19 @@ class Get_profiledata(models.Model):
                     AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s"""
 
                 query_params = [profile_id, gender, profile_id, min_age, max_age]
+
+                # Check suya_gothram_admin first (ID stored as string in DB)
+                if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
+                    print('inside admin suyagothram')
+                    base_query += " AND (f1.suya_gothram_admin IS NULL OR f1.suya_gothram_admin = '' OR f1.suya_gothram_admin != %s)"
+                    query_params.append(str(my_suya_gothram_admin))
+                if my_suya_gothram and str(my_suya_gothram).strip() != "":
+                    print('my_suya_gothram',my_suya_gothram)
+                    print('inside suyagothram')
+                    base_query += " AND (f1.suya_gothram IS NULL OR f1.suya_gothram = '' OR f1.suya_gothram != %s )"
+                    query_params.append(my_suya_gothram)
+                    print(f"my_suya_gothram value: '{my_suya_gothram}'")
+                    print(f"Trimmed value: '{str(my_suya_gothram).strip()}'")
 
                 if min_income and max_income:
                     base_query += " AND h.income_amount BETWEEN %s AND %s"
@@ -1176,6 +1198,12 @@ class Get_profiledata(models.Model):
                 elif partner_pref_height_to:
                     height_conditions = " AND a.Profile_height <= %s"
                     query_params.append(partner_pref_height_to)
+
+
+
+
+
+                
 
                 search_profile_id_cond = ''
                 if search_profile_id:
@@ -1249,24 +1277,24 @@ class Get_profiledata(models.Model):
                 # print(query)
 
 
-                # def format_sql_for_debug(query, params):
-                #         def escape(value):
-                #             if isinstance(value, str):
-                #                 return f"'{value}'"
-                #             elif value is None:
-                #                 return 'NULL'
-                #             else:
-                #                 return str(value)
-                #         try:
-                #             return query % tuple(map(escape, params))
-                #         except Exception as e:
-                #             print("Error formatting query:", e)
-                #             return query
+                def format_sql_for_debug(query, params):
+                        def escape(value):
+                            if isinstance(value, str):
+                                return f"'{value}'"
+                            elif value is None:
+                                return 'NULL'
+                            else:
+                                return str(value)
+                        try:
+                            return query % tuple(map(escape, params))
+                        except Exception as e:
+                            print("Error formatting query:", e)
+                            return query
 
-                #     # Usage:
-                # final_query = format_sql_for_debug(query, query_params)
+                    # Usage:
+                final_query = format_sql_for_debug(query, query_params)
 
-                # print(final_query)
+                print(final_query)
 
                 with connection.cursor() as cursor:
                     cursor.execute(query, query_params)
