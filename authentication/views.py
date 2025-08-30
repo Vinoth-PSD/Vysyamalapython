@@ -5240,9 +5240,9 @@ class Get_profile_det_match(APIView):
     def _prepare_horoscope_details_full(self, profile_data, horoscope_permission):
         """Maintains all original horoscope_details fields"""
         details = {
-            "rasi": self._get_rasi_name(profile_data.get('birth_rasi_name')),
+            "rasi": get_primary_sign(self._get_rasi_name(profile_data.get('birth_rasi_name'))),
             "star_name": self._get_star_name(profile_data.get('birthstar_name')),
-            "lagnam": self._get_lagnam_didi(profile_data.get('lagnam_didi')),
+            "lagnam": get_primary_sign(self._get_lagnam_didi(profile_data.get('lagnam_didi'))),
             "nallikai": profile_data.get('nalikai', ''),
             "didi": profile_data.get('didi', ''),
             "surya_gothram": profile_data.get('suya_gothram', ''),
