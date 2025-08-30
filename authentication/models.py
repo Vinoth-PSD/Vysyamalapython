@@ -905,6 +905,8 @@ class Partnerpref(models.Model):
     pref_foreign_intrest = models.CharField(max_length=20,null=True, blank=True)
     pref_porutham_star = models.TextField(null=True, blank=True)
     pref_porutham_star_rasi = models.TextField(null=True, blank=True)
+    pref_family_status = models.CharField(max_length=100,null=True, blank=True)
+    pref_state = models.CharField(max_length=100,null=True, blank=True)
     status = models.IntegerField()   # Changed from CharField to TextField
     
     class Meta:
@@ -1085,6 +1087,9 @@ class Get_profiledata(models.Model):
             partner_pref_ragukethu = partner_pref.pref_ragukethu
             partner_pref_chevvai = partner_pref.pref_chevvai
 
+            partner_pref_familysts = partner_pref.pref_family_status
+            partner_pref_state = partner_pref.pref_state
+
             min_max_query = """
                 SELECT MIN(income_amount) AS min_income, 
                     MAX(income_amount) AS max_income
@@ -1146,19 +1151,17 @@ class Get_profiledata(models.Model):
 
                 # Check suya_gothram_admin first (ID stored as string in DB)
                 if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
-                    print('inside admin suyagothram')
+
                     base_query += " AND (f1.suya_gothram_admin IS NULL OR f1.suya_gothram_admin = '' OR f1.suya_gothram_admin != %s)"
                     query_params.append(str(my_suya_gothram_admin))
                 if my_suya_gothram and str(my_suya_gothram).strip() != "":
-                    print('my_suya_gothram',my_suya_gothram)
-                    print('inside suyagothram')
+
                     base_query += " AND (f1.suya_gothram IS NULL OR f1.suya_gothram = '' OR f1.suya_gothram != %s )"
                     query_params.append(my_suya_gothram)
-                    print(f"my_suya_gothram value: '{my_suya_gothram}'")
-                    print(f"Trimmed value: '{str(my_suya_gothram).strip()}'")
+
 
                 if min_income and max_income:
-                    base_query += " AND h.income_amount BETWEEN %s AND %s"
+                    base_query += " AND ((h.income_amount BETWEEN %s AND %s) OR (h.income_amount IS NULL OR h.income_amount = '')) "
                     query_params.extend([min_income, max_income])
 
                 if partner_pref_porutham_star_rasi:
@@ -1173,6 +1176,20 @@ class Get_profiledata(models.Model):
                     base_query += " AND FIND_IN_SET(a.Profile_marital_status, %s) > 0"
                     query_params.append(pref_marital_status)
 
+
+                if partner_pref_state:
+                    base_query += " AND ((FIND_IN_SET(f.work_state, %s) > 0) OR (FIND_IN_SET(a.Profile_state, %s) > 0 ) OR (a.Profile_state IS NULL) OR (a.Profile_state ='' ))"
+                    query_params.extend([partner_pref_state, partner_pref_state])
+
+
+                if partner_pref_familysts:
+                    base_query += " AND ((FIND_IN_SET(f1.family_status, %s) > 0) OR (f1.family_status  IS NULL OR f1.family_status=''))"
+                    query_params.append(partner_pref_familysts)
+
+
+
+        
+
                 if partner_pref_foreign_intrest and partner_pref_foreign_intrest.lower() == 'yes':
                     base_query += " AND f.work_country != '1'"
                 elif partner_pref_foreign_intrest and partner_pref_foreign_intrest.lower() == 'no':
@@ -1180,16 +1197,16 @@ class Get_profiledata(models.Model):
 
                 if partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'yes':
                     
-                    base_query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'True' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL )"
+                    base_query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'True' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
                 elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'no':
-                    base_query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL )"
+                    base_query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
 
                 if partner_pref_chevvai and partner_pref_chevvai.lower() == 'yes':
                     # base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
 
-                    base_query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'True' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL )"
+                    base_query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'True' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
                 elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'no':
-                    base_query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL )"
+                    base_query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
 
                 height_conditions = ""
                 if partner_pref_height_from and partner_pref_height_to:
@@ -1341,6 +1358,14 @@ class Get_profiledata(models.Model):
             partner_pref_ragukethu= partner_pref.pref_ragukethu
             partner_pref_chevvai= partner_pref.pref_chevvai
 
+
+            my_family= get_object_or_404(Familydetails, profile_id=profile_id)
+            my_suya_gothram=my_family.suya_gothram
+            my_suya_gothram_admin=my_family.suya_gothram_admin
+
+            partner_pref_familysts = partner_pref.pref_family_status
+            partner_pref_state = partner_pref.pref_state
+
             # Get Min/Max income range from masterannualincome
             with connection.cursor() as cursor:
                 cursor.execute("""
@@ -1386,11 +1411,12 @@ class Get_profiledata(models.Model):
             # Base query to get matching profiles
             query = """
                  SELECT DISTINCT a.ProfileId,a.Plan_id ,a.DateOfJoin,a.Photo_protection,a.Profile_city,a.Profile_verified,a.Profile_name,a.Profile_dob,a.Profile_height,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
-                    f.highest_education, g.EducationLevel, d.star, h.income FROM logindetails a 
+                    f.highest_education, g.EducationLevel, d.star, h.income ,f1.suya_gothram_admin,f1.suya_gothram FROM logindetails a 
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
                     JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
                     JOIN masterbirthstar d ON d.id = e.birthstar_name 
                     JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
+                    JOIN profile_familydetails f1 ON a.ProfileId = f1.profile_id
                     JOIN mastereducation g ON f.highest_education = g.RowId 
                     JOIN masterannualincome h ON h.id = f.anual_income
                     WHERE a.Status=1 AND a.Plan_id NOT IN (0,16, 17, 3) AND a.gender != %s AND a.ProfileId != %s 
@@ -1399,9 +1425,20 @@ class Get_profiledata(models.Model):
             
             query_params = [gender, profile_id, min_age , max_age]
 
+            
+            if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
+
+                    query += " AND (f1.suya_gothram_admin IS NULL OR f1.suya_gothram_admin = '' OR f1.suya_gothram_admin != %s)"
+                    query_params.append(str(my_suya_gothram_admin))
+            if my_suya_gothram and str(my_suya_gothram).strip() != "":
+
+                    query += " AND (f1.suya_gothram IS NULL OR f1.suya_gothram = '' OR f1.suya_gothram != %s )"
+                    query_params.append(my_suya_gothram)
+            
+            
             if min_income and max_income:
-                query += " AND h.income_amount BETWEEN %s AND %s"
-                query_params.extend([min_income, max_income])
+                    query += " AND ((h.income_amount BETWEEN %s AND %s) OR (h.income_amount IS NULL OR h.income_amount = '')) "
+                    query_params.extend([min_income, max_income])
 
             if partner_pref_education:
                 query += " AND FIND_IN_SET(g.RowId, %s) > 0"
@@ -1422,15 +1459,30 @@ class Get_profiledata(models.Model):
                 query += " AND f.work_country = '1'"
 
 
+            
+
+            if partner_pref_state:
+                    query += " AND ((FIND_IN_SET(f.work_state, %s) > 0) OR (FIND_IN_SET(a.Profile_state, %s) > 0 ) OR (a.Profile_state IS NULL) OR (a.Profile_state ='' ))"
+                    query_params.extend([partner_pref_state, partner_pref_state])
+
+
+            if partner_pref_familysts:
+                    query += " AND ((FIND_IN_SET(f1.family_status, %s) > 0) OR (f1.family_status  IS NULL OR f1.family_status=''))"
+                    query_params.append(partner_pref_familysts)
+
+
             if partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'yes':
-                query += " AND LOWER(e.ragu_dosham) = 'yes'"
+                    
+                    query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'True' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
             elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'no':
-                query += " AND LOWER(e.ragu_dosham) = 'no'"
+                    query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
 
             if partner_pref_chevvai and partner_pref_chevvai.lower() == 'yes':
-                query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+                    # base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+
+                    query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'True' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
             elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'no':
-                query += " AND LOWER(e.chevvai_dosaham) = 'no'"
+                    query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
 
 
 
@@ -1501,6 +1553,9 @@ class Get_profiledata(models.Model):
             partner_pref_ragukethu= partner_pref.pref_ragukethu
             partner_pref_chevvai= partner_pref.pref_chevvai
 
+            partner_pref_familysts = partner_pref.pref_family_status
+            partner_pref_state = partner_pref.pref_state
+
             # Get Min/Max income range from masterannualincome
             with connection.cursor() as cursor:
                 cursor.execute("""
@@ -1529,12 +1584,13 @@ class Get_profiledata(models.Model):
 
             # Base query to get matching profiles
             query = """
-                 SELECT DISTINCT a.ProfileId,a.Plan_id ,a.DateOfJoin,a.Photo_protection,a.Profile_city,a.Profile_verified,a.Profile_name,a.Profile_dob,a.Profile_height,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
+                 SELECT DISTINCT a.ProfileId,a.Plan_id ,a.DateOfJoin,a.Photo_protection,a.Profile_city,a.Profile_verified,a.Profile_name,a.Profile_dob,a.Profile_height,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, f1.suya_gothram_admin,f1.suya_gothram ,
                     f.highest_education, g.EducationLevel, d.star, h.income FROM logindetails a 
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
                     JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
                     JOIN masterbirthstar d ON d.id = e.birthstar_name 
                     JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
+                    JOIN profile_familydetails f1 ON a.ProfileId = f1.profile_id
                     JOIN mastereducation g ON f.highest_education = g.RowId 
                     JOIN masterannualincome h ON h.id = f.anual_income
                     WHERE a.Status=1 AND a.Plan_id NOT IN (0,16, 17, 3) AND a.gender != %s AND a.ProfileId != %s 
@@ -1544,7 +1600,7 @@ class Get_profiledata(models.Model):
             query_params = [gender, profile_id, min_age , max_age]
 
             if min_income and max_income:
-                query += " AND h.income_amount BETWEEN %s AND %s"
+                query += " AND ((h.income_amount BETWEEN %s AND %s) OR (h.income_amount IS NULL OR h.income_amount = '')) "
                 query_params.extend([min_income, max_income])
 
             if partner_pref_education:
@@ -1566,15 +1622,29 @@ class Get_profiledata(models.Model):
                 query += " AND f.work_country = '1'"
 
 
+            
+            if partner_pref_state:
+                    query += " AND ((FIND_IN_SET(f.work_state, %s) > 0) OR (FIND_IN_SET(a.Profile_state, %s) > 0 ) OR (a.Profile_state IS NULL) OR (a.Profile_state ='' ))"
+                    query_params.extend([partner_pref_state, partner_pref_state])
+
+
+            if partner_pref_familysts:
+                    query += " AND ((FIND_IN_SET(f1.family_status, %s) > 0) OR (f1.family_status  IS NULL OR f1.family_status=''))"
+                    query_params.append(partner_pref_familysts)
+
+
             if partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'yes':
-                query += " AND LOWER(e.ragu_dosham) = 'yes'"
+                    
+                    query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'True' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
             elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'no':
-                query += " AND LOWER(e.ragu_dosham) = 'no'"
+                    query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
 
             if partner_pref_chevvai and partner_pref_chevvai.lower() == 'yes':
-                query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+                    # base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+
+                    query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'True' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
             elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'no':
-                query += " AND LOWER(e.chevvai_dosaham) = 'no'"
+                    query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
 
 
 
@@ -1607,10 +1677,10 @@ class Get_profiledata(models.Model):
                 try:
                     return query % tuple(map(escape, params))
                 except Exception as e:
-                    print("Error formatting query:", e)
+                    # print("Error formatting query:", e)
                     return query
                 
-            print("MySQL Executable Query:", format_sql_for_debug(query, query_params))
+            # print("MySQL Executable Query:", format_sql_for_debug(query, query_params))
 
             with connection.cursor() as cursor:
                 # cursor.execute(query.format(operator=age_condition_operator), query_params)
@@ -2311,6 +2381,9 @@ class ProfileSuggestedPref(models.Model):
    
     pref_porutham_star = models.CharField(max_length=1000, null=True, blank=True)
     pref_porutham_star_rasi	 = models.TextField(null=True, blank=True)
+
+    pref_family_status = models.CharField(max_length=100, null=True, blank=True)
+    pref_state = models.CharField(max_length=100, null=True, blank=True)
     
     # pref_education = models.CharField(max_length=100)
     # pref_profession = models.CharField(max_length=100)

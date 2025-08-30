@@ -9237,7 +9237,7 @@ class GetSearchResults(APIView):
 
         if not any([
             from_age, to_age, from_height, to_height, marital_status, profession, 
-            education, income, star, native_state, search_worklocation, 
+            education, min_income,max_income, star, native_state, search_worklocation, 
             search_profilephoto, people_withphoto, chevvai_dhosam, ragukethu_dhosam
         ]):
             return JsonResponse({'status': 'failure', 'message': "At least one search criterion must be provided."}, status=status.HTTP_200_OK)
@@ -9329,9 +9329,13 @@ class GetSearchResults(APIView):
                 base_query += " AND pi.profile_id IS NOT NULL AND pi.image_approved=1"
                 
             # Add income filter
-            if income:
-                base_query += " AND h.income_amount >= %s"
-                query_params.append(income)
+            # if income:
+            #     base_query += " AND h.income_amount >= %s"
+            #     query_params.append(income)
+
+            # if min_income and max_income:
+            #         base_query += " AND ((h.income_amount BETWEEN %s AND %s) OR (h.income_amount IS NULL OR h.income_amount = '')) "
+            #         query_params.extend([min_income, max_income])
 
             # Add star filter
             if star:
@@ -9393,7 +9397,7 @@ class GetSearchResults(APIView):
                         if len(amounts) == 2:
                             lower_income = min(amounts)
                             upper_income = max(amounts)
-                            base_query += " AND h.income_amount BETWEEN %s AND %s"
+                            base_query += " AND ((h.income_amount BETWEEN %s AND %s) OR (f.anual_income IS NULL OR f.anual_income = '')) "
                             query_params.extend([lower_income, upper_income])
                 except Exception as e:
                     pass
