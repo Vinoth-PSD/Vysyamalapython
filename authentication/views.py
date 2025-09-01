@@ -3883,6 +3883,28 @@ def get_degree(degeree):
     
     return Profile_ug_degree
 
+    
+def degree(degree_ids,other_degree):
+    if not degree_ids:      
+            return other_degree if other_degree else None
+    try:
+        id_list = [int(x) for x in str(degree_ids).split(',') if x.strip().isdigit()]
+        id_list = [x for x in id_list if x != 86]
+        degree_names = list(
+            models.Profileedu_degree.objects.filter(id__in=id_list)
+            .values_list("degeree_name", flat=True)
+        )
+        if other_degree:
+            degree_names.append(other_degree)
+        final_names = ", ".join(degree_names) if degree_names else None
+        
+        if final_names==None:
+            return "N/A"
+        else:
+            return final_names
+    except Exception:
+        final_names = "N/A"
+        return final_names
 
 # def getprofession(profession):
 
@@ -4570,7 +4592,7 @@ class Get_prof_list_match(APIView):
                         "profile_gender": detail.get("Gender"),
                         "height": detail.get("Profile_height"),
                         "weight": detail.get("weight"),
-                        "degree": get_degree(detail.get("ug_degeree")),
+                        "degree": degree(detail.get("degree"),detail.get('other_degree')),
                         "star": detail.get("star"),
                         "profession": getprofession(detail.get("profession")),
                         "location": detail.get("Profile_city"),
@@ -13187,10 +13209,11 @@ def get_work_address(city, district, state, country):
     try:
         parts = []
 
-        if city:
-            parts.append(city)
         if district:
             parts.append(get_district_name(district))
+        else:
+            if city:
+                parts.append(city)
         if state:
             parts.append(get_state_name(state))
         if country:
@@ -18806,8 +18829,110 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                         f"{extra_td}"
                         f"</tr>")
 
+                porutham_show=True
+                if porutham_data['matching_score']=='0/10' or porutham_data['matching_score']=='0' or porutham_data['matching_score']=='0.0' or porutham_data['matching_score']=='10/10' or porutham_data['matching_score']==0.0:
+                    porutham_show= False
+                
                 charts_html = ""
-
+                porutham_details=""
+                if porutham_show==True:
+                    porutham_details=f"""
+                    <table class="compatibility-page-wrapper" >
+            <tr>
+            <td style="text-align:center;margin:0 auto; padding:0px 20px;">
+                        
+            <h2 class="report-title">Marriage Compatibility Report</h2>
+        
+            <table class="report-table" border="0">
+                <tr>
+                <td class="header-cell">
+                    <p class="profile-name">{login_my.Profile_name} - {login_my.ProfileId}</p>
+                </td>
+                <td class="header-cell">
+                    <p class="profile-name"> {login_details.Profile_name} - {login_details.ProfileId}</p>   
+                 </td>
+                </tr>
+                <tr>
+                <td class="sub-header">
+                    <p class="profile-rasi-star"> {rasi_name_my} - {star_name_my}</p>
+                </td>
+                <td class="sub-header">
+                    <p class="profile-rasi-star"> {rasi_name} - {star_name}</p>
+                </td>
+                </tr>
+            </table>
+            <br>
+        
+            <table class="profile-addtional-info" >
+                <tr>
+                <td class="data-row">
+                     <p> Place of Birth : {horoscope_my.place_of_birth}</p>
+                </td>
+                <td class="data-row">
+                    <p> Place of Birth : {horoscope.place_of_birth}</p>
+                </td>
+                </tr>
+                <tr>
+                <td class="data-row">
+                    <p> Time of Birth : {horoscope_my.time_of_birth}</p>
+                </td>
+                <td class="data-row">
+                    <p>  Time of Birth : {horoscope.time_of_birth}</p>
+                </td>
+                </tr>
+                <tr>
+                <td class="data-row">
+                    <p> Date Of Birth : {login_my.Profile_dob}</p>
+                </td>
+                <td class="data-row">
+                    <p> Date Of Birth : {login_details.Profile_dob}</p>
+                </td>
+                </tr>
+            </table>
+            <br>
+        
+              <table class="profile-addtional-info">
+                <tr>
+                <td class="data-row">
+                    <p> Height : {cm_to_feet_inches(login_my.Profile_height)}</p>
+                </td>
+                <td class="data-row">
+                        <p> Height : {cm_to_feet_inches(login_details.Profile_height)}</p>
+        
+                </td>
+                </tr>
+                <tr>
+                <td class="data-row">
+                    <p> {final_education_my}</p>
+                </td>
+                <td class="data-row">
+                    <p> {final_education}</p>
+                </td>
+                </tr>
+            </table>
+                
+            <h2 class="report-title" >Nakshatra Porutham & Rasi Porutham</h2>
+           <table class="porutham-table">
+                <tr>
+                    <th>Porutham Name</th>
+                    <th>Status</th>
+                    <th>Matching Score</th>
+                </tr>
+                 {porutham_rows}
+                 </table>        
+              <table class="profile-addtional-info">
+                <tr >
+                <td class="data-row"  style="width:100%;">
+                <p>
+                Our best wishes for finding your soulmate in Vyasyamala soon. Please inform Vyasyamala if your marriage is fixed. Share your engagement photo and receive a surprise gift. No commissions / hidden charges. Jai Vasavi!
+                </p>
+                </td>
+                </tr>
+                </table>
+                <br>
+            </td>
+            </tr>
+            </table>"""
 
 
                 if not hide_charts:
@@ -19506,102 +19631,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 
 
               
-                <table class="compatibility-page-wrapper" >
-            <tr>
-            <td style="text-align:center;margin:0 auto; padding:0px 20px;">
-                        
-            <h2 class="report-title">Marriage Compatibility Report</h2>
-        
-            <table class="report-table" border="0">
-                <tr>
-                <td class="header-cell">
-                    <p class="profile-name">{login_my.Profile_name} - {login_my.ProfileId}</p>
-                </td>
-                <td class="header-cell">
-                    <p class="profile-name"> {login_details.Profile_name} - {login_details.ProfileId}</p>   
-                 </td>
-                </tr>
-                <tr>
-                <td class="sub-header">
-                    <p class="profile-rasi-star"> {rasi_name_my} - {star_name_my}</p>
-                </td>
-                <td class="sub-header">
-                    <p class="profile-rasi-star"> {rasi_name} - {star_name}</p>
-                </td>
-                </tr>
-            </table>
-            <br>
-        
-            <table class="profile-addtional-info" >
-                <tr>
-                <td class="data-row">
-                     <p> Place of Birth : {horoscope_my.place_of_birth}</p>
-                </td>
-                <td class="data-row">
-                    <p> Place of Birth : {horoscope.place_of_birth}</p>
-                </td>
-                </tr>
-                <tr>
-                <td class="data-row">
-                    <p> Time of Birth : {horoscope_my.time_of_birth}</p>
-                </td>
-                <td class="data-row">
-                    <p>  Time of Birth : {horoscope.time_of_birth}</p>
-                </td>
-                </tr>
-                <tr>
-                <td class="data-row">
-                    <p> Date Of Birth : {login_my.Profile_dob}</p>
-                </td>
-                <td class="data-row">
-                    <p> Date Of Birth : {login_details.Profile_dob}</p>
-                </td>
-                </tr>
-            </table>
-            <br>
-        
-              <table class="profile-addtional-info">
-                <tr>
-                <td class="data-row">
-                    <p> Height : {cm_to_feet_inches(login_my.Profile_height)}</p>
-                </td>
-                <td class="data-row">
-                        <p> Height : {cm_to_feet_inches(login_details.Profile_height)}</p>
-        
-                </td>
-                </tr>
-                <tr>
-                <td class="data-row">
-                    <p> {final_education_my}</p>
-                </td>
-                <td class="data-row">
-                    <p> {final_education}</p>
-                </td>
-                </tr>
-            </table>
-                
-            <h2 class="report-title" >Nakshatra Porutham & Rasi Porutham</h2>
-           <table class="porutham-table">
-                <tr>
-                    <th>Porutham Name</th>
-                    <th>Status</th>
-                    <th>Matching Score</th>
-                </tr>
-                 {porutham_rows}
-                 </table>        
-              <table class="profile-addtional-info">
-                <tr >
-                <td class="data-row"  style="width:100%;">
-                <p>
-                Our best wishes for finding your soulmate in Vyasyamala soon. Please inform Vyasyamala if your marriage is fixed. Share your engagement photo and receive a surprise gift. No commissions / hidden charges. Jai Vasavi!
-                </p>
-                </td>
-                </tr>
-                </table>
-                <br>
-            </td>
-            </tr>
-            </table>
+                {porutham_details}
 
                 <table class="porutham-page">
                 <tr>
@@ -20022,9 +20052,112 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                         f"<td><span style='color: {'#000000' if porutham['status'].startswith('YES') else '#000000'};'>{porutham['status']}</span></td>"
                         f"{extra_td}"
                         f"</tr>")
-
+                    
+                porutham_show=True
+                if porutham_data['matching_score']=='0/10' or porutham_data['matching_score']=='0' or porutham_data['matching_score']=='0.0' or porutham_data['matching_score']=='10/10' or porutham_data['matching_score']==0.0:
+                    porutham_show= False
+                
                 charts_html = ""
-
+                porutham_details=""
+                if porutham_show==True:
+                    porutham_details=f"""
+                    <table class="compatibility-page-wrapper" >
+            <tr>
+            <td style="text-align:center;margin:0 auto; padding:0px 20px;">
+                        
+            <h2 class="report-title">Marriage Compatibility Report</h2>
+        
+            <table class="report-table" border="0">
+                <tr>
+                <td class="header-cell">
+                    <p class="profile-name">{login_my.Profile_name} - {login_my.ProfileId}</p>
+                </td>
+                <td class="header-cell">
+                    <p class="profile-name"> {login_details.Profile_name} - {login_details.ProfileId}</p>   
+                 </td>
+                </tr>
+                <tr>
+                <td class="sub-header">
+                    <p class="profile-rasi-star"> {rasi_name_my} - {star_name_my}</p>
+                </td>
+                <td class="sub-header">
+                    <p class="profile-rasi-star"> {rasi_name} - {star_name}</p>
+                </td>
+                </tr>
+            </table>
+            <br>
+        
+            <table class="profile-addtional-info" >
+                <tr>
+                <td class="data-row">
+                     <p> Place of Birth : {horoscope_my.place_of_birth}</p>
+                </td>
+                <td class="data-row">
+                    <p> Place of Birth : {horoscope.place_of_birth}</p>
+                </td>
+                </tr>
+                <tr>
+                <td class="data-row">
+                    <p> Time of Birth : {horoscope_my.time_of_birth}</p>
+                </td>
+                <td class="data-row">
+                    <p>  Time of Birth : {horoscope.time_of_birth}</p>
+                </td>
+                </tr>
+                <tr>
+                <td class="data-row">
+                    <p> Date Of Birth : {login_my.Profile_dob}</p>
+                </td>
+                <td class="data-row">
+                    <p> Date Of Birth : {login_details.Profile_dob}</p>
+                </td>
+                </tr>
+            </table>
+            <br>
+        
+              <table class="profile-addtional-info">
+                <tr>
+                <td class="data-row">
+                    <p> Height : {cm_to_feet_inches(login_my.Profile_height)}</p>
+                </td>
+                <td class="data-row">
+                        <p> Height : {cm_to_feet_inches(login_details.Profile_height)}</p>
+        
+                </td>
+                </tr>
+                <tr>
+                <td class="data-row">
+                    <p> {final_education_my}</p>
+                </td>
+                <td class="data-row">
+                    <p> {final_education}</p>
+                </td>
+                </tr>
+            </table>
+                
+            <h2 class="report-title" >Nakshatra Porutham & Rasi Porutham</h2>
+           <table class="porutham-table">
+                <tr>
+                    <th>Porutham Name</th>
+                    <th>Status</th>
+                    <th>Matching Score</th>
+                </tr>
+                 {porutham_rows}
+                 </table>        
+              <table class="profile-addtional-info">
+                <tr >
+                <td class="data-row"  style="width:100%;">
+                <p>
+                Our best wishes for finding your soulmate in Vyasyamala soon. Please inform Vyasyamala if your marriage is fixed. Share your engagement photo and receive a surprise gift. No commissions / hidden charges. Jai Vasavi!
+                </p>
+                </td>
+                </tr>
+                </table>
+                <br>
+            </td>
+            </tr>
+            </table>
+                    """
 
 
                 if not hide_charts:
@@ -20757,105 +20890,7 @@ h2.porutham-table-title{{
                 </table>
                 </div>
 
-
-
-                <table class="compatibility-page-wrapper" >
-            <tr>
-            <td style="text-align:center;margin:0 auto; padding:0px 20px;">
-                        
-            <h2 class="report-title">Marriage Compatibility Report</h2>
-        
-            <table class="report-table" border="0">
-                <tr>
-                <td class="header-cell">
-                    <p class="profile-name">{login_my.Profile_name} - {login_my.ProfileId}</p>
-                </td>
-                <td class="header-cell">
-                    <p class="profile-name"> {login_details.Profile_name} - {login_details.ProfileId}</p>   
-                 </td>
-                </tr>
-                <tr>
-                <td class="sub-header">
-                    <p class="profile-rasi-star"> {rasi_name_my} - {star_name_my}</p>
-                </td>
-                <td class="sub-header">
-                    <p class="profile-rasi-star"> {rasi_name} - {star_name}</p>
-                </td>
-                </tr>
-            </table>
-            <br>
-        
-            <table class="profile-addtional-info" >
-                <tr>
-                <td class="data-row">
-                     <p> Place of Birth : {horoscope_my.place_of_birth}</p>
-                </td>
-                <td class="data-row">
-                    <p> Place of Birth : {horoscope.place_of_birth}</p>
-                </td>
-                </tr>
-                <tr>
-                <td class="data-row">
-                    <p> Time of Birth : {horoscope_my.time_of_birth}</p>
-                </td>
-                <td class="data-row">
-                    <p>  Time of Birth : {horoscope.time_of_birth}</p>
-                </td>
-                </tr>
-                <tr>
-                <td class="data-row">
-                    <p> Date Of Birth : {login_my.Profile_dob}</p>
-                </td>
-                <td class="data-row">
-                    <p> Date Of Birth : {login_details.Profile_dob}</p>
-                </td>
-                </tr>
-            </table>
-            <br>
-        
-              <table class="profile-addtional-info">
-                <tr>
-                <td class="data-row">
-                    <p> Height : {cm_to_feet_inches(login_my.Profile_height)}</p>
-                </td>
-                <td class="data-row">
-                        <p> Height : {cm_to_feet_inches(login_details.Profile_height)}</p>
-        
-                </td>
-                </tr>
-                <tr>
-                <td class="data-row">
-                    <p> {final_education_my}</p>
-                </td>
-                <td class="data-row">
-                    <p> {final_education}</p>
-                </td>
-                </tr>
-            </table>
-                
-            <h2 class="report-title" >Nakshatra Porutham & Rasi Porutham</h2>
-           <table class="porutham-table">
-                <tr>
-                    <th>Porutham Name</th>
-                    <th>Status</th>
-                    <th>Matching Score</th>
-                </tr>
-                 {porutham_rows}
-                 </table>        
-              <table class="profile-addtional-info">
-                <tr >
-                <td class="data-row"  style="width:100%;">
-                <p>
-                Our best wishes for finding your soulmate in Vyasyamala soon. Please inform Vyasyamala if your marriage is fixed. Share your engagement photo and receive a surprise gift. No commissions / hidden charges. Jai Vasavi!
-                </p>
-                </td>
-                </tr>
-                </table>
-                <br>
-            </td>
-            </tr>
-            </table>
-
+                {porutham_details}
                 <table class="porutham-page">
                 <tr>
                 <td>

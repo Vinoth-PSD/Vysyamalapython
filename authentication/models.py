@@ -1124,7 +1124,7 @@ class Get_profiledata(models.Model):
                 SELECT DISTINCT 
                         a.ProfileId, a.Plan_id, a.DateOfJoin, a.Photo_protection,
                         a.Profile_city, a.Profile_verified, a.Profile_name, a.Profile_dob,
-                        a.Profile_height, e.birthstar_name, e.birth_rasi_name, f.ug_degeree,
+                        a.Profile_height, e.birthstar_name, e.birth_rasi_name, f.degree,f.other_degree,
                         f.profession, f.highest_education, g.EducationLevel, d.star, h.income,
                         v.viewed_profile, f1.suya_gothram_admin,f1.suya_gothram,
                         pi.first_image_id AS has_image
