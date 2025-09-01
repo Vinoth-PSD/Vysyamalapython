@@ -1075,16 +1075,17 @@ class ImageSetUpload(APIView):
             try:
                 with PILImage.open(logo_path) as logo:
                     # Resize the logo
-                    logo_width, logo_height = 68, 18  # Adjust size as needed
+                    logo_width, logo_height = 70, 50  # Adjust size as neededlogo_size = (70, 50)
                     logo.thumbnail((logo_width, logo_height), PILImage.LANCZOS)
 
                     # Ensure the logo has transparency
                     logo = logo.convert("RGBA")
 
-                    img_width, img_height = img.size 
-                    # Position the logo at the top-left corner
-                    #position = (10, 10)  # Offset 10px from the top-left corner
-                    position = (img_width - logo_width - 10, 10)
+                    img_width, img_height = img.size
+
+                    # Position the logo at the bottom-right corner with 10px padding
+                    position = (img_width - logo_width - 20, img_height - logo_height - 15)
+
                     # Paste the logo onto the image
                     img.paste(logo, position, logo)
             except Exception as e:
@@ -6336,9 +6337,9 @@ class ImageSetEdit(APIView):
             except FileNotFoundError:
                 return JsonResponse({"error": "Watermark logo file not found."}, status=status.HTTP_400_BAD_REQUEST)
 
-            logo_size = (68, 18)
+            logo_size = (70, 50)
             watermark_logo = watermark_logo.resize(logo_size, PILImage.LANCZOS)
-            position = (img.width - logo_size[0] - 10, 10)
+            position = (img.width - logo_size[0] - 20, img.height - logo_size[1] - 15)
 
             img = img.convert("RGBA")
             watermarked = PILImage.new("RGBA", img.size, (255, 255, 255, 0))
@@ -20933,3 +20934,13 @@ h2.porutham-table-title{{
                     return HttpResponse('We had some errors <pre>' + html_content + '</pre>')
 
                 return response
+            
+class Degree_list(APIView):
+
+    def get(self, request, *args, **kwargs):
+        try:
+            degrees = models.Profileedu_degree.objects.filter(is_deleted=0).exclude(id=86)
+            serializer = serializers.CustomField_degree(degrees, many=True)
+            return JsonResponse(serializer.data, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

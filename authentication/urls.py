@@ -237,6 +237,7 @@ urlpatterns = [
     
      path('health_check/', views.health_check.as_view()),
 
+    path('pref_degree_list/',views.Degree_list.as_view(),name='pref_degree_list'),
 
 
 
