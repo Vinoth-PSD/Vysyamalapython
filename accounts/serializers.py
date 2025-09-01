@@ -392,7 +392,7 @@ class ProfileVisibilitySerializer(serializers.ModelSerializer):
         model = ProfileVisibility
         fields = ('profile_id', 'visibility_age_from', 'visibility_age_to' ,'visibility_height_from', 'visibility_height_to', 
                   'visibility_profession', 'visibility_education', 'visibility_anual_income','visibility_anual_income_max', 'visibility_family_status','visibility_chevvai',
-                  'visibility_ragukethu', 'visibility_foreign_interest','status')
+                  'visibility_ragukethu', 'visibility_foreign_interest','status','degree','visibility_field_of_study')
 
 class ProfileplanSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False , allow_null=True) 
@@ -559,6 +559,141 @@ class Getnewprofiledata_new(serializers.Serializer):
         except Exception as e:
             return None
 
+
+class Renewalprofiledata(serializers.Serializer):
+    ContentId = serializers.IntegerField()
+    ProfileId = serializers.CharField()
+    Profile_name = serializers.CharField()
+    Gender = serializers.CharField()
+    Mobile_no = serializers.CharField()
+    Profile_whatsapp = serializers.CharField()
+    Profile_alternate_mobile =serializers.CharField()
+    EmailId = serializers.EmailField()
+    Profile_dob = serializers.DateField()
+    Profile_city = serializers.CharField()
+    Plan_id = serializers.CharField()
+    plan_name = serializers.CharField()
+    status = serializers.SerializerMethodField()
+    
+    # Custom field to handle datetime to date conversion for DateOfJoin
+    DateOfJoin = serializers.SerializerMethodField()
+    birthstar_name = serializers.SerializerMethodField()
+
+
+    # Add the joined table fields
+    MaritalStatus = serializers.CharField()
+    complexion_desc = serializers.CharField()
+    state_name = serializers.CharField()
+    district_name = serializers.CharField()
+    city_name = serializers.CharField()
+    country_name = serializers.CharField()
+
+    # Add family and education details
+    family_status = serializers.SerializerMethodField()
+    Profile_for = serializers.SerializerMethodField()
+    highest_education = serializers.SerializerMethodField()  # Changed to SerializerMethodField
+    profession = serializers.CharField()
+    anual_income = serializers.SerializerMethodField()
+    Last_login_date= serializers.CharField()  
+    years = serializers.SerializerMethodField()
+    membership_startdate = serializers.CharField()
+    membership_enddate = serializers.CharField()
+
+    # Method to calculate age from Profile_dob
+    def get_years(self, obj):
+        dob = obj.get('Profile_dob')
+        if dob:
+            return calculate_age(dob)
+        return None
+    
+    def get_family_status(self, obj):
+     family_status_value = obj.get('family_status')
+ 
+     if family_status_value:
+         try:
+             family_status_id = int(family_status_value)
+             
+             family_status = FamilyStatus.objects.get(id=family_status_id, is_deleted=False)
+             return family_status.status  
+         except (ValueError, FamilyStatus.DoesNotExist):
+             return family_status_value
+    
+         return None
+
+    
+    def get_highest_education(self, obj):
+        education_value = obj.get('highest_education')
+        
+        if education_value:
+            try:
+                education_id = int(education_value)
+                education = EducationLevel.objects.get(row_id=education_id, is_deleted=False)
+                return education.EducationLevel 
+            except (ValueError, EducationLevel.DoesNotExist):
+                return education_value
+        return None
+    
+    def get_anual_income(self, obj):
+        anual_income_value = obj.get('anual_income')
+    
+        if anual_income_value:
+            try:
+                anual_income_id = int(anual_income_value)
+                
+                anual_income = AnnualIncome.objects.get(id=anual_income_id, is_deleted=False)
+                return anual_income.income  
+            except (ValueError, AnnualIncome.DoesNotExist):
+                return anual_income_value
+        
+        return None
+    
+    def get_Profile_for(self, obj):
+        profile_for_input = obj.get('Profile_for')
+        if profile_for_input:
+            try:
+                mode = Mode.objects.get(mode=profile_for_input, is_deleted=False)
+                return mode.mode_name  
+            except (ValueError, Mode.DoesNotExist):
+                return profile_for_input
+        return None
+    
+    def get_profession(self, obj):
+        profession_value = obj.get('profession')
+        print(profession_value,'profession_value')
+        if profession_value:
+            try:
+                profession_id = int(profession_value)
+                
+                profession = Profession.objects.get(RowId=profession_id, is_deleted=False)
+                return profession.Profession  
+            except (ValueError, Profession.DoesNotExist):
+                return profession_value
+        
+        return None
+    
+    def get_birthstar_name(self, obj):
+        birthstar_input = obj.get('birthstar_name')
+        if birthstar_input:
+            try:
+                birthstar = BirthStar.objects.get(pk=int(birthstar_input), is_deleted=False)
+                return birthstar.star  
+            except (ValueError, BirthStar.DoesNotExist):
+                return birthstar_input
+        return None
+
+
+    def get_DateOfJoin(self, obj):
+        # Convert datetime to date if it's a datetime field
+        return obj['DateOfJoin'].date() if obj.get('DateOfJoin') else None
+    
+    def get_status(self, obj):
+        try:
+            status = ProfileStatus.objects.get(status_code=obj.get('status'))
+            return status.status_name 
+        except (ValueError, ProfileStatus.DoesNotExist):
+            return None
+        except Exception as e:
+            return None
     # The calculate_age function
 # def calculate_age(dob):
 #     """

@@ -59,7 +59,7 @@ from .serializers import MarriageSettleDetailsSerializer
 from .models import PaymentTransaction
 from .serializers import PaymentTransactionSerializer
 from .serializers import InvoiceSerializer
-from .serializers import LoginLogSerializer
+from .serializers import LoginLogSerializer,Renewalprofiledata
 from django.db.models.functions import Cast
 from django.db.models import DateTimeField
 from .models import Invoice
@@ -2429,6 +2429,19 @@ def format_time_am_pm(time_str):
     except ValueError:
         return str(time_str)
 
+def calculate_idle_days(last_login_date):
+    if last_login_date:
+        try:
+            # Parse if it's a string
+            if isinstance(last_login_date, str):
+                last_login_date = datetime.strptime(last_login_date, "%Y-%m-%d %H:%M:%S")
+
+            idle_duration = datetime.now() - last_login_date  # returns timedelta
+            return f"{idle_duration.days} day(s)"
+        except Exception as e:
+            return "N/A"
+    return "N/A"
+
 class GetProfEditDetailsAPIView(APIView):
     """
     This API view will fetch all profile-related details to populate the edit page based on ProfileId.
@@ -2605,7 +2618,7 @@ class GetProfEditDetailsAPIView(APIView):
                 #"valid_till":getattr(profile_plan_features, "membership_todate", None),
                 "valid_till":membership_todate.strftime("%d-%m-%Y") if (membership_todate := getattr(profile_plan_features, "membership_todate", None)) else None,
                 "created_date":login_detail.DateOfJoin,
-                "idle_days":"",
+                "idle_days":calculate_idle_days(login_detail.Last_login_date),
                 "membership_fromdate":getattr(profile_plan_features, "membership_fromdate", None),
                 "membership_todate":getattr(profile_plan_features, "membership_todate", None),
                 # "membership_fromdate": format(profile_plan_features.membership_fromdate, '0000-0-0') if profile_plan_features.membership_fromdate else '0000-0-0',
@@ -3753,7 +3766,7 @@ class Get_prof_list_match(APIView):
                 "profile_gender": detail.get("Gender"),
                 "height": detail.get("Profile_height"),
                 "weight": detail.get("weight"),
-                "degree": get_degree(detail.get("ug_degeree")),
+                "degree": degree(detail.get("degree"),detail.get("other_degree")),
                 "star": detail.get("star"),
                 "profession": getprofession(detail.get("profession")),
                 "location": detail.get("Profile_city"),
@@ -3916,7 +3929,7 @@ class Get_suggest_list_match(APIView):
                                 "profile_gender":detail.get("Gender"),
                                 "height": detail.get("Profile_height"),
                                 "weight": detail.get("weight"),
-                                "degree": get_degree(detail.get("ug_degeree")),
+                                "degree": degree(detail.get("degree"),detail.get("other_degree")),
                                 "star":detail.get("star"),
                                 "profession": getprofession(detail.get("profession")),
                                 "location":detail.get("Profile_city"),
@@ -4313,7 +4326,7 @@ def Get_profile_image(user_profile_id, gender, no_of_image, photo_protection, is
     if is_admin:
         if user_profile_id:
             if no_of_image == 1:
-                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id).first()
+                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0).first()
                 if get_entry:
                     # Admin gets unblurred image
                     serializer = ImageGetSerializer(get_entry)
@@ -4323,7 +4336,7 @@ def Get_profile_image(user_profile_id, gender, no_of_image, photo_protection, is
                     return base_url + (default_img_groom if gender.lower() == 'male' else default_img_bride)
             else:
                 # Fetch up to 10 images for admin without any photo protection
-                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id)[:10]
+                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0)[:10]
                 if get_entry.exists():
                     serializer = ImageGetSerializer(get_entry, many=True)
                     # Return a dictionary of images
@@ -4341,14 +4354,14 @@ def Get_profile_image(user_profile_id, gender, no_of_image, photo_protection, is
     if photo_protection != 1:        
         if user_profile_id:
             if no_of_image == 1:
-                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id).first()
+                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0).first()
                 if get_entry:
                     serializer = ImageGetSerializer(get_entry)
                     return serializer.data['image']
                 else:
                     return base_url + (default_img_groom if gender.lower() == 'male' else default_img_bride)
             else:
-                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id)[:10]
+                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0)[:10]
                 if get_entry.exists():
                     serializer = ImageGetSerializer(get_entry, many=True)
                     images_dict = {
@@ -4362,13 +4375,13 @@ def Get_profile_image(user_profile_id, gender, no_of_image, photo_protection, is
     else:
         # Photo protection enabled
         if no_of_image == 1:
-            get_entry = Image_Upload.objects.filter(profile_id=user_profile_id).first()
+            get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0).first()
             if get_entry:
                 serializer = ImageGetSerializer(get_entry)
                 img_base64 = get_blurred_image(serializer.data['image'])
                 return img_base64
         else:
-            get_entry = Image_Upload.objects.filter(profile_id=user_profile_id).first()
+            get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0).first()
             if get_entry:
                 serializer = ImageGetSerializer(get_entry)
                 img_base64 = get_blurred_image(serializer.data['image'])
@@ -4388,14 +4401,14 @@ def Get_image_profile(user_profile_id):
 
     # Default to the appropriate image based on gender
     if not photo_protection:
-        get_entry = Image_Upload.objects.filter(profile_id=user_profile_id).first()
+        get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0).first()
         if get_entry:
             serializer = ImageGetSerializer(get_entry)
             return base_url + serializer.data['image']
         
         return base_url + (default_img_groom if gender.lower() == 'male' else default_img_bride)
     
-    get_entry = Image_Upload.objects.filter(profile_id=user_profile_id).first()
+    get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0).first()
     if get_entry:
         serializer = ImageGetSerializer(get_entry)
         img_base64 = get_blurred_image(serializer.data['image'])
@@ -7070,7 +7083,7 @@ def GetPhotoProofDetails(request):
         try:
             login = LoginDetails.objects.get(ProfileId=profile_id)
             horoscope = Horoscope.objects.get(profile_id=profile_id)
-            profile_images = Image_Upload.objects.filter(profile_id=profile_id)
+            profile_images = Image_Upload.objects.filter(profile_id=profile_id,is_deleted=0)
 
             image_list = [
                 {
@@ -7343,7 +7356,7 @@ class CommonProfileSearchAPIView(APIView):
                 "profile_age": calculate_age(detail["Profile_dob"]),
                 "profile_gender": detail["Gender"],
                 "height": detail["Profile_height"],
-                "degree": get_degree(detail.get("ug_degeree")),
+                "degree": degree(detail.get("degree"),detail.get("other_degree")),
                 "profession": getprofession(detail.get("profession")),
                 "location": detail["Profile_city"],
                 "photo_protection": detail["Photo_protection"],
@@ -7391,8 +7404,7 @@ def get_district_name(district_id):
 
 def get_degree_name(degree_ids, other_degree,highest_edu,field_ofstudy_id,about_edu):
         if not degree_ids:
-            print("not degree")
-            # If only other_degree is provided, return it directly
+            
             return other_degree if other_degree else None
 
         try:
@@ -7422,6 +7434,29 @@ def get_degree_name(degree_ids, other_degree,highest_edu,field_ofstudy_id,about_
                 return "N/A"
         except Exception:
             return "N/A"
+        
+def degree(degree_ids,other_degree):
+    if not degree_ids:      
+            return other_degree if other_degree else None
+    try:
+        id_list = [int(x) for x in str(degree_ids).split(',') if x.strip().isdigit()]
+        id_list = [x for x in id_list if x != 86]
+        degree_names = list(
+            models.MasterhighestEducation.objects.filter(id__in=id_list)
+            .values_list("degeree_name", flat=True)
+        )
+        if other_degree:
+            degree_names.append(other_degree)
+        final_names = ", ".join(degree_names) if degree_names else None
+        
+        if final_names==None:
+            return "N/A"
+        else:
+            return final_names
+    except Exception:
+        final_names = "N/A"
+        return final_names
+
 def get_primary_sign(value):
     if not value:
         return "N/A"
@@ -7446,10 +7481,11 @@ def get_work_address(city, district, state, country):
     try:
         parts = []
 
-        if city:
-            parts.append(city)
         if district:
             parts.append(get_district_name(district))
+        else:
+            if city:
+                parts.append(city)
         if state:
             parts.append(get_state_name(state))
         if country:
@@ -7973,6 +8009,11 @@ class AdminMatchProfilePDFView(APIView):
                         f"{extra_td}"
                         f"</tr>")
 
+                porutham_show=True
+                print("porutham matching",porutham_data['matching_score'])
+                if porutham_data['matching_score']=='0/10' or porutham_data['matching_score']=='0' or porutham_data['matching_score']=='0.0' or porutham_data['matching_score']=='10/10' or porutham_data['matching_score']==0.0:
+                    porutham_show= False
+                    
                 def format_star_names(poruthams):
                     if not poruthams:
                         return "N/A"
@@ -8079,6 +8120,7 @@ class AdminMatchProfilePDFView(APIView):
                         ("5", format_star_names(porutham_data1.get("5 Poruthams")or [])),
                     ]),
                     "porutham_rows":porutham_rows ,
+                    "porutham_show":porutham_show,
                     "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}/"
                 }
 
@@ -8127,7 +8169,7 @@ class AdminMatchProfilePDFView(APIView):
             return JsonResponse({"status": "error", "message": f"PDF generated with errors for: {', '.join(errors)}"}, status=206)
 
 class RenewalProfilesView(generics.ListAPIView):
-    serializer_class = Getnewprofiledata_new
+    serializer_class = Renewalprofiledata
     pagination_class = StandardResultsPaging
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['ProfileId', 'Gender', 'EmailId', 'Profile_dob', 'Profile_city']
@@ -8135,6 +8177,7 @@ class RenewalProfilesView(generics.ListAPIView):
 
     def get_queryset(self):
         search_query = self.request.query_params.get('search', None)
+        expire_date = self.request.query_params.get('expire_date', None)
         plan_ids="1,2,3,4"
         status_id = 1
             
@@ -8181,9 +8224,6 @@ class RenewalProfilesView(generics.ListAPIView):
             )""")
             params = [search_pattern] * 13 + params
 
-        # Add current month filter
-        where_clauses.append("MONTH(pfl.membership_todate) = MONTH(CURDATE())")
-        where_clauses.append("YEAR(pfl.membership_todate) = YEAR(CURDATE())")
 
         # Add plan_id filter
         if plan_ids:
@@ -8193,9 +8233,25 @@ class RenewalProfilesView(generics.ListAPIView):
                 where_clauses.append(f"ld.Plan_id IN ({placeholders})")
                 params.extend(plan_id_list)
 
+        if expire_date:
+            try:
+                datetime.strptime(expire_date, "%Y-%m-%d")  # Validate format
+                where_clauses.append("DATE(pfl.membership_todate) = %s")
+                params.append(expire_date)
+            except ValueError:
+                pass
+        else:
+            # Default: filter for current and previous month expiry
+            where_clauses.append("""
+                (
+                    (MONTH(pfl.membership_todate) = MONTH(CURDATE()) AND YEAR(pfl.membership_todate) = YEAR(CURDATE()))
+                    OR
+                    (MONTH(pfl.membership_todate) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(pfl.membership_todate) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)))
+                )
+            """)
         # Combine all WHERE clauses
         sql += " WHERE " + " AND ".join(where_clauses)
-        sql += " ORDER BY ld.DateOfJoin DESC"
+        sql += " ORDER BY pfl.membership_todate ASC"
         
 
         with connection.cursor() as cursor:

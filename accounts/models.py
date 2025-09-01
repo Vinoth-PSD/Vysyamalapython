@@ -737,7 +737,8 @@ class ProfilePartnerPref(models.Model):
     pref_porutham_star_rasi	 = models.TextField(null=True, blank=True)
     pref_family_status  = models.CharField(max_length=100,null=True, blank=True)
     pref_state  = models.CharField(max_length=100,null=True, blank=True)
-    
+    degree = models.CharField(max_length=255, blank=True, null=True) 
+    pref_fieldof_study= models.CharField(max_length=255, blank=True, null=True) 
     # pref_education = models.CharField(max_length=100)
     # pref_profession = models.CharField(max_length=100)
     # pref_anual_income = models.CharField(max_length=100)
@@ -768,7 +769,8 @@ class ProfileSuggestedPref(models.Model):
 
     pref_family_status  = models.CharField(max_length=100,null=True, blank=True)
     pref_state  = models.CharField(max_length=100,null=True, blank=True)
-    
+    degree = models.CharField(max_length=255, blank=True, null=True)
+    pref_fieldof_study = models.CharField(max_length=255, blank=True, null=True)
     # pref_education = models.CharField(max_length=100)
     # pref_profession = models.CharField(max_length=100)
     # pref_anual_income = models.CharField(max_length=100)
@@ -1323,7 +1325,7 @@ class Get_profiledata_Matching(models.Model):
                 SELECT DISTINCT 
                         a.ProfileId, a.Plan_id, a.DateOfJoin, a.Photo_protection,
                         a.Profile_city, a.Profile_verified, a.Profile_name, a.Profile_dob,
-                        a.Profile_height, e.birthstar_name, e.birth_rasi_name, f.ug_degeree,
+                        a.Profile_height, e.birthstar_name, e.birth_rasi_name, f.degree,f.other_degree,
                         f.profession, f.highest_education, g.EducationLevel, d.star, h.income,
                         v.viewed_profile,
                         pi.first_image_id AS has_image
@@ -1449,23 +1451,62 @@ class Get_profiledata_Matching(models.Model):
                     base_query += " AND b.pref_foreign_intrest = 'no'"
 
             # Raghu, Chevvai filters
-            if ragu == 'yes':
-                base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
-            elif ragu == 'no':
-                base_query += " AND LOWER(e.ragu_dosham) = 'no'"
-            elif ragukethu and ragukethu.lower() == 'yes':
-                base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
-            elif ragukethu and ragukethu.lower() == 'no':
-                base_query += " AND LOWER(e.ragu_dosham) = 'no'"
+            # if ragu == 'yes':
+            #     base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
+            # elif ragu == 'no':
+            #     base_query += " AND LOWER(e.ragu_dosham) = 'no'"
+            # elif ragukethu and ragukethu.lower() == 'yes':
+            #     base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
+            # elif ragukethu and ragukethu.lower() == 'no':
+            #     base_query += " AND LOWER(e.ragu_dosham) = 'no'"
 
-            if chev == 'yes':
-                base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
-            elif chev == 'no':
-                base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
-            elif chevvai and chevvai.lower() == 'yes':
-                base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
-            elif chevvai and chevvai.lower() == 'no':
-                base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
+            # if chev == 'yes':
+            #     base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+            # elif chev == 'no':
+            #     base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
+            # elif chevvai and chevvai.lower() == 'yes':
+            #     base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+            # elif chevvai and chevvai.lower() == 'no':
+            #     base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
+            
+            conditions = []
+
+            if chev and chev.lower() == 'yes':
+                conditions.append("""
+                    (
+                        LOWER(e.calc_chevvai_dhosham) IN ('yes', 'true')
+                        OR e.calc_chevvai_dhosham IN ('1', 1)
+                        OR e.calc_chevvai_dhosham IS NULL
+                    )
+                """)
+
+            if ragu and ragu.lower() == 'yes':
+                conditions.append("""
+                    (
+                        LOWER(e.calc_raguketu_dhosham) IN ('yes', 'true')
+                        OR e.calc_raguketu_dhosham IN ('1', 1)
+                        OR e.calc_raguketu_dhosham IS NULL
+                    )
+                """)
+
+            # Strict dosham filters — only apply fallback if primary is missing
+            strict_conditions = []
+            if not ragu or chev:
+                def add_strict_condition(field, value, fallback_value):
+                    if value and value.lower() in ['yes', 'no']:
+                        strict_conditions.append(f"LOWER(e.{field}) = '{value.lower()}'")
+                    elif fallback_value and fallback_value.lower() in ['yes', 'no']:
+                        strict_conditions.append(f"LOWER(e.{field}) = '{fallback_value.lower()}'")
+
+                # Apply with fallback logic
+                add_strict_condition("calc_raguketu_dhosham", ragu, ragukethu)
+                add_strict_condition("calc_chevvai_dhosham", chev, chevvai)
+
+            # Combine all conditions
+            all_conditions = conditions + strict_conditions
+
+            if all_conditions:
+                base_query += f"\nAND ({' OR '.join(all_conditions)})"
 
             if father_alive is not None and father_alive.strip().lower() in ['yes', 'no']:
                 if father_alive =='yes':
@@ -1596,7 +1637,7 @@ class Get_profiledata_Matching(models.Model):
             # Start base query
             base_query = """
                 SELECT DISTINCT a.*, e.birthstar_name, e.birth_rasi_name,
-                    f.ug_degeree, f.profession, f.highest_education,
+                    f.degree,f.other_degree, f.profession, f.highest_education,
                     g.EducationLevel, d.star, h.income
                 FROM logindetails a
                 JOIN profile_suggested_pref s ON a.ProfileId = s.profile_id 
@@ -1645,23 +1686,62 @@ class Get_profiledata_Matching(models.Model):
                 elif pref_foreign.lower() == "no":
                     base_query += " AND b.pref_foreign_intrest = 'no'"
 
-            if ragu == 'yes':
-                base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
-            elif ragu == 'no':
-                base_query += " AND LOWER(e.ragu_dosham) = 'no'"
-            elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'yes':
-                base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
-            elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'no':
-                base_query += " AND LOWER(e.ragu_dosham) = 'no'"
+            # if ragu == 'yes':
+            #     base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
+            # elif ragu == 'no':
+            #     base_query += " AND LOWER(e.ragu_dosham) = 'no'"
+            # elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'yes':
+            #     base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
+            # elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'no':
+            #     base_query += " AND LOWER(e.ragu_dosham) = 'no'"
 
-            if chev == 'yes':
-                base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
-            elif chev == 'no':
-                base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
-            elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'yes':
-                base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
-            elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'no':
-                base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
+            # if chev == 'yes':
+            #     base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+            # elif chev == 'no':
+            #     base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
+            # elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'yes':
+            #     base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+            # elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'no':
+            #     base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
+            
+            conditions = []
+
+            if chev and chev.lower() == 'yes':
+                conditions.append("""
+                    (
+                        LOWER(e.calc_chevvai_dhosham) IN ('yes', 'true')
+                        OR e.calc_chevvai_dhosham IN ('1', 1)
+                        OR e.calc_chevvai_dhosham IS NULL
+                    )
+                """)
+
+            if ragu and ragu.lower() == 'yes':
+                conditions.append("""
+                    (
+                        LOWER(e.calc_raguketu_dhosham) IN ('yes', 'true')
+                        OR e.calc_raguketu_dhosham IN ('1', 1)
+                        OR e.calc_raguketu_dhosham IS NULL
+                    )
+                """)
+
+            # Strict dosham filters — only apply fallback if primary is missing
+            strict_conditions = []
+            if not chev or ragu:
+                def add_strict_condition(field, value, fallback_value):
+                    if value and value.lower() in ['yes', 'no']:
+                        strict_conditions.append(f"LOWER(e.{field}) = '{value.lower()}'")
+                    elif fallback_value and fallback_value.lower() in ['yes', 'no']:
+                        strict_conditions.append(f"LOWER(e.{field}) = '{fallback_value.lower()}'")
+
+                # Apply with fallback logic
+                add_strict_condition("calc_raguketu_dhosham", ragu, partner_pref_ragukethu)
+                add_strict_condition("calc_chevvai_dhosham", chev, partner_pref_chevvai)
+
+            # Combine all conditions
+            all_conditions = conditions + strict_conditions
+
+            if all_conditions:
+                base_query += f"\nAND ({' OR '.join(all_conditions)})"
             # Height filters
             if partner_pref_height_from and partner_pref_height_to:
                 base_query += " AND a.Profile_height BETWEEN %s AND %s"
@@ -2136,7 +2216,7 @@ class Get_profiledata_Matching(models.Model):
                 SELECT DISTINCT a.ProfileId, a.Gender, a.Photo_protection, a.Profile_city, a.Profile_verified,
                     a.Profile_name, a.Profile_dob, a.Profile_height,
                     e.birthstar_name, e.birth_rasi_name,
-                    f.ug_degeree, f.profession, g.EducationLevel, 
+                    f.degree,f.other_degree, f.profession, g.EducationLevel, 
                     h.income, i.image
                 FROM logindetails a
                 LEFT JOIN profile_horoscope e ON a.ProfileId = e.profile_id
@@ -2265,13 +2345,36 @@ class Get_profiledata_Matching(models.Model):
                 base_query += " AND a.Plan_id = %s"
                 query_params.append(membership)
 
-            if chevvai_dosham:
-                base_query += " AND e.chevvai_dosaham = %s"
-                query_params.append(chevvai_dosham)
+            # if chevvai_dosham:
+            #     base_query += " AND e.chevvai_dosaham = %s"
+            #     query_params.append(chevvai_dosham)
 
-            if ragu_dosham:
-                base_query += " AND e.ragu_dosham = %s"
-                query_params.append(ragu_dosham)
+            # if ragu_dosham:
+            #     base_query += " AND e.ragu_dosham = %s"
+            #     query_params.append(ragu_dosham)
+            
+            conditions = []
+
+            if chevvai_dosham and chevvai_dosham.lower() == 'yes':
+                conditions.append("""
+                    (
+                        LOWER(e.calc_chevvai_dhosham) IN ('yes', 'true')
+                        OR e.calc_chevvai_dhosham IN ('1', 1)
+                        OR e.calc_chevvai_dhosham IS NULL
+                    )
+                """)
+
+            if ragu_dosham and ragu_dosham.lower() == 'yes':
+                conditions.append("""
+                    (
+                        LOWER(e.calc_raguketu_dhosham) IN ('yes', 'true')
+                        OR e.calc_raguketu_dhosham IN ('1', 1)
+                        OR e.calc_raguketu_dhosham IS NULL
+                    )
+                """)
+
+            if conditions:
+                base_query += f"\nAND ({' OR '.join(conditions)})"
 
             # Income range
             if min_anual_income and max_anual_income:
@@ -2483,6 +2586,7 @@ class Partnerpref(models.Model):
     pref_porutham_star = models.TextField(max_length=200)
     pref_porutham_star_rasi = models.TextField(max_length=200 , null=True, blank=True)
     status = models.IntegerField()   # Changed from CharField to TextField
+    degree = models.CharField(max_length=255, blank=True, null=True) 
     
     class Meta:
         managed = False  # This tells Django not to handle database table creation/migration for this model
@@ -2868,7 +2972,9 @@ class ProfileVisibility(models.Model):
     visibility_ragukethu = models.CharField(max_length=20)
     visibility_foreign_interest = models.CharField(max_length=20)
     visibility_anual_income_max = models.CharField(max_length=255,null=True, blank=True)
-    status = models.IntegerField()   
+    status = models.IntegerField()  
+    degree = models.CharField(max_length=255, blank=True, null=True) 
+    visibility_field_of_study = models.CharField(max_length=255, blank=True, null=True) 
     
     class Meta:
         managed = False  
