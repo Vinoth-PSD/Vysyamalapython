@@ -1699,27 +1699,32 @@ class Family_registration(APIView):
 
         if serializer.is_valid():
             profile_id = serializer.validated_data.get('profile_id')
+            uncle_gothram = request.data.get('uncle_gothram')  # Extract from raw data
 
             try:
-                # Check if the profile_id exists in Registration1 table
                 models.Registration1.objects.get(ProfileId=profile_id)
             except models.Registration1.DoesNotExist:
                 return JsonResponse({"Status": 0, "message": "Invalid Profile_id"}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
-                # Update existing record if profile_id exists
+                # Update existing record
                 family_details = models.Familydetails.objects.get(profile_id=profile_id)
                 for key, value in serializer.validated_data.items():
                     setattr(family_details, key, value)
+                family_details.madulamn = uncle_gothram
+
                 family_details.save()
                 return JsonResponse({"Status": 1, "message": "Family details updated successfully"}, status=status.HTTP_200_OK)
 
             except models.Familydetails.DoesNotExist:
-                # Create new record if profile_id does not exist
-                serializer.save()
+                # Create new record
+                new_instance = serializer.save()
+                new_instance.madulamn = uncle_gothram
+                new_instance.save()
                 return JsonResponse({"Status": 1, "message": "Family details saved successfully"}, status=status.HTTP_201_CREATED)
 
         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
         
 class Education_registration(APIView):
     def post(self, request, *args, **kwargs):
@@ -7344,7 +7349,8 @@ def generate_about_myself_summary(profile):
         )
         #if institution:
             #summary += f" and have completed my education from {institution}."
-        summary += f" I reside in {location}."
+        if location not in (None, "", "null", "NULL"):
+            summary += f" I live in {location}."
 
     elif profile_type == "2":
         summary = (
@@ -7353,15 +7359,18 @@ def generate_about_myself_summary(profile):
         )
         #if institution:
             #summary += f" from {institution}."
-        summary += f" I operate my business from {location}."
+        if location not in (None, "", "null", "NULL"):
+            summary += f" I operate my business from {location}."
 
     else:  # Not working or student, etc.
         summary = (
-            f"I am {name}, currently not working. "
+            f"I am {name}, "
             f"I have completed my education in {qualification}"
         )
         #if institution:
             #summary += f" from {institution}."
+        # summary += f" I live in {location}."
+    if location not in (None, "", "null", "NULL"):
         summary += f" I live in {location}."
 
     return summary
@@ -8105,7 +8114,8 @@ class UpdateMyProfileFamily(APIView):
                             notification_message = "Family Status "
                             notification_titile +=" Family Status "
                     
-
+                    uncle_gothram = request.data.get("uncle_gothram")
+                    family_details.madulamn = uncle_gothram
                     serializer.save()
                     family_details.save()
                     
@@ -8113,6 +8123,9 @@ class UpdateMyProfileFamily(APIView):
                     # print('12345')
                        #notify_related_profiles(profile_id,'Profile_update',notification_titile,notification_message)
                         addto_notification_queue(profile_id,'Profile_update',notification_titile,notification_message)
+                
+                uncle_gothram = request.data.get("uncle_gothram")
+                family_details.madulamn = uncle_gothram
                 serializer.save()
                 family_details.save()
                 

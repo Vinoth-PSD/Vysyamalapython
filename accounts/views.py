@@ -1961,7 +1961,11 @@ class SubmitProfileAPIView(APIView):
         if family_serializer:
             family_serializer = ProfileFamilyDetailsSerializer(data=family_data)
             if family_serializer.is_valid():
-                family_serializer.save()
+                updated_instance = family_serializer.save()
+                uncle_gothram = family_data.get('uncle_gothram')
+                if uncle_gothram:
+                    updated_instance.madulamn = uncle_gothram
+                    updated_instance.save()
             else:
                 errors['family_details'] = family_serializer.errors
 
@@ -2109,7 +2113,11 @@ class EditProfileAPIView(APIView):
 
             family_serializer = ProfileFamilyDetailsSerializer(instance=family_detail, data=family_data, partial=True)
             if family_serializer.is_valid():
-                family_serializer.save()
+                updated_instance = family_serializer.save()
+                uncle_gothram = family_data.get('uncle_gothram')
+                if uncle_gothram:
+                    updated_instance.madulamn = uncle_gothram
+                    updated_instance.save()
             else:
                 errors['family_details'] = family_serializer.errors
 
@@ -2461,7 +2469,9 @@ class GetProfEditDetailsAPIView(APIView):
         # Step 2: Fetch ProfileFamilyDetails
         try:
             family_detail = ProfileFamilyDetails.objects.get(profile_id=profile_id)
-            response_data['family_details'] = ProfileFamilyDetailsSerializer(family_detail).data
+            family_data = ProfileFamilyDetailsSerializer(family_detail).data
+            family_data['uncle_gothram'] = family_data.get('madulamn')
+            response_data['family_details']= family_data
         except ProfileFamilyDetails.DoesNotExist:
             response_data['family_details'] = {}  # Return an empty object if not found
 
@@ -2732,17 +2742,60 @@ def safe_get_by_id(model, pk_value, return_field):
 
 
 
+# def generate_about_myself_summary(profile):
+#     name = profile.get("name", "Name")
+#     profession = profile.get("profession", "your profession")
+#     designation= profile.get("designation", "your designation")
+#     business = profile.get("business", "your business")
+#     company = profile.get("company", "your company")
+#     qualification = profile.get("qualification", "your qualification")
+#     institution = profile.get("institution", None)
+#     location = profile.get("location", "your location")
+#     profile_type = profile.get("profile_type")  # 'employee', 'business', or 'not_working'
+
+#     if profile_type == "1":
+#         summary = (
+#             f"I am {name}, currently working as a {designation} at {company}. "
+#             f"I hold a degree in {qualification}"
+#         )
+#         #if institution:
+#             #summary += f" and have completed my education from {institution}."
+#         if location not in (None, "", "null", "NULL"):
+#             summary += f" I live in {location}."
+
+#     elif profile_type == "2":
+#         summary = (
+#             f"I am {name}, a business professional engaged in {business}. "
+#             f"I hold a degree in {qualification}"
+#         )
+#         #if institution:
+#             #summary += f" from {institution}."
+#         summary += f" I operate my business from {location}."
+
+#     else:  # Not working or student, etc.
+#         summary = (
+#             f"I am {name}, "
+#             f"I have completed my education in {qualification}"
+#         )
+#         #if institution:
+#             #summary += f" from {institution}."
+            
+#     if location not in (None, "", "null", "NULL"):
+#         summary += f" I live in {location}."
+
+#     return summary
+
 def generate_about_myself_summary(profile):
     name = profile.get("name", "Name")
     profession = profile.get("profession", "your profession")
-    designation= profile.get("designation", "your designation")
     business = profile.get("business", "your business")
     company = profile.get("company", "your company")
+    designation =  profile.get("designation", "your designation")
     qualification = profile.get("qualification", "your qualification")
     institution = profile.get("institution", None)
     location = profile.get("location", "your location")
     profile_type = profile.get("profile_type")  # 'employee', 'business', or 'not_working'
-
+    print(location)
     if profile_type == "1":
         summary = (
             f"I am {name}, currently working as a {designation} at {company}. "
@@ -2750,7 +2803,8 @@ def generate_about_myself_summary(profile):
         )
         #if institution:
             #summary += f" and have completed my education from {institution}."
-        summary += f" I reside in {location}."
+        if location not in (None, "", "null", "NULL"):
+            summary += f" I live in {location}."
 
     elif profile_type == "2":
         summary = (
@@ -2759,19 +2813,21 @@ def generate_about_myself_summary(profile):
         )
         #if institution:
             #summary += f" from {institution}."
-        summary += f" I operate my business from {location}."
+        if location not in (None, "", "null", "NULL"):
+            summary += f" I operate my business from {location}."
 
     else:  # Not working or student, etc.
         summary = (
-            f"I am {name}, currently not working. "
+            f"I am {name}, "
             f"I have completed my education in {qualification}"
         )
         #if institution:
             #summary += f" from {institution}."
+        # summary += f" I live in {location}."
+    if location not in (None, "", "null", "NULL"):
         summary += f" I live in {location}."
 
     return summary
-
 
 
 
