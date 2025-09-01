@@ -8142,7 +8142,7 @@ class RenewalProfilesView(generics.ListAPIView):
                 SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId, 
                     ld.Profile_dob,  ld.Profile_whatsapp, ld.Profile_alternate_mobile, ld.Plan_id, ld.status, 
                     ld.DateOfJoin, ld.Last_login_date, ld.Profile_for, ms.MaritalStatus, cm.complexion_desc, s.name AS state_name, 
-                    cy.city_name AS Profile_city, cy.city_name , c.name AS country_name, d.name AS district_name,
+                    cy.city_name AS Profile_city, cy.city_name , c.name AS country_name, d.name AS district_name,pl.plan_name,
                     pfd.family_status, ped.highest_education, ped.anual_income, ph.birthstar_name , mp.profession AS profession,ld.membership_startdate,ld.membership_enddate
                 FROM logindetails ld
                 LEFT JOIN maritalstatusmaster ms ON ld.Profile_marital_status = ms.StatusId
@@ -8154,7 +8154,8 @@ class RenewalProfilesView(generics.ListAPIView):
                 LEFT JOIN profile_familydetails pfd ON ld.ProfileId = pfd.profile_id
                 LEFT JOIN profile_edudetails ped ON ld.ProfileId = ped.profile_id
                 LEFT JOIN profile_horoscope ph ON ld.ProfileId = ph.profile_id 
-                LEFT JOIN masterprofession mp ON ped.profession = mp.RowId 
+                LEFT JOIN masterprofession mp ON ped.profession = mp.RowId
+                LEFT JOIN plan_master pl ON ld.Plan_id = pl.id  
                 LEFT JOIN profile_plan_feature_limits pfl ON ld.ProfileId = pfl.profile_id
                 """
             
