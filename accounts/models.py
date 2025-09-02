@@ -2038,12 +2038,18 @@ class Get_profiledata_Matching(models.Model):
             except (ValueError, TypeError):
                 age_diff = 5
 
+            # if gender.upper() == "MALE":
+            #     min_age = max(current_age - age_diff, 18)
+            #     max_age = current_age
+            # elif gender.upper() == "FEMALE":
+            #     min_age = max(current_age, 18)
+            #     max_age = current_age + age_diff
             if gender.upper() == "MALE":
-                min_age = max(current_age - age_diff, 18)
-                max_age = current_age
+                max_dob  = profile.Profile_dob + relativedelta(years=age_diff)  # older partner limit
+                min_dob = profile.Profile_dob                                  # same age
             elif gender.upper() == "FEMALE":
-                min_age = max(current_age, 18)
-                max_age = current_age + age_diff
+                max_dob = profile.Profile_dob                                  # same age
+                min_dob = profile.Profile_dob - relativedelta(years=age_diff)
 
             base_query = """
                 SELECT COUNT(*) as match_count
@@ -2061,10 +2067,9 @@ class Get_profiledata_Matching(models.Model):
                 AND a.Plan_id NOT IN (0,3,16,17)
                 AND a.gender != %s
                 AND a.ProfileId != %s
-                AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
-            """
+                AND a.Profile_dob BETWEEN %s AND %s"""
 
-            params = [profile_id, gender, profile_id, min_age, max_age]
+            params = [profile_id, gender, profile_id, min_dob, max_dob]
 
             # Gothram filter
             if my_suya_gothram_admin and my_suya_gothram_admin != '0':
@@ -2194,11 +2199,11 @@ class Get_profiledata_Matching(models.Model):
                 age_difference = 5
 
             if gender.upper() == "MALE":
-                min_age = max(current_age - age_difference, 18)
-                max_age = current_age
-            else:
-                min_age = max(current_age, 18)
-                max_age = current_age + age_difference
+                max_dob  = profile.Profile_dob + relativedelta(years=age_difference)  # older partner limit
+                min_dob = profile.Profile_dob                                  # same age
+            elif gender.upper() == "FEMALE":
+                max_dob = profile.Profile_dob                                  # same age
+                min_dob = profile.Profile_dob - relativedelta(years=age_difference)
 
             # Income range
             with connection.cursor() as cursor:
@@ -2225,10 +2230,9 @@ class Get_profiledata_Matching(models.Model):
                 AND a.Plan_id NOT IN (0, 3, 16, 17)
                 AND a.gender != %s
                 AND a.ProfileId != %s
-                AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
-            """
+                AND a.Profile_dob BETWEEN %s AND %s"""
 
-            params = [gender, profile_id, min_age, max_age]
+            params = [gender, profile_id, min_dob, max_dob]
 
             if min_income and max_income:
                 query += " AND ((h.income_amount BETWEEN %s AND %s) OR h.income_amount IS NULL OR h.income_amount = '')"

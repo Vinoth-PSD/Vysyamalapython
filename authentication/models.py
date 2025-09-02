@@ -1408,13 +1408,19 @@ class Get_profiledata(models.Model):
             # elif gender.upper() == "FEMALE":
             #     min_age = current_age
             #     max_age = current_age + age_difference
-            print(age_difference,'age_difference')
+            # print(age_difference,'age_difference')
+            # if gender.upper() == "MALE":
+            #     min_age = max(current_age - age_difference, 18)  # 🛡 Never below 18
+            #     max_age = current_age
+            # elif gender.upper() == "FEMALE":
+            #     min_age = max(current_age, 18)             # 🛡 Ensure at least 18
+            #     max_age = current_age + age_difference
             if gender.upper() == "MALE":
-                min_age = max(current_age - age_difference, 18)  # 🛡 Never below 18
-                max_age = current_age
+                max_dob  = profile.Profile_dob + relativedelta(years=age_difference)  # older partner limit
+                min_dob = profile.Profile_dob                                  # same age
             elif gender.upper() == "FEMALE":
-                min_age = max(current_age, 18)             # 🛡 Ensure at least 18
-                max_age = current_age + age_difference
+                max_dob = profile.Profile_dob                                  # same age
+                min_dob = profile.Profile_dob - relativedelta(years=age_difference)
 
 
             # Base query to get matching profiles
@@ -1429,10 +1435,9 @@ class Get_profiledata(models.Model):
                     JOIN mastereducation g ON f.highest_education = g.RowId 
                     JOIN masterannualincome h ON h.id = f.anual_income
                     WHERE a.Status=1 AND a.Plan_id NOT IN (0,16, 17, 3) AND a.gender != %s AND a.ProfileId != %s 
-                    AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
-            """
+                    AND a.Profile_dob BETWEEN %s AND %s"""
             
-            query_params = [gender, profile_id, min_age , max_age]
+            query_params = [gender, profile_id, min_dob , max_dob]
 
             
             if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
