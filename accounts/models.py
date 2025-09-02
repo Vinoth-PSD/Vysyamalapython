@@ -11,6 +11,8 @@ from django.core.mail import EmailMessage
 from datetime import date, timedelta
 from collections import defaultdict
 from authentication.models import Get_profiledata as gpt
+from dateutil.relativedelta import relativedelta
+
 
 class ProfileStatus(models.Model):
     status_code = models.IntegerField(primary_key=True)  
@@ -1294,12 +1296,18 @@ class Get_profiledata_Matching(models.Model):
                 except (ValueError, TypeError):
                     age_diff = 5
 
+            # if gender.upper() == "MALE":
+            #     min_age = max(current_age - age_diff, 18)  # 🛡 Never below 18
+            #     max_age = current_age
+            # elif gender.upper() == "FEMALE":
+            #     min_age = max(current_age, 18)             # 🛡 Ensure at least 18
+            #     max_age = current_age + age_diff
             if gender.upper() == "MALE":
-                min_age = max(current_age - age_diff, 18)  # 🛡 Never below 18
-                max_age = current_age
+                max_dob  = profile.Profile_dob + relativedelta(years=age_diff)  # older partner limit
+                min_dob = profile.Profile_dob                                  # same age
             elif gender.upper() == "FEMALE":
-                min_age = max(current_age, 18)             # 🛡 Ensure at least 18
-                max_age = current_age + age_diff
+                max_dob = profile.Profile_dob                                  # same age
+                min_dob = profile.Profile_dob - relativedelta(years=age_diff)
             # print(f"[DEBUG] Age Calc => search_age: {search_age}, age_diff: {age_diff}, min_age: {min_age}, max_age: {max_age}, current_age: {current_age}") 
             if education:
                 pref_education = education 
@@ -1350,10 +1358,9 @@ class Get_profiledata_Matching(models.Model):
                     AND a.Plan_id NOT IN (0,3, 16, 17)
                     AND a.gender != %s
                     AND a.ProfileId != %s
-                    AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
-            """
+                    AND a.Profile_dob BETWEEN %s AND %s"""
 
-            query_params = [profile_id, gender, profile_id, min_age, max_age]
+            query_params = [profile_id, gender, profile_id, min_dob, max_dob]
             if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
                 base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"
                 query_params.append(str(my_suya_gothram_admin))
@@ -1604,12 +1611,12 @@ class Get_profiledata_Matching(models.Model):
                 try:
                     return query % tuple(map(escape, params))
                 except Exception as e:
-                    print("Error formatting query:", e)
+                    # print("Error formatting query:", e)
                     return query
 
             # Usage:
-            print("MySQL Executable Query:")
-            print(format_sql_for_debug(final_query, query_params))
+            # print("MySQL Executable Query:")
+            # print(format_sql_for_debug(final_query, query_params))
 
             with connection.cursor() as cursor:
                 cursor.execute(final_query, query_params)
@@ -1661,13 +1668,20 @@ class Get_profiledata_Matching(models.Model):
                 except (ValueError, TypeError):
                     age_diff = 5
 
-            if gender.upper() == "MALE":
-                min_age = max(current_age - age_diff, 18)  # 🛡 Never below 18
-                max_age = current_age
-            elif gender.upper() == "FEMALE":
-                min_age = max(current_age, 18)             # 🛡 Ensure at least 18
-                max_age = current_age + age_diff
+            # if gender.upper() == "MALE":
+            #     min_age = max(current_age - age_diff, 18)  # 🛡 Never below 18
+            #     max_age = current_age
+            # elif gender.upper() == "FEMALE":
+            #     min_age = max(current_age, 18)             # 🛡 Ensure at least 18
+            #     max_age = current_age + age_diff
 
+            if gender.upper() == "MALE":
+                max_dob  = profile.Profile_dob + relativedelta(years=age_diff)  # older partner limit
+                min_dob = profile.Profile_dob                                  # same age
+            elif gender.upper() == "FEMALE":
+                max_dob = profile.Profile_dob                                  # same age
+                min_dob = profile.Profile_dob - relativedelta(years=age_diff)
+                
             with connection.cursor() as cursor:
                 cursor.execute("""
                     SELECT MIN(income_amount), MAX(income_amount)
@@ -1692,9 +1706,9 @@ class Get_profiledata_Matching(models.Model):
                 JOIN masterannualincome h ON h.id = f.anual_income
                 LEFT JOIN profile_images pi ON a.ProfileId = pi.profile_id 
                 WHERE a.Status=1 AND a.Plan_id NOT IN (0,16, 17, 3) AND a.gender != %s AND a.ProfileId != %s
-                AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
-            """
-            query_params = [gender, profile_id, min_age, max_age]
+                AND a.Profile_dob BETWEEN %s AND %s"""
+                
+            query_params = [gender, profile_id, min_dob, max_dob]
 
             # Income
             if min_income and max_income:
@@ -1934,7 +1948,7 @@ class Get_profiledata_Matching(models.Model):
                     print("Error formatting query:", e)
                     return query
                 
-            print("MySQL Executable Query:", format_sql_for_debug(query, query_params))
+            # print("MySQL Executable Query:", format_sql_for_debug(query, query_params))
             with connection.cursor() as cursor:
                 cursor.execute(query, query_params)
                 rows = cursor.fetchall()
@@ -1947,7 +1961,7 @@ class Get_profiledata_Matching(models.Model):
             return [], 0, {}
 
         except Exception as e:
-            print(f"Suggest Profile Error: {str(e)}")
+            # print(f"Suggest Profile Error: {str(e)}")
             return [], 0, {}
        
     @staticmethod

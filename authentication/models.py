@@ -9,6 +9,8 @@ from ckeditor.fields import RichTextField
 from django.conf import settings
 from .storages import AzureMediaStorage
 from collections import defaultdict
+from dateutil.relativedelta import relativedelta
+
 
 class AuthUser(models.Model):
     username = models.CharField(max_length=255)
@@ -1112,12 +1114,19 @@ class Get_profiledata(models.Model):
                 age_difference = int(search_age)
             age_diff = int(age_difference) if age_difference else 5
 
+            # if gender.upper() == "MALE":
+            #     min_age = max(current_age - age_diff, 18)
+            #     max_age = current_age
+            # elif gender.upper() == "FEMALE":
+            #     min_age = max(current_age, 18)
+            #     max_age = current_age + age_diff
+            
             if gender.upper() == "MALE":
-                min_age = max(current_age - age_diff, 18)
-                max_age = current_age
+                max_dob  = profile.Profile_dob + relativedelta(years=age_diff)  # older partner limit
+                min_dob = profile.Profile_dob                                  # same age
             elif gender.upper() == "FEMALE":
-                min_age = max(current_age, 18)
-                max_age = current_age + age_diff
+                max_dob = profile.Profile_dob                                  # same age
+                min_dob = profile.Profile_dob - relativedelta(years=age_diff)  
 
             try:
                 base_query = """
@@ -1145,9 +1154,9 @@ class Get_profiledata(models.Model):
                     AND a.Plan_id NOT IN (0,3, 16, 17)
                     AND a.gender != %s
                     AND a.ProfileId != %s
-                    AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s"""
+                    AND a.Profile_dob BETWEEN %s AND %s"""
 
-                query_params = [profile_id, gender, profile_id, min_age, max_age]
+                query_params = [profile_id, gender, profile_id, min_dob, max_dob]
 
                 # Check suya_gothram_admin first (ID stored as string in DB)
                 if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
@@ -1568,18 +1577,25 @@ class Get_profiledata(models.Model):
             min_income, max_income = min_max_income if min_max_income else (None, None)
 
             try:
-                age_difference = int(age_difference_str)
+                age_diff = int(age_difference_str)
                 
             except ValueError:
                 return []
 
-            age_difference = int(age_difference) if age_difference else 5
+            age_diff = int(age_diff) if age_diff else 5
+            # if gender.upper() == "MALE":
+            #     min_age = max(current_age - age_difference, 18)  # 🛡 Never below 18
+            #     max_age = current_age
+            # elif gender.upper() == "FEMALE":
+            #     min_age = max(current_age, 18)             # 🛡 Ensure at least 18
+            #     max_age = current_age + age_difference
+            
             if gender.upper() == "MALE":
-                min_age = max(current_age - age_difference, 18)  # 🛡 Never below 18
-                max_age = current_age
+                max_dob  = profile.Profile_dob + relativedelta(years=age_diff)  # older partner limit
+                min_dob = profile.Profile_dob                                  # same age
             elif gender.upper() == "FEMALE":
-                min_age = max(current_age, 18)             # 🛡 Ensure at least 18
-                max_age = current_age + age_difference
+                max_dob = profile.Profile_dob                                  # same age
+                min_dob = profile.Profile_dob - relativedelta(years=age_diff)  
 
 
             # Base query to get matching profiles
@@ -1594,10 +1610,9 @@ class Get_profiledata(models.Model):
                     JOIN mastereducation g ON f.highest_education = g.RowId 
                     JOIN masterannualincome h ON h.id = f.anual_income
                     WHERE a.Status=1 AND a.Plan_id NOT IN (0,16, 17, 3) AND a.gender != %s AND a.ProfileId != %s 
-                    AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s
-            """
+                    AND a.Profile_dob BETWEEN %s AND %s"""
             
-            query_params = [gender, profile_id, min_age , max_age]
+            query_params = [gender,profile_id, min_dob, max_dob]
 
             if min_income and max_income:
                 query += " AND ((h.income_amount BETWEEN %s AND %s) OR (h.income_amount IS NULL OR h.income_amount = '')) "
