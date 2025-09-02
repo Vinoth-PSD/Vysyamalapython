@@ -4460,7 +4460,9 @@ def Get_profile_image(user_profile_id, gender, no_of_image, photo_protection, is
     if is_admin:
         if user_profile_id:
             if no_of_image == 1:
-                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0).first()
+                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id).filter(
+                    Q(is_deleted=False) | Q(is_deleted__isnull=True)
+                ).first()
                 if get_entry:
                     # Admin gets unblurred image
                     serializer = ImageGetSerializer(get_entry)
@@ -4470,7 +4472,9 @@ def Get_profile_image(user_profile_id, gender, no_of_image, photo_protection, is
                     return base_url + (default_img_groom if gender.lower() == 'male' else default_img_bride)
             else:
                 # Fetch up to 10 images for admin without any photo protection
-                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0)[:10]
+                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id).filter(
+                    Q(is_deleted=False) | Q(is_deleted__isnull=True)
+                )[:10]
                 if get_entry.exists():
                     serializer = ImageGetSerializer(get_entry, many=True)
                     # Return a dictionary of images
@@ -4488,14 +4492,18 @@ def Get_profile_image(user_profile_id, gender, no_of_image, photo_protection, is
     if photo_protection != 1:        
         if user_profile_id:
             if no_of_image == 1:
-                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0).first()
+                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id).filter(
+                    Q(is_deleted=False) | Q(is_deleted__isnull=True)
+                ).first()
                 if get_entry:
                     serializer = ImageGetSerializer(get_entry)
                     return serializer.data['image']
                 else:
                     return base_url + (default_img_groom if gender.lower() == 'male' else default_img_bride)
             else:
-                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0)[:10]
+                get_entry = Image_Upload.objects.filter(profile_id=user_profile_id).filter(
+                    Q(is_deleted=False) | Q(is_deleted__isnull=True)
+                )[:10]
                 if get_entry.exists():
                     serializer = ImageGetSerializer(get_entry, many=True)
                     images_dict = {
@@ -4509,13 +4517,17 @@ def Get_profile_image(user_profile_id, gender, no_of_image, photo_protection, is
     else:
         # Photo protection enabled
         if no_of_image == 1:
-            get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0).first()
+            get_entry = Image_Upload.objects.filter(profile_id=user_profile_id).filter(
+                    Q(is_deleted=False) | Q(is_deleted__isnull=True)
+                ).first()
             if get_entry:
                 serializer = ImageGetSerializer(get_entry)
                 img_base64 = get_blurred_image(serializer.data['image'])
                 return img_base64
         else:
-            get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0).first()
+            get_entry = Image_Upload.objects.filter(profile_id=user_profile_id).filter(
+                    Q(is_deleted=False) | Q(is_deleted__isnull=True)
+                ).first()
             if get_entry:
                 serializer = ImageGetSerializer(get_entry)
                 img_base64 = get_blurred_image(serializer.data['image'])
@@ -4535,14 +4547,18 @@ def Get_image_profile(user_profile_id):
 
     # Default to the appropriate image based on gender
     if not photo_protection:
-        get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0).first()
+        get_entry = Image_Upload.objects.filter(profile_id=user_profile_id).filter(
+                    Q(is_deleted=False) | Q(is_deleted__isnull=True)
+                ).first()
         if get_entry:
             serializer = ImageGetSerializer(get_entry)
             return base_url + serializer.data['image']
         
         return base_url + (default_img_groom if gender.lower() == 'male' else default_img_bride)
     
-    get_entry = Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0).first()
+    get_entry = Image_Upload.objects.filter(profile_id=user_profile_id).filter(
+                    Q(is_deleted=False) | Q(is_deleted__isnull=True)
+                ).first()
     if get_entry:
         serializer = ImageGetSerializer(get_entry)
         img_base64 = get_blurred_image(serializer.data['image'])
@@ -7217,7 +7233,11 @@ def GetPhotoProofDetails(request):
         try:
             login = LoginDetails.objects.get(ProfileId=profile_id)
             horoscope = Horoscope.objects.get(profile_id=profile_id)
-            profile_images = Image_Upload.objects.filter(profile_id=profile_id,is_deleted=0)
+            profile_images = Image_Upload.objects.filter(
+                    profile_id=profile_id
+                ).filter(
+                    Q(is_deleted=False) | Q(is_deleted__isnull=True)
+                )
 
             image_list = [
                 {
@@ -8311,7 +8331,9 @@ class RenewalProfilesView(generics.ListAPIView):
 
     def get_queryset(self):
         search_query = self.request.query_params.get('search', None)
-        expire_date = self.request.query_params.get('expire_date', None)
+        from_date = self.request.query_params.get('from_date', None)
+        to_date = self.request.query_params.get('to_date', None)
+
         plan_ids="1,2,3,4"
         status_id = 1
             
@@ -8367,15 +8389,16 @@ class RenewalProfilesView(generics.ListAPIView):
                 where_clauses.append(f"ld.Plan_id IN ({placeholders})")
                 params.extend(plan_id_list)
 
-        if expire_date:
+        if from_date and to_date:
             try:
-                datetime.strptime(expire_date, "%Y-%m-%d")  # Validate format
-                where_clauses.append("DATE(pfl.membership_todate) = %s")
-                params.append(expire_date)
+                datetime.strptime(from_date, "%Y-%m-%d")
+                datetime.strptime(to_date, "%Y-%m-%d")
+                where_clauses.append("DATE(pfl.membership_todate) BETWEEN %s AND %s")
+                params.extend([from_date, to_date])
             except ValueError:
                 pass
         else:
-            # Default: filter for current and previous month expiry
+            # Default: current and previous month expiry
             where_clauses.append("""
                 (
                     (MONTH(pfl.membership_todate) = MONTH(CURDATE()) AND YEAR(pfl.membership_todate) = YEAR(CURDATE()))

@@ -7228,10 +7228,15 @@ class GetMyProfilePersonal(APIView):
             #city_name = safe_get_by_id(models.Profilecity, education_details_serializer.data.get('work_city'), 'city_name')
             
             country_name=get_country_name(education_details_serializer.data.get('work_country'))
-            state_name=get_country_name(education_details_serializer.data.get('work_state'))
-            district_name=get_country_name(education_details_serializer.data.get('work_district'))
+            state_name=get_state_name(education_details_serializer.data.get('work_state'))
+            district_name=get_district_name(education_details_serializer.data.get('work_district'))
             city_name=get_city_name(education_details_serializer.data.get('work_city'))
 
+            print('country_name',country_name)
+            print('state_name',state_name)
+            print('district_name',district_name)
+            print('city_name',city_name)
+            
             location_name = next((name for name in [city_name, district_name, state_name, country_name] if name),None)
 
             # qualification_name=  highest_qualification_name +' '+field_of_study_name
@@ -7331,49 +7336,129 @@ class GetMyProfilePersonal(APIView):
 
 
 
+# def generate_about_myself_summary(profile):
+#     name = profile.get("name", "Name")
+#     profession = profile.get("profession", "your profession")
+#     business = profile.get("business", "your business")
+#     company = profile.get("company", "your company")
+#     designation =  profile.get("designation", "your designation")
+#     qualification = profile.get("qualification", "your qualification")
+#     institution = profile.get("institution", None)
+#     location = profile.get("location", "your location")
+#     profile_type = profile.get("profile_type")  # 'employee', 'business', or 'not_working'
+
+#     if profile_type == "1":
+#         summary = (
+#             f"I am {name}, currently working as a {designation} at {company}. "
+#             f"I hold a degree in {qualification}"
+#         )
+#         #if institution:
+#             #summary += f" and have completed my education from {institution}."
+#         if location not in (None, "", "null", "NULL"):
+#             summary += f" I live in {location}."
+
+#     elif profile_type == "2":
+#         summary = (
+#             f"I am {name}, a business professional engaged in {business}. "
+#             f"I hold a degree in {qualification}"
+#         )
+#         #if institution:
+#             #summary += f" from {institution}."
+#         if location not in (None, "", "null", "NULL"):
+#             summary += f" I operate my business from {location}."
+
+#     else:  # Not working or student, etc.
+#         summary = (
+#             f"I am {name}, "
+#             f"I have completed my education in {qualification}"
+#         )
+#         #if institution:
+#             #summary += f" from {institution}."
+#         # summary += f" I live in {location}."
+#         if location not in (None, "", "null", "NULL"):
+#              summary += f" I live in {location}."
+
+#     return summary
+
 def generate_about_myself_summary(profile):
-    name = profile.get("name", "Name")
-    profession = profile.get("profession", "your profession")
-    business = profile.get("business", "your business")
-    company = profile.get("company", "your company")
-    designation =  profile.get("designation", "your designation")
-    qualification = profile.get("qualification", "your qualification")
-    institution = profile.get("institution", None)
-    location = profile.get("location", "your location")
-    profile_type = profile.get("profile_type")  # 'employee', 'business', or 'not_working'
+    name = profile.get("name")
+    designation = profile.get("designation")
+    company = profile.get("company")
+    qualification = profile.get("qualification")
+    business = profile.get("business")
+    institution = profile.get("institution")  # optional, if available
+    location = profile.get("location")
+    profile_type = str(profile.get("profile_type")) if profile.get("profile_type") else None
+
+    summary_parts = []
 
     if profile_type == "1":
-        summary = (
-            f"I am {name}, currently working as a {designation} at {company}. "
-            f"I hold a degree in {qualification}"
-        )
-        #if institution:
-            #summary += f" and have completed my education from {institution}."
-        if location not in (None, "", "null", "NULL"):
-            summary += f" I live in {location}."
+        # Employee
+        emp_intro = f"I am {name}"
+        if designation and designation.lower() not in ("none", "null", ""):
+            emp_intro += f", currently working as a {designation}"
+            if company and company.lower() not in ("none", "null", ""):
+                emp_intro += f" at {company}"
+        summary_parts.append(emp_intro + ".")
+
+        if qualification and qualification.lower() not in ("none", "null", ""):
+            summary_parts.append(f"I hold a degree in {qualification}.")
+
+        if location and location.lower() not in ("none", "null", ""):
+            summary_parts.append(f"I live in {location}.")
 
     elif profile_type == "2":
-        summary = (
-            f"I am {name}, a business professional engaged in {business}. "
-            f"I hold a degree in {qualification}"
-        )
-        #if institution:
-            #summary += f" from {institution}."
-        if location not in (None, "", "null", "NULL"):
-            summary += f" I operate my business from {location}."
+        # Business professional
+        bus_intro = f"I am {name}"
+        if business and business.lower() not in ("none", "null", ""):
+            bus_intro += f", a business professional engaged in {business}"
+        summary_parts.append(bus_intro + ".")
 
-    else:  # Not working or student, etc.
-        summary = (
-            f"I am {name}, "
-            f"I have completed my education in {qualification}"
-        )
-        #if institution:
-            #summary += f" from {institution}."
-        # summary += f" I live in {location}."
-    if location not in (None, "", "null", "NULL"):
-        summary += f" I live in {location}."
+        if qualification and qualification.lower() not in ("none", "null", ""):
+            summary_parts.append(f"I hold a degree in {qualification}.")
 
-    return summary
+        if location and location.lower() not in ("none", "null", ""):
+            summary_parts.append(f"I operate my business from {location}.")
+
+    elif profile_type == "6":
+            # Business professional + Employee (both)
+            intro = f"I am {name}"
+
+            # Business part
+            if business and business.lower() not in ("none", "null", ""):
+                intro += f", a business professional engaged in {business}"
+
+            summary_parts.append(intro + ".")
+
+            # Employee part
+            if designation and designation.lower() not in ("none", "null", ""):
+                emp_intro = f"I also work as a {designation}"
+                if company and company.lower() not in ("none", "null", ""):
+                    emp_intro += f" at {company}"
+                summary_parts.append(emp_intro + ".")
+
+            # Education part
+            if qualification and qualification.lower() not in ("none", "null", ""):
+                summary_parts.append(f"I hold a degree in {qualification}.")
+
+            # Location part
+            if location and location.lower() not in ("none", "null", ""):
+                summary_parts.append(f"I live in {location}.")
+
+    else:
+        # Student / not working
+        summary_parts.append(f"I am {name}.")
+
+        if qualification and qualification.lower() not in ("none", "null", ""):
+            summary_parts.append(f"I have completed my education in {qualification}.")
+
+        if location and location.lower() not in ("none", "null", ""):
+            summary_parts.append(f"I live in {location}.")
+
+    return " ".join(summary_parts)
+
+
+
 
 
 
