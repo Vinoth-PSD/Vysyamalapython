@@ -860,7 +860,7 @@ class Edudetails(models.Model):
     about_edu = models.CharField(max_length=100)
     profession = models.CharField(max_length=100)  # Changed from CharField to TextField
     anual_income = models.CharField(max_length=50)
-    actual_income = models.CharField(max_length=100)
+    actual_income = models.CharField(max_length=100,null=True,blank=True)
     work_country = models.CharField(max_length=100)  # Changed from CharField to TextField
     work_state = models.CharField(max_length=100)
     work_city = models.CharField(max_length=100)
@@ -1680,7 +1680,7 @@ class Get_profiledata(models.Model):
                     # print("Error formatting query:", e)
                     return query
                 
-            # print("MySQL Executable Query:", format_sql_for_debug(query, query_params))
+            print("MySQL Executable Query:", format_sql_for_debug(query, query_params))
 
             with connection.cursor() as cursor:
                 # cursor.execute(query.format(operator=age_condition_operator), query_params)
