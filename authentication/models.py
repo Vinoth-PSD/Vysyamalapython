@@ -1206,16 +1206,16 @@ class Get_profiledata(models.Model):
 
                 if partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'yes':
                     
-                    base_query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'True' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
+                    base_query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'true' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
                 elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'no':
-                    base_query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
+                    base_query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'false' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
 
                 if partner_pref_chevvai and partner_pref_chevvai.lower() == 'yes':
                     # base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
 
-                    base_query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'True' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+                    base_query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'true' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
                 elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'no':
-                    base_query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'False' OR e.calc_chevvai_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+                    base_query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'false' OR e.calc_chevvai_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
 
                 height_conditions = ""
                 if partner_pref_height_from and partner_pref_height_to:
@@ -1488,16 +1488,16 @@ class Get_profiledata(models.Model):
 
             if partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'yes':
                     
-                    query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'True' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
+                    query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'true' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
             elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'no':
-                    query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
+                    query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'false' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
 
             if partner_pref_chevvai and partner_pref_chevvai.lower() == 'yes':
                     # base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
 
-                    query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'True' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+                    query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'true' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
             elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'no':
-                    query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'False' OR e.calc_chevvai_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+                    query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'false' OR e.calc_chevvai_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
 
 
 
@@ -1656,16 +1656,16 @@ class Get_profiledata(models.Model):
 
             if partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'yes':
                     
-                    query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'True' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
+                    query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'true' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
             elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'no':
-                    query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
+                    query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'false' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
 
             if partner_pref_chevvai and partner_pref_chevvai.lower() == 'yes':
                     # base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
 
-                    query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'True' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+                    query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'true' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
             elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'no':
-                    query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+                    query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'false' OR e.calc_chevvai_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
 
 
 
