@@ -7704,44 +7704,11 @@ class Save_plan_package(APIView):
         addon_package_id = request.data.get('addon_package_id')
         total_amount = request.data.get('total_amount')
         order_id = request.data.get('order_id')
+        gpay_online = request.data.get('gpay_online')
         
-        try:
-            # Check if request data is empty
-            if not profile_id or not plan_id:
-                return JsonResponse({"status": "error", "message": "profile_id and plan_id are required"}, status=status.HTTP_400_BAD_REQUEST)
+        if str(gpay_online) == "1":
 
-
-            if not request.data:
-                return JsonResponse({"status": "error", "message": "No data provided"}, status=status.HTTP_400_BAD_REQUEST)
-
-            # Fetch the instances by profile_id
-            registration = models.Registration1.objects.get(ProfileId=profile_id)
-             # Update the fields
             
-            registration.Plan_id = plan_id if plan_id != 0 else registration.Plan_id  #if in case the plan_id come as 0 it shoult update as 0 
-            #registration.Plan_id = plan_id
-            registration.secondary_status = 30   # newly registered and the Premium
-            registration.plan_status = plan_id
-            registration.Addon_package = addon_package_id
-            registration.Payment= total_amount
-
-            addon_package_ids = addon_package_id
-
-            #update vysassist in profilePlanfeatiretable
-            if addon_package_ids:
-                # Split comma-separated string into list of ints
-                addon_package_id_list = [int(pk.strip()) for pk in addon_package_ids.split(",") if pk.strip().isdigit()]
-
-                # Check if ID 1 is in the list
-                if 1 in addon_package_id_list:
-                    # print("Addon Package ID 1 found. Updating Profile_plan_feature...")
-
-                    # Example: update all rows (or filter if needed)
-                    models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(vys_assist=1,vys_assist_count=10)
-
-            # Save the changes
-            registration.save() 
-
             user, created = User.objects.get_or_create(username=profile_id)
             if created:
                 # Handle user creation logic if needed
@@ -7769,46 +7736,8 @@ class Save_plan_package(APIView):
             #get first image for the profile icon
             profile_images=models.Image_Upload.objects.filter(profile_id=profile_id).first()  
 
-            plan_id = logindetails.Plan_id
-            plan_limits_json=''
-            if plan_id:
-                plan_limits=models.PlanFeatureLimit.objects.filter(plan_id=plan_id)
             
-                serializer = serializers.PlanFeatureLimitSerializer(plan_limits, many=True)
-                plan_limits_json = serializer.data
-
-
-            membership_fromdate = date.today() #same date of the payment date
-            membership_todate = membership_fromdate + timedelta(days=365)
-
-            models.PlanSubscription.objects.create(
-            profile_id=profile_id,              # e.g., '123'
-            plan_id=plan_id,               # e.g., 7
-            paid_amount=total_amount,             # e.g., Decimal('499.99')
-            payment_mode='Online',     # e.g., 'UPI'
-            status=1,   
-            payment_by='user_self',                             # e.g., 1 for success, or your own logic
-            payment_date=datetime.now(),          # current timestamp
-            order_id=order_id  )
-
-            plan_features = models.PlanFeatureLimit.objects.filter(plan_id=plan_id).values().first()
-
-            if plan_features:
-                # Remove the 'id' field if present
-                plan_features.pop('id', None)
-                plan_features.pop('plan_id', None)  # optional, if you don't want to override plan_id
-
-                # Add membership dates
-                plan_features.update({
-                    'plan_id': plan_id,
-                    'membership_fromdate': membership_fromdate,
-                    'membership_todate': membership_todate,
-                    'status':1
-                })
-
-                # Update the profile_plan_features row for profile_id
-                models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(**plan_features)
-    
+            
             gender = logindetails.Gender
             height = logindetails.Profile_height
             marital_status=logindetails.Profile_marital_status
@@ -7832,6 +7761,16 @@ class Save_plan_package(APIView):
                 profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
                 base_url = settings.MEDIA_URL
                 profile_image = base_url+profile_icon
+
+
+            plan_id = logindetails.Plan_id
+            plan_limits_json=''
+            
+            if plan_id:
+                plan_limits=models.PlanFeatureLimit.objects.filter(plan_id=plan_id)
+            
+                serializer = serializers.PlanFeatureLimitSerializer(plan_limits, many=True)
+                plan_limits_json = serializer.data
 
 
             logindetails_exists = models.Registration1.objects.filter(ProfileId=profile_id).filter(Profile_address__isnull=False).exclude(Profile_address__exact='').first()
@@ -7862,17 +7801,184 @@ class Save_plan_package(APIView):
             elif not partner_details_exists:
                 profile_completion=5            #Partner details not exists             
 
-             
             # Success response
             return JsonResponse({
                     "status": "success",
                     "message": "Plans and packages updated successfully",
+                    "payment_type":"Gpay Online",
                     "data_message": f"Thank you for registering in Vysyamala. Your profile has been successfully submitted.Your Profile Id is  {profile_id} . We truly appreciate you taking the time to join Vysyamala—it means a lot to us! Our customer support team will review your details and get in touch with you shortly to complete the approval process. Welcome to the Vysyamala family!",
                     'token':token.key ,'profile_id':profile_id ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till }, status=status.HTTP_200_OK)
+        else :
         
-        except models.Registration1.DoesNotExist:
-            return JsonResponse({"status": "error", "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+            try:
+                # Check if request data is empty
+                if not profile_id or not plan_id:
+                    return JsonResponse({"status": "error", "message": "profile_id and plan_id are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+                if not request.data:
+                    return JsonResponse({"status": "error", "message": "No data provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+                # Fetch the instances by profile_id
+                registration = models.Registration1.objects.get(ProfileId=profile_id)
+                # Update the fields
+                
+                registration.Plan_id = plan_id if plan_id != 0 else registration.Plan_id  #if in case the plan_id come as 0 it shoult update as 0 
+                #registration.Plan_id = plan_id
+                registration.secondary_status = 30   # newly registered and the Premium
+                registration.plan_status = plan_id
+                registration.Addon_package = addon_package_id
+                registration.Payment= total_amount
+
+                addon_package_ids = addon_package_id
+
+                #update vysassist in profilePlanfeatiretable
+                if addon_package_ids:
+                    # Split comma-separated string into list of ints
+                    addon_package_id_list = [int(pk.strip()) for pk in addon_package_ids.split(",") if pk.strip().isdigit()]
+
+                    # Check if ID 1 is in the list
+                    if 1 in addon_package_id_list:
+                        # print("Addon Package ID 1 found. Updating Profile_plan_feature...")
+
+                        # Example: update all rows (or filter if needed)
+                        models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(vys_assist=1,vys_assist_count=10)
+
+                # Save the changes
+                registration.save() 
+
+                user, created = User.objects.get_or_create(username=profile_id)
+                if created:
+                    # Handle user creation logic if needed
+                    pass
+                
+                # Authentication successful, create token
+                token, created = Token.objects.get_or_create(user=user)
+
+                notify_count=models.Profile_notification.objects.filter(profile_id=profile_id, is_read=0).count()
+
+                logindetails=models.Registration1.objects.filter(ProfileId=profile_id).first()
+
+                profile_for=logindetails.Profile_for
+                try:
+                        Profile_owner = models.Profileholder.objects.get(Mode=profile_for).ModeName
+                except models.Profileholder.DoesNotExist:
+                        Profile_owner = None
+                
+                logindetails.Last_login_date=timezone.now()
+                logindetails.save()
+
+            
+                horodetails=models.Horoscope.objects.filter(profile_id=profile_id).first()
+                
+                #get first image for the profile icon
+                profile_images=models.Image_Upload.objects.filter(profile_id=profile_id).first()  
+
+                plan_id = logindetails.Plan_id
+                plan_limits_json=''
+                if plan_id:
+                    plan_limits=models.PlanFeatureLimit.objects.filter(plan_id=plan_id)
+                
+                    serializer = serializers.PlanFeatureLimitSerializer(plan_limits, many=True)
+                    plan_limits_json = serializer.data
+
+
+                membership_fromdate = date.today() #same date of the payment date
+                membership_todate = membership_fromdate + timedelta(days=365)
+
+                models.PlanSubscription.objects.create(
+                profile_id=profile_id,              # e.g., '123'
+                plan_id=plan_id,               # e.g., 7
+                paid_amount=total_amount,             # e.g., Decimal('499.99')
+                payment_mode='Online',     # e.g., 'UPI'
+                status=1,   
+                payment_by='user_self',                             # e.g., 1 for success, or your own logic
+                payment_date=datetime.now(),          # current timestamp
+                order_id=order_id  )
+
+                plan_features = models.PlanFeatureLimit.objects.filter(plan_id=plan_id).values().first()
+
+                if plan_features:
+                    # Remove the 'id' field if present
+                    plan_features.pop('id', None)
+                    plan_features.pop('plan_id', None)  # optional, if you don't want to override plan_id
+
+                    # Add membership dates
+                    plan_features.update({
+                        'plan_id': plan_id,
+                        'membership_fromdate': membership_fromdate,
+                        'membership_todate': membership_todate,
+                        'status':1
+                    })
+
+                    # Update the profile_plan_features row for profile_id
+                    models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(**plan_features)
         
+                gender = logindetails.Gender
+                height = logindetails.Profile_height
+                marital_status=logindetails.Profile_marital_status
+                quick_reg=logindetails.quick_registration
+                if not quick_reg:
+                    quick_reg=0
+
+                profile_icon=''
+                profile_completion=0
+                birth_star_id=''
+                birth_rasi_id=''
+                if horodetails:
+                    birth_star_id=horodetails.birthstar_name
+                    birth_rasi_id=horodetails.birth_rasi_name
+
+                if profile_images:
+                    profile_image = profile_images.image.url
+                #default image icon
+                else:
+                
+                    profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
+                    base_url = settings.MEDIA_URL
+                    profile_image = base_url+profile_icon
+
+
+                logindetails_exists = models.Registration1.objects.filter(ProfileId=profile_id).filter(Profile_address__isnull=False).exclude(Profile_address__exact='').first()
+
+                family_details_exists=models.Familydetails.objects.filter(profile_id=profile_id).first()
+                horo_details_exists=models.Horoscope.objects.filter(profile_id=profile_id).first()
+                education_details_exists=models.Edudetails.objects.filter(profile_id=profile_id).first()
+                partner_details_exists=models.Partnerpref.objects.filter(profile_id=profile_id).first()
+
+                profile_planfeature = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id, status=1).first()
+                valid_till = profile_planfeature.membership_todate if profile_planfeature else None
+
+                #check the address is exists for the contact s page contact us details stored in the logindetails page only
+                if not logindetails_exists:
+                
+                    profile_completion=1     #contact details not exists   
+
+                elif not family_details_exists:
+                    
+                    profile_completion=2    #Family details not exists   
+
+                elif not horo_details_exists:
+                    profile_completion=3    #Horo details not exists   
+
+                elif not education_details_exists:
+                    profile_completion=4        #Edu details not exists   
+
+                elif not partner_details_exists:
+                    profile_completion=5            #Partner details not exists             
+
+                
+                # Success response
+                return JsonResponse({
+                        "status": "success",
+                        "payment_type":"Razor pay Online",
+                        "message": "Plans and packages updated successfully",
+                        "data_message": f"Thank you for registering in Vysyamala. Your profile has been successfully submitted.Your Profile Id is  {profile_id} . We truly appreciate you taking the time to join Vysyamala—it means a lot to us! Our customer support team will review your details and get in touch with you shortly to complete the approval process. Welcome to the Vysyamala family!",
+                        'token':token.key ,'profile_id':profile_id ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till }, status=status.HTTP_200_OK)
+            
+            except models.Registration1.DoesNotExist:
+                return JsonResponse({"status": "error", "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+            
 
 # def GetMarsRahuKethuDoshamDetails(raw_input):
 #     # def post(self, request):
@@ -12925,7 +13031,7 @@ class Profile_other_fields(APIView):
         #try:
             # Fetch or create the necessary instances
         horoscope_instance, _ = models.Horoscope.objects.get_or_create(profile_id=profile_id)
-        image_instance = models.Image_Upload.objects.create(profile_id=profile_id)
+        
         registration_instance = models.Registration1.objects.get(ProfileId=profile_id)
         education_instance = models.Edudetails.objects.get(profile_id=profile_id)
         family_instance = models.Familydetails.objects.get(profile_id=profile_id)
@@ -12968,6 +13074,7 @@ class Profile_other_fields(APIView):
                 if file_extension not in valid_image_extensions:
                     return JsonResponse({"error": "Invalid ID proof file type. Accepted formats are: doc, docx, pdf, png, jpeg, jpg"}, status=status.HTTP_400_BAD_REQUEST)
 
+                image_instance = models.Image_Upload.objects.create(profile_id=profile_id)
                 image_instance.image.save(image.name, ContentFile(image.read()), save=True)
                 image_instance.save()
         
