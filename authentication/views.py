@@ -247,7 +247,7 @@ class LoginView(APIView):
                 elif not partner_details_exists:
                     profile_completion=5            #Partner details not exists   
 
-                return JsonResponse({'status': 1,'token':token.key ,'profile_id':username ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till}, status=200)
+                return JsonResponse({'status': 1,'token':token.key ,'profile_id':logindetails_exists.ProfileId ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till}, status=200)
 
             else:
             # Password is incorrect

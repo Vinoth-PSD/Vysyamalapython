@@ -1271,11 +1271,12 @@ class Get_profiledata(models.Model):
                         order_by = None
 
                     if order_by == 1:
-                        orderby_cond = f" ORDER BY {plan_priority}, {photo_priority}, {view_priority}, a.DateOfJoin DESC"
+                        orderby_cond = f" ORDER BY {view_priority} , {plan_priority}, {photo_priority} , a.DateOfJoin DESC"
                     elif order_by == 2:
-                        orderby_cond = f" ORDER BY {plan_priority}, {photo_priority}, {view_priority}, a.DateOfJoin ASC"
+                        orderby_cond = f" ORDER BY {view_priority},{plan_priority}, {photo_priority} , a.DateOfJoin ASC"
                     else:
-                        orderby_cond = f" ORDER BY {plan_priority}, {photo_priority}, {view_priority}, a.DateOfJoin DESC"
+                        orderby_cond = f" ORDER BY {view_priority},{plan_priority}, {photo_priority}, a.DateOfJoin DESC"
+                
                 
                 except Exception as e:
                     print(f"Error in profile listing: {str(e)}")

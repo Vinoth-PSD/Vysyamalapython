@@ -1584,11 +1584,11 @@ class Get_profiledata_Matching(models.Model):
             view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END"
 
             if order_by == 1:
-                order_cond = f" ORDER BY a.DateOfJoin ASC"
+                order_cond = f" ORDER BY {view_priority} , {plan_priority}, {photo_priority} , a.DateOfJoin DESC"
             elif order_by == 2:
-                order_cond = f" ORDER BY a.DateOfJoin DESC"
+                order_cond = f" ORDER BY {view_priority},{plan_priority}, {photo_priority} , a.DateOfJoin ASC"
             else:
-                order_cond = f" ORDER BY {plan_priority}, {photo_priority}, {view_priority}, a.DateOfJoin DESC"
+                order_cond = f" ORDER BY {view_priority},{plan_priority}, {photo_priority}, a.DateOfJoin DESC"
 
             final_query = base_query + order_cond
 
