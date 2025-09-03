@@ -9623,7 +9623,7 @@ class GetSearchResults(APIView):
                 """)
 
             if conditions:
-                base_query += f"\nAND ({' OR '.join(conditions)})"
+                base_query += f"\nAND ({' AND '.join(conditions)})"
 
 
             if native_state:
