@@ -9589,6 +9589,17 @@ class GetSearchResults(APIView):
                         OR e.calc_chevvai_dhosham IS NULL
                     )
                 """)
+            
+            if chevvai_dhosam and chevvai_dhosam.lower() == 'no':
+                conditions.append("""
+                    (
+                        LOWER(e.calc_chevvai_dhosham) = 'no'
+                        OR LOWER(e.calc_chevvai_dhosham) = 'false'
+                        OR e.calc_chevvai_dhosham = '2'
+                        OR e.calc_chevvai_dhosham = 2
+                        OR e.calc_chevvai_dhosham IS NULL
+                    )
+                """)
 
             if ragukethu_dhosam and ragukethu_dhosam.lower() == 'yes':
                 conditions.append("""
@@ -9597,6 +9608,16 @@ class GetSearchResults(APIView):
                         OR LOWER(e.calc_raguketu_dhosham) = 'true'
                         OR e.calc_raguketu_dhosham = '1'
                         OR e.calc_raguketu_dhosham = 1
+                        OR e.calc_raguketu_dhosham IS NULL
+                    )
+                """)
+            if ragukethu_dhosam and ragukethu_dhosam.lower() == 'no':
+                conditions.append("""
+                    (
+                        LOWER(e.calc_raguketu_dhosham) = 'no'
+                        OR LOWER(e.calc_raguketu_dhosham) = 'false'
+                        OR e.calc_raguketu_dhosham = '2'
+                        OR e.calc_raguketu_dhosham = 2
                         OR e.calc_raguketu_dhosham IS NULL
                     )
                 """)
