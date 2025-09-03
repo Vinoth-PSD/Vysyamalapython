@@ -1539,15 +1539,19 @@ class Get_profiledata_Matching(models.Model):
             # Strict dosham filters — only apply fallback if primary is missing
             strict_conditions = []
             if not ragu or chev:
-                def add_strict_condition(field, value, fallback_value):
-                    if value and value.lower() in ['yes', 'no']:
-                        strict_conditions.append(f"LOWER(e.{field}) = '{value.lower()}'")
-                    elif fallback_value and fallback_value.lower() in ['yes', 'no']:
-                        strict_conditions.append(f"LOWER(e.{field}) = '{fallback_value.lower()}'")
+                if ragukethu and ragukethu.lower() == 'yes':
+                    
+                    base_query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'True' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
+                elif ragukethu and ragukethu.lower() == 'no':
+                    base_query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
 
-                # Apply with fallback logic
-                add_strict_condition("calc_raguketu_dhosham", ragu, ragukethu)
-                add_strict_condition("calc_chevvai_dhosham", chev, chevvai)
+                if chevvai and chevvai.lower() == 'yes':
+                    # base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+
+                    base_query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'True' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+                elif chevvai and chevvai.lower() == 'no':
+                    base_query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'False' OR e.calc_chevvai_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+
 
             # Combine all conditions
             all_conditions = conditions + strict_conditions
@@ -1611,7 +1615,7 @@ class Get_profiledata_Matching(models.Model):
                 try:
                     return query % tuple(map(escape, params))
                 except Exception as e:
-                    # print("Error formatting query:", e)
+                    print("Error formatting query:", e)
                     return query
 
             # Usage:
@@ -1630,7 +1634,7 @@ class Get_profiledata_Matching(models.Model):
             return [], 0, {}
 
         except Exception as e:
-            print(f"[ERROR] get_profile_list: {str(e)}")
+            # print(f"[ERROR] get_profile_list: {str(e)}")
             return [], 0, {}
     
     @staticmethod
@@ -1786,15 +1790,19 @@ class Get_profiledata_Matching(models.Model):
             # Strict dosham filters — only apply fallback if primary is missing
             strict_conditions = []
             if not chev or ragu:
-                def add_strict_condition(field, value, fallback_value):
-                    if value and value.lower() in ['yes', 'no']:
-                        strict_conditions.append(f"LOWER(e.{field}) = '{value.lower()}'")
-                    elif fallback_value and fallback_value.lower() in ['yes', 'no']:
-                        strict_conditions.append(f"LOWER(e.{field}) = '{fallback_value.lower()}'")
+                if partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'yes':
+                    
+                    base_query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'True' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
+                elif partner_pref_ragukethu and partner_pref_ragukethu.lower() == 'no':
+                    base_query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
 
-                # Apply with fallback logic
-                add_strict_condition("calc_raguketu_dhosham", ragu, partner_pref_ragukethu)
-                add_strict_condition("calc_chevvai_dhosham", chev, partner_pref_chevvai)
+                if partner_pref_chevvai and partner_pref_chevvai.lower() == 'yes':
+                    # base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+
+                    base_query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'True' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+                elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'no':
+                    base_query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'False' OR e.calc_chevvai_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+
 
             # Combine all conditions
             all_conditions = conditions + strict_conditions
@@ -1900,7 +1908,7 @@ class Get_profiledata_Matching(models.Model):
                     base_query += " AND (" + " OR ".join(family_status_filters) + ")"
             else:
                 if partner_pref_familysts:
-                    query += " AND ((FIND_IN_SET(c.family_status, %s) > 0) OR (c.family_status  IS NULL OR c.family_status=''))"
+                    base_query += " AND ((FIND_IN_SET(c.family_status, %s) > 0) OR (c.family_status  IS NULL OR c.family_status=''))"
                     query_params.append(partner_pref_familysts)
                     
             final_min_income = min_anual_income or min_income
@@ -1945,7 +1953,7 @@ class Get_profiledata_Matching(models.Model):
                 try:
                     return query % tuple(map(escape, params))
                 except Exception as e:
-                    print("Error formatting query:", e)
+                    # print("Error formatting query:", e)
                     return query
                 
             # print("MySQL Executable Query:", format_sql_for_debug(query, query_params))
@@ -2122,16 +2130,20 @@ class Get_profiledata_Matching(models.Model):
                 else:
                     base_query += " AND f.work_country = '1'"
 
-            def valid_dosham_value(value):
-                return value and value.lower() in ['yes', 'no'] 
-            dosham_conditions = []
-            if valid_dosham_value(ragukethu):
-                dosham_conditions.append(f"LOWER(e.calc_raguketu_dhosham) = '{ragukethu.lower()}'")
-            if valid_dosham_value(chevvai):
-                dosham_conditions.append(f"LOWER(e.calc_chevvai_dhosham) = '{chevvai.lower()}'")
+             
+            if ragukethu and ragukethu.lower() == 'yes':
+                
+                base_query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'True' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
+            elif ragukethu and ragukethu.lower() == 'no':
+                base_query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
 
-            if dosham_conditions:
-                base_query += f" AND ({' AND '.join(dosham_conditions)})"
+            if chevvai and chevvai.lower() == 'yes':
+                # base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+
+                base_query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'True' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+            elif chevvai and chevvai.lower() == 'no':
+                base_query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'False' OR e.calc_chevvai_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+
 
             # State filter (partner pref state)
             if partner_pref_state:

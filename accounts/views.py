@@ -21,6 +21,7 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from datetime import datetime, timedelta , date
 from django.utils import timezone
+import calendar
 
 from django.core.mail import send_mail
 from django.core.mail import EmailMessage
@@ -2653,7 +2654,7 @@ class GetProfEditDetailsAPIView(APIView):
         
        
         suggest_profile_details=Get_profiledata_Matching.get_unique_suggested_match_count(gender,profile_id)
-        print('suggest_profile_details:', suggest_profile_details)
+        # print('suggest_profile_details:', suggest_profile_details)
         matching_profile_count = (
             Get_profiledata_Matching.get_profile_match_count(gender, profile_id)
             or 0
@@ -2661,7 +2662,7 @@ class GetProfEditDetailsAPIView(APIView):
 
 
         suggest_profile_count = suggest_profile_details  # This will not cause an error
-        print('suggest_profile_count:', suggest_profile_count)
+        # print('suggest_profile_count:', suggest_profile_count)
 
         mutual_condition = Q(status=2) & (Q(profile_from=profile_id) | Q(profile_to=profile_id))
         # personal_notes_condition={'status': 1,'profile_id':profile_id}
@@ -8334,7 +8335,7 @@ class RenewalProfilesView(generics.ListAPIView):
         from_date = self.request.query_params.get('from_date', None)
         to_date = self.request.query_params.get('to_date', None)
 
-        plan_ids="1,2,3,4"
+        plan_ids="5,6"
         status_id = 1
             
         sql = """
@@ -8354,8 +8355,7 @@ class RenewalProfilesView(generics.ListAPIView):
                 LEFT JOIN profile_edudetails ped ON ld.ProfileId = ped.profile_id
                 LEFT JOIN profile_horoscope ph ON ld.ProfileId = ph.profile_id 
                 LEFT JOIN masterprofession mp ON ped.profession = mp.RowId
-                LEFT JOIN plan_master pl ON ld.Plan_id = pl.id  
-                LEFT JOIN profile_plan_feature_limits pfl ON ld.ProfileId = pfl.profile_id
+                LEFT JOIN plan_master pl ON ld.Plan_id = pl.id
                 """
             
         where_clauses = ["ld.status = %s"]
@@ -8383,37 +8383,46 @@ class RenewalProfilesView(generics.ListAPIView):
 
         # Add plan_id filter
         if plan_ids:
-            plan_id_list = [pid.strip() for pid in plan_ids.split(',') if pid.strip()]
+            plan_id_list = [int(pid.strip()) for pid in plan_ids.split(',') if pid.strip().isdigit()]
             if plan_id_list:
                 placeholders = ','.join(['%s'] * len(plan_id_list))
-                where_clauses.append(f"ld.Plan_id IN ({placeholders})")
+                where_clauses.append(f"ld.Plan_id NOT IN ({placeholders})")
                 params.extend(plan_id_list)
 
-        if from_date and to_date:
+        valid_from = from_date and from_date.strip()
+        valid_to = to_date and to_date.strip()
+
+        if valid_from and valid_to:
             try:
-                datetime.strptime(from_date, "%Y-%m-%d")
-                datetime.strptime(to_date, "%Y-%m-%d")
-                where_clauses.append("DATE(pfl.membership_todate) BETWEEN %s AND %s")
-                params.extend([from_date, to_date])
+                datetime.strptime(valid_from, "%Y-%m-%d")
+                datetime.strptime(valid_to, "%Y-%m-%d")
+                where_clauses.append("DATE(ld.membership_enddate) BETWEEN %s AND %s")
+                params.extend([valid_from, valid_to])
             except ValueError:
                 pass
         else:
-            # Default: current and previous month expiry
             where_clauses.append("""
                 (
-                    (MONTH(pfl.membership_todate) = MONTH(CURDATE()) AND YEAR(pfl.membership_todate) = YEAR(CURDATE()))
-                    OR
-                    (MONTH(pfl.membership_todate) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(pfl.membership_todate) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)))
+                    ld.membership_enddate < CURDATE()
+                    OR (
+                        MONTH(ld.membership_enddate) = MONTH(CURDATE()) 
+                        AND YEAR(ld.membership_enddate) = YEAR(CURDATE())
+                    )
                 )
             """)
+            
         # Combine all WHERE clauses
         sql += " WHERE " + " AND ".join(where_clauses)
-        sql += " ORDER BY pfl.membership_todate ASC"
+        sql += """
+            ORDER BY ld.membership_enddate DESC
+        """
         
 
         with connection.cursor() as cursor:
             cursor.execute(sql, params)
             rows = dictfetchall(cursor)  # Fetch rows as a dictionary
+        print("Final SQL:", sql)
+        print("Params:", params)
 
         # Return the rows to the serializer
         return rows
