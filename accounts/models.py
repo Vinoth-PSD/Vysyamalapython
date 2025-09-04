@@ -1318,8 +1318,8 @@ class Get_profiledata_Matching(models.Model):
             else:
                 marital_status = partner_pref.pref_marital_status
             porutham_star_rasi = matching_stars or partner_pref.pref_porutham_star_rasi
-            print(f"⚠️ porutham_star_rasi: {partner_pref.pref_porutham_star_rasi}")
-            print(f"⚠️ matching_stars: {matching_stars}")
+            # print(f"⚠️ porutham_star_rasi: {partner_pref.pref_porutham_star_rasi}")
+            # print(f"⚠️ matching_stars: {matching_stars}")
             pref_foreign = foreign_intrest or partner_pref.pref_foreign_intrest
             ragukethu = partner_pref.pref_ragukethu
             chevvai = partner_pref.pref_chevvai
