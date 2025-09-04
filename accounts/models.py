@@ -1318,6 +1318,8 @@ class Get_profiledata_Matching(models.Model):
             else:
                 marital_status = partner_pref.pref_marital_status
             porutham_star_rasi = matching_stars or partner_pref.pref_porutham_star_rasi
+            print(f"⚠️ porutham_star_rasi: {partner_pref.pref_porutham_star_rasi}")
+            print(f"⚠️ matching_stars: {matching_stars}")
             pref_foreign = foreign_intrest or partner_pref.pref_foreign_intrest
             ragukethu = partner_pref.pref_ragukethu
             chevvai = partner_pref.pref_chevvai
@@ -1396,11 +1398,8 @@ class Get_profiledata_Matching(models.Model):
                     query_params.extend(edu_list)
             if matching_stars and matching_stars.strip():
                 try:
-                    star_ids = [s.strip() for s in matching_stars.split(',') if s.strip().isdigit()]
-                    if star_ids:
-                        placeholders = ','.join(['%s'] * len(star_ids))
-                        base_query += f" AND e.birthstar_name IN ({placeholders})"
-                        query_params.extend(star_ids)
+                    base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
+                    query_params.append(matching_stars.strip())
                 except Exception as e:
                     print("⚠️ Error processing matching_stars:", e)
             else :
@@ -1417,7 +1416,7 @@ class Get_profiledata_Matching(models.Model):
             inc_min = min_anual_income or min_income
             inc_max = max_anual_income or max_income
             if inc_min and inc_max:
-                base_query += " AND ((h.income_amount BETWEEN %s AND %s) OR OR (h.income_amount IS NULL OR h.income_amount = ''))"
+                base_query += " AND ((h.income_amount BETWEEN %s AND %s) OR (h.income_amount IS NULL OR h.income_amount = ''))"
                 query_params.extend([inc_min, inc_max])
 
             # Height logic
@@ -1439,8 +1438,10 @@ class Get_profiledata_Matching(models.Model):
                 query_params.extend([search_profile_id, f"%{search_profile_id.strip()}%"])
 
             if search_profession:
-                base_query += " AND f.profession = %s"
-                query_params.append(search_profession)
+                professions = [p.strip() for p in search_profession.split(",") if p.strip()]
+                placeholders = ", ".join(["%s"] * len(professions))
+                base_query += f" AND f.profession IN ({placeholders})"
+                query_params.extend(professions)
 
             if search_location:
                 base_query += " AND a.Profile_state = %s"
@@ -1838,11 +1839,8 @@ class Get_profiledata_Matching(models.Model):
 
             # Matching stars
             if matching_stars and matching_stars.strip():
-                star_ids = [s.strip() for s in matching_stars.split(',') if s.strip().isdigit()]
-                if star_ids:
-                    placeholders = ','.join(['%s'] * len(star_ids))
-                    base_query += f" AND e.birthstar_name IN ({placeholders})"
-                    query_params.extend(star_ids)
+                base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
+                query_params.append(matching_stars.strip())
             elif partner_pref_porutham_star_rasi and partner_pref_porutham_star_rasi.strip():
                 base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
                 query_params.append(partner_pref_porutham_star_rasi.strip())
