@@ -910,6 +910,8 @@ class Partnerpref(models.Model):
     pref_family_status = models.CharField(max_length=100,null=True, blank=True)
     pref_state = models.CharField(max_length=100,null=True, blank=True)
     status = models.IntegerField()   # Changed from CharField to TextField
+    degree = models.CharField(max_length=255, blank=True, null=True) 
+    pref_fieldof_study = models.CharField(max_length=255, blank=True, null=True)
     
     class Meta:
         managed = False  # This tells Django not to handle database table creation/migration for this model
@@ -1088,9 +1090,12 @@ class Get_profiledata(models.Model):
             partner_pref_foreign_intrest = partner_pref.pref_foreign_intrest
             partner_pref_ragukethu = partner_pref.pref_ragukethu
             partner_pref_chevvai = partner_pref.pref_chevvai
-
+            
             partner_pref_familysts = partner_pref.pref_family_status
             partner_pref_state = partner_pref.pref_state
+
+            field_of_study = partner_pref.pref_fieldof_study
+            degree = partner_pref.degree
 
             min_max_query = """
                 SELECT MIN(income_amount) AS min_income, 
@@ -1195,7 +1200,22 @@ class Get_profiledata(models.Model):
                     base_query += " AND ((FIND_IN_SET(f1.family_status, %s) > 0) OR (f1.family_status  IS NULL OR f1.family_status=''))"
                     query_params.append(partner_pref_familysts)
 
-
+                if field_of_study:
+                    fields = [f.strip() for f in field_of_study.split(',') if f.strip()]
+                    if fields:
+                        placeholders = ','.join(['%s'] * len(fields))
+                        base_query += f" AND f.field_ofstudy IN ({placeholders})"
+                        query_params.extend(fields)
+                    
+                if degree:
+                    degrees = [d.strip() for d in degree.split(',') if d.strip()]
+                    if degrees:
+                        placeholders = ','.join(['%s'] * len(degrees))
+                        base_query += f" AND f.degree IN ({placeholders})"
+                        query_params.extend(degrees)
+                else:
+                    base_query += """ AND
+                    ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
 
         
 
@@ -1324,7 +1344,7 @@ class Get_profiledata(models.Model):
                     # Usage:
                 final_query = format_sql_for_debug(query, query_params)
 
-                print(final_query)
+                print(final_query) 
 
                 with connection.cursor() as cursor:
                     cursor.execute(query, query_params)
@@ -1375,6 +1395,9 @@ class Get_profiledata(models.Model):
 
             partner_pref_familysts = partner_pref.pref_family_status
             partner_pref_state = partner_pref.pref_state
+            
+            field_of_study = partner_pref.pref_fieldof_study
+            degree = partner_pref.degree
 
             # Get Min/Max income range from masterannualincome
             with connection.cursor() as cursor:
@@ -1499,6 +1522,22 @@ class Get_profiledata(models.Model):
             elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'no':
                     query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'false' OR e.calc_chevvai_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
 
+            if field_of_study:
+                fields = [f.strip() for f in field_of_study.split(',') if f.strip()]
+                if fields:
+                    placeholders = ','.join(['%s'] * len(fields))
+                    query += f" AND f.field_ofstudy IN ({placeholders})"
+                    query_params.extend(fields)
+                
+            if degree:
+                degrees = [d.strip() for d in degree.split(',') if d.strip()]
+                if degrees:
+                    placeholders = ','.join(['%s'] * len(degrees))
+                    query += f" AND f.degree IN ({placeholders})"
+                    query_params.extend(degrees)
+            else:
+                query += """ AND
+                ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
 
 
             if partner_pref_height_from and partner_pref_height_to:
@@ -1570,6 +1609,8 @@ class Get_profiledata(models.Model):
 
             partner_pref_familysts = partner_pref.pref_family_status
             partner_pref_state = partner_pref.pref_state
+            field_of_study = partner_pref.pref_fieldof_study
+            degree = partner_pref.degree
 
             # Get Min/Max income range from masterannualincome
             with connection.cursor() as cursor:
@@ -1667,6 +1708,22 @@ class Get_profiledata(models.Model):
             elif partner_pref_chevvai and partner_pref_chevvai.lower() == 'no':
                     query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'false' OR e.calc_chevvai_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
 
+            if field_of_study:
+                fields = [f.strip() for f in field_of_study.split(',') if f.strip()]
+                if fields:
+                    placeholders = ','.join(['%s'] * len(fields))
+                    query += f" AND f.field_ofstudy IN ({placeholders})"
+                    query_params.extend(fields)
+                    
+            if degree:
+                degrees = [d.strip() for d in degree.split(',') if d.strip()]
+                if degrees:
+                    placeholders = ','.join(['%s'] * len(degrees))
+                    query += f" AND f.degree IN ({placeholders})"
+                    query_params.extend(degrees)
+            else:
+                query += """ AND
+                ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
 
 
             if partner_pref_height_from and partner_pref_height_to:
@@ -2405,6 +2462,8 @@ class ProfileSuggestedPref(models.Model):
 
     pref_family_status = models.CharField(max_length=100, null=True, blank=True)
     pref_state = models.CharField(max_length=100, null=True, blank=True)
+    pref_fieldof_study = models.CharField(max_length=255, blank=True, null=True)
+    degree = models.CharField(max_length=255, blank=True, null=True)
     
     # pref_education = models.CharField(max_length=100)
     # pref_profession = models.CharField(max_length=100)

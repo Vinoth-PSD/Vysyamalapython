@@ -4532,6 +4532,7 @@ class Get_prof_list_match(APIView):
             photo_viewing=get_permission_limits(profile_id,'photo_viewing')
 
             if photo_viewing == 1 and my_pstatus !=0:
+                print("photo viewing is allowed",profile_id)
                 # print("Execution time before image starts ",datetime.now())
                 image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
             else:
@@ -5540,6 +5541,7 @@ class Get_profile_det_match(APIView):
     def _get_profile_images(self, profile_id, gender, photo_viewing_permission, photo_protection):
         """Get profile images with appropriate protection settings"""
         if photo_viewing_permission == 1:
+            
             return get_profile_image_azure_optimized(profile_id, gender, 'all', photo_protection)
         return get_profile_image_azure_optimized(profile_id, gender, 'all', 1)
     
@@ -11545,12 +11547,12 @@ class Search_byprofile_id(APIView):
         SELECT a.ProfileId, a.Profile_name, a.Profile_marital_status, a.Profile_dob, a.Profile_height, a.Profile_city, 
                f.profession, f.highest_education, g.EducationLevel, d.star, h.income , e.birthstar_name , e.birth_rasi_name
                        ,a.Photo_protection,a.Gender        FROM logindetails a 
-        JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
-        JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
-        JOIN masterbirthstar d ON d.id = e.birthstar_name 
-        JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
-        JOIN mastereducation g ON f.highest_education = g.RowId 
-        JOIN masterannualincome h ON h.id = f.anual_income
+        LEFT JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
+        LEFT JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
+        LEFT JOIN masterbirthstar d ON d.id = e.birthstar_name 
+        LEFT JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
+        LEFT JOIN mastereducation g ON f.highest_education = g.RowId 
+        LEFT JOIN masterannualincome h ON h.id = f.anual_income
         WHERE a.gender != %s AND a.ProfileId != %s AND a.plan_id NOT IN (0,16, 17, 3) AND (a.ProfileId = %s
        OR a.Profile_name LIKE CONCAT('%%', %s, '%%'));
         """
@@ -13400,9 +13402,9 @@ class HomepageListView(APIView):
             return JsonResponse({'status': 'error', 'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 def get_degree_name(degree_ids, other_degree,highest_edu,field_ofstudy_id,about_edu):
-        if not degree_ids:
+        if not degree_ids or degree_ids in [None, '', '0',86]:
             # If only other_degree is provided, return it directly
-            return other_degree if other_degree else None
+            return other_degree if other_degree else "N/A"
 
         try:
             id_list = [int(x) for x in str(degree_ids).split(',') if x.strip().isdigit()]
@@ -13413,7 +13415,7 @@ def get_degree_name(degree_ids, other_degree,highest_edu,field_ofstudy_id,about_
             )
             if other_degree:
                 degree_names.append(other_degree)
-            final_names = ", ".join(degree_names) if degree_names else None
+            final_names = ", ".join(degree_names) if degree_names else "N/A"
             
             if final_names:
                 return final_names
@@ -15682,14 +15684,14 @@ def generate_porutham_pdf(request):
         education_to_details = models.Edudetails.objects.get(profile_id=profile_to)
 
         try:
-            degree_from= get_degree_name(education_from_details.degree,education_from_details.other_degree)  
+            degree_from= get_degree_name(education_from_details.degree,education_from_details.other_degree,'','','')  
         except Exception as e:
-            degree_from = None
+            degree_from = "N/A"
             
         try:
-            degree_to= get_degree_name(education_to_details.degree,education_to_details.other_degree)  
+            degree_to= get_degree_name(education_to_details.degree,education_to_details.other_degree,'','','')  
         except Exception as e:
-            degree_to = None
+            degree_to = "N/A"
         # Defensive check for null fields
         if not horoscope_from.birthstar_name or not horoscope_to.birthstar_name:
             return JsonResponse({'status': 'error', 'message': 'Missing birth star data'}, status=400)
@@ -16303,13 +16305,29 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
         horoscope_to = models.Horoscope.objects.get(profile_id=profile_to)
         education_from_details = models.Edudetails.objects.get(profile_id=profile_from)
         education_to_details = models.Edudetails.objects.get(profile_id=profile_to)
-
         try:
-            degree_from= get_degree_name(education_from_details.degree,education_from_details.other_degree)  
+            family_from = models.Familydetails.objects.get(profile_id=profile_from)
+        except Exception as e:
+            family_from = None
+        if family_from and family_from.suya_gothram:
+            suya_gothram_from = family_from.suya_gothram
+        else:
+            suya_gothram_from = "N/A"
+        try:
+            family_to = models.Familydetails.objects.get(profile_id=profile_to)
+        except Exception as e:
+            family_to = None
+
+        if family_to and family_to.suya_gothram:
+            suya_gothram_to = family_to.suya_gothram
+        else:
+            suya_gothram_to = "N/A"
+        try:
+            degree_from= get_degree_name(education_from_details.degree,education_from_details.other_degree,'','','')  
         except Exception as e:
             degree_from = None
         try:
-            degree_to= get_degree_name(education_to_details.degree,education_to_details.other_degree)  
+            degree_to= get_degree_name(education_to_details.degree,education_to_details.other_degree,'','','')  
         except Exception as e:
             degree_to = None
 
@@ -16740,6 +16758,14 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                 </td>
                 <td class="data-row">
                     <p> Date Of Birth : {horo_to_date}</p>
+                </td>
+                </tr>
+                 <tr>
+                <td class="data-row">
+                    <p> Suya Gothram : {suya_gothram_from}</p>
+                </td>
+                <td class="data-row">
+                    <p> Suya Gothram : {suya_gothram_to}</p>
                 </td>
                 </tr>
             </table>

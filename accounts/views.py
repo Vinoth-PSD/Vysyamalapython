@@ -84,6 +84,7 @@ import logging
 from collections import OrderedDict
 from authentication.views import fetch_porutham_details,get_dasa_name,dasa_format_date,format_date_of_birth
 from authentication.models import Get_profiledata as gpt
+from .serializers import PlanSubscriptionSerializer,PlanSubscriptionListSerializer
 # from authentication.models import ProfileVisibility
 # from authentication.serializers import ProfileVisibilityListSerializer
 
@@ -3783,6 +3784,66 @@ class ProfileImagesView(APIView):
         # Return full result set if no pagination is needed
         return Response(result, status=status.HTTP_200_OK)
 
+def get_plan(plan_id):
+    if not plan_id:
+        return "No Plan"
+    plan = PlanDetails.objects.filter(id=plan_id).first()
+    return plan.plan_name if plan else "No Plan"
+
+def get_family_status(family_status_id):
+    if not family_status_id:
+        return "N/A"
+    family_status = FamilyStatus.objects.filter(id=family_status_id).first()
+    return family_status.status if family_status else "N/A"
+
+def get_annual_income(anual_income_id, actual_income):
+    if actual_income and actual_income not in [None,"0", "N/A","~"]:
+        return actual_income if actual_income else "N/A"
+    income = AnnualIncome.objects.filter(id=anual_income_id).first()
+    return income.income if income else (actual_income if actual_income else "N/A")
+
+def get_location(city,state_id,country_id):
+    location=[]
+    if city:
+        if isinstance(city, str) and not city.isdigit():
+            # print(city,"city is string")
+            location.append(city)
+    if state_id:
+        # print(state_id,"state_id")
+        if isinstance(state_id, str) and not state_id.isdigit():
+            location.append(state_id)
+        else:
+            state = State.objects.filter(id=state_id, is_deleted=False).values_list('name', flat=True).first()
+            if state:
+                # print(state,"state")
+                location.append(state)
+    else:
+        if country_id:
+            if isinstance(country_id, str) and not country_id.isdigit():
+                location.append(country_id)
+            else:
+                country = Country.objects.filter(id=country_id, is_deleted=False).values_list('name', flat=True).first()
+                if country:
+                    location.append(country)
+    return ", ".join(location) if location else "N/A"
+
+def get_dhosham(dhosham_id):
+    if not dhosham_id:
+        return "N/A"
+    if dhosham_id == 1:
+        return "Yes"
+    elif dhosham_id == 2:
+        return "No"
+    elif dhosham_id == "1":
+        return "Yes"
+    elif dhosham_id == "2":
+        return "No"
+    elif dhosham_id == True:
+        return "Yes"
+    elif dhosham_id == False:
+        return "No"
+    else:
+        return "N/A"
 
 class Get_prof_list_match(APIView):
 
@@ -3790,23 +3851,30 @@ class Get_prof_list_match(APIView):
         score = 0
         actions = []
     
-        express_interest = Express_interests.objects.filter(profile_from=profile_from, profile_to=profile_to).first()
+        express_interest = Express_interests.objects.filter(profile_from=profile_from, profile_to=profile_to,status=1).first()
         if express_interest:
             score += 1
             actions.append({
-                'action': 'Express Interest',
+                'action': 'Express Interest Sent',
                 'datetime': express_interest.req_datetime
             })
+        express_interest_to = Express_interests.objects.filter(profile_from=profile_to, profile_to=profile_from,status=1).first()
+        if express_interest_to:
+            score += 1
+            actions.append({
+                'action': 'Express Interest Received',
+                'datetime': express_interest_to.req_datetime
+            })
     
-        wishlist = Profile_wishlists.objects.filter(profile_from=profile_from, profile_to=profile_to).first()
+        wishlist = Profile_wishlists.objects.filter(profile_from=profile_to, profile_to=profile_from,status=1).first()
         if wishlist:
             score += 1
             actions.append({
-                'action': 'Added to Wishlist',
+                'action': 'Bookmark Received',
                 'datetime': wishlist.marked_datetime
             })
 
-        photo_request = Photo_request.objects.filter(profile_from=profile_from, profile_to=profile_to).first()
+        photo_request = Photo_request.objects.filter(profile_from=profile_from, profile_to=profile_to,status=1).first()
         if photo_request:
             score += 1
             actions.append({
@@ -3814,11 +3882,11 @@ class Get_prof_list_match(APIView):
                 'datetime': photo_request.req_datetime
             })
 
-        visit = Profile_visitors.objects.filter(profile_id=profile_from, viewed_profile=profile_to).first()
+        visit = Profile_visitors.objects.filter(profile_id=profile_from, viewed_profile=profile_to,status=1).first()
         if visit:
             score += 1
             actions.append({
-                'action': 'Visited Profile',
+                'action': 'Visited',
                 'datetime': visit.datetime
             })
 
@@ -3875,7 +3943,9 @@ class Get_prof_list_match(APIView):
             mother_alive=request.data.get('mother_alive'),
             marital_status=request.data.get('marital_status') ,
             family_status=request.data.get('family_status'),
-            whatsapp_field=request.data.get('whatsapp_field')
+            whatsapp_field=request.data.get('whatsapp_field'),
+            field_of_study=request.data.get('pref_fieldof_study'),
+            degree = request.data.get('degree')
         )
 
         if not profile_details:
@@ -3898,13 +3968,23 @@ class Get_prof_list_match(APIView):
                     is_admin=True
                             ),
                 "profile_age": calculate_age(detail.get("Profile_dob")),
-                "profile_gender": detail.get("Gender"),
-                "height": detail.get("Profile_height"),
-                "weight": detail.get("weight"),
+                # "profile_gender": detail.get("Gender"),
+                # "height": detail.get("Profile_height"),
+                "plan": get_plan(detail.get("Plan_id")),
+                "family_status": get_family_status(detail.get("family_status")),
+                # "weight": detail.get("weight"),
                 "degree": degree(detail.get("degree"),detail.get("other_degree")),
+                "anual_income":get_annual_income(detail.get("anual_income"),detail.get("actual_income")),
                 "star": detail.get("star"),
                 "profession": getprofession(detail.get("profession")),
-                "location": detail.get("Profile_city"),
+                "city/State": get_location(detail.get("Profile_city"),detail.get("Profile_state"),detail.get("Profile_country")),
+                "work_place": get_location(detail.get("work_city"),detail.get("work_state"),detail.get("work_country")),
+                "designation": detail.get("designation") if detail.get("designation") not in [None,"0", "N/A","~"] else "N/A",
+                "company_name": detail.get("company_name") if detail.get("company_name") not in [None,"0", "N/A","~"] else "N/A",
+                "father_occupation":detail.get("father_occupation") if detail.get("father_occupation") not in [None,"0", "N/A","~"] else "N/A",
+                "suya_gothram": detail.get("suya_gothram") if detail.get("suya_gothram") not in [None,"0", "N/A","~"] else "N/A",
+                "chevvai":get_dhosham(detail.get("calc_chevvai_dhosham")),
+                "raguketu":get_dhosham(detail.get("calc_raguketu_dhosham")),
                 "photo_protection": detail.get("Photo_protection"),
                 "matching_score": Get_matching_score(my_star_id, my_rasi_id, detail.get("birthstar_name"), detail.get("birth_rasi_name"), gender),
                 "wish_list": Get_wishlist(profile_id, detail.get("ProfileId")),
@@ -4007,7 +4087,9 @@ class Get_suggest_list_match(APIView):
                 mother_alive=request.data.get('mother_alive'),
                 marital_status=request.data.get('marital_status') ,
                 family_status=request.data.get('family_status'),
-                whatsapp_field=request.data.get('whatsapp_field')
+                whatsapp_field=request.data.get('whatsapp_field'),
+                field_of_study=request.data.get('pref_fieldof_study'),
+                degree = request.data.get('degree')
                 )
             print("total_count",total_count)
             print('profile_details',len(profile_details))
@@ -4061,13 +4143,24 @@ class Get_suggest_list_match(APIView):
                                     is_admin=True
                                 ),
                                 "profile_age": calculate_age(detail.get("Profile_dob")),
-                                "profile_gender":detail.get("Gender"),
-                                "height": detail.get("Profile_height"),
-                                "weight": detail.get("weight"),
+                                # "profile_gender":detail.get("Gender"),
+                                # "height": detail.get("Profile_height"),
+                                "plan": get_plan(detail.get("Plan_id")),
+                                "family_status": get_family_status(detail.get("family_status")),
+                                # "weight": detail.get("weight"),
                                 "degree": degree(detail.get("degree"),detail.get("other_degree")),
+                                "anual_income":get_annual_income(detail.get("anual_income"),detail.get("actual_income")),
+                                # "degree": degree(detail.get("degree"),detail.get("other_degree")),
                                 "star":detail.get("star"),
                                 "profession": getprofession(detail.get("profession")),
-                                "location":detail.get("Profile_city"),
+                                "city/State": get_location(detail.get("Profile_city"),detail.get("Profile_state"),detail.get("Profile_country")),
+                                "work_place": get_location(detail.get("work_city"),detail.get("work_state"),detail.get("work_country")),
+                                "designation": detail.get("designation") if detail.get("designation") not in [None,"0", "N/A","~"] else "N/A",
+                                "company_name": detail.get("company_name") if detail.get("company_name") not in [None,"0", "N/A","~"] else "N/A",
+                                "father_occupation":detail.get("father_occupation") if detail.get("father_occupation") not in [None,"0", "N/A","~"] else "N/A",
+                                "suya_gothram": detail.get("suya_gothram") if detail.get("suya_gothram") not in [None,"0", "N/A","~"] else "N/A",
+                                "chevvai":get_dhosham(detail.get("calc_chevvai_dhosham")),
+                                "raguketu":get_dhosham(detail.get("calc_raguketu_dhosham")),
                                 "photo_protection":detail.get("Photo_protection"),
                                 "matching_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
                                 #"profile_image":"http://matrimonyapp.rainyseasun.com/assets/Bride-BEuOb3-D.png",
@@ -8343,7 +8436,7 @@ class RenewalProfilesView(generics.ListAPIView):
                     ld.Profile_dob,  ld.Profile_whatsapp, ld.Profile_alternate_mobile, ld.Plan_id, ld.status, 
                     ld.DateOfJoin, ld.Last_login_date, ld.Profile_for, ms.MaritalStatus, cm.complexion_desc, s.name AS state_name, 
                     cy.city_name AS Profile_city, cy.city_name , c.name AS country_name, d.name AS district_name,pl.plan_name,
-                    pfd.family_status, ped.highest_education, ped.anual_income, ph.birthstar_name , mp.profession AS profession,ld.membership_startdate,ld.membership_enddate
+                    pfd.family_status, ped.highest_education,ped.degree,ped.other_degree, ped.anual_income, ph.birthstar_name , mp.profession AS profession,ld.membership_startdate,ld.membership_enddate
                 FROM logindetails ld
                 LEFT JOIN maritalstatusmaster ms ON ld.Profile_marital_status = ms.StatusId
                 LEFT JOIN complexionmaster cm ON ld.Profile_complexion = cm.complexion_id
@@ -8394,10 +8487,11 @@ class RenewalProfilesView(generics.ListAPIView):
 
         if valid_from and valid_to:
             try:
-                datetime.strptime(valid_from, "%Y-%m-%d")
-                datetime.strptime(valid_to, "%Y-%m-%d")
+                start_date = datetime.strptime(valid_from, "%Y-%m-%d").date()
+                end_date = datetime.strptime(valid_to, "%Y-%m-%d").date()
+                
                 where_clauses.append("DATE(ld.membership_enddate) BETWEEN %s AND %s")
-                params.extend([valid_from, valid_to])
+                params.extend([start_date, end_date])
             except ValueError:
                 pass
         else:
@@ -8474,3 +8568,29 @@ class LoginLogView(generics.ListAPIView):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+    
+class PlanSubscriptionCreateView(generics.CreateAPIView):
+    queryset = PlanSubscription.objects.all()
+    serializer_class = PlanSubscriptionSerializer
+ 
+ 
+# List subscriptions (only status=1)
+class PlanSubscriptionListView(generics.ListAPIView):
+    serializer_class = PlanSubscriptionListSerializer
+ 
+    def get_queryset(self):
+        profile_id = self.request.query_params.get("profile_id")  # get ?profile_id=123 from URL
+        queryset = PlanSubscription.objects.filter(status=1)
+ 
+        if profile_id:
+            queryset = queryset.filter(profile_id=profile_id)
+ 
+        return queryset
+ 
+ 
+# Update subscription (PATCH/PUT)
+class PlanSubscriptionUpdateView(generics.UpdateAPIView):
+    queryset = PlanSubscription.objects.all()
+    serializer_class = PlanSubscriptionSerializer
+    lookup_field = "id"
+ 

@@ -17,6 +17,8 @@ from .models import ProfileCallManagement
 from .models import MarriageSettleDetails
 from .models import PaymentTransaction
 from .models import Invoice
+from .models import MasterhighestEducation
+from .models import PlanSubscription
 
 class ProfileStatusSerializer(serializers.ModelSerializer):
     class Meta:
@@ -574,6 +576,7 @@ class Renewalprofiledata(serializers.Serializer):
     Plan_id = serializers.CharField()
     plan_name = serializers.CharField()
     status = serializers.SerializerMethodField()
+    degree = serializers.SerializerMethodField()
     
     # Custom field to handle datetime to date conversion for DateOfJoin
     DateOfJoin = serializers.SerializerMethodField()
@@ -694,6 +697,25 @@ class Renewalprofiledata(serializers.Serializer):
             return None
         except Exception as e:
             return None
+        
+    def get_degree(self, obj):
+        degree_ids = obj.get('degree')
+        other_degree = obj.get('other_degree')
+        if not degree_ids or degree_ids.strip() == "86":
+            return other_degree if other_degree else "N/A"
+        try:
+            id_list = [int(x) for x in str(degree_ids).split(',') if x.strip().isdigit()]
+            id_list = [x for x in id_list if x != 86]
+            degree_names = list(
+                MasterhighestEducation.objects.filter(id__in=id_list)
+                .values_list("degeree_name", flat=True)
+            )
+            if other_degree:
+                degree_names.append(other_degree)
+            final_names = ", ".join(degree_names) if degree_names else None
+            return final_names 
+        except Exception as e:
+            return "N/A"
     # The calculate_age function
 # def calculate_age(dob):
 #     """
@@ -1214,3 +1236,25 @@ class LoginLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = Registration1
         fields = ['ProfileId', 'Profile_name', 'Last_login_date', 'EmailId', 'Mobile_no']
+        
+class PlanSubscriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PlanSubscription
+        fields = ['profile_id', 'paid_amount', 'payment_mode', 'payment_date', 'status']
+ 
+ 
+class PlanSubscriptionListSerializer(serializers.ModelSerializer):
+    """For List/Detail"""
+    class Meta:
+        model = PlanSubscription
+        fields = [
+            'id',
+            'profile_id',
+            'paid_amount',
+            'payment_mode',
+            'payment_date',
+            'status',
+            'payment_id',
+            'gpay_no'
+        ]
+ 

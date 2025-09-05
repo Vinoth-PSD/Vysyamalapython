@@ -486,25 +486,32 @@ def upload_to_profile_basic(instance, filename):
     return f"profile_idproof/IDProof/{filename}"
 
 class PlanSubscription(models.Model):
-
+ 
     id = models.AutoField(primary_key=True)
     profile_id = models.CharField(max_length=255)
     plan_id = models.IntegerField(max_length=50)
+    addon_package = models.CharField(max_length=100)
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    discount = models.DecimalField(max_digits=10, decimal_places=2)
     payment_mode= models.CharField(max_length=75)
+    payment_for= models.CharField(max_length=100)
     status =  models.IntegerField(max_length=10)  
     payment_date = models.DateTimeField()
+    validity_startdate = models.DateTimeField()
+    validity_enddate = models.DateTimeField()
     payment_by= models.CharField(max_length=150)
     admin_user= models.CharField(max_length=150)
     order_id= models.CharField(max_length=150)
-
+    payment_id= models.CharField(max_length=150)
+    gpay_no= models.CharField(max_length=150)
+    trans_id= models.IntegerField(max_length=10)
+ 
     class Meta:
         managed = False  
         db_table = 'plan_subscription'  
-
+ 
     def __str__(self):
         return self.id
-
 
 def upload_to_profile(instance, filename):
     # return os.path.join('profile_{0}'.format(instance.profile_id), filename)
@@ -1276,12 +1283,12 @@ class Get_profiledata_Matching(models.Model):
         city=None, state=None, education=None, foreign_intrest=None, has_photos=None,
         height_from=None, height_to=None,
         matching_stars=None, min_anual_income=None, max_anual_income=None, membership=None,ragu=None, chev=None,
-        father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None
+        father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None,field_of_study=None,degree=None
     ):
         try:
             profile = get_object_or_404(Registration1, ProfileId=profile_id)
             current_age = calculate_age(profile.Profile_dob)
-
+           
             # Load preferences
             partner_pref = get_object_or_404(Partnerpref, profile_id=profile_id)
             my_family= get_object_or_404(ProfileFamilyDetails, profile_id=profile_id)
@@ -1325,8 +1332,12 @@ class Get_profiledata_Matching(models.Model):
             chevvai = partner_pref.pref_chevvai
             partner_pref_familysts = partner_pref.pref_family_status
             partner_pref_state = partner_pref.pref_state
+            field_of_study = field_of_study or partner_pref.pref_fieldof_study
+            degree = degree or partner_pref.degree
 
             # Income from DB preference if not overridden
+            # annual_income_ids = partner_pref.pref_anual_income or ""
+            # annual_income_max_ids = partner_pref.pref_anual_income_max or ""
             annual_income_ids = partner_pref.pref_anual_income or ""
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -1335,13 +1346,16 @@ class Get_profiledata_Matching(models.Model):
                 )
                 min_income, max_income = cursor.fetchone() or (None, None)
 
+
             # Base query
             base_query = """
                 SELECT DISTINCT 
                         a.ProfileId, a.Plan_id, a.DateOfJoin, a.Photo_protection,
-                        a.Profile_city, a.Profile_verified, a.Profile_name, a.Profile_dob,
+                        a.Profile_city,a.Profile_state,a.Profile_country, a.Profile_verified, a.Profile_name, a.Profile_dob,
+                        c.family_status,c.father_occupation,c.suya_gothram,e.calc_chevvai_dhosham,e.calc_raguketu_dhosham,
                         a.Profile_height, e.birthstar_name, e.birth_rasi_name, f.degree,f.other_degree,
-                        f.profession, f.highest_education, g.EducationLevel, d.star, h.income,
+                        f.profession, f.highest_education,f.actual_income,f.anual_income,f.work_city,
+                        f.work_state,f.work_country,f.designation,f.company_name,g.EducationLevel, d.star, h.income,
                         v.viewed_profile,
                         pi.first_image_id AS has_image
                     FROM logindetails a
@@ -1412,13 +1426,47 @@ class Get_profiledata_Matching(models.Model):
                 base_query += " AND FIND_IN_SET(a.Profile_marital_status, %s) > 0"
                 query_params.append(marital_status_str)
 
+            if field_of_study:
+                fields = [f.strip() for f in field_of_study.split(',') if f.strip()]
+                if fields:
+                    placeholders = ','.join(['%s'] * len(fields))
+                    base_query += f" AND f.field_ofstudy IN ({placeholders})"
+                    query_params.extend(fields)
+                    
+            if degree:
+                degrees = [d.strip() for d in degree.split(',') if d.strip()]
+                if degrees:
+                    placeholders = ','.join(['%s'] * len(degrees))
+                    base_query += f" AND f.degree IN ({placeholders})"
+                    query_params.extend(degrees)
+            else:
+                base_query += """ AND
+                ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
+
+            # inc_min = min_anual_income
+            # inc_max = max_anual_income 
+            # if not (inc_min and inc_max):
+            #     if annual_income_ids and annual_income_max_ids and annual_income_ids.isdigit() and annual_income_max_ids.isdigit():
+            #         income_range = list(range(int(annual_income_ids), int(annual_income_max_ids)+1))
+            #         placeholders = ','.join(['%s'] * len(income_range))
+            #         base_query += f" AND f.anual_income IN ({placeholders})"
+            #         query_params.extend(income_range)
+            #     elif annual_income_ids:
+            #         annual_income_id = ",".join(annual_income_ids) if isinstance(annual_income_ids, list) else annual_income_ids.strip()
+            #         base_query += " AND ((FIND_IN_SET(f.anual_income, %s) > 0 OR (f.anual_income IS NULL OR f.anual_income = '')))"
+            #         query_params.append(annual_income_id)
+                    
+            # elif inc_min and inc_max and inc_min.isdigit() and inc_max.isdigit():
+            #     income_range = list(range(int(inc_min), int(inc_max)+1))
+            #     placeholders = ','.join(['%s'] * len(income_range))
+            #     base_query += f" AND f.anual_income IN ({placeholders})"
+            #     query_params.extend(income_range)
 
             inc_min = min_anual_income or min_income
             inc_max = max_anual_income or max_income
             if inc_min and inc_max:
                 base_query += " AND ((h.income_amount BETWEEN %s AND %s) OR (h.income_amount IS NULL OR h.income_amount = ''))"
                 query_params.extend([inc_min, inc_max])
-
             # Height logic
             final_height_from = height_from or partner_pref.pref_height_from
             final_height_to = height_to or partner_pref.pref_height_to
@@ -1620,8 +1668,8 @@ class Get_profiledata_Matching(models.Model):
                     return query
 
             # Usage:
-            # print("MySQL Executable Query:")
-            # print(format_sql_for_debug(final_query, query_params))
+            print("MySQL Executable Query:")
+            print(format_sql_for_debug(final_query, query_params))
 
             with connection.cursor() as cursor:
                 cursor.execute(final_query, query_params)
@@ -1635,7 +1683,7 @@ class Get_profiledata_Matching(models.Model):
             return [], 0, {}
 
         except Exception as e:
-            # print(f"[ERROR] get_profile_list: {str(e)}")
+            print(f"[ERROR] get_profile_list: {str(e)}")
             return [], 0, {}
     
     @staticmethod
@@ -1644,7 +1692,7 @@ class Get_profiledata_Matching(models.Model):
                                 city=None, state=None, education=None, foreign_intrest=None, has_photos=None,
                                 height_from=None, height_to=None,
                                 matching_stars=None, min_anual_income=None, max_anual_income=None, membership=None,ragu=None, chev=None,
-                                father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None
+                                father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None,field_of_study=None,degree=None
                                 ):
         try:
             profile = get_object_or_404(Registration1, ProfileId=profile_id)
@@ -1663,6 +1711,9 @@ class Get_profiledata_Matching(models.Model):
             partner_pref_chevvai = partner_pref.pref_chevvai
             partner_pref_familysts = partner_pref.pref_family_status
             partner_pref_state = partner_pref.pref_state
+            
+            field_of_study = field_of_study or partner_pref.pref_fieldof_study
+            degree = degree or partner_pref.degree
 
             if search_age and search_age.strip().isdigit() and int(search_age) > 0:
                 age_diff = int(search_age)
@@ -1695,10 +1746,13 @@ class Get_profiledata_Matching(models.Model):
                 """, [pref_annual_income])
                 min_income, max_income = cursor.fetchone() or (None, None)
 
+                        
             # Start base query
             base_query = """
                 SELECT DISTINCT a.*, e.birthstar_name, e.birth_rasi_name,
-                    f.degree,f.other_degree, f.profession, f.highest_education,
+                 c.family_status,c.father_occupation,c.suya_gothram,e.calc_chevvai_dhosham,e.calc_raguketu_dhosham,
+                    f.degree,f.other_degree, f.profession, f.highest_education,f.actual_income,f.anual_income,f.work_city,
+                    f.work_state,f.work_country,f.designation,f.company_name,
                     g.EducationLevel, d.star, h.income
                 FROM logindetails a
                 JOIN profile_suggested_pref s ON a.ProfileId = s.profile_id 
@@ -1908,6 +1962,24 @@ class Get_profiledata_Matching(models.Model):
                 if partner_pref_familysts:
                     base_query += " AND ((FIND_IN_SET(c.family_status, %s) > 0) OR (c.family_status  IS NULL OR c.family_status=''))"
                     query_params.append(partner_pref_familysts)
+                 
+                 
+            if field_of_study:
+                fields = [f.strip() for f in field_of_study.split(',') if f.strip()]
+                if fields:
+                    placeholders = ','.join(['%s'] * len(fields))
+                    base_query += f" AND f.field_ofstudy IN ({placeholders})"
+                    query_params.extend(fields)
+                    
+            if degree:
+                degrees = [d.strip() for d in degree.split(',') if d.strip()]
+                if degrees:
+                    placeholders = ','.join(['%s'] * len(degrees))
+                    base_query += f" AND f.degree IN ({placeholders})"
+                    query_params.extend(degrees)
+            else:
+                base_query += """ AND
+                ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
                     
             final_min_income = min_anual_income or min_income
             final_max_income = max_anual_income or max_income
@@ -1954,7 +2026,7 @@ class Get_profiledata_Matching(models.Model):
                     # print("Error formatting query:", e)
                     return query
                 
-            # print("MySQL Executable Query:", format_sql_for_debug(query, query_params))
+            print("MySQL Executable Query:", format_sql_for_debug(query, query_params))
             with connection.cursor() as cursor:
                 cursor.execute(query, query_params)
                 rows = cursor.fetchall()
@@ -1967,7 +2039,7 @@ class Get_profiledata_Matching(models.Model):
             return [], 0, {}
 
         except Exception as e:
-            # print(f"Suggest Profile Error: {str(e)}")
+            print(f"Suggest Profile Error: {str(e)}")
             return [], 0, {}
        
     @staticmethod
@@ -2013,6 +2085,7 @@ class Get_profiledata_Matching(models.Model):
             my_suya_gothram_admin = my_family.suya_gothram_admin
 
             pref_annual_income = partner_pref.pref_anual_income
+            
             pref_marital_status = partner_pref.pref_marital_status
             partner_pref_education = partner_pref.pref_education
             partner_pref_height_from = partner_pref.pref_height_from
@@ -2023,7 +2096,8 @@ class Get_profiledata_Matching(models.Model):
             pref_foreign = partner_pref.pref_foreign_intrest
             partner_pref_state = partner_pref.pref_state
             partner_pref_familysts = partner_pref.pref_family_status
-
+            field_of_study = partner_pref.pref_fieldof_study
+            degree = partner_pref.degree
             # Get min and max income
             min_income, max_income = 0, 0
             if pref_annual_income:
@@ -2128,6 +2202,22 @@ class Get_profiledata_Matching(models.Model):
                 else:
                     base_query += " AND f.work_country = '1'"
 
+            if field_of_study:
+                fields = [f.strip() for f in field_of_study.split(',') if f.strip()]
+                if fields:
+                    placeholders = ','.join(['%s'] * len(fields))
+                    base_query += f" AND f.field_ofstudy IN ({placeholders})"
+                    params.extend(fields)
+                
+            if degree:
+                degrees = [d.strip() for d in degree.split(',') if d.strip()]
+                if degrees:
+                    placeholders = ','.join(['%s'] * len(degrees))
+                    base_query += f" AND f.degree IN ({placeholders})"
+                    params.extend(degrees)
+            else:
+                base_query += """ AND
+                ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
              
             if ragukethu and ragukethu.lower() == 'yes':
                 
@@ -2165,7 +2255,7 @@ class Get_profiledata_Matching(models.Model):
                     return str(value)
                 return query % tuple(map(escape, params))
 
-            print("COUNT EXECUTABLE QUERY ➤\n", format_sql_for_debug(base_query, params))
+            # print("COUNT EXECUTABLE QUERY ➤\n", format_sql_for_debug(base_query, params))
 
             with connection.cursor() as cursor:
                 cursor.execute(base_query, params)
@@ -2173,7 +2263,7 @@ class Get_profiledata_Matching(models.Model):
                 return result[0] if result else 0
 
         except Exception as e:
-            print(f"[ERROR] get_profile_match_count: {str(e)}")
+            # print(f"[ERROR] get_profile_match_count: {str(e)}")
             return 0
         
     @staticmethod
@@ -2199,6 +2289,8 @@ class Get_profiledata_Matching(models.Model):
             partner_pref_state = suggest_pref.pref_state
             partner_pref_ragukethu = suggest_pref.pref_ragukethu
             partner_pref_chevvai = suggest_pref.pref_chevvai
+            field_of_study = suggest_pref.pref_fieldof_study
+            degree =suggest_pref.degree
 
             # Age Range
             try:
@@ -2375,6 +2467,23 @@ class Get_profiledata_Matching(models.Model):
                         OR e.calc_raguketu_dhosham IS NULL
                     )
                 """)
+                
+            if field_of_study:
+                fields = [f.strip() for f in field_of_study.split(',') if f.strip()]
+                if fields:
+                    placeholders = ','.join(['%s'] * len(fields))
+                    base_query += f" AND f.field_ofstudy IN ({placeholders})"
+                    params.extend(fields)
+                
+            if degree:
+                degrees = [d.strip() for d in degree.split(',') if d.strip()]
+                if degrees:
+                    placeholders = ','.join(['%s'] * len(degrees))
+                    base_query += f" AND f.degree IN ({placeholders})"
+                    params.extend(degrees)
+            else:
+                base_query += """ AND
+                ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
             # Strict fallback
             strict_conditions = []
             def add_strict_condition(field, value, fallback_value):
@@ -2820,6 +2929,7 @@ class Partnerpref(models.Model):
     pref_profession = models.CharField(max_length=50)  # Changed from CharField to TextField
     pref_education = models.CharField(max_length=50)
     pref_anual_income = models.CharField(max_length=50)
+    pref_anual_income_max = models.CharField(max_length=50,null=True, blank=True)
     pref_chevvai = models.CharField(max_length=20)  # Changed from CharField to TextField
     pref_ragukethu = models.CharField(max_length=20)
     pref_foreign_intrest = models.CharField(max_length=20)
@@ -2829,7 +2939,7 @@ class Partnerpref(models.Model):
     pref_porutham_star_rasi = models.TextField(max_length=200 , null=True, blank=True)
     status = models.IntegerField()   # Changed from CharField to TextField
     degree = models.CharField(max_length=255, blank=True, null=True) 
-    
+    pref_fieldof_study = models.CharField(max_length=255, blank=True, null=True)
     class Meta:
         managed = False  # This tells Django not to handle database table creation/migration for this model
         db_table = 'profile_partner_pref'  # Name of the table in your database
@@ -3239,3 +3349,4 @@ class Profilefieldstudy(models.Model):
 
     def __str__(self):
         return self.id
+    
