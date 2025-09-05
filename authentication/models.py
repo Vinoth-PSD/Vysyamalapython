@@ -1151,8 +1151,8 @@ class Get_profiledata(models.Model):
                         ON a.ProfileId = f.profile_id
                     JOIN profile_familydetails f1
                         ON a.ProfileId = f1.profile_id
-                    JOIN mastereducation g ON f.highest_education = g.RowId
-                    JOIN masterannualincome h ON h.id = f.anual_income
+                    LEFT JOIN mastereducation g ON f.highest_education = g.RowId
+                    LEFT JOIN masterannualincome h ON h.id = f.anual_income
                     LEFT JOIN vw_profile_images pi ON a.ProfileId = pi.profile_id
                     LEFT JOIN profile_visit_logs v
                         ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
@@ -1457,8 +1457,8 @@ class Get_profiledata(models.Model):
                     JOIN masterbirthstar d ON d.id = e.birthstar_name 
                     JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
                     JOIN profile_familydetails f1 ON a.ProfileId = f1.profile_id
-                    JOIN mastereducation g ON f.highest_education = g.RowId 
-                    JOIN masterannualincome h ON h.id = f.anual_income
+                    LEFT JOIN mastereducation g ON f.highest_education = g.RowId 
+                    LEFT JOIN masterannualincome h ON h.id = f.anual_income
                     WHERE a.Status=1 AND a.Plan_id NOT IN (0,16, 17, 3) AND a.gender != %s AND a.ProfileId != %s 
                     AND a.Profile_dob BETWEEN %s AND %s"""
             
@@ -1655,8 +1655,8 @@ class Get_profiledata(models.Model):
                     JOIN masterbirthstar d ON d.id = e.birthstar_name 
                     JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
                     JOIN profile_familydetails f1 ON a.ProfileId = f1.profile_id
-                    JOIN mastereducation g ON f.highest_education = g.RowId 
-                    JOIN masterannualincome h ON h.id = f.anual_income
+                    LEFT JOIN mastereducation g ON f.highest_education = g.RowId 
+                    LEFT JOIN masterannualincome h ON h.id = f.anual_income
                     WHERE a.Status=1 AND a.Plan_id NOT IN (0,16, 17, 3) AND a.gender != %s AND a.ProfileId != %s 
                     AND a.Profile_dob BETWEEN %s AND %s"""
             
