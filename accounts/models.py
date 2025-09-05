@@ -144,6 +144,7 @@ class Country(models.Model):
 
 #     class Meta:
 #         db_table = 'masterstate'
+#
 
 class State(models.Model):
     name = models.CharField(max_length=100)

@@ -272,6 +272,7 @@ class LoginDetailsSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(errors)
 
         # Return the validated data if no errors
+        
         return data
 
 
@@ -732,6 +733,7 @@ class Renewalprofiledata(serializers.Serializer):
 #         age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
 #         return age
 #     return None
+#
 
 def calculate_age(dob):
     """

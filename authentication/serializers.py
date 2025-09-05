@@ -12,6 +12,7 @@ from .models import SentWithoutAddressPrintPDFLog
 
 
 
+
 class AuthUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.AuthUser

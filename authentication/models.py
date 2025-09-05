@@ -127,6 +127,7 @@ class Registration1(models.Model):
     #Reset_OTP_Time =  models.CharField(max_length=100)   #models.CharField(max_length=100)
     # Reset_OTP_Time = models.DateTimeField()
     #Reset_OTP_Time = models.DateTimeField('Edit the date', null=True, blank=True)
+    
     Reset_OTP_Time = models.DateTimeField(null=True, blank=True)
     Profile_verified = models.SmallIntegerField(default=0)
     device_id=models.TextField(null=True, blank=True)

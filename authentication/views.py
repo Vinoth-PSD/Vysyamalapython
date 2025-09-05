@@ -124,6 +124,7 @@ class LoginView(APIView):
         password = data.get('password')
         fcm_token = data.get('fcm_token')
         # print('Username, password',username,password)
+        #
         
 
         
