@@ -3291,6 +3291,7 @@ class PaymentTransaction(models.Model):
     payment_refno = models.CharField(max_length=255, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     owner_id = models.IntegerField(null=True, blank=True)
+    addon_package=models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         managed = False  # Table already exists in DB

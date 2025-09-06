@@ -60,7 +60,7 @@ from .serializers import MarriageSettleDetailsSerializer
 from .models import PaymentTransaction
 from .serializers import PaymentTransactionSerializer
 from .serializers import InvoiceSerializer
-from .serializers import LoginLogSerializer,Renewalprofiledata
+from .serializers import LoginLogSerializer,Renewalprofiledata,PaymentTransactionSerializer
 from django.db.models.functions import Cast
 from django.db.models import DateTimeField
 from .models import Invoice
@@ -2595,7 +2595,8 @@ class GetProfEditDetailsAPIView(APIView):
                 "business": edu_detail.business_name,
                 "qualification": qualification_name,
                 "location": location_name,
-                "profile_type": edu_detail.profession
+                "profile_type": edu_detail.profession,
+                "nature_of_business": edu_detail.nature_of_business
             }
             myself = generate_about_myself_summary(profile)
             response_data['family_details']['about_self'] = myself
@@ -2833,84 +2834,81 @@ def safe_get_by_id(model, pk_value, return_field):
 
 
 def generate_about_myself_summary(profile):
-    name = profile.get("name")
-    designation = profile.get("designation")
-    company = profile.get("company")
-    qualification = profile.get("qualification")
-    business = profile.get("business")
-    institution = profile.get("institution")  # optional, if available
-    location = profile.get("location")
+    name = profile.get("name", "").strip()
+    qualification = profile.get("qualification", "").strip()
+    designation = profile.get("designation", "").strip()
+    company = profile.get("company", "").strip()
+    business_name = profile.get("business", "").strip()
+    nature_of_business = profile.get("nature_of_business", "").strip()
+    location = profile.get("location", "").strip()
     profile_type = str(profile.get("profile_type")) if profile.get("profile_type") else None
 
     summary_parts = []
 
+    if name:
+        summary_parts.append(f"My name is {name}.")
+
+    if qualification:
+        summary_parts.append(f"I have completed my {qualification}.")
+
     if profile_type == "1":
-        # Employee
-        emp_intro = f"I am {name}"
-        if designation and designation.lower() not in ("none", "null", ""):
-            emp_intro += f", currently working as a {designation}"
-            if company and company.lower() not in ("none", "null", ""):
-                emp_intro += f" at {company}"
-        summary_parts.append(emp_intro + ".")
+        if designation and company:
+            summary_parts.append(f"I am currently employed as {designation} at {company}.")
+        elif designation:
+            summary_parts.append(f"I am currently employed as {designation}.")
+        elif company:
+            summary_parts.append(f"I am currently employed at {company}.")
+        else:
+            summary_parts.append("I am currently employed.")
 
-        if qualification and qualification.lower() not in ("none", "null", ""):
-            summary_parts.append(f"I hold a degree in {qualification}.")
+    elif profile_type == "2": 
+        if nature_of_business and business_name:
+            summary_parts.append(f"I am managing my own business in {nature_of_business}, named {business_name}.")
+        elif nature_of_business:
+            summary_parts.append(f"I am managing my own business in {nature_of_business}.")
+        elif business_name:
+            summary_parts.append(f"I am managing my own business named {business_name}.")
+        else:
+            summary_parts.append("I am managing my own business.")
 
-        if location and location.lower() not in ("none", "null", ""):
-            summary_parts.append(f"I live in {location}.")
+    elif profile_type == "6": 
+        emp_bus_parts = []
 
-    elif profile_type == "2":
-        # Business professional
-        bus_intro = f"I am {name}"
-        if business and business.lower() not in ("none", "null", ""):
-            bus_intro += f", a business professional engaged in {business}"
-        summary_parts.append(bus_intro + ".")
+        if designation and company:
+            emp_bus_parts.append(f"I am employed as {designation} at {company}")
+        elif designation:
+            emp_bus_parts.append(f"I am employed as {designation}")
+        elif company:
+            emp_bus_parts.append(f"I am employed at {company}")
+        else:
+            emp_bus_parts.append("I am employed")
 
-        if qualification and qualification.lower() not in ("none", "null", ""):
-            summary_parts.append(f"I hold a degree in {qualification}.")
+        if nature_of_business and business_name:
+            emp_bus_parts.append(f"and also run a business in {nature_of_business}, named {business_name}.")
+        elif nature_of_business:
+            emp_bus_parts.append(f"and also run a business in {nature_of_business}.")
+        elif business_name:
+            emp_bus_parts.append(f"and also run a business named {business_name}.")
+        else:
+            emp_bus_parts.append("and also run a business.")
 
-        if location and location.lower() not in ("none", "null", ""):
-            summary_parts.append(f"I operate my business from {location}.")
+        summary_parts.append(" ".join(emp_bus_parts))
 
-    elif profile_type == "6":
-        # Business professional + Employee (both)
-        intro = f"I am {name}"
+    elif profile_type == "7":
+        if designation and company:
+            summary_parts.append(f"I work in a government job as {designation} at {company}.")
+        else:
+            summary_parts.append("I work in a government job.")
 
-        # Business part
-        if business and business.lower() not in ("none", "null", ""):
-            intro += f", a business professional engaged in {business}"
+    elif profile_type == "3": 
+        summary_parts.append("I am currently a student.")
 
-        summary_parts.append(intro + ".")
-
-        # Employee part
-        if designation and designation.lower() not in ("none", "null", ""):
-            emp_intro = f"I also work as a {designation}"
-            if company and company.lower() not in ("none", "null", ""):
-                emp_intro += f" at {company}"
-            summary_parts.append(emp_intro + ".")
-
-        # Education part
-        if qualification and qualification.lower() not in ("none", "null", ""):
-            summary_parts.append(f"I hold a degree in {qualification}.")
-
-        # Location part
-        if location and location.lower() not in ("none", "null", ""):
-            summary_parts.append(f"I live in {location}.")
-
-
-    else:
-        # Student / not working
-        summary_parts.append(f"I am {name}.")
-
-        if qualification and qualification.lower() not in ("none", "null", ""):
-            summary_parts.append(f"I have completed my education in {qualification}.")
-
-        if location and location.lower() not in ("none", "null", ""):
-            summary_parts.append(f"I live in {location}.")
+    if location:
+        summary_parts.append(f"I live in {location}.")
+    if not any(summary_parts):
+        return "" 
 
     return " ".join(summary_parts)
-
-
 
 def calculate_points_and_get_empty_fields(profile_id):
     total_points = 0
@@ -8077,6 +8075,9 @@ class AdminMatchProfilePDFView(APIView):
                 horoscope_data = get_object_or_404(models.ProfileHoroscope, profile_id=profile_id)
                 education_details = get_object_or_404(models.ProfileEduDetails, profile_id=profile_id)
                 family_details = models.ProfileFamilyDetails.objects.filter(profile_id=profile_id)
+                login_my  = get_object_or_404(models.Registration1, ProfileId=profile_to)
+                horoscope_my = get_object_or_404(models.ProfileHoroscope, profile_id=profile_to)
+                education_my = get_object_or_404(models.ProfileEduDetails, profile_id=profile_to)
                 if family_details.exists():
                         family_detail = family_details.first()  
 
@@ -8143,6 +8144,21 @@ class AdminMatchProfilePDFView(APIView):
                 
                 final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
                 
+                
+                highest_education_id_my = education_my.highest_education
+                highest_education_my="N/A"
+                if highest_education_id_my:
+                    highest_education_my = models.EducationLevel.objects.filter(row_id=highest_education_id_my).values_list('EducationLevel', flat=True).first() or "N/A"
+
+                field_ofstudy_id_my = education_my.field_ofstudy
+                fieldof_study_my=" "
+                if field_ofstudy_id_my:
+                    fieldof_study_my = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id_my).values_list('field_of_study', flat=True).first() or "N/A"
+                
+                about_edu=education_my.about_edu
+                
+                final_education_my = (highest_education_my + ' ' + fieldof_study_my).strip() or about_edu
+
                 annual_income = "Unknown"
                 actual_income = str(education_details.actual_income).strip()
                 annual_income_id = education_details.anual_income
@@ -8215,6 +8231,9 @@ class AdminMatchProfilePDFView(APIView):
                 birthstar = safe_get_value(models.BirthStar, 'id', horoscope_data.birthstar_name, 'star')
                 birth_rasi = get_primary_sign(safe_get_value(models.Rasi, 'id', horoscope_data.birth_rasi_name, 'name'))
 
+                birthstar_my = safe_get_value(models.BirthStar, 'id', horoscope_my.birthstar_name, 'star')
+                birth_rasi_my = get_primary_sign(safe_get_value(models.Rasi, 'id', horoscope_my.birth_rasi_name, 'name'))
+
                 complexion_id = login.Profile_complexion
                 complexion = safe_get_value(models.Complexion, 'complexion_id', complexion_id, 'complexion_desc')
                 father_name = family.father_name if family else "N/A"
@@ -8237,6 +8256,7 @@ class AdminMatchProfilePDFView(APIView):
                         return str(time_str)
                     
                 birth_time=format_time_am_pm(horoscope_data.time_of_birth)
+                my_birth_time=format_time_am_pm(horoscope_my.time_of_birth)
                 horo_hint = horoscope_data.horoscope_hints or "N/A"
                 # Define the HTML content with custom styles
                 porutham_rows = ""
@@ -8258,10 +8278,9 @@ class AdminMatchProfilePDFView(APIView):
                         f"</tr>")
 
                 porutham_show=True
-                print("porutham matching",porutham_data['matching_score'])
                 if porutham_data['matching_score']=='0/10' or porutham_data['matching_score']=='0' or porutham_data['matching_score']=='0.0' or porutham_data['matching_score']=='10/10' or porutham_data['matching_score']==0.0:
                     porutham_show= False
-                    
+                print("porutham show:",porutham_show) 
                 def format_star_names(poruthams):
                     if not poruthams:
                         return "N/A"
@@ -8313,13 +8332,18 @@ class AdminMatchProfilePDFView(APIView):
                     dasa_year, dasa_month, dasa_day = match.groups()
                 # print("porutham",porutham_data)
                 date =  format_date_of_birth(login.Profile_dob)
+                my_date =  format_date_of_birth(login_my.Profile_dob)
                 context_data = {
                     "profile_id": login.ProfileId,
+                    "my_profile_id":login_my.ProfileId,
                     "name": login.Profile_name,
+                    "my_name":login_my.Profile_name,
                     "dob": date,
+                    "my_dob":my_date,
                     "age":age,
                     "image_status":image_status,
                     "height":cm_to_feet_inches(login.Profile_height),
+                    "my_height":cm_to_feet_inches(login_my.Profile_height),
                     "didi":didi,
                     "nalikai":nalikai,
                     "degree":degree if degree not in [None,""] else "N/a",
@@ -8330,6 +8354,7 @@ class AdminMatchProfilePDFView(APIView):
                     "occupation_title":occupation_title,
                     "occupation":occupation,
                     "highest_education":final_education if final_education not in [None, ""] else "N/A",
+                    "highest_education_my":final_education_my if final_education_my not in [None, ""] else "N/A",
                     "annual_income":annual_income if annual_income not in [None, ""] else "N/A",
                     "father_occupation":father_occupation if father_occupation not in [None, ""] else "N/A",
                     "family_status":family_status if family_status not in [None, ""] else "N/A",
@@ -8345,8 +8370,11 @@ class AdminMatchProfilePDFView(APIView):
                     "email":login.EmailId,
                     "complexion": complexion if complexion not in [None, ""] else "N/A",
                     "birth_star": birthstar if birthstar not in [None, ""] else "N/A",
+                    "birth_star_my": birthstar_my if birthstar_my not in [None, ""] else "N/A",
                     "birth_rasi": birth_rasi if birth_rasi not in [None, ""] else "N/A",
+                    "birth_rasi_my": birth_rasi_my if birth_rasi_my not in [None, ""] else "N/A",
                     "birth_place": horoscope_data.place_of_birth if horoscope_data.place_of_birth not in [None, ""] else "N/A",
+                    "my_birth_place": horoscope_my.place_of_birth if horoscope_my.place_of_birth not in [None, ""] else "N/A",
                     "address": address_content,
                     "lagnam":lagnam,
                     "dasa_year":dasa_year,
@@ -8354,6 +8382,7 @@ class AdminMatchProfilePDFView(APIView):
                     "dasa_day":dasa_day,
                     "dasa_name":get_dasa_name(horoscope_data.dasa_name),
                     "birth_start":birth_time,
+                    "my_time_of_birth":my_birth_time,
                     "profession":profession,
                     "horoscope_content": horoscope_content,
                     "horoscope_content_admin":horoscope_content_admin,
@@ -8428,7 +8457,7 @@ class RenewalProfilesView(generics.ListAPIView):
         from_date = self.request.query_params.get('from_date', None)
         to_date = self.request.query_params.get('to_date', None)
 
-        plan_ids="5,6"
+        plan_ids="5,6,7,8"
         status_id = 1
             
         sql = """
@@ -8593,4 +8622,111 @@ class PlanSubscriptionUpdateView(generics.UpdateAPIView):
     queryset = PlanSubscription.objects.all()
     serializer_class = PlanSubscriptionSerializer
     lookup_field = "id"
+
+
+@api_view(["POST"])
+def process_transaction(request):
+    """
+    Accept or Reject a payment transaction.
+    """
+    transaction_id = request.data.get("transaction_id")
+    action = request.data.get("action")  # accept / reject
+    payment_for = request.data.get("payment_for")
+    admin_user = request.data.get("admin_user")
  
+    if not transaction_id or not action:
+        return Response(
+            {"status": "error", "message": "transaction_id and action are required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+ 
+    try:
+        transaction = PaymentTransaction.objects.get(id=transaction_id)
+    except PaymentTransaction.DoesNotExist:
+        return Response(
+            {"status": "error", "message": "Transaction not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+   
+ 
+    # Build payment_for string
+    plan_name = None
+    addon_name = None
+ 
+    if transaction.plan_id:
+        try:
+            plan_obj = PlanDetails.objects.get(id=transaction.plan_id)
+            plan_name = plan_obj.plan_name
+        except PlanDetails.DoesNotExist:
+            pass
+ 
+    if transaction.addon_package:
+        try:
+            addon_obj = Addonpackages.objects.get(package_id=transaction.addon_package)
+            addon_name = addon_obj.name
+        except Addonpackages.DoesNotExist:
+            pass
+ 
+    if plan_name and addon_name:
+        payment_for = f"{plan_name} + {addon_name}"
+    elif plan_name:
+        payment_for = plan_name
+    elif addon_name:
+        payment_for = addon_name
+    else:
+        payment_for = "N/A"
+ 
+ 
+    if action.lower() == "accept":
+        # Create plan subscription
+        plan_sub = PlanSubscription.objects.create(
+            profile_id=transaction.profile_id,
+            plan_id=transaction.plan_id,
+            addon_package=transaction.addon_package,
+            paid_amount=transaction.amount,
+            discount=transaction.discount_amont or 0,
+            payment_mode=transaction.payment_type,
+            payment_for=payment_for,
+            status=1,  # assuming 1 = active
+            payment_by=transaction.profile_id,  # adjust if different
+            admin_user=admin_user,
+            order_id=transaction.order_id,
+            payment_id=transaction.payment_id,
+            gpay_no="",  # set if needed
+            trans_id=transaction.id,
+            payment_date =datetime.now()
+        )
+ 
+        transaction.status = "2"  # or 2 if int based
+        transaction.save()
+ 
+        return Response(
+            {"status": "success", "message": "Transaction accepted", "subscription_id": plan_sub.id},
+            status=status.HTTP_201_CREATED
+        )
+ 
+    elif action.lower() == "reject":
+        transaction.status = "3"  # or 3 if int based
+        transaction.save()
+ 
+        return Response(
+            {"status": "success", "message": "Transaction rejected"},
+            status=status.HTTP_200_OK
+        )
+ 
+    else:
+        return Response(
+            {"status": "error", "message": "Invalid action (must be 'accept' or 'reject')"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+ 
+
+class PaymentTransactionListView(APIView):
+    def get(self, request):
+        profile_id = request.query_params.get('profile_id')
+        if not profile_id:
+            return Response({"error": "profile_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        transactions = PaymentTransaction.objects.filter(profile_id=profile_id)
+        serializer = PaymentTransactionSerializer(transactions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
