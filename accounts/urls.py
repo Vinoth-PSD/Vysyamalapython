@@ -17,7 +17,7 @@ from .views import MarriageSettleDetailsCreateView, MarriageSettleDetailsListVie
 from .views import PaymentTransactionCreateView, PaymentTransactionListView
 from .views import GenerateInvoicePDF
 from . import views
-from .views import CommonProfileSearchAPIView,RenewalProfilesView
+from .views import CommonProfileSearchAPIView,PlanSubscriptionCreateView,PlanSubscriptionListView,PlanSubscriptionUpdateView
 
 router = DefaultRouter()
 
@@ -188,4 +188,8 @@ urlpatterns = [
     path('admin-match-pdf-with-format/',views.AdminMatchProfilePDFView.as_view(),name='admin-match-pdf-with-format'),
     path('renewal-profiles/', views.RenewalProfilesView.as_view(), name='renewal-profiles'),
     path('login-logs/', views.LoginLogView.as_view(), name='login-logs'),
+    path('subscriptions/', PlanSubscriptionListView.as_view(), name='subscription-list'),
+    path('subscriptions/create/', PlanSubscriptionCreateView.as_view(), name='subscription-create'),
+    path('subscriptions/<int:id>/update/', PlanSubscriptionUpdateView.as_view(), name='subscription-update'),
+ 
 ]
