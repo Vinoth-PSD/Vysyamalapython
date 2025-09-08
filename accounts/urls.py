@@ -192,5 +192,6 @@ urlpatterns = [
     path('subscriptions/create/', PlanSubscriptionCreateView.as_view(), name='subscription-create'),
     path('subscriptions/<int:id>/update/', PlanSubscriptionUpdateView.as_view(), name='subscription-update'),
     path("process-transaction/", views.process_transaction, name="process_transaction"),
-    path('payment-transactions/',views.PaymentTransactionListView.as_view(),name='payment-transactions')
+    path('payment-transactions/',views.PaymentTransactionListView.as_view(),name='payment-transactions'),
+    path('transaction-history/',views.TransactionHistoryView.as_view(),name='transaction-history'),
 ]

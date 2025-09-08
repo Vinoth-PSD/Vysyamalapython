@@ -1266,3 +1266,57 @@ class PaymentTransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PaymentTransaction
         fields = '__all__'
+        
+class PaymentTransactionListSerializer(serializers.Serializer):
+    ContentId = serializers.IntegerField()
+    ProfileId = serializers.CharField()
+    Profile_name = serializers.CharField()
+    Gender = serializers.CharField()
+    Mobile_no = serializers.CharField()
+    Profile_whatsapp = serializers.CharField()
+    EmailId = serializers.EmailField()
+    Profile_dob = serializers.DateField()
+    Plan_id = serializers.CharField()
+    plan_name = serializers.CharField()
+    status = serializers.SerializerMethodField()
+    DateOfJoin = serializers.SerializerMethodField()
+    years = serializers.SerializerMethodField()
+    membership_enddate = serializers.CharField()
+    transaction_id = serializers.CharField()
+    order_id = serializers.CharField()
+    payment_id = serializers.CharField()
+    created_at = serializers.CharField()
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    discount_amont = serializers.DecimalField(max_digits=10, decimal_places=2)
+    payment_type = serializers.CharField()
+    payment_refno = serializers.CharField()
+    profile_status = serializers.SerializerMethodField()
+    
+    
+    def get_profile_status(self, obj):
+        profile_status_id = obj.get('profile_status')
+        try:
+            status = ProfileStatus.objects.get(status_code=profile_status_id)
+            return status.status_name 
+        except Exception as e:    
+            return "N/A"
+    
+    def get_years(self, obj):
+        dob = obj.get('Profile_dob')
+        if dob:
+            return calculate_age(dob)
+        return None
+    
+    def get_status(self, obj):
+        status_id = obj.get('status')
+        if status_id == 1:
+            return "Initialized"
+        elif status_id == 2:
+            return "Paid"
+        elif status_id == 3:    
+            return "Failed"
+        else:
+            return "Not Initialized"
+        
+    def get_DateOfJoin(self, obj):
+        return obj['DateOfJoin'].date() if obj.get('DateOfJoin') else None

@@ -84,7 +84,7 @@ import logging
 from collections import OrderedDict
 from authentication.views import fetch_porutham_details,get_dasa_name,dasa_format_date,format_date_of_birth
 from authentication.models import Get_profiledata as gpt
-from .serializers import PlanSubscriptionSerializer,PlanSubscriptionListSerializer
+from .serializers import PlanSubscriptionSerializer,PlanSubscriptionListSerializer,PaymentTransactionListSerializer
 # from authentication.models import ProfileVisibility
 # from authentication.serializers import ProfileVisibilityListSerializer
 
@@ -2834,13 +2834,13 @@ def safe_get_by_id(model, pk_value, return_field):
 
 
 def generate_about_myself_summary(profile):
-    name = profile.get("name", "").strip()
-    qualification = profile.get("qualification", "").strip()
-    designation = profile.get("designation", "").strip()
-    company = profile.get("company", "").strip()
-    business_name = profile.get("business", "").strip()
-    nature_of_business = profile.get("nature_of_business", "").strip()
-    location = profile.get("location", "").strip()
+    name = (profile.get("name") or "").strip()
+    qualification = (profile.get("qualification") or "").strip()
+    designation = (profile.get("designation") or "").strip()
+    company = (profile.get("company") or "").strip()
+    business_name = (profile.get("business") or "").strip()
+    nature_of_business = (profile.get("nature_of_business") or "").strip()
+    location = (profile.get("location") or "").strip()
     profile_type = str(profile.get("profile_type")) if profile.get("profile_type") else None
 
     summary_parts = []
@@ -8310,14 +8310,14 @@ class AdminMatchProfilePDFView(APIView):
                 try:
                     rasi = models.Rasi.objects.get(pk=horoscope_data.birth_rasi_name)
                     rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
-                except models.Rasi.DoesNotExist:
+                except Exception:
                     rasi_name = "Unknown"
                 lagnam="Unknown"
                 try:
                     if horoscope_data.lagnam_didi and str(horoscope_data.lagnam_didi).isdigit() and int(horoscope_data.lagnam_didi) > 0:
                         lagnam = models.Rasi.objects.filter(pk=int(horoscope_data.lagnam_didi)).first()
                         lagnam= get_primary_sign(lagnam.name) or "N/A"
-                except models.Rasi.DoesNotExist:
+                except Exception:
                     lagnam = "Unknown"
                     
                 dob = login.Profile_dob
@@ -8730,3 +8730,47 @@ class PaymentTransactionListView(APIView):
         transactions = PaymentTransaction.objects.filter(profile_id=profile_id)
         serializer = PaymentTransactionSerializer(transactions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class TransactionHistoryView(generics.ListAPIView):
+    serializer_class = PaymentTransactionListSerializer
+    pagination_class = StandardResultsPaging
+
+    def get_queryset(self):
+        from_date = self.request.query_params.get('from_date', None)
+        to_date = self.request.query_params.get('to_date', None)
+        status_ids = [1, 2, 3]
+        placeholders = ', '.join(['%s'] * len(status_ids))
+
+        sql = f"""
+            SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId,ld.status as profile_status,
+                ld.Profile_dob, ld.Profile_whatsapp, ld.Plan_id, pt.status, ld.DateOfJoin, pl.plan_name,
+                ld.membership_startdate, ld.membership_enddate, pt.id AS transaction_id, pt.order_id, pt.created_at,
+                pt.payment_id, pt.amount, pt.discount_amont,pt.payment_type,pt.payment_refno
+            FROM payment_transaction pt
+            LEFT JOIN plan_master pl ON pt.Plan_id = pl.id
+            LEFT JOIN logindetails ld ON ld.ProfileId = pt.profile_id
+            WHERE pt.status IN ({placeholders})
+        """
+
+        params = status_ids.copy()
+
+        if from_date and to_date:
+            try:
+                start_date = datetime.strptime(from_date, "%Y-%m-%d").date()
+                end_date = datetime.strptime(to_date, "%Y-%m-%d").date()
+                sql += " AND DATE(pt.created_at) BETWEEN %s AND %s"
+                params += [start_date, end_date]
+            except Exception:
+                pass
+
+        sql += " ORDER BY pt.created_at DESC"
+
+        # print("Final SQL:", sql)
+        # print("Params:", params)
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            rows = dictfetchall(cursor)
+
+        return rows
+
+    
