@@ -1231,6 +1231,8 @@ class CommonProfileSearchSerializer(serializers.Serializer):
     mother_alive=serializers.CharField(required=False,allow_blank=True)
     martial_status=serializers.CharField(required=False,allow_blank=True)
     whatsapp_field=serializers.CharField(required=False,allow_blank=True)
+    mobile_no =serializers.CharField(required=False,allow_blank=True)
+    profile_dob =serializers.CharField(required=False,allow_blank=True)
     per_page = serializers.IntegerField(default=10)
     page_number = serializers.IntegerField(default=1)
 

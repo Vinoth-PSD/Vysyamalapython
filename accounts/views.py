@@ -3863,7 +3863,29 @@ class Get_prof_list_match(APIView):
                 'action': 'Express Interest Received',
                 'datetime': express_interest_to.req_datetime
             })
-    
+        express_interest_accepted = Express_interests.objects.filter(profile_from=profile_from, profile_to=profile_to,status=2).first()
+        if express_interest_accepted:
+            score += 1
+            actions.append({
+                'action': 'Express Interest Accepted',
+                'datetime': express_interest_accepted.req_datetime
+            })
+        express_interest_rejected = Express_interests.objects.filter(profile_from=profile_from, profile_to=profile_to,status=2).first()
+        if express_interest_rejected:
+            score += 1
+            actions.append({
+                'action': 'Express Interest Rejected',
+                'datetime': express_interest_rejected.req_datetime
+            })
+
+        wishlist_from = Profile_wishlists.objects.filter(profile_from=profile_from, profile_to=profile_to,status=1).first()
+        if wishlist_from:
+            score += 1
+            actions.append({
+                'action': 'Bookmarked',
+                'datetime': wishlist_from.marked_datetime
+            })
+        
         wishlist = Profile_wishlists.objects.filter(profile_from=profile_to, profile_to=profile_from,status=1).first()
         if wishlist:
             score += 1
@@ -3879,6 +3901,14 @@ class Get_prof_list_match(APIView):
                 'action': 'Photo Request Sent',
                 'datetime': photo_request.req_datetime
             })
+            
+        photo_request_received = Photo_request.objects.filter(profile_from=profile_to, profile_to=profile_from,status=1).first()
+        if photo_request_received:
+            score += 1
+            actions.append({
+                'action': 'Photo Request Sent',
+                'datetime': photo_request_received.req_datetime
+            })
 
         visit = Profile_visitors.objects.filter(profile_id=profile_from, viewed_profile=profile_to,status=1).first()
         if visit:
@@ -3886,6 +3916,13 @@ class Get_prof_list_match(APIView):
             actions.append({
                 'action': 'Visited',
                 'datetime': visit.datetime
+            })
+        viewed = Profile_visitors.objects.filter(profile_id=profile_to, viewed_profile=profile_from,status=1).first()
+        if viewed:
+            score += 1
+            actions.append({
+                'action': 'Viewed',
+                'datetime': viewed.datetime
             })
 
         return {
@@ -8457,7 +8494,7 @@ class RenewalProfilesView(generics.ListAPIView):
         from_date = self.request.query_params.get('from_date', None)
         to_date = self.request.query_params.get('to_date', None)
 
-        plan_ids="5,6,7,8"
+        plan_ids="4,6,7,8,9"
         status_id = 1
             
         sql = """

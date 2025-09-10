@@ -3091,7 +3091,7 @@ class My_intrests_list(APIView):
                             "myint_star":detail.get("star_name"),
                             "myint_profession":getprofession(detail.get("profession")),
                             "myint_city":detail.get("Profile_city"),
-                            "myint_degree":get_degree(detail.get("ug_degeree")),
+                            "myint_degree":degree(detail.get("degree") if isinstance(detail, dict) else None,detail.get("other_degree") if isinstance(detail, dict) else None),
                             "myint_match_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
                             "myint_views":count_records(models.Profile_visitors, {'status': 1,'viewed_profile':detail.get("ProfileId")}),
                             "myint_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
@@ -3381,7 +3381,7 @@ class Get_profile_wishlist(APIView):
                             "wishlist_height":detail.get("Profile_height"),
                             "wishlist_star":detail.get("star_name"),
                             "wishlist_profession":getprofession(detail.get("profession")),
-                            "wishlist_degree":get_degree(detail.get("ug_degeree")),
+                            "wishlist_degree":degree(detail.get("degree") if isinstance(detail, dict) else None,detail.get("other_degree") if isinstance(detail, dict) else None),
                             "wishlist_city":get_city_name(detail.get("Profile_city")),
                             "wishlist_match_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
                             "wishlist_views":count_records(models.Profile_visitors, {'status': 1,'viewed_profile':detail.get("ProfileId")}),
@@ -3504,7 +3504,7 @@ class My_profile_visit(APIView):
                             "viwed_star":detail.get("star_name"),
                             "viwed_profession":getprofession(detail.get("profession")),
                             "viwed_city":detail.get("Profile_city"),
-                            "viwed_degree":get_degree(detail.get("ug_degeree")),
+                            "viwed_degree":degree(detail.get("degree") if isinstance(detail, dict) else None,detail.get("other_degree") if isinstance(detail, dict) else None),
                             "viwed_match_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
                             "viwed_views":count_records(models.Profile_visitors, {'status': 1,'viewed_profile':detail.get("ProfileId")}),
                             "viwed_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
@@ -3599,7 +3599,7 @@ class My_viewed_profiles(APIView):
                             "visited_star":detail.get("star_name"),
                             "visited_profession":getprofession(detail.get("profession")),
                             "visited_city":detail.get("Profile_city"),
-                            "visited_degree":get_degree(detail.get("ug_degeree")),
+                            "visited_degree":degree(detail.get("degree") if isinstance(detail, dict) else None,detail.get("other_degree") if isinstance(detail, dict) else None),
                             "visited_match_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
                             "visited_views":count_records(models.Profile_visitors, {'status': 1,'viewed_profile':detail.get("ProfileId")}),
                             "visited_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
@@ -4600,7 +4600,7 @@ class Get_prof_list_match(APIView):
                         "profile_gender": detail.get("Gender"),
                         "height": detail.get("Profile_height"),
                         "weight": detail.get("weight"),
-                        "degree": degree(detail.get("degree"),detail.get('other_degree')),
+                        "degree": degree(detail.get("degree") if isinstance(detail, dict) else None,detail.get('other_degree') if isinstance(detail, dict) else None),
                         "star": detail.get("star"),
                         "profession": getprofession(detail.get("profession")),
                         "location": detail.get("Profile_city"),
@@ -6028,7 +6028,7 @@ class Get_photo_request_list(APIView):
                             "req_star":detail.get("star_name"),
                             "req_profession":getprofession(detail.get("profession")),
                             "req_city":detail.get("Profile_city"),
-                            "req_degree":get_degree(detail.get("ug_degeree")),
+                            "req_degree":degree(detail.get("degree") if isinstance(detail, dict) else None,detail.get("other_degree") if isinstance(detail, dict) else None),
                             "req_match_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
                             "req_views":count_records(models.Profile_visitors, {'status': 1,'viewed_profile':detail.get("ProfileId")}),
                             "req_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
@@ -7476,13 +7476,13 @@ class GetMyProfilePersonal(APIView):
 
 
 def generate_about_myself_summary(profile):
-    name = profile.get("name", "").strip()
-    qualification = profile.get("qualification", "").strip()
-    designation = profile.get("designation", "").strip()
-    company = profile.get("company", "").strip()
-    business_name = profile.get("business", "").strip()
-    nature_of_business = profile.get("nature_of_business", "").strip()
-    location = profile.get("location", "").strip()
+    name = (profile.get("name") or "").strip()
+    qualification = (profile.get("qualification") or "").strip()
+    designation = (profile.get("designation") or "").strip()
+    company = (profile.get("company") or "").strip()
+    business_name = (profile.get("business") or "").strip()
+    nature_of_business = (profile.get("nature_of_business") or "").strip()
+    location = (profile.get("location") or "").strip()
     profile_type = str(profile.get("profile_type")) if profile.get("profile_type") else None
  
     summary_parts = []
@@ -9558,7 +9558,7 @@ class GetSearchResults(APIView):
 
 
         if not any([
-            from_age, to_age, from_height, to_height, marital_status, profession, 
+            from_age, to_age, from_height, to_height, marital_status, profession,field_ofstudy,
             education, min_income,max_income, star, native_state, search_worklocation, 
             search_profilephoto, people_withphoto, chevvai_dhosam, ragukethu_dhosam
         ]):
@@ -9594,7 +9594,7 @@ class GetSearchResults(APIView):
         # Initialize the query with the base structure
         base_query = """
         SELECT distinct(a.ProfileId),a.ProfileId, a.Profile_name, a.Profile_marital_status, a.Profile_dob, a.Profile_height, a.Profile_city, 
-               f.profession, f.highest_education, g.EducationLevel, d.star, h.income , e.birthstar_name , e.birth_rasi_name
+               f.profession, f.highest_education,f.degree,f.other_degree, g.EducationLevel, d.star, h.income , e.birthstar_name , e.birth_rasi_name
                        ,a.Photo_protection,a.Gender ,a.DateOfJoin       FROM logindetails a 
         JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
         JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
@@ -9985,7 +9985,7 @@ class GetFeaturedList(APIView):
             SELECT DISTINCT a.ProfileId, a.Plan_id, a.DateOfJoin, a.Photo_protection, a.Profile_city,
                    a.Profile_verified, a.Profile_name, a.Profile_dob, a.Profile_height,
                    e.birthstar_name, e.birth_rasi_name,
-                   f.ug_degeree, f.profession, f.highest_education,
+                   f.ug_degeree, f.profession, f.highest_education,f.degree,f.other_degree,
                    g.EducationLevel, d.star, h.income,
                    IF(i.id IS NOT NULL, 1, 0) AS has_image
             FROM logindetails a
@@ -10103,7 +10103,7 @@ class SuggestedProfiles1(APIView):
         placeholders = ','.join(['%s'] * len(unique_ids))
         base_query = f"""
             SELECT DISTINCT a.ProfileId,a.Plan_id ,a.DateOfJoin,a.Photo_protection,a.Profile_city,a.Profile_verified,a.Profile_name,a.Profile_dob,a.Profile_height,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
-                    f.highest_education, g.EducationLevel, d.star, h.income FROM logindetails a 
+                    f.highest_education,f.degree,f.other_degree, g.EducationLevel, d.star, h.income FROM logindetails a 
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
                     JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
                     JOIN masterbirthstar d ON d.id = e.birthstar_name 
@@ -10485,7 +10485,7 @@ def transform_data2(original_data,my_gender):
         "profile_img": Get_profile_image(original_data.get("ProfileId"),my_gender,1,original_data.get("Photo_protection")),
         "profile_height": original_data.get("Profile_height"),
         "weight": original_data.get("weight"),  # You need to add this if you have this information
-        "degree": original_data.get("EducationLevel"),
+        "degree": degree(original_data.get("degree") if isinstance(original_data, dict) else None,original_data.get("other_degree") if isinstance(original_data, dict) else None),
         "star": original_data.get("star"),
         # "profession": original_data.get("profession"),
         "profession": getprofession(original_data.get("profession")),
@@ -10536,7 +10536,7 @@ def transform_data(original_data,my_profile_id,my_gender,source_rasi_id,source_s
         "profile_img":image_function(original_data),
         "profile_height": original_data.get("Profile_height"),
         "weight": None,  # You need to add this if you have this information
-        "degree": original_data.get("EducationLevel"),
+        "degree": degree(original_data.get("degree") if isinstance(original_data, dict) else None,original_data.get("other_degree") if isinstance(original_data, dict) else None),
         "star": original_data.get("star"),
         # "profession": original_data.get("profession"),
         "profession": getprofession(original_data.get("profession")),
@@ -11637,7 +11637,7 @@ class Search_byprofile_id(APIView):
 
         # Initialize the query with the base structure
         base_query = """
-        SELECT a.ProfileId, a.Profile_name, a.Profile_marital_status, a.Profile_dob, a.Profile_height, a.Profile_city, 
+        SELECT a.ProfileId, a.Profile_name, a.Profile_marital_status, a.Profile_dob, a.Profile_height, a.Profile_city, f.degree,f.other_degree,
                f.profession, f.highest_education, g.EducationLevel, d.star, h.income , e.birthstar_name , e.birth_rasi_name
                        ,a.Photo_protection,a.Gender        FROM logindetails a 
         LEFT JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
@@ -12235,7 +12235,7 @@ class Searchbeforelogin(APIView):
         # Initialize the query with the base structure
         base_query = """
         SELECT a.ProfileId, a.Profile_name, a.Profile_marital_status, a.Profile_dob, a.Profile_height, a.Profile_city, 
-               f.profession, f.highest_education, g.EducationLevel, d.star, h.income , e.birthstar_name , e.birth_rasi_name ,a.Photo_protection,a.Gender 
+               f.profession, f.highest_education,f.degree,f.other_degree g.EducationLevel, d.star, h.income , e.birthstar_name , e.birth_rasi_name ,a.Photo_protection,a.Gender 
         FROM logindetails a 
         JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
         JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
@@ -12390,8 +12390,7 @@ class JustRegisteredAPIView(APIView):
  
                 if field_id:
                     try:
-                        education_field_obj = models.Profilefieldstudy.objects.get(id=field_id)
-                        education_field= education_field_obj.field_of_study
+                        education_field=degree(education.degree,education.other_degree)
                     except models.Profilefieldstudy.DoesNotExist:
                         education_field = "Not available"
                 else:
@@ -14687,7 +14686,7 @@ def fetch_porutham_details(profile_from, profile_to):
 
         return {'porutham_results': porutham_results, 'matching_score': matching_score_fraction}
 
-    except models.Horoscope.DoesNotExist:
+    except Exception as e:
         porutham_names = models.Matchingporutham.objects.all()
         porutham_results = [{'porutham_name': porutham.protham_name, 'status': 'NO ✖'} for porutham in porutham_names]
         return {'porutham_results': porutham_results, 'matching_score': '0/10'}

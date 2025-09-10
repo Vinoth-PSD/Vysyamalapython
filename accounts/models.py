@@ -2559,7 +2559,9 @@ class Get_profiledata_Matching(models.Model):
                                 complexion=None, city=None, state=None, education=None,
                                 foreign_intrest=None, has_photos=None, height_from=None, height_to=None,
                                 matching_stars=None, min_anual_income=None, max_anual_income=None,
-                                membership=None,profile_name=None,father_alive=None,mother_alive=None,martial_status=None):
+                                membership=None,profile_name=None,father_alive=None,mother_alive=None,martial_status=None,
+                                mobile_no=None, profile_dob=None
+                                ):
 
         try:
             base_query = """
@@ -2770,6 +2772,25 @@ class Get_profiledata_Matching(models.Model):
             if mother_alive and mother_alive.strip().lower() in ['yes', 'no']:
                 base_query += " AND c.mother_alive = %s"
                 query_params.append(mother_alive.strip().lower())
+                
+            if mobile_no:
+                if len(mobile_no) == 10 :
+                    mobile_no = '91' + mobile_no
+                    base_query += " AND a.Mobile_no = %s"
+                    query_params.append(mobile_no)
+                elif len(mobile_no) == 12 and mobile_no.startswith('91'):  
+                    base_query += " AND a.Mobile_no = %s"
+                    query_params.append(mobile_no)
+                else:
+                    pass
+                
+            if profile_dob:
+                try:
+                    dob = datetime.strptime(profile_dob, '%Y-%m-%d').date()
+                    base_query += " AND a.Profile_dob = %s"
+                    query_params.append(dob)
+                except Exception:
+                    pass
             
             # Order by clause
             if order_by:
