@@ -1,0 +1,27 @@
+{% include 'pdf_templates/header2.html' %}
+  {% include 'pdf_templates/with_contact.html' %}
+  {% include 'pdf_templates/address.html' %}
+
+  {% include 'pdf_templates/horoscope_without_contact.html' %}
+  {% comment %} <div style="page-break-before: always;"></div>
+  {% include 'pdf_templates/matching_star_list.html' %}
+  <br/>
+  <br/> {% endcomment %}
+  <div style="page-break-before: always;"></div>
+{% if porutham_show %}
+  {% include 'pdf_templates/compatability_black.html' %}
+{% endif %}
+   {% include 'pdf_templates/horoscope_file.html' %}
+  <!-- Footer -->
+<style>
+  @page{
+    size: A4;
+    margin: 0;
+  }
+  .mt{
+    margin-top: 2rem;
+  }
+</style>
+  
+</body>
+</html>

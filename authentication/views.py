@@ -13529,12 +13529,11 @@ def get_degree_name(degree_ids, other_degree,highest_edu,field_ofstudy_id,about_
 def get_work_address(city, district, state, country):
     try:
         parts = []
-
-        if district:
-            parts.append(get_district_name(district))
-        else:
-            if city:
+        if city:
                 parts.append(city)
+        else:
+            if district:
+                parts.append(get_district_name(district))
         if state:
             parts.append(get_state_name(state))
         if country:

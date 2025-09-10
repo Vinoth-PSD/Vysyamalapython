@@ -1233,6 +1233,7 @@ class CommonProfileSearchSerializer(serializers.Serializer):
     whatsapp_field=serializers.CharField(required=False,allow_blank=True)
     mobile_no =serializers.CharField(required=False,allow_blank=True)
     profile_dob =serializers.CharField(required=False,allow_blank=True)
+    status =serializers.CharField(required=False,allow_blank=True)
     per_page = serializers.IntegerField(default=10)
     page_number = serializers.IntegerField(default=1)
 

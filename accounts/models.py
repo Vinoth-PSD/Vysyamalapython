@@ -1284,7 +1284,8 @@ class Get_profiledata_Matching(models.Model):
         city=None, state=None, education=None, foreign_intrest=None, has_photos=None,
         height_from=None, height_to=None,
         matching_stars=None, min_anual_income=None, max_anual_income=None, membership=None,ragu=None, chev=None,
-        father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None,field_of_study=None,degree=None
+        father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None,field_of_study=None,
+        degree=None,from_date=None,to_date=None
     ):
         try:
             profile = get_object_or_404(Registration1, ProfileId=profile_id)
@@ -1378,6 +1379,16 @@ class Get_profiledata_Matching(models.Model):
                     AND a.Profile_dob BETWEEN %s AND %s"""
 
             query_params = [profile_id, gender, profile_id, min_dob, max_dob]
+            
+            if from_date and to_date:
+                try:
+                    from_date_obj = datetime.strptime(from_date, '%Y-%m-%d').date()
+                    to_date_obj = datetime.strptime(to_date, '%Y-%m-%d').date()+ timedelta(days=1) - timedelta(seconds=1)
+                    base_query += " AND a.DateOfJoin BETWEEN %s AND %s"
+                    query_params.extend([from_date_obj, to_date_obj])
+                except ValueError:
+                    pass    
+            
             if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
                 base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"
                 query_params.append(str(my_suya_gothram_admin))
@@ -1753,9 +1764,8 @@ class Get_profiledata_Matching(models.Model):
                 SELECT DISTINCT a.*, e.birthstar_name, e.birth_rasi_name,
                  c.family_status,c.father_occupation,c.suya_gothram,e.calc_chevvai_dhosham,e.calc_raguketu_dhosham,
                     f.degree,f.other_degree, f.profession, f.highest_education,f.actual_income,f.anual_income,f.work_city,
-                    f.work_state,f.work_country,f.designation,f.company_name,
-                    g.EducationLevel, d.star, h.income
-                FROM logindetails a
+                    f.work_state,f.work_country,f.designation,f.business_name,f.company_name,f.nature_of_business,
+                    g.EducationLevel, d.star, h.income FROM logindetails a
                 JOIN profile_suggested_pref s ON a.ProfileId = s.profile_id 
                 JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
                 JOIN profile_familydetails c ON a.ProfileId = c.profile_id
@@ -2560,7 +2570,7 @@ class Get_profiledata_Matching(models.Model):
                                 foreign_intrest=None, has_photos=None, height_from=None, height_to=None,
                                 matching_stars=None, min_anual_income=None, max_anual_income=None,
                                 membership=None,profile_name=None,father_alive=None,mother_alive=None,martial_status=None,
-                                mobile_no=None, profile_dob=None
+                                mobile_no=None, profile_dob=None,status=None
                                 ):
 
         try:
@@ -2587,11 +2597,14 @@ class Get_profiledata_Matching(models.Model):
                     ) ranked_images
                     WHERE rn = 1
                 ) i ON i.profile_id = a.ProfileId
-                WHERE a.Status = 1
             """
 
             query_params = []
 
+            if status is not None:
+                base_query += " WHERE a.Status = %s"
+                query_params.append(status)
+                
             # profile_id and name search
             if search_profile_id:
                 base_query += " AND (a.ProfileId = %s OR a.Profile_name LIKE %s)"

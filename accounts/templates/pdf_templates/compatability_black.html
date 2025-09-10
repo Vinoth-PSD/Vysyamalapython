@@ -1,0 +1,144 @@
+<style>
+  .compatability-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 24px;
+    background-color: #ffffffff;
+    font-size: 14px;
+  }
+
+  .compatability-table th {
+    background-color: #ffffffff;
+    color: #000000;
+    font-size: 16px;
+    padding: 10px 10px;
+    text-align: center;
+    border: 1px solid #bcbcbc;
+  }
+
+  .compatability-table td {
+    padding: 10px;
+    text-align: center;
+    font-weight: 500;
+    border: 1px solid #bcbcbc;
+    color: #000000;
+  }
+
+  .compatability-table tr:nth-child(even) {
+    background-color: #ffffffff;
+  }
+
+  .matching-score {
+    font-size: 36px;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 10px;
+  }
+
+  .compatability-table td span {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .compatability-table td span {
+    color: #000000 !important;
+  }
+</style>
+
+<table  >
+  <tr>
+    <td  class="border-right ">
+
+      <h2 style="text-align: center; font-size:20px;">Marriage Compatibility Report</h2>
+
+      <table class="table-div ">
+        <tr>
+          <td class="border-right">
+            <p style="text-align: center;">{{my_name}} - {{my_profile_id}}</p>
+          </td>
+          <td class="border-right">
+            <p style="text-align: center;"> {{name}} - {{profile_id}}</p>
+          </td>
+        </tr>
+        <tr>
+          <td class="sub-header border-right">
+            <p style="text-align: center;"> {{birth_rasi_my}} - {{birth_star_my}}</p>
+          </td>
+          <td class="sub-header border-right">
+            <p style="text-align: center;"> {{birth_rasi}} - {{birth_star}}</p>
+          </td>
+        </tr>
+      </table>
+      <br>
+
+      <table class="table-div">
+        <tr>
+          <td class="data-row border-right">
+            <p style="text-align: center;"> Place of Birth : {{my_birth_place}}</p>
+          </td>
+          <td class="data-row border-right">
+            <p style="text-align: center;"> Place of Birth : {{birth_place}}</p>
+          </td>
+        </tr>
+        <tr>
+          <td class="data-row border-right">
+            <p style="text-align: center;"> Time of Birth : {{my_time_of_birth}}</p>
+          </td>
+          <td class="data-row border-right">
+            <p style="text-align: center;"> Time of Birth : {{birth_start}}</p>
+          </td>
+        </tr>
+        <tr>
+          <td class="data-row border-right">
+            <p style="text-align: center;"> Date Of Birth : {{my_dob}}</p>
+          </td>
+          <td class="data-row border-right">
+            <p style="text-align: center;"> Date Of Birth : {{dob}}</p>
+          </td>
+        </tr>
+      </table>
+      <br>
+
+      <table class="table-div">
+        <tr>
+          <td class="data-row border-right">
+            <p style="text-align: center;"> Height : {{my_height}}</p>
+          </td>
+          <td class="data-row border-right">
+            <p style="text-align: center;"> Height : {{height}}</p>
+
+          </td>
+        </tr>
+        <tr>
+          <td class="data-row border-right">
+            <p style="text-align: center;"> {{highest_education_my}}</p>
+          </td>
+          <td class="data-row border-right">
+            <p style="text-align: center;"> {{highest_education}}</p>
+          </td>
+        </tr>
+      </table>
+
+      <table class="porutham-page">
+        <tr>
+          <td>
+            <br />
+            <div class="compatability-page">
+              <h2 class="compatability-table-title" style="text-align: center;font-size:20px">
+                Nakshatra Porutham & Rasi Porutham
+              </h2>
+              <table class="compatability-table">
+                <tr>
+                  <th>Porutham Name</th>
+                  <th>Status</th>
+                  <th>Matching Score</th>
+                </tr>
+                {{porutham_rows | safe}}
+              </table>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </td>
+    </tr>
+  </table>
+    

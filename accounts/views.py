@@ -2452,6 +2452,42 @@ def calculate_idle_days(last_login_date):
             return "N/A"
     return "N/A"
 
+def get_profile_status(status_id, primary_status,sub_status):
+    status_list=[]
+    if status_id:
+        try:
+            status = ProfileStatus.objects.get(status_code=status_id)
+            status_list.append(status.status_name)
+        except Exception as e:
+            pass
+    if primary_status:
+        try:
+            prim_status=None
+            pri = ProfileSubStatus.objects.filter(status_code=status_id)
+            for p in pri:
+                if str(p.id) == str(primary_status):
+                    prim_status = p
+                    break
+            if prim_status:
+                status_list.append(prim_status.sub_status_name)
+        except Exception as e:
+            print("Error fetching primary status:", e)
+            pass
+    if sub_status:
+        try:
+            sub_status_obj=None
+            sub = PlanDetails.objects.filter(master_substatus=primary_status)
+            for s in sub:
+                if str(s.id) == str(sub_status):
+                    sub_status_obj = s
+                    break
+            if sub_status_obj:
+                status_list.append(sub_status_obj.plan_name)
+        except Exception as e:
+            print("Error fetching sub status:", e)
+            pass
+    return " / ".join(status_list) if status_list else "N/A"
+
 class GetProfEditDetailsAPIView(APIView):
     """
     This API view will fetch all profile-related details to populate the edit page based on ProfileId.
@@ -2640,6 +2676,7 @@ class GetProfEditDetailsAPIView(APIView):
                 # "payment_date":payment_date,
                 "payment_date": payment_date.strftime("%d-%m-%Y") if payment_date else None ,
                 "payment_mode":payment_mode,
+                "profile_status": get_profile_status(login_detail.status,login_detail.primary_status,login_detail.secondary_status),
                 "add_on_pack_name":", ".join(
     Addonpackages.objects.filter(
         package_id__in=[package_id.strip() for package_id in login_detail.Addon_package.split(",")] if login_detail.Addon_package else []
@@ -3886,7 +3923,7 @@ class Get_prof_list_match(APIView):
                 'action': 'Express Interest Accepted',
                 'datetime': express_interest_accepted.req_datetime
             })
-        express_interest_rejected = Express_interests.objects.filter(profile_from=profile_from, profile_to=profile_to,status=2).first()
+        express_interest_rejected = Express_interests.objects.filter(profile_from=profile_from, profile_to=profile_to,status=3).first()
         if express_interest_rejected:
             score += 1
             actions.append({
@@ -3922,7 +3959,7 @@ class Get_prof_list_match(APIView):
         if photo_request_received:
             score += 1
             actions.append({
-                'action': 'Photo Request Sent',
+                'action': 'Photo Request Received',
                 'datetime': photo_request_received.req_datetime
             })
 
@@ -3996,7 +4033,9 @@ class Get_prof_list_match(APIView):
             family_status=request.data.get('family_status'),
             whatsapp_field=request.data.get('whatsapp_field'),
             field_of_study=request.data.get('pref_fieldof_study'),
-            degree = request.data.get('degree')
+            degree = request.data.get('degree'),
+            from_date=request.data.get('from_dateofjoin'),
+            to_date=request.data.get('to_dateofjoin')
         )
 
         if not profile_details:
@@ -4028,7 +4067,7 @@ class Get_prof_list_match(APIView):
                 "anual_income":get_annual_income(detail.get("anual_income"),detail.get("actual_income")),
                 "star": detail.get("star"),
                 "profession": getprofession(detail.get("profession")),
-                "city": detail.get("Profile_city"),
+                "city": detail.get("Profile_city") if detail.get("Profile_city") not in [None,"0", "N/A","~"] else "N/A",
                 "state": get_state_name(detail.get("Profile_state")) if detail.get("Profile_state") not in [None,"0", "N/A","~"] else "N/A",
                 "work_place": get_location(detail.get("work_city"),detail.get("work_state"),detail.get("work_country")),
                 "designation": get_designation_or_nature(detail.get("designation"),detail.get("nature_of_business")),
@@ -4206,10 +4245,11 @@ class Get_suggest_list_match(APIView):
                                 # "degree": degree(detail.get("degree"),detail.get("other_degree")),
                                 "star":detail.get("star"),
                                 "profession": getprofession(detail.get("profession")),
-                                "city/State": get_location(detail.get("Profile_city"),detail.get("Profile_state"),detail.get("Profile_country")),
+                                "city": detail.get("Profile_city") if detail.get("Profile_city") not in [None,"0", "N/A","~"] else "N/A",
+                                "state": get_state_name(detail.get("Profile_state")) if detail.get("Profile_state") not in [None,"0", "N/A","~"] else "N/A",
                                 "work_place": get_location(detail.get("work_city"),detail.get("work_state"),detail.get("work_country")),
-                                "designation": detail.get("designation") if detail.get("designation") not in [None,"0", "N/A","~"] else "N/A",
-                                "company_name": detail.get("company_name") if detail.get("company_name") not in [None,"0", "N/A","~"] else "N/A",
+                                "designation": get_designation_or_nature(detail.get("designation"),detail.get("nature_of_business")),
+                                "company_name": get_company_or_business(detail.get("company_name"),detail.get("business_name")),
                                 "father_occupation":detail.get("father_occupation") if detail.get("father_occupation") not in [None,"0", "N/A","~"] else "N/A",
                                 "suya_gothram": detail.get("suya_gothram") if detail.get("suya_gothram") not in [None,"0", "N/A","~"] else "N/A",
                                 "chevvai":get_dhosham(detail.get("calc_chevvai_dhosham")),
@@ -4219,6 +4259,7 @@ class Get_suggest_list_match(APIView):
                                 #"profile_image":"http://matrimonyapp.rainyseasun.com/assets/Bride-BEuOb3-D.png",
                                 "wish_list":Get_wishlist(profile_id,detail.get("ProfileId")),
                                 "verified":detail.get('Profile_verified'),
+                                "dateofjoin": detail.get("DateOfJoin") if detail.get("DateOfJoin") else None,
                             }
                             for detail in paginated_profiles
                         ]
@@ -4512,7 +4553,8 @@ def get_degree(degeree):
 
 def getprofession(profession):
 
-    # print('degeree',degeree)
+    if profession in [None,"0", "N/A","~"," ",'']:
+        return "N/A"
 
     try:
         
@@ -7781,12 +7823,11 @@ def cm_to_feet_inches(cm):
 def get_work_address(city, district, state, country):
     try:
         parts = []
-
-        if district:
-            parts.append(get_district_name(district))
-        else:
-            if city:
+        if city:
                 parts.append(city)
+        else:
+            if district:
+                parts.append(get_district_name(district))
         if state:
             parts.append(get_state_name(state))
         if country:
@@ -8021,10 +8062,8 @@ class AdminProfilePDFView(APIView):
         amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))   
         dasa_day = dasa_month = dasa_year = 0
         dasa_balance_str=dasa_format_date(horoscope_data.dasa_balance)
-        print('dasa_balance_str',dasa_balance_str)
         match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
         if match:
-            print('match',match.groups())
             dasa_year, dasa_month, dasa_day = match.groups()  
             
         date =  format_date_of_birth(login.Profile_dob)
@@ -8315,24 +8354,41 @@ class AdminMatchProfilePDFView(APIView):
                 birth_time=format_time_am_pm(horoscope_data.time_of_birth)
                 my_birth_time=format_time_am_pm(horoscope_my.time_of_birth)
                 horo_hint = horoscope_data.horoscope_hints or "N/A"
+                valid_rows = []
                 # Define the HTML content with custom styles
                 porutham_rows = ""
-                for idx, porutham in enumerate(porutham_data['porutham_results']):
+                for porutham in porutham_data['porutham_results']:
+                    if 'porutham_name' not in porutham or 'status' not in porutham:
+                        continue  # skip invalid rows
+                    valid_rows.append(porutham)
+
+                # Step 2: Use actual count for rowspan
+                rowspan_count = len(valid_rows)
+
+                # Step 3: Build HTML rows
+                for idx, porutham in enumerate(valid_rows):
                     extra_td = ""
                     if idx == 0:
                         extra_td = (
-                            f"<td rowspan='{len(porutham_data['porutham_results'])}'>"
+                            f"<td rowspan='{rowspan_count}'>"
                             f"<p class='matching-score'>{porutham_data['matching_score']}</p>"
                             f"<p style='font-weight:500; font-size:13px;'>Please check with your astrologer for detailed compatibility.</p>"
                             f"<p style='margin-top:10px;'>Jai Vasavi</p>"
                             f"</td>"
                         )
+
+                    # Color logic
+                    span_color = 'green' if porutham['status'].startswith('YES') else 'red'
+                    if format_type not in ["match_compatability_color", "match_compatability_without_horo"]:
+                        span_color = 'black'
+
                     porutham_rows += (
                         f"<tr>"
                         f"<td>{porutham['porutham_name']}</td>"
-                        f"<td><span style='color: {'green' if porutham['status'].startswith('YES') else 'red'};'>{porutham['status']}</span></td>"
+                        f"<td><span style='color: {span_color};'>{porutham['status']}</span></td>"
                         f"{extra_td}"
-                        f"</tr>")
+                        f"</tr>"
+                    )
 
                 porutham_show=True
                 if porutham_data['matching_score']=='0/10' or porutham_data['matching_score']=='0' or porutham_data['matching_score']=='0.0' or porutham_data['matching_score']=='10/10' or porutham_data['matching_score']==0.0:
@@ -8459,11 +8515,12 @@ class AdminMatchProfilePDFView(APIView):
                 }
 
                 template_map = {
-                    "match_with_contact": "with_contact_only.html",
-                    "match_without_contact": "without_contact_only.html",
-                    "match_with_horo_link": "with_contact_horo_without_address.html",
-                    "match_with_horo_match_stars": "with_contact_horo_with_star_porutham.html",
-                    "match_short_profile": "short_profile.html",
+                    "match_full_profile": "full_profile.html",
+                    "match_full_profile_black": "full_profile_black.html",
+                    "match_compatability_color": "compatability_color.html",
+                    "match_compatability_black": "compatability_black.html",
+                    "match_compatability_without_horo": "compatability_only.html",
+                    "match_compatability_without_horo_black": "compatability_only_black.html",
                 }
 
                 if format_type not in template_map:
