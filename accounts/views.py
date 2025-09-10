@@ -3842,6 +3842,22 @@ def get_dhosham(dhosham_id):
         return "No"
     else:
         return "N/A"
+    
+def get_designation_or_nature(des,nature):
+    if des and des not in [None,"0", "N/A","~"]:
+        return des
+    elif nature and nature not in [None,"0", "N/A","~"]:
+        return nature
+    else:
+        return "N/A"
+    
+def get_company_or_business(des,nature):
+    if des and des not in [None,"0", "N/A",""]:
+        return des
+    elif nature and nature not in [None,"0", "N/A",""]:
+        return nature
+    else:
+        return "N/A"
 
 class Get_prof_list_match(APIView):
 
@@ -4012,10 +4028,11 @@ class Get_prof_list_match(APIView):
                 "anual_income":get_annual_income(detail.get("anual_income"),detail.get("actual_income")),
                 "star": detail.get("star"),
                 "profession": getprofession(detail.get("profession")),
-                "city/State": get_location(detail.get("Profile_city"),detail.get("Profile_state"),detail.get("Profile_country")),
+                "city": detail.get("Profile_city"),
+                "state": get_state_name(detail.get("Profile_state")) if detail.get("Profile_state") not in [None,"0", "N/A","~"] else "N/A",
                 "work_place": get_location(detail.get("work_city"),detail.get("work_state"),detail.get("work_country")),
-                "designation": detail.get("designation") if detail.get("designation") not in [None,"0", "N/A","~"] else "N/A",
-                "company_name": detail.get("company_name") if detail.get("company_name") not in [None,"0", "N/A","~"] else "N/A",
+                "designation": get_designation_or_nature(detail.get("designation"),detail.get("nature_of_business")),
+                "company_name": get_company_or_business(detail.get("company_name"),detail.get("business_name")),
                 "father_occupation":detail.get("father_occupation") if detail.get("father_occupation") not in [None,"0", "N/A","~"] else "N/A",
                 "suya_gothram": detail.get("suya_gothram") if detail.get("suya_gothram") not in [None,"0", "N/A","~"] else "N/A",
                 "chevvai":get_dhosham(detail.get("calc_chevvai_dhosham")),
@@ -4025,6 +4042,7 @@ class Get_prof_list_match(APIView):
                 "wish_list": Get_wishlist(profile_id, detail.get("ProfileId")),
                 "verified": detail.get('Profile_verified'),
                 "action_score": self.get_action_score(profile_id, detail.get("ProfileId")),
+                "dateofjoin": detail.get("DateOfJoin") if detail.get("DateOfJoin") else None,
             })
 
         return JsonResponse({
@@ -8003,8 +8021,10 @@ class AdminProfilePDFView(APIView):
         amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))   
         dasa_day = dasa_month = dasa_year = 0
         dasa_balance_str=dasa_format_date(horoscope_data.dasa_balance)
+        print('dasa_balance_str',dasa_balance_str)
         match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
         if match:
+            print('match',match.groups())
             dasa_year, dasa_month, dasa_day = match.groups()  
             
         date =  format_date_of_birth(login.Profile_dob)

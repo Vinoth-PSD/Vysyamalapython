@@ -1356,7 +1356,7 @@ class Get_profiledata_Matching(models.Model):
                         c.family_status,c.father_occupation,c.suya_gothram,e.calc_chevvai_dhosham,e.calc_raguketu_dhosham,
                         a.Profile_height, e.birthstar_name, e.birth_rasi_name, f.degree,f.other_degree,
                         f.profession, f.highest_education,f.actual_income,f.anual_income,f.work_city,
-                        f.work_state,f.work_country,f.designation,f.company_name,g.EducationLevel, d.star, h.income,
+                        f.work_state,f.work_country,f.designation,f.company_name,f.business_name,f.nature_of_business,g.EducationLevel, d.star, h.income,
                         v.viewed_profile,
                         pi.first_image_id AS has_image
                     FROM logindetails a
