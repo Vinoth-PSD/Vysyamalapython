@@ -2579,7 +2579,7 @@ class Get_profiledata_Matching(models.Model):
                     a.Profile_name, a.Profile_dob, a.Profile_height,
                     e.birthstar_name, e.birth_rasi_name,
                     f.degree,f.other_degree, f.profession, g.EducationLevel, 
-                    h.income, i.image
+                    h.income, (SELECT image FROM profile_images WHERE profile_id = a.ProfileId LIMIT 1) as image
                 FROM logindetails a
                 LEFT JOIN profile_horoscope e ON a.ProfileId = e.profile_id
                 LEFT JOIN profile_familydetails c ON a.ProfileId = c.profile_id
@@ -2587,24 +2587,21 @@ class Get_profiledata_Matching(models.Model):
                 LEFT JOIN mastereducation g ON f.highest_education = g.RowId
                 LEFT JOIN masterannualincome h ON f.anual_income = h.id
                 LEFT JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
-                LEFT JOIN (
-                    SELECT *
-                    FROM (
-                        SELECT *,
-                            ROW_NUMBER() OVER (PARTITION BY profile_id ORDER BY id ASC) AS rn
-                        FROM profile_images
-                        WHERE image_approved = 1 AND is_deleted = 0
-                    ) ranked_images
-                    WHERE rn = 1
-                ) i ON i.profile_id = a.ProfileId
+                LEFT JOIN profile_images i ON i.profile_id=a.ProfileId
+                WHERE 1 
             """
 
             query_params = []
 
-            if status is not None:
-                base_query += " WHERE a.Status = %s"
-                query_params.append(status)
-                
+            if status is not None and status != '':
+                try:
+                    status = int(status)  # convert to integer safely
+                    base_query += " AND a.Status = %s"
+                    query_params.append(status)
+                except ValueError:
+                    # If status cannot be converted to int, ignore this filter
+                    pass
+        
             # profile_id and name search
             if search_profile_id:
                 base_query += " AND (a.ProfileId = %s OR a.Profile_name LIKE %s)"
@@ -2800,8 +2797,9 @@ class Get_profiledata_Matching(models.Model):
             if profile_dob:
                 try:
                     dob = datetime.strptime(profile_dob, '%Y-%m-%d').date()
-                    base_query += " AND a.Profile_dob = %s"
-                    query_params.append(dob)
+                    base_query += " AND YEAR(a.Profile_dob) = %s AND MONTH(a.Profile_dob) = %s"
+                    query_params.append(dob.year)
+                    query_params.append(dob.month)
                 except Exception:
                     pass
             
@@ -2815,6 +2813,10 @@ class Get_profiledata_Matching(models.Model):
                         base_query += " ORDER BY a.DateOfJoin DESC"
                 except:
                     pass
+
+       
+
+            # print("MySQL Executable Query:", format_sql_for_debug_new(base_query, query_params))
 
             # Count total
             count_query = f"""SELECT COUNT(*) FROM ({base_query}) AS total"""
@@ -2842,6 +2844,22 @@ class Get_profiledata_Matching(models.Model):
             print(f"[get_common_profile_list] ERROR: {str(ex)}")
             return [], 0, {}
 
+
+
+
+def format_sql_for_debug_new(query, params):
+                def escape(value):
+                    if isinstance(value, str):
+                        return f"'{value}'"
+                    elif value is None:
+                        return 'NULL'
+                    else:
+                        return str(value)
+                try:
+                    return query % tuple(map(escape, params))
+                except Exception as e:
+                    print("Error formatting query:", e)
+                    return query
 
 class MatchingStarPartner(models.Model):
     # Define your model fields here
