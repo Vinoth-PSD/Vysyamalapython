@@ -13,15 +13,17 @@
     font-size: 16px;
     padding: 10px 10px;
     text-align: center;
-    border: 1px solid #bcbcbc;
+    border: 1px solid #000000;
   }
 
   .compatability-table td {
     padding: 10px;
     text-align: center;
     font-weight: 500;
-    border: 1px solid #bcbcbc;
+    border: 1px solid #000000;
     color: #000000;
+    padding: 5px 10px;
+
   }
 
   .compatability-table tr:nth-child(even) {
@@ -42,15 +44,39 @@
   .compatability-table td span {
     color: #000000 !important;
   }
+  .report-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #ffffff;
+    border:1px solid #000000;
+
+}
+.report-table  tr {
+    background-color: #ffffff;
+    border:1px solid #000000;
+
+}
+.report-table  tr  td{
+    background-color: #ffffff;
+    color:#000000;
+    border:1px solid #000000;
+    padding: 5px 0px;
+}
+.report-table  tr  td p{
+    background-color: #ffffff;
+    color:#000000;
+
+}
 </style>
 
-<table  >
+<table  class="porutham-page">
   <tr>
     <td  class="border-right ">
+      <br>
 
       <h2 style="text-align: center; font-size:20px;">Marriage Compatibility Report</h2>
 
-      <table class="table-div ">
+      <table class="table-div report-table" >
         <tr>
           <td class="border-right">
             <p style="text-align: center;">{{my_name}} - {{my_profile_id}}</p>
@@ -70,7 +96,8 @@
       </table>
       <br>
 
-      <table class="table-div">
+
+      <table class="table-div report-table">
         <tr>
           <td class="data-row border-right">
             <p style="text-align: center;"> Place of Birth : {{my_birth_place}}</p>
@@ -98,7 +125,7 @@
       </table>
       <br>
 
-      <table class="table-div">
+      <table class="table-div report-table">
         <tr>
           <td class="data-row border-right">
             <p style="text-align: center;"> Height : {{my_height}}</p>

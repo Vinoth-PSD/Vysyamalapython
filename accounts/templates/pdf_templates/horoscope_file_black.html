@@ -1,0 +1,28 @@
+{% if horoscope_content_admin  == "empty"  %}
+<br>
+<div class="upload-horo-bg">
+  <img
+    src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png"
+  />
+</div>
+
+{% else %}
+  
+  <div style="page-break-before: always;"></div>
+<div class="upload-horo-bg">
+  <img
+    src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader-bg-white.png"
+  />
+</div>
+
+<table class="upload-horo-image">
+  <tr>
+    <td>{{horoscope_content_admin|safe}}</td>
+  </tr>
+</table>
+<div class="upload-horo-bg">
+  <img
+    src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png"
+  />
+</div>
+{% endif %}

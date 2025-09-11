@@ -1,8 +1,8 @@
 {% include 'pdf_templates/header2.html' %}
-  {% include 'pdf_templates/with_contact.html' %}
-  {% include 'pdf_templates/address.html' %}
+  {% include 'pdf_templates/with_contact_black.html' %}
+  {% include 'pdf_templates/address_black.html' %}
 
-  {% include 'pdf_templates/horoscope_without_contact.html' %}
+  {% include 'pdf_templates/horoscope_with_contact_black.html' %}
   {% comment %} <div style="page-break-before: always;"></div>
   {% include 'pdf_templates/matching_star_list.html' %}
   <br/>
@@ -11,7 +11,7 @@
 {% if porutham_show %}
   {% include 'pdf_templates/compatability_black.html' %}
 {% endif %}
-   {% include 'pdf_templates/horoscope_file.html' %}
+   {% include 'pdf_templates/horoscope_file_black.html' %}
   <!-- Footer -->
 <style>
   @page{
