@@ -2783,17 +2783,30 @@ class Get_profiledata_Matching(models.Model):
                 base_query += " AND c.mother_alive = %s"
                 query_params.append(mother_alive.strip().lower())
                 
+            # if mobile_no:
+            #     if len(mobile_no) == 10 :
+            #         mobile_no = '91' + mobile_no
+            #         base_query += " AND a.Mobile_no = %s"
+            #         query_params.append(mobile_no)
+            #     elif len(mobile_no) == 12 and mobile_no.startswith('91'):  
+            #         base_query += " AND a.Mobile_no = %s"
+            #         query_params.append(mobile_no)
+            #     else:
+            #         pass
+            
             if mobile_no:
-                if len(mobile_no) == 10 :
-                    mobile_no = '91' + mobile_no
-                    base_query += " AND a.Mobile_no = %s"
-                    query_params.append(mobile_no)
-                elif len(mobile_no) == 12 and mobile_no.startswith('91'):  
-                    base_query += " AND a.Mobile_no = %s"
-                    query_params.append(mobile_no)
-                else:
-                    pass
-                
+                    # Clean the mobile number - keep only digits
+                    cleaned_mobile = ''.join(filter(str.isdigit, mobile_no))
+                    
+                    if cleaned_mobile:
+                        base_query += """
+                            AND (a.Mobile_no LIKE %s 
+                                OR a.Profile_alternate_mobile LIKE %s 
+                                OR a.Profile_mobile_no LIKE %s)
+                        """
+                        like_pattern = f'%{cleaned_mobile}%'
+                        query_params.extend([like_pattern, like_pattern, like_pattern]) 
+
             if profile_dob:
                 try:
                     dob = datetime.strptime(profile_dob, '%Y-%m-%d').date()
