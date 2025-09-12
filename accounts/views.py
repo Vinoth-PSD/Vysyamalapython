@@ -2454,13 +2454,14 @@ def calculate_idle_days(last_login_date):
 
 def get_profile_status(status_id, primary_status,sub_status):
     status_list=[]
-    if status_id:
+    print(status_id,primary_status,sub_status,'status details')
+    if status_id or status_id==0:
         try:
             status = ProfileStatus.objects.get(status_code=status_id)
             status_list.append(status.status_name)
         except Exception as e:
             pass
-    if primary_status:
+    if primary_status or primary_status==0:
         try:
             prim_status=None
             pri = ProfileSubStatus.objects.filter(status_code=status_id)
@@ -2473,7 +2474,7 @@ def get_profile_status(status_id, primary_status,sub_status):
         except Exception as e:
             print("Error fetching primary status:", e)
             pass
-    if sub_status:
+    if sub_status or sub_status==0:
         try:
             sub_status_obj=None
             sub = PlanDetails.objects.filter(master_substatus=primary_status)
@@ -7836,6 +7837,13 @@ def get_work_address(city, district, state, country):
         return "-".join(parts) if parts else "N/A"
     except Exception:
         return " "
+    
+def is_valid_file(url):
+    try:
+        response = requests.head(url, timeout=3)
+        return response.status_code == 200
+    except requests.RequestException:
+        return False
 
 class AdminProfilePDFView(APIView):
     def get(self, request, profile_id=None, pdf_format=None):
@@ -7971,20 +7979,25 @@ class AdminProfilePDFView(APIView):
 
         if horoscope_data.horoscope_file:
                     horoscope_image_url = horoscope_data.horoscope_file.url
-            
-                    if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                        horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
+                    if is_valid_file(horoscope_image_url):
+                        if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                            horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
+                        else:
+                            horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                     else:
-                        horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
+                        horoscope_content = "empty"
         else:
             horoscope_content = "empty"
             
         if horoscope_data.horoscope_file_admin:
                     horoscope_image_url = horoscope_data.horoscope_file_admin.url
-                    if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                        horoscope_content_admin = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
+                    if is_valid_file(horoscope_image_url):
+                        if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                            horoscope_content_admin = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
+                        else:
+                            horoscope_content_admin = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                     else:
-                        horoscope_content_admin = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
+                        horoscope_content_admin = "empty"
         else:
             horoscope_content_admin = "empty"
                 # Get matching stars data
@@ -8310,18 +8323,24 @@ class AdminMatchProfilePDFView(APIView):
 
                 if horoscope_data.horoscope_file:
                     horoscope_image_url = horoscope_data.horoscope_file.url
-                    if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                        horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 100%; height: auto;">'
+                    if is_valid_file(horoscope_image_url):
+                        if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                            horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 100%; height: auto;">'
+                        else:
+                            horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                     else:
-                        horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
+                        horoscope_content = "empty"
                 else:
                     horoscope_content = "empty"
                 if horoscope_data.horoscope_file_admin:
                     horoscope_image_url = horoscope_data.horoscope_file_admin.url
-                    if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                        horoscope_content_admin = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 100%; height: auto;">'
+                    if is_valid_file(horoscope_image_url):
+                        if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                            horoscope_content_admin = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 100%; height: auto;">'
+                        else:
+                            horoscope_content_admin = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                     else:
-                        horoscope_content_admin = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
+                        horoscope_content_admin = "empty"
                 else:
                     horoscope_content_admin = "empty"
                 birthstar = safe_get_value(models.BirthStar, 'id', horoscope_data.birthstar_name, 'star')
@@ -8393,7 +8412,7 @@ class AdminMatchProfilePDFView(APIView):
                 porutham_show=True
                 if porutham_data['matching_score']=='0/10' or porutham_data['matching_score']=='0' or porutham_data['matching_score']=='0.0' or porutham_data['matching_score']=='10/10' or porutham_data['matching_score']==0.0:
                     porutham_show= False
-                print("porutham show:",porutham_show) 
+                # print("porutham show:",porutham_show) 
                 def format_star_names(poruthams):
                     if not poruthams:
                         return "N/A"
