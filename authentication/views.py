@@ -3541,96 +3541,141 @@ class My_profile_visit(APIView):
 
 
 class My_viewed_profiles(APIView):
-
     def post(self, request):
         serializer = serializers.Profile_idValidationSerializer(data=request.data)
 
         if serializer.is_valid():
             profile_id = serializer.validated_data.get('profile_id')
             page = int(request.data.get('page_number', 1))
-            per_page = int(request.data.get('per_page', 10)) 
+            per_page = int(request.data.get('per_page', 10))
+
             try:
-                
-                all_profiles = models.Profile_visitors.objects.filter(profile_id=profile_id)
-                all_profile_ids = {str(index + 1): profile_id for index, profile_id in enumerate(all_profiles.values_list('viewed_profile', flat=True))}
+                #  Ensure all_profiles are ordered by datetime DESC
+                all_profiles = (
+                    models.Profile_visitors.objects
+                    .filter(profile_id=profile_id)
+                    .order_by('-datetime')
+                )
+
+                all_profile_ids = {
+                    str(index + 1): p_id
+                    for index, p_id in enumerate(
+                        all_profiles.values_list('viewed_profile', flat=True)
+                    )
+                }
 
                 total_records = all_profiles.count()
-
                 start = (page - 1) * per_page
                 end = start + per_page
-                
-                
-                fetch_data = models.Profile_visitors.objects.filter(profile_id=profile_id)[start:end]
+
+                #  Ensure pagination respects ordering
+                fetch_data = all_profiles[start:end]
+
                 if fetch_data.exists():
-                    profile_ids = fetch_data.values_list('viewed_profile', flat=True)
+                    # profile_ids = list(fetch_data.values_list('viewed_profile', flat=True))
+
+                    # #  Pass ordered profile_ids (preserves ordering)
+                    # profile_details = get_profile_details(profile_ids)
+
+                    profile_ids = list(fetch_data.values_list('viewed_profile', flat=True))
                     profile_details = get_profile_details(profile_ids)
-                    
-                    # viewed_profile_count_cont = {'status': 1,'profile_id':profile_id}
-                    # viewed_profile_count = count_records(models.Profile_visitors, viewed_profile_count_cont)
-                    
-                    profile_data =  models.Registration1.objects.get(ProfileId=profile_id)
-                    
-                    horo_data=models.Horoscope.objects.get(profile_id=profile_id)
+
+                    profile_datetimes = get_profile_view_datetimes(profile_id, profile_ids)
 
 
-                    my_star_id=horo_data.birthstar_name
-                    my_rasi_id=horo_data.birth_rasi_name
-            
-                    my_gender=profile_data.Gender
-                    my_status=profile_data.Status
+                    profile_data = models.Registration1.objects.get(ProfileId=profile_id)
+                    horo_data = models.Horoscope.objects.get(profile_id=profile_id)
 
-                    photo_viewing=get_permission_limits(profile_id,'photo_viewing')
-               
-                    if photo_viewing == 1 and my_status!= 0:
-                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
+                    my_star_id = horo_data.birthstar_name
+                    my_rasi_id = horo_data.birth_rasi_name
+                    my_gender = profile_data.Gender
+                    my_status = profile_data.Status
+
+                    photo_viewing = get_permission_limits(profile_id, 'photo_viewing')
+
+                    if photo_viewing == 1 and my_status != 0:
+                        image_function = lambda detail: get_profile_image_azure_optimized(
+                            detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection")
+                        )
                     else:
-                        image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
+                        image_function = lambda detail: get_profile_image_azure_optimized(
+                            detail.get("ProfileId"), my_gender, 1, 1
+                        )
 
                     restricted_profile_details = [
                         {
                             "visited_profileid": detail.get("ProfileId"),
                             "visited_profile_name": detail.get("Profile_name"),
-                            # "visited_Profile_img": 'http://matrimonyapp.rainyseasun.com/assets/Groom-Cdjk7JZo.png',
-                            # "visited_Profile_img": Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),
                             "visited_Profile_img": image_function(detail),
                             "visited_profile_age": calculate_age(detail.get("Profile_dob")),
-                            "visited_verified":detail.get("Profile_verified"),
-                            "visited_height":detail.get("Profile_height"),
-                            "visited_star":detail.get("star_name"),
-                            "visited_profession":getprofession(detail.get("profession")),
-                            "visited_city":detail.get("Profile_city"),
-                            "visited_degree":degree(detail.get("degree") if isinstance(detail, dict) else None,detail.get("other_degree") if isinstance(detail, dict) else None),
-                            "visited_match_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
-                            "visited_views":count_records(models.Profile_visitors, {'status': 1,'viewed_profile':detail.get("ProfileId")}),
+                            "visited_verified": detail.get("Profile_verified"),
+                            "visited_height": detail.get("Profile_height"),
+                            "visited_star": detail.get("star_name"),
+                            "visited_profession": getprofession(detail.get("profession")),
+                            "visited_city": detail.get("Profile_city"),
+                            "visited_degree": degree(
+                                detail.get("degree") if isinstance(detail, dict) else None,
+                                detail.get("other_degree") if isinstance(detail, dict) else None
+                            ),
+                            "visited_match_score": Get_matching_score(
+                                my_star_id,
+                                my_rasi_id,
+                                detail.get("birthstar_name"),
+                                detail.get("birth_rasi_name"),
+                                my_gender
+                            ),
+                            "visited_views": count_records(models.Profile_visitors, {'status': 1, 'viewed_profile': detail.get("ProfileId")}),
                             "visited_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
                             "visited_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "visited_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
-                            "visited_profile_wishlist":Get_wishlist(profile_id,detail.get("ProfileId")),
-                            
+                            "visited_profile_wishlist": Get_wishlist(profile_id, detail.get("ProfileId")),
                         }
                         for detail in profile_details
                     ]
-                    
-                    #serialized_fetch_data = serializers.ExpressintrSerializer(fetch_data, many=True).data
-                    #serialized_profile_details = serializers.ProfileDetailsSerializer(profile_details, many=True).data
+
+                    restricted_profile_details.sort(key=lambda x: profile_datetimes.get(x["visited_profileid"]),reverse=True)
 
                     combined_data = {
-                        #"interests": serialized_fetch_data,
                         "profiles": restricted_profile_details,
                         "page": page,
                         "per_page": per_page,
-                        "total_pages": (total_records + per_page - 1) // per_page,  # Calculate total pages
+                        "total_pages": (total_records + per_page - 1) // per_page,
                         "total_records": total_records,
-                        "all_profile_ids":all_profile_ids
+                        "all_profile_ids": all_profile_ids,
                     }
 
-                    return JsonResponse({"Status": 1, "message": "Fetched viewed profile  lists successfully", "data": combined_data,"viewed_profile_count":total_records}, status=status.HTTP_200_OK)
-                else:
-                    return JsonResponse({"Status": 0, "message": "No viewed profiles found for the given profile ID"}, status=status.HTTP_200_OK)
-            except models.Express_interests.DoesNotExist:
-                return JsonResponse({"Status": 0, "message": "No viewed profiles found for the given profile ID"}, status=status.HTTP_200_OK)
-        else:
-            return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(
+                        {"Status": 1, "message": "Fetched viewed profile lists successfully",
+                         "data": combined_data, "viewed_profile_count": total_records},
+                        status=status.HTTP_200_OK
+                    )
+
+                return JsonResponse(
+                    {"Status": 0, "message": "No viewed profiles found for the given profile ID"},
+                    status=status.HTTP_200_OK
+                )
+
+            except models.Profile_visitors.DoesNotExist:
+                return JsonResponse(
+                    {"Status": 0, "message": "No viewed profiles found for the given profile ID"},
+                    status=status.HTTP_200_OK
+                )
+
+        return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+def get_profile_view_datetimes(profile_id, profile_ids):
+    """
+    Returns a dict mapping viewed_profile -> datetime for the given profile_id
+    Example: {"VF1234": datetime(...), "VF5678": datetime(...)}
+    """
+    visitors = models.Profile_visitors.objects.filter(
+        profile_id=profile_id,
+        viewed_profile__in=profile_ids
+    ).values('viewed_profile', 'datetime')
+
+    return {v['viewed_profile']: v['datetime'] for v in visitors}
 
 
 
