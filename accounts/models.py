@@ -1286,6 +1286,7 @@ class Get_profiledata_Matching(models.Model):
         father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None,field_of_study=None,
         degree=None,from_date=None,to_date=None ,action_type=None , status=None
     ):
+        print('action_type 123',action_type,'status 123',status)
         try:
             profile = get_object_or_404(Registration1, ProfileId=profile_id)
             current_age = calculate_age(profile.Profile_dob)
@@ -1394,9 +1395,9 @@ class Get_profiledata_Matching(models.Model):
                 statuses = [s.strip() for s in str(family_status).split(',') if s.strip()]
                 if statuses:
                     status_filters = []
-                    for status in statuses:
+                    for status_f in statuses:
                         status_filters.append("FIND_IN_SET(%s, c.family_status) > 0")
-                        query_params.append(status)
+                        query_params.append(status_f)
                     family_status_conditions.append("(" + " OR ".join(status_filters) + ")")
 
             if family_status_conditions:
@@ -1413,7 +1414,7 @@ class Get_profiledata_Matching(models.Model):
                     base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
                     query_params.append(matching_stars.strip())
                 except Exception as e:
-                    print("⚠️ Error processing matching_stars:", e)
+                    print(" Error processing matching_stars:", e)
             else :
                 if porutham_star_rasi and porutham_star_rasi.strip():
                     base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
@@ -1580,6 +1581,8 @@ class Get_profiledata_Matching(models.Model):
                     base_query += " AND c.mother_alive = 'no'"
             
             if status is not None:
+                print('status is not none')
+                print('status is',status)
                 if status == "unsent":
                     action_filter = "" if action_type == "all" else "AND sp.action_type = %s"
                     base_query += """
@@ -1595,6 +1598,7 @@ class Get_profiledata_Matching(models.Model):
                         query_params.append(action_type)
 
                 elif status == "sent":
+                    print('status is sent')
                     action_filter = "" if action_type == "all" else "AND sp.action_type = %s"
                     base_query += """
                     AND EXISTS (
