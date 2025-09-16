@@ -9427,8 +9427,10 @@ class GetMyProfilePartner(APIView):
             return JsonResponse({"status": "error", "message": "Partner preferences not found for this profile ID"}, status=status.HTTP_404_NOT_FOUND)
 
         partner_serializer = serializers.ParPrefSerializer(partner_preferences)
-
-        education_ids = partner_serializer.data.get("pref_education", "").split(',')
+        try:
+            education_ids = partner_serializer.data.get("pref_education", "").split(',')
+        except Exception as e:
+            education_ids = []
         education_names = []
 
         for education_id in education_ids:
