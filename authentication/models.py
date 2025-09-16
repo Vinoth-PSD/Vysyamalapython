@@ -1175,18 +1175,18 @@ class Get_profiledata(models.Model):
                         AND (
                             (%s = 'male' 
                                 AND (pv.visibility_age_from IS NULL OR pv.visibility_age_from = '' 
-                                    OR TIMESTAMPDIFF(YEAR, %s, a.Profile_dob) >= pv.visibility_age_from)
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= pv.visibility_age_from)
                                 AND (pv.visibility_age_to IS NULL OR pv.visibility_age_to = '' 
-                                    OR TIMESTAMPDIFF(YEAR, %s, a.Profile_dob) <= pv.visibility_age_to)
-                                AND a.Profile_dob > %s
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= pv.visibility_age_to)
+                                AND a.Profile_dob > %s -- viewer must be older than candidate
                             )
                             OR
                             (%s = 'female' 
                                 AND (pv.visibility_age_from IS NULL OR pv.visibility_age_from = '' 
-                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, %s) >= pv.visibility_age_from)
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= pv.visibility_age_from)
                                 AND (pv.visibility_age_to IS NULL OR pv.visibility_age_to = '' 
-                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, %s) <= pv.visibility_age_to)
-                                AND a.Profile_dob < %s
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= pv.visibility_age_to)
+                                AND a.Profile_dob < %s -- viewer must be younger than candidate
                             )
                         )
                         AND (pv.visibility_height_from IS NULL OR pv.visibility_height_from = '' OR l1_from.Profile_height >= pv.visibility_height_from)
@@ -1240,7 +1240,7 @@ class Get_profiledata(models.Model):
                     AND a.ProfileId != %s
                     AND a.Profile_dob BETWEEN %s AND %s"""
 
-                query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,gender, profile.Profile_dob, profile.Profile_dob ,profile.Profile_dob,gender, profile.Profile_dob, profile.Profile_dob,profile.Profile_dob,gender, profile_id, min_dob, max_dob]
+                query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,gender, profile.Profile_dob,gender, profile.Profile_dob,gender, profile_id, min_dob, max_dob]
 
                 # Check suya_gothram_admin first (ID stored as string in DB)
                 if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
