@@ -1262,7 +1262,6 @@ class Addonpackages(models.Model):
 
 
 
-
 class Get_profiledata_Matching(models.Model):
 
     ContentId  = models.AutoField(primary_key=True)
@@ -1285,7 +1284,7 @@ class Get_profiledata_Matching(models.Model):
         height_from=None, height_to=None,
         matching_stars=None, min_anual_income=None, max_anual_income=None, membership=None,ragu=None, chev=None,
         father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None,field_of_study=None,
-        degree=None,from_date=None,to_date=None
+        degree=None,from_date=None,to_date=None ,action_type=None , status=None
     ):
         try:
             profile = get_object_or_404(Registration1, ProfileId=profile_id)
@@ -1305,19 +1304,12 @@ class Get_profiledata_Matching(models.Model):
                 except (ValueError, TypeError):
                     age_diff = 5
 
-            # if gender.upper() == "MALE":
-            #     min_age = max(current_age - age_diff, 18)  # 🛡 Never below 18
-            #     max_age = current_age
-            # elif gender.upper() == "FEMALE":
-            #     min_age = max(current_age, 18)             # 🛡 Ensure at least 18
-            #     max_age = current_age + age_diff
             if gender.upper() == "MALE":
                 max_dob  = profile.Profile_dob + relativedelta(years=age_diff)  # older partner limit
                 min_dob = profile.Profile_dob                                  # same age
             elif gender.upper() == "FEMALE":
                 max_dob = profile.Profile_dob                                  # same age
                 min_dob = profile.Profile_dob - relativedelta(years=age_diff)
-            # print(f"[DEBUG] Age Calc => search_age: {search_age}, age_diff: {age_diff}, min_age: {min_age}, max_age: {max_age}, current_age: {current_age}") 
             if education:
                 pref_education = education 
             else:
@@ -1327,8 +1319,6 @@ class Get_profiledata_Matching(models.Model):
             else:
                 marital_status = partner_pref.pref_marital_status
             porutham_star_rasi = matching_stars or partner_pref.pref_porutham_star_rasi
-            # print(f"⚠️ porutham_star_rasi: {partner_pref.pref_porutham_star_rasi}")
-            # print(f"⚠️ matching_stars: {matching_stars}")
             pref_foreign = foreign_intrest or partner_pref.pref_foreign_intrest
             ragukethu = partner_pref.pref_ragukethu
             chevvai = partner_pref.pref_chevvai
@@ -1337,9 +1327,6 @@ class Get_profiledata_Matching(models.Model):
             field_of_study = field_of_study or partner_pref.pref_fieldof_study
             degree = degree or partner_pref.degree
 
-            # Income from DB preference if not overridden
-            # annual_income_ids = partner_pref.pref_anual_income or ""
-            # annual_income_max_ids = partner_pref.pref_anual_income_max or ""
             annual_income_ids = partner_pref.pref_anual_income or ""
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -1347,7 +1334,6 @@ class Get_profiledata_Matching(models.Model):
                     [annual_income_ids]
                 )
                 min_income, max_income = cursor.fetchone() or (None, None)
-
 
             # Base query
             base_query = """
@@ -1455,25 +1441,6 @@ class Get_profiledata_Matching(models.Model):
                 base_query += """ AND
                 ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
 
-            # inc_min = min_anual_income
-            # inc_max = max_anual_income 
-            # if not (inc_min and inc_max):
-            #     if annual_income_ids and annual_income_max_ids and annual_income_ids.isdigit() and annual_income_max_ids.isdigit():
-            #         income_range = list(range(int(annual_income_ids), int(annual_income_max_ids)+1))
-            #         placeholders = ','.join(['%s'] * len(income_range))
-            #         base_query += f" AND f.anual_income IN ({placeholders})"
-            #         query_params.extend(income_range)
-            #     elif annual_income_ids:
-            #         annual_income_id = ",".join(annual_income_ids) if isinstance(annual_income_ids, list) else annual_income_ids.strip()
-            #         base_query += " AND ((FIND_IN_SET(f.anual_income, %s) > 0 OR (f.anual_income IS NULL OR f.anual_income = '')))"
-            #         query_params.append(annual_income_id)
-                    
-            # elif inc_min and inc_max and inc_min.isdigit() and inc_max.isdigit():
-            #     income_range = list(range(int(inc_min), int(inc_max)+1))
-            #     placeholders = ','.join(['%s'] * len(income_range))
-            #     base_query += f" AND f.anual_income IN ({placeholders})"
-            #     query_params.extend(income_range)
-
             inc_min = min_anual_income or min_income
             inc_max = max_anual_income or max_income
             if inc_min and inc_max:
@@ -1557,25 +1524,6 @@ class Get_profiledata_Matching(models.Model):
                     base_query += " AND f.work_country != '1'"
                 elif pref_foreign.lower() == "no":
                     base_query += " AND f.work_country = '1'"
-
-            # Raghu, Chevvai filters
-            # if ragu == 'yes':
-            #     base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
-            # elif ragu == 'no':
-            #     base_query += " AND LOWER(e.ragu_dosham) = 'no'"
-            # elif ragukethu and ragukethu.lower() == 'yes':
-            #     base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
-            # elif ragukethu and ragukethu.lower() == 'no':
-            #     base_query += " AND LOWER(e.ragu_dosham) = 'no'"
-
-            # if chev == 'yes':
-            #     base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
-            # elif chev == 'no':
-            #     base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
-            # elif chevvai and chevvai.lower() == 'yes':
-            #     base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
-            # elif chevvai and chevvai.lower() == 'no':
-            #     base_query += " AND LOWER(e.chevvai_dosaham) = 'no'"
             
             conditions = []
 
@@ -1630,26 +1578,55 @@ class Get_profiledata_Matching(models.Model):
                     base_query += " AND c.mother_alive = 'yes'"
                 else:
                     base_query += " AND c.mother_alive = 'no'"
+            
+            if status is not None:
+                if status == "unsent":
+                    action_filter = "" if action_type == "all" else "AND sp.action_type = %s"
+                    base_query += """
+                    AND NOT EXISTS (
+                        SELECT 1 
+                        FROM admin_sentprofiles sp
+                        WHERE sp.profile_id = %s 
+                        AND sp.sentprofile_id = a.ProfileId
+                        {action_filter}
+                    )""".format(action_filter=action_filter)
+                    query_params.append(profile_id)
+                    if action_type != "all":
+                        query_params.append(action_type)
+
+                elif status == "sent":
+                    action_filter = "" if action_type == "all" else "AND sp.action_type = %s"
+                    base_query += """
+                    AND EXISTS (
+                        SELECT 1 
+                        FROM admin_sentprofiles sp
+                        WHERE sp.profile_id = %s 
+                        AND sp.sentprofile_id = a.ProfileId
+                        {action_filter}
+                    )""".format(action_filter=action_filter)
+                    query_params.append(profile_id)
+                    if action_type != "all":
+                        query_params.append(action_type)
+                else:
+                    pass
+
+            
             # ORDER BY
             try:
                 order_by = int(order_by)
             except:
                 order_by = None
 
-            # view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END "
-            # plan_priority = "FIELD(a.Plan_id, '3','17','2','15','1','14','11','12','13','6','7','8','9') "
-            # photo_priority = "CASE WHEN i.image IS NOT NULL AND i.image != '' THEN 0 ELSE 1 END "
-
             plan_priority = "FIELD(a.Plan_id, 2,15,1,14,11,12,13,6,7,8,9)"
             photo_priority = "CASE WHEN pi.first_image_id IS NOT NULL THEN 0 ELSE 1 END"
-            view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END"
+            #view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END"
 
             if order_by == 1:
-                order_cond = f" ORDER BY {view_priority} , {plan_priority}, {photo_priority} , a.DateOfJoin DESC"
+                order_cond = f" ORDER BY  {plan_priority}, {photo_priority} , a.DateOfJoin DESC"
             elif order_by == 2:
-                order_cond = f" ORDER BY {view_priority},{plan_priority}, {photo_priority} , a.DateOfJoin ASC"
+                order_cond = f" ORDER BY {plan_priority}, {photo_priority} , a.DateOfJoin ASC"
             else:
-                order_cond = f" ORDER BY {view_priority},{plan_priority}, {photo_priority}, a.DateOfJoin DESC"
+                order_cond = f" ORDER BY {plan_priority}, {photo_priority}, a.DateOfJoin DESC"
 
             final_query = base_query + order_cond
 
@@ -1660,6 +1637,8 @@ class Get_profiledata_Matching(models.Model):
 
             total = len(all_ids)
             profile_with_indices = {str(i + 1): pid for i, pid in enumerate(all_ids)}
+            # total=0
+            # profile_with_indices={}
 
             # Pagination
             final_query += " LIMIT %s, %s"

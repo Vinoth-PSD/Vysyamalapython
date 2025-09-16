@@ -3896,94 +3896,84 @@ def get_company_or_business(des,nature):
         return nature
     else:
         return "N/A"
-
+    
 class Get_prof_list_match(APIView):
 
-    def get_action_score(self, profile_from, profile_to):
-        score = 0
-        actions = []
     
-        express_interest = Express_interests.objects.filter(profile_from=profile_from, profile_to=profile_to,status=1).first()
-        if express_interest:
-            score += 1
-            actions.append({
-                'action': 'Express Interest Sent',
-                'datetime': express_interest.req_datetime
-            })
-        express_interest_to = Express_interests.objects.filter(profile_from=profile_to, profile_to=profile_from,status=1).first()
-        if express_interest_to:
-            score += 1
-            actions.append({
-                'action': 'Express Interest Received',
-                'datetime': express_interest_to.req_datetime
-            })
-        express_interest_accepted = Express_interests.objects.filter(profile_from=profile_from, profile_to=profile_to,status=2).first()
-        if express_interest_accepted:
-            score += 1
-            actions.append({
-                'action': 'Express Interest Accepted',
-                'datetime': express_interest_accepted.req_datetime
-            })
-        express_interest_rejected = Express_interests.objects.filter(profile_from=profile_from, profile_to=profile_to,status=3).first()
-        if express_interest_rejected:
-            score += 1
-            actions.append({
-                'action': 'Express Interest Rejected',
-                'datetime': express_interest_rejected.req_datetime
-            })
+    def get_action_scores_bulk(self, profile_from, profile_ids):
+            """
+            Get action scores for multiple profiles at once.
+            Returns a dict: { profile_to: {score: int, actions: list} }
+            """
+            scores = {pid: {"score": 0, "actions": []} for pid in profile_ids}
 
-        wishlist_from = Profile_wishlists.objects.filter(profile_from=profile_from, profile_to=profile_to,status=1).first()
-        if wishlist_from:
-            score += 1
-            actions.append({
-                'action': 'Bookmarked',
-                'datetime': wishlist_from.marked_datetime
-            })
-        
-        wishlist = Profile_wishlists.objects.filter(profile_from=profile_to, profile_to=profile_from,status=1).first()
-        if wishlist:
-            score += 1
-            actions.append({
-                'action': 'Bookmark Received',
-                'datetime': wishlist.marked_datetime
-            })
+            # Express Interests (Sent / Received / Accepted / Rejected)
+            interests = Express_interests.objects.filter(
+                Q(profile_from=profile_from, profile_to__in=profile_ids) |
+                Q(profile_to=profile_from, profile_from__in=profile_ids),
+                status__in=[1, 2, 3]
+            )
 
-        photo_request = Photo_request.objects.filter(profile_from=profile_from, profile_to=profile_to,status=1).first()
-        if photo_request:
-            score += 1
-            actions.append({
-                'action': 'Photo Request Sent',
-                'datetime': photo_request.req_datetime
-            })
-            
-        photo_request_received = Photo_request.objects.filter(profile_from=profile_to, profile_to=profile_from,status=1).first()
-        if photo_request_received:
-            score += 1
-            actions.append({
-                'action': 'Photo Request Received',
-                'datetime': photo_request_received.req_datetime
-            })
+            for ei in interests:
+                if ei.profile_from == profile_from:
+                    target = ei.profile_to
+                    if ei.status == 1:
+                        scores[target]["score"] += 1
+                        scores[target]["actions"].append({"action": "Express Interest Sent", "datetime": ei.req_datetime})
+                    elif ei.status == 2:
+                        scores[target]["score"] += 1
+                        scores[target]["actions"].append({"action": "Express Interest Accepted", "datetime": ei.req_datetime})
+                    elif ei.status == 3:
+                        scores[target]["score"] += 1
+                        scores[target]["actions"].append({"action": "Express Interest Rejected", "datetime": ei.req_datetime})
+                else:
+                    target = ei.profile_from
+                    if ei.status == 1:
+                        scores[target]["score"] += 1
+                        scores[target]["actions"].append({"action": "Express Interest Received", "datetime": ei.req_datetime})
 
-        visit = Profile_visitors.objects.filter(profile_id=profile_from, viewed_profile=profile_to,status=1).first()
-        if visit:
-            score += 1
-            actions.append({
-                'action': 'Visited',
-                'datetime': visit.datetime
-            })
-        viewed = Profile_visitors.objects.filter(profile_id=profile_to, viewed_profile=profile_from,status=1).first()
-        if viewed:
-            score += 1
-            actions.append({
-                'action': 'Viewed',
-                'datetime': viewed.datetime
-            })
+            # Wishlists
+            wishlists = Profile_wishlists.objects.filter(
+                Q(profile_from=profile_from, profile_to__in=profile_ids, status=1) |
+                Q(profile_to=profile_from, profile_from__in=profile_ids, status=1)
+            )
+            for wl in wishlists:
+                if wl.profile_from == profile_from:
+                    scores[wl.profile_to]["score"] += 1
+                    scores[wl.profile_to]["actions"].append({"action": "Bookmarked", "datetime": wl.marked_datetime})
+                else:
+                    scores[wl.profile_from]["score"] += 1
+                    scores[wl.profile_from]["actions"].append({"action": "Bookmark Received", "datetime": wl.marked_datetime})
 
-        return {
-            'score': score,
-            'actions': actions
-        }
-    
+            # Photo Requests
+            photo_requests = Photo_request.objects.filter(
+                Q(profile_from=profile_from, profile_to__in=profile_ids, status=1) |
+                Q(profile_to=profile_from, profile_from__in=profile_ids, status=1)
+            )
+            for pr in photo_requests:
+                if pr.profile_from == profile_from:
+                    scores[pr.profile_to]["score"] += 1
+                    scores[pr.profile_to]["actions"].append({"action": "Photo Request Sent", "datetime": pr.req_datetime})
+                else:
+                    scores[pr.profile_from]["score"] += 1
+                    scores[pr.profile_from]["actions"].append({"action": "Photo Request Received", "datetime": pr.req_datetime})
+
+            # Visitors
+            visitors = Profile_visitors.objects.filter(
+                Q(profile_id=profile_from, viewed_profile__in=profile_ids, status=1) |
+                Q(viewed_profile=profile_from, profile_id__in=profile_ids, status=1)
+            )
+            for v in visitors:
+                if v.profile_id == profile_from:
+                    scores[v.viewed_profile]["score"] += 1
+                    scores[v.viewed_profile]["actions"].append({"action": "Visited", "datetime": v.datetime})
+                else:
+                    scores[v.profile_id]["score"] += 1
+                    scores[v.profile_id]["actions"].append({"action": "Viewed", "datetime": v.datetime})
+
+            return scores
+
+
 
     def post(self, request):
         serializer = GetproflistSerializer(data=request.data)
@@ -4036,7 +4026,9 @@ class Get_prof_list_match(APIView):
             field_of_study=request.data.get('pref_fieldof_study'),
             degree = request.data.get('degree'),
             from_date=request.data.get('from_dateofjoin'),
-            to_date=request.data.get('to_dateofjoin')
+            to_date=request.data.get('to_dateofjoin'),
+            action_type=request.data.get('action_type'),
+            status=request.data.get('status')
         )
 
         if not profile_details:
@@ -4046,8 +4038,12 @@ class Get_prof_list_match(APIView):
         my_star_id = my_profile_details['birthstar_name']
         my_rasi_id = my_profile_details['birth_rasi_name']
 
+        profile_ids = [detail.get("ProfileId") for detail in profile_details]
+        action_scores = self.get_action_scores_bulk(profile_id, profile_ids)
+
         result_profiles = []
         for detail in profile_details:
+            pid = detail.get("ProfileId")
             result_profiles.append({
                 "profile_id": detail.get("ProfileId"),
                 "profile_name": detail.get("Profile_name"),
@@ -4077,11 +4073,12 @@ class Get_prof_list_match(APIView):
                 "suya_gothram": detail.get("suya_gothram") if detail.get("suya_gothram") not in [None,"0", "N/A","~"] else "N/A",
                 "chevvai":get_dhosham(detail.get("calc_chevvai_dhosham")),
                 "raguketu":get_dhosham(detail.get("calc_raguketu_dhosham")),
-                "photo_protection": detail.get("Photo_protection"),
+                #"photo_protection": detail.get("Photo_protection"),
                 "matching_score": Get_matching_score(my_star_id, my_rasi_id, detail.get("birthstar_name"), detail.get("birth_rasi_name"), gender),
-                "wish_list": Get_wishlist(profile_id, detail.get("ProfileId")),
-                "verified": detail.get('Profile_verified'),
-                "action_score": self.get_action_score(profile_id, detail.get("ProfileId")),
+                #"wish_list": Get_wishlist(profile_id, detail.get("ProfileId")),
+                #"verified": detail.get('Profile_verified'),
+                #"action_score": self.get_action_score(profile_id, detail.get("ProfileId")),
+                "action_score": action_scores[pid],
                 "dateofjoin": detail.get("DateOfJoin") if detail.get("DateOfJoin") else None,
             })
 
@@ -4095,7 +4092,7 @@ class Get_prof_list_match(APIView):
             "all_profile_ids": profile_with_indices,
             "search_result": "1"
         }, status=status.HTTP_200_OK)
-    
+        
 
 class Get_suggest_list_match(APIView):
 
