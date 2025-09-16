@@ -1154,15 +1154,91 @@ class Get_profiledata(models.Model):
                     LEFT JOIN mastereducation g ON f.highest_education = g.RowId
                     LEFT JOIN masterannualincome h ON h.id = f.anual_income
                     LEFT JOIN vw_profile_images pi ON a.ProfileId = pi.profile_id
-                    LEFT JOIN profile_visit_logs v
-                        ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
+                    LEFT JOIN profile_visibility pv ON pv.profile_id = a.ProfileId
+                    LEFT JOIN profile_visit_logs v ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
+
+                    -- Fetch FROM-PROFILE details for visibility checks
+                    JOIN profile_edudetails f_from ON f_from.profile_id = %s
+                    JOIN profile_familydetails f1_from ON f1_from.profile_id = %s
+                    JOIN profile_horoscope h1_from ON h1_from.profile_id = %s
+                    JOIN logindetails l1_from ON l1_from.ProfileId = %s
+                    LEFT JOIN masterannualincome h_from ON h_from.id = f_from.anual_income
+
+
                     WHERE a.Status = 1 
-                    AND a.Plan_id NOT IN (0,3, 16, 17)
+                    AND (
+                        -- If the opposite profile is Platinum, apply pv only when set
+                        (
+                            a.Plan_id IN (3,16,17)
+                        AND (
+                            (%s = 'male' 
+                                AND (pv.visibility_age_from IS NULL OR pv.visibility_age_from = '' 
+                                    OR TIMESTAMPDIFF(YEAR, %s, a.Profile_dob) >= pv.visibility_age_from)
+                                AND (pv.visibility_age_to IS NULL OR pv.visibility_age_to = '' 
+                                    OR TIMESTAMPDIFF(YEAR, %s, a.Profile_dob) <= pv.visibility_age_to)
+                                AND a.Profile_dob > %s
+                            )
+                            OR
+                            (%s = 'female' 
+                                AND (pv.visibility_age_from IS NULL OR pv.visibility_age_from = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, %s) >= pv.visibility_age_from)
+                                AND (pv.visibility_age_to IS NULL OR pv.visibility_age_to = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, %s) <= pv.visibility_age_to)
+                                AND a.Profile_dob < %s
+                            )
+                        )
+                        AND (pv.visibility_height_from IS NULL OR pv.visibility_height_from = '' OR l1_from.Profile_height >= pv.visibility_height_from)
+                        AND (pv.visibility_height_to IS NULL OR pv.visibility_height_to = '' OR l1_from.Profile_height <= pv.visibility_height_to)
+                        AND (pv.visibility_profession IS NULL OR pv.visibility_profession = '' OR FIND_IN_SET(f_from.profession, pv.visibility_profession) > 0)
+                        AND (pv.visibility_education IS NULL OR pv.visibility_education = '' OR FIND_IN_SET(f_from.highest_education, pv.visibility_education) > 0)
+                        AND (pv.visibility_anual_income IS NULL OR pv.visibility_anual_income = '' 
+                        OR h_from.id >= pv.visibility_anual_income)
+                        AND (pv.visibility_anual_income_max IS NULL OR pv.visibility_anual_income_max = '' 
+                        OR h_from.id <= pv.visibility_anual_income_max)
+
+                        AND (pv.degree IS NULL OR pv.degree = '' OR FIND_IN_SET(f_from.degree, pv.degree) > 0)
+                        AND (pv.visibility_field_of_study IS NULL OR pv.visibility_field_of_study = '' OR FIND_IN_SET(f_from.field_ofstudy, pv.visibility_field_of_study) > 0)
+                        AND (pv.visibility_family_status IS NULL OR pv.visibility_family_status = '' OR FIND_IN_SET(f1_from.family_status, pv.visibility_family_status) > 0)
+                        -- Chevvai visibility
+                        AND (
+                            pv.visibility_chevvai IS NULL OR pv.visibility_chevvai = '' 
+                            OR (
+                                (LOWER(pv.visibility_chevvai) IN ('yes','true','1') 
+                                    AND (LOWER(h1_from.calc_chevvai_dhosham) = 'yes' OR LOWER(h1_from.calc_chevvai_dhosham) = 'true' 
+                                        OR h1_from.calc_chevvai_dhosham = '1' OR h1_from.calc_chevvai_dhosham = 1 
+                                        OR h1_from.calc_chevvai_dhosham IS NULL OR h1_from.calc_chevvai_dhosham =''))
+                                OR
+                                (LOWER(pv.visibility_chevvai) IN ('no','false','2') 
+                                    AND (LOWER(h1_from.calc_chevvai_dhosham) = 'no' OR LOWER(h1_from.calc_chevvai_dhosham) = 'false' 
+                                        OR h1_from.calc_chevvai_dhosham = '2' OR h1_from.calc_chevvai_dhosham = 2 
+                                        OR h1_from.calc_chevvai_dhosham IS NULL OR h1_from.calc_chevvai_dhosham =''))
+                            )
+                        )
+                        -- Ragukethu visibility
+                        AND (
+                            pv.visibility_ragukethu IS NULL OR pv.visibility_ragukethu = '' 
+                            OR (
+                                (LOWER(pv.visibility_ragukethu) IN ('yes','true','1') 
+                                    AND (LOWER(h1_from.calc_raguketu_dhosham) = 'yes' OR LOWER(h1_from.calc_raguketu_dhosham) = 'true' 
+                                        OR h1_from.calc_raguketu_dhosham = '1' OR h1_from.calc_raguketu_dhosham = 1 
+                                        OR h1_from.calc_raguketu_dhosham IS NULL OR h1_from.calc_raguketu_dhosham =''))
+                                OR
+                                (LOWER(pv.visibility_ragukethu) IN ('no','false','2') 
+                                    AND (LOWER(h1_from.calc_raguketu_dhosham) = 'no' OR LOWER(h1_from.calc_raguketu_dhosham) = 'false' 
+                                        OR h1_from.calc_raguketu_dhosham = '2' OR h1_from.calc_raguketu_dhosham = 2 
+                                        OR h1_from.calc_raguketu_dhosham IS NULL OR h1_from.calc_raguketu_dhosham =''))
+                            )
+                        )
+                    )
+                    OR 
+                    -- If opposite profile is not Platinum → skip pv.* checks
+                    (a.Plan_id NOT IN (3,16,17))
+                )
                     AND a.gender != %s
                     AND a.ProfileId != %s
                     AND a.Profile_dob BETWEEN %s AND %s"""
 
-                query_params = [profile_id, gender, profile_id, min_dob, max_dob]
+                query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,gender, profile.Profile_dob, profile.Profile_dob ,profile.Profile_dob,gender, profile.Profile_dob, profile.Profile_dob,profile.Profile_dob,gender, profile_id, min_dob, max_dob]
 
                 # Check suya_gothram_admin first (ID stored as string in DB)
                 if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
@@ -1250,11 +1326,6 @@ class Get_profiledata(models.Model):
                     query_params.append(partner_pref_height_to)
 
 
-
-
-
-                
-
                 search_profile_id_cond = ''
                 if search_profile_id:
                     search_profile_id_cond = " AND (a.ProfileId = %s OR a.Profile_name LIKE %s)"
@@ -1280,7 +1351,7 @@ class Get_profiledata(models.Model):
                     # [Previous code remains the same until the ordering logic]
                     
                     # Updated ordering logic with proper image priority
-                    plan_priority = "FIELD(a.Plan_id, 2,15,1,14,11,12,13,6,7,8,9)"
+                    plan_priority = "FIELD(a.Plan_id, 3,16,17,2,15,1,14,11,12,13,6,7,8,9)"
                     # Changed to ensure profiles with images come first
                     # photo_priority = "CASE WHEN (SELECT 1 FROM profile_images WHERE profile_id = a.ProfileId AND image_approved = 1 AND is_deleted = 0 LIMIT 1) IS NOT NULL THEN 0 ELSE 1 END"
                     photo_priority = "CASE WHEN pi.first_image_id IS NOT NULL THEN 0 ELSE 1 END"
