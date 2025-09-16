@@ -1171,7 +1171,7 @@ class Get_profiledata(models.Model):
                     AND (
                         -- If the opposite profile is Platinum, apply pv only when set
                         (
-                            a.Plan_id IN (3,16,17)
+                            a.Plan_id IN (3,17)
                         AND (
                             (%s = 'male' 
                                 AND (pv.visibility_age_from IS NULL OR pv.visibility_age_from = '' 
@@ -1353,7 +1353,7 @@ class Get_profiledata(models.Model):
                     # [Previous code remains the same until the ordering logic]
                     
                     # Updated ordering logic with proper image priority
-                    plan_priority = "FIELD(a.Plan_id, 2,15,1,14,11,12,13,6,7,8,9,3,17)"
+                    plan_priority = "FIELD(a.Plan_id, 3,17,2,15,1,14,11,12,13,6,7,8,9)"
                     # Changed to ensure profiles with images come first
                     # photo_priority = "CASE WHEN (SELECT 1 FROM profile_images WHERE profile_id = a.ProfileId AND image_approved = 1 AND is_deleted = 0 LIMIT 1) IS NOT NULL THEN 0 ELSE 1 END"
                     photo_priority = "CASE WHEN pi.first_image_id IS NOT NULL THEN 0 ELSE 1 END"
@@ -2327,17 +2327,21 @@ class Districtpref(models.Model):
 class ProfileVisibility(models.Model):
     id = models.AutoField(primary_key=True)
     profile_id = models.CharField(max_length=50)
-    visibility_age_from = models.CharField(max_length=50)
-    visibility_age_to = models.CharField(max_length=50)
-    visibility_height_from = models.CharField(max_length=50)
-    visibility_height_to = models.CharField(max_length=50)
-    visibility_profession = models.CharField(max_length=50)  
-    visibility_education = models.CharField(max_length=50)
-    visibility_anual_income = models.CharField(max_length=50)
-    visibility_chevvai = models.CharField(max_length=20)  
-    visibility_ragukethu = models.CharField(max_length=20)
-    visibility_foreign_interest = models.CharField(max_length=20)
-    status = models.IntegerField()   
+    visibility_age_from = models.CharField(max_length=50, blank=True, null=True)
+    visibility_age_to = models.CharField(max_length=50, blank=True, null=True)
+    visibility_height_from = models.CharField(max_length=50, blank=True, null=True)
+    visibility_height_to = models.CharField(max_length=50, blank=True, null=True)
+    visibility_profession = models.CharField(max_length=50, blank=True, null=True)  
+    visibility_education = models.CharField(max_length=50, blank=True, null=True)
+    visibility_anual_income = models.CharField(max_length=50, blank=True, null=True)
+    visibility_chevvai = models.CharField(max_length=20, blank=True, null=True)  
+    visibility_ragukethu = models.CharField(max_length=20, blank=True, null=True)
+    visibility_foreign_interest = models.CharField(max_length=20, blank=True, null=True)
+    visibility_anual_income_max = models.CharField(max_length=255,null=True, blank=True)
+    status = models.IntegerField()
+    degree = models.CharField(max_length=255, blank=True, null=True) 
+    visibility_field_of_study = models.CharField(max_length=255, blank=True, null=True) 
+    visibility_family_status = models.CharField(max_length=50,null=True, blank=True)   
     
     class Meta:
         managed = False  

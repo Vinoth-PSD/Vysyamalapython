@@ -1670,7 +1670,7 @@ class ProfileVisibilitySerializer(serializers.ModelSerializer):
         model = models.ProfileVisibility
         fields = ('profile_id', 'visibility_age_from', 'visibility_age_to' ,'visibility_height_from', 'visibility_height_to', 
                   'visibility_profession', 'visibility_education', 'visibility_anual_income', 'visibility_chevvai',
-                  'visibility_ragukethu', 'visibility_foreign_interest','status')
+                  'visibility_ragukethu', 'visibility_foreign_interest','status','visibility_anual_income_max','degree','visibility_field_of_study','visibility_family_status')
         
 class ProfileVysAssistFollowupSerializer(serializers.ModelSerializer):
     class Meta:
