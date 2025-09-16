@@ -12,6 +12,8 @@ from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 
 
+
+
 class AuthUser(models.Model):
     username = models.CharField(max_length=255)
     password = models.CharField(max_length=255)  # Note: storing passwords as plain text is insecure
@@ -1351,7 +1353,7 @@ class Get_profiledata(models.Model):
                     # [Previous code remains the same until the ordering logic]
                     
                     # Updated ordering logic with proper image priority
-                    plan_priority = "FIELD(a.Plan_id, 3,16,17,2,15,1,14,11,12,13,6,7,8,9)"
+                    plan_priority = "FIELD(a.Plan_id, 2,15,1,14,11,12,13,6,7,8,9,3,16,17)"
                     # Changed to ensure profiles with images come first
                     # photo_priority = "CASE WHEN (SELECT 1 FROM profile_images WHERE profile_id = a.ProfileId AND image_approved = 1 AND is_deleted = 0 LIMIT 1) IS NOT NULL THEN 0 ELSE 1 END"
                     photo_priority = "CASE WHEN pi.first_image_id IS NOT NULL THEN 0 ELSE 1 END"
