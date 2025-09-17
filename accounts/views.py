@@ -4080,6 +4080,7 @@ class Get_prof_list_match(APIView):
                 #"verified": detail.get('Profile_verified'),
                 #"action_score": self.get_action_score(profile_id, detail.get("ProfileId")),
                 "action_score": action_scores[pid],
+                "action_log":"",
                 "dateofjoin": detail.get("DateOfJoin") if detail.get("DateOfJoin") else None,
             })
 
@@ -8596,9 +8597,27 @@ class AdminMatchProfilePDFView(APIView):
         merged_pdf.seek(0)
 
         if not errors:
-            response = HttpResponse(merged_pdf.read(), content_type='application/pdf')
-            response['Content-Disposition'] = 'inline; filename="MatchedProfiles.pdf"'
-            return response
+            if action == 'email':
+                try:
+                    if login_my.EmailId:
+                        subject = "Matched Profiles PDF"
+                        body = f"Dear User,\nPlease find the attached PDF for the matched profiles.\n\nRegards,\nVysyamala Team"
+                        from_email = settings.DEFAULT_FROM_EMAIL
+                        to_email = [login_my.EmailId]
+                        email = EmailMessage(subject, body, from_email, to_email)
+                        email.attach('MatchedProfiles.pdf', merged_pdf.read(), 'application/pdf')
+                        email.send()
+
+                        return JsonResponse({"status": "success", "message": "PDF emailed successfully."})
+                    else:
+                        return JsonResponse({"status": "Failed", "message": "No email address is associated with this profile. Please add one." })
+                except Exception as e:
+                    print(f"Email Error :{str(e)}")
+                    pass
+            else:
+                response = HttpResponse(merged_pdf.read(), content_type='application/pdf')
+                response['Content-Disposition'] = 'inline; filename="MatchedProfiles.pdf"'
+                return response
         else:
             return JsonResponse({"status": "error", "message": f"PDF generated with errors for: {', '.join(errors)}"}, status=206)
 
