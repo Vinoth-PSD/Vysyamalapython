@@ -63,7 +63,7 @@ from .serializers import InvoiceSerializer
 from .serializers import LoginLogSerializer,Renewalprofiledata,PaymentTransactionSerializer
 from django.db.models.functions import Cast
 from django.db.models import DateTimeField
-from .models import Invoice
+from .models import Invoice,AdminPrintLogs
 import tempfile
 from xhtml2pdf import pisa
 from io import BytesIO
@@ -8159,12 +8159,12 @@ class AdminProfilePDFView(APIView):
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 class AdminMatchProfilePDFView(APIView):
-    def get(self, request, profile_ids=None, pdf_format=None, profile_to=None):
+    def get(self, request, profile_ids=None, pdf_format=None, profile_to=None,action_type=None):
         # Prefer path params; fall back to query params for flexibility
         profile_ids = profile_ids or request.query_params.get('profile_ids')
         format_type = pdf_format or request.query_params.get('pdf_format')  
         profile_to = profile_to or request.query_params.get('profile_to')
-
+        action = action_type or request.query_params.get('action_type')
         print("format_type", format_type)
         if not profile_ids:
             return JsonResponse({"status": "error", "message": "profile_id is required"}, status=400)
@@ -8554,7 +8554,33 @@ class AdminMatchProfilePDFView(APIView):
 
                 pdf_buffer.seek(0)
                 pdf_merger.append(pdf_buffer)
-
+                try:
+                    exitsting_logs = AdminPrintLogs.objects.filter(
+                        profile_id=profile_to,
+                        sentprofile_id=profile_id,
+                        action_type=action,
+                        format_type=format_type,
+                        status=1
+                    )
+                    if exitsting_logs.exists():
+                        exitsting_logs.update(
+                            updated_at= timezone.now(),
+                        )
+                    else:
+                        AdminPrintLogs.objects.create(
+                            profile_id=profile_to,
+                            sentprofile_id = profile_id,
+                            action_type = action,
+                            format_type = format_type,
+                            sent_date= timezone.now(),
+                            updated_at= timezone.now(), 
+                            status=1
+                        )
+                except Exception as e:
+                    print(f"Error for profile {profile_id}: {str(e)}")
+                    pass
+                    
+                    
             except Exception as e:
                 import traceback
                 print(f"Error for profile {profile_id}: {str(e)}")

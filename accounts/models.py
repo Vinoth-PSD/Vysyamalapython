@@ -3400,3 +3400,16 @@ class Profilefieldstudy(models.Model):
     def __str__(self):
         return self.id
     
+class AdminPrintLogs(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)
+    sentprofile_id = models.CharField(max_length=50)
+    action_type = models.CharField(max_length=20)
+    format_type = models.CharField(max_length=20)
+    sent_date =  models.DateTimeField()
+    status = models.CharField(max_length=20)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField()
+    class Meta:
+        managed = False  
+        db_table = 'admin_sentprofiles'
