@@ -3629,6 +3629,7 @@ class My_viewed_profiles(APIView):
                             "visited_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "visited_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "visited_profile_wishlist": Get_wishlist(profile_id, detail.get("ProfileId")),
+                            "visited_datetime":profile_datetimes.get(detail.get("ProfileId")).strftime("%b %d, %Y"),
                         }
                         for detail in profile_details
                     ]
