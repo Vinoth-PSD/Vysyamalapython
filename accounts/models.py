@@ -1284,7 +1284,7 @@ class Get_profiledata_Matching(models.Model):
         height_from=None, height_to=None,
         matching_stars=None, min_anual_income=None, max_anual_income=None, membership=None,ragu=None, chev=None,
         father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None,field_of_study=None,
-        degree=None,from_date=None,to_date=None ,action_type=None , status=None
+        degree=None,from_date=None,to_date=None ,action_type=None , status=None,search=None
     ):
         print('action_type 123',action_type,'status 123',status)
         try:
@@ -1356,6 +1356,7 @@ class Get_profiledata_Matching(models.Model):
                     JOIN mastereducation g ON f.highest_education = g.RowId
                     JOIN masterannualincome h ON h.id = f.anual_income
                     JOIN profile_familydetails c ON a.ProfileId = c.profile_id
+                    LEFT JOIN masterprofession prof ON f.profession = prof.RowId
                     LEFT JOIN vw_profile_images pi ON a.ProfileId = pi.profile_id
                     LEFT JOIN profile_visit_logs v
                         ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
@@ -1366,7 +1367,12 @@ class Get_profiledata_Matching(models.Model):
                     AND a.Profile_dob BETWEEN %s AND %s"""
 
             query_params = [profile_id, gender, profile_id, min_dob, max_dob]
-            
+            if search:
+                base_query += """ AND (a.Profile_name LIKE %s
+                                OR a.ProfileId LIKE %s
+                                OR prof.profession LIKE %s )"""
+                search_param = f"%{search.strip()}%"
+                query_params.extend([search_param] * 3)
             if from_date and to_date:
                 try:
                     from_date_obj = datetime.strptime(from_date, '%Y-%m-%d').date()

@@ -4028,7 +4028,8 @@ class Get_prof_list_match(APIView):
             from_date=request.data.get('from_dateofjoin'),
             to_date=request.data.get('to_dateofjoin'),
             action_type=request.data.get('action_type'),
-            status=request.data.get('status')
+            status=request.data.get('status'),
+            search = request.data.get('search')
         )
 
         if not profile_details:
