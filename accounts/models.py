@@ -147,6 +147,7 @@ class Country(models.Model):
 #
 
 class State(models.Model):
+    id = models.AutoField(db_column='id', primary_key=True)
     name = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
     is_deleted = models.BooleanField(default=False)  # Add the is_deleted field
@@ -277,6 +278,7 @@ class UgDegree(models.Model):
 
 
 class AnnualIncome(models.Model):
+    id    = models.SmallIntegerField(primary_key=True)
     income = models.CharField(max_length=50)
     income_amount = models.CharField(max_length=50)
     is_deleted = models.BooleanField(default=False)  # Add the is_deleted field
@@ -347,6 +349,7 @@ class FamilyType(models.Model):
 
 
 class FamilyStatus(models.Model):
+    id = models.AutoField(primary_key=True)
     status = models.CharField(max_length=100)
     is_deleted = models.BooleanField(default=False)  # Add the is_deleted field
 
@@ -1346,7 +1349,7 @@ class Get_profiledata_Matching(models.Model):
                         f.profession, f.highest_education,f.actual_income,f.anual_income,f.work_city,
                         f.work_state,f.work_country,f.designation,f.company_name,f.business_name,f.nature_of_business,g.EducationLevel, d.star, h.income,
                         v.viewed_profile,
-                        pi.first_image_id AS has_image
+                        pi.first_image_id AS has_image ,pi.image as profile_image ,TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) AS profile_age
                     FROM logindetails a
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
                     JOIN profile_horoscope e ON a.ProfileId = e.profile_id
@@ -1651,8 +1654,8 @@ class Get_profiledata_Matching(models.Model):
             # profile_with_indices={}
 
             # Pagination
-            final_query += " LIMIT %s, %s"
-            query_params.extend([start, per_page])
+            # final_query += " LIMIT %s, %s"
+            # query_params.extend([start, per_page])
             
             def format_sql_for_debug(query, params):
                 def escape(value):

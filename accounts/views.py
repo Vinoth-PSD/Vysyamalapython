@@ -85,6 +85,11 @@ from collections import OrderedDict
 from authentication.views import fetch_porutham_details,get_dasa_name,dasa_format_date,format_date_of_birth
 from authentication.models import Get_profiledata as gpt
 from .serializers import PlanSubscriptionSerializer,PlanSubscriptionListSerializer,PaymentTransactionListSerializer
+from authentication.helpers.matching import preload_matching_scores , get_matching_score_util
+from django.core.cache import caches
+from django.core.cache import cache
+
+from authentication.views import get_profile_image_azure_optimized
 # from authentication.models import ProfileVisibility
 # from authentication.serializers import ProfileVisibilityListSerializer
 
@@ -3896,10 +3901,67 @@ def get_company_or_business(des,nature):
         return nature
     else:
         return "N/A"
-    
+
+
+dhosham_map = {
+    1: "Yes",
+    2: "No",
+    "1": "Yes",
+    "2": "No",
+    True: "Yes",
+    False: "No",
+    None: "N/A"
+}
+
+def get_dhosham_new(dhosham_id):
+    # Use the map and default to "N/A"
+    return dhosham_map.get(dhosham_id, "N/A")
+
+
+{s.id: s.name for s in State.objects.all()}
+
+# Use the dictionary keys directly
+states_map = {s["id"]: s["name"] for s in State.objects.filter(is_deleted=False).values("id", "name")}
+countries_map = {c["id"]: c["name"] for c in Country.objects.filter(is_deleted=False).values("id", "name")}
+
+
+def get_location_new(city, state_id, country_id):
+    parts = []
+
+    # City
+    if city and city not in [None, "0", "N/A", "~"]:
+        parts.append(city)
+
+    # State
+    if state_id:
+        state_name = states_map.get(int(state_id)) if str(state_id).isdigit() else state_id
+        if state_name:
+            parts.append(state_name)
+
+    # Country (used only if state not present)
+    elif country_id:
+        country_name = countries_map.get(int(country_id)) if str(country_id).isdigit() else country_id
+        if country_name:
+            parts.append(country_name)
+
+    return ", ".join(parts) if parts else "N/A"
+
+
+def get_designation_or_nature_new(des, nature):
+    return des if des and des not in [None, "0", "N/A", "~"] else \
+           (nature if nature and nature not in [None, "0", "N/A", "~"] else "N/A")
+
+
+def get_company_or_business_new(company, business):
+    return company if company and company not in [None, "0", "N/A", ""] else \
+           (business if business and business not in [None, "0", "N/A", ""] else "N/A")
+
+
+
+
 class Get_prof_list_match(APIView):
 
-    
+
     def get_action_scores_bulk(self, profile_from, profile_ids):
             """
             Get action scores for multiple profiles at once.
@@ -4036,49 +4098,80 @@ class Get_prof_list_match(APIView):
             return JsonResponse({"Status": 0, "message": "No matching records", "search_result": "1"}, status=status.HTTP_200_OK)
 
         my_profile_details = get_profile_details([profile_id])[0]
-        my_star_id = my_profile_details['birthstar_name']
-        my_rasi_id = my_profile_details['birth_rasi_name']
+        my_star_id = str(my_profile_details['birthstar_name'])
+        my_rasi_id = str(my_profile_details['birth_rasi_name'])
 
         profile_ids = [detail.get("ProfileId") for detail in profile_details]
         action_scores = self.get_action_scores_bulk(profile_id, profile_ids)
 
+        preload_matching_scores()
+        score_map = cache.get("matching_score_map", {})
+
         result_profiles = []
+        base_url = settings.MEDIA_URL
+        plans = {p.id: p.plan_name for p in PlanDetails.objects.all()}  # or raw query
+        family_statuses = {f.id: f.status for f in FamilyStatus.objects.all()}
+        professions = {p.row_id: p.profession for p in Profession.objects.all()}
+        states = {s.id: s.name for s in State.objects.all()}
+        anualincomes = {i.id: i.income for i in AnnualIncome.objects.all()}
+
+
+        print('plans',plans)
+        print('family_statuses',family_statuses)
+
         for detail in profile_details:
+
+            # print(detail)
+
+            dest_star = str(detail.get("birthstar_name"))
+            dest_rasi = str(detail.get("birth_rasi_name"))
+
+
+            chevvai = get_dhosham_new(detail.get("calc_chevvai_dhosham"))
+            raguketu = get_dhosham_new(detail.get("calc_raguketu_dhosham"))
+
+
+            key = (my_star_id, my_rasi_id, dest_star, dest_rasi, gender.lower())
+            
+            match_count = score_map.get(key, 0)
+            matching_score = 100 if match_count == 15 else match_count * 10
+
+
+
+            # image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), gender, 1,0)
+
             pid = detail.get("ProfileId")
             result_profiles.append({
                 "profile_id": detail.get("ProfileId"),
                 "profile_name": detail.get("Profile_name"),
-                "profile_img": Get_profile_image(
-                    detail.get("ProfileId"),
-                    gender="female" if gender.lower() == "male" else "male",
-                    no_of_image=1,
-                    photo_protection=0,
-                    is_admin=True
-                            ),
-                "profile_age": calculate_age(detail.get("Profile_dob")),
-                # "profile_gender": detail.get("Gender"),
-                # "height": detail.get("Profile_height"),
-                "plan": get_plan(detail.get("Plan_id")),
-                "family_status": get_family_status(detail.get("family_status")),
-                # "weight": detail.get("weight"),
+                # "profile_img":image_function(detail),
+                "profile_img": base_url + (detail.get("profile_image") or "default_img.png"),
+                "profile_age": detail.get("profile_age"),
+                # "plan": get_plan(detail.get("Plan_id")),
+                "plan": plans.get(int(detail.get("Plan_id")) if detail.get("Plan_id") else "N/A"),
+               "family_status": family_statuses.get(int(detail.get("family_status")) if detail.get("family_status") else "N/A"),
+                # "degree": degree(detail.get("degree"),detail.get("other_degree")),
+                # "anual_income":get_annual_income(detail.get("anual_income"),detail.get("actual_income")),
                 "degree": degree(detail.get("degree"),detail.get("other_degree")),
-                "anual_income":get_annual_income(detail.get("anual_income"),detail.get("actual_income")),
-                "star": detail.get("star"),
-                "profession": getprofession(detail.get("profession")),
+                "anual_income": (detail.get("actual_income") if detail.get("actual_income") not in [None, "", "0"] else anualincomes.get(int(detail.get("anual_income"))) if detail.get("anual_income") else "N/A"),
+                "star": detail.get("star"), 
+                "profession": professions.get(int(detail.get("profession")) if detail.get("profession") else "N/A"),
                 "city": detail.get("Profile_city") if detail.get("Profile_city") not in [None,"0", "N/A","~"] else "N/A",
-                "state": get_state_name(detail.get("Profile_state")) if detail.get("Profile_state") not in [None,"0", "N/A","~"] else "N/A",
-                "work_place": get_location(detail.get("work_city"),detail.get("work_state"),detail.get("work_country")),
-                "designation": get_designation_or_nature(detail.get("designation"),detail.get("nature_of_business")),
-                "company_name": get_company_or_business(detail.get("company_name"),detail.get("business_name")),
+                # "state":  get_state_name(detail.get("Profile_state")) if detail.get("Profile_state") not in [None,"0", "N/A","~"] else "N/A",
+                "state":states.get(int(detail.get("Profile_state")) if detail.get("Profile_state") else "N/A"),
+                # "work_place": get_location(detail.get("work_city"),detail.get("work_state"),detail.get("work_country")),
+                # "designation": get_designation_or_nature(detail.get("designation"),detail.get("nature_of_business")),
+                # "company_name": get_company_or_business(detail.get("company_name"),detail.get("business_name")),
+
+                "work_place": get_location_new(detail.get("work_city"), detail.get("work_state"), detail.get("work_country")),
+                "designation": get_designation_or_nature_new(detail.get("designation"), detail.get("nature_of_business")),
+                "company_name": get_company_or_business_new(detail.get("company_name"), detail.get("business_name")),
                 "father_occupation":detail.get("father_occupation") if detail.get("father_occupation") not in [None,"0", "N/A","~"] else "N/A",
                 "suya_gothram": detail.get("suya_gothram") if detail.get("suya_gothram") not in [None,"0", "N/A","~"] else "N/A",
-                "chevvai":get_dhosham(detail.get("calc_chevvai_dhosham")),
-                "raguketu":get_dhosham(detail.get("calc_raguketu_dhosham")),
-                #"photo_protection": detail.get("Photo_protection"),
-                "matching_score": Get_matching_score(my_star_id, my_rasi_id, detail.get("birthstar_name"), detail.get("birth_rasi_name"), gender),
-                #"wish_list": Get_wishlist(profile_id, detail.get("ProfileId")),
-                #"verified": detail.get('Profile_verified'),
-                #"action_score": self.get_action_score(profile_id, detail.get("ProfileId")),
+                #"matching_score": Get_matching_score(my_star_id, my_rasi_id, detail.get("birthstar_name"), detail.get("birth_rasi_name"), gender),
+                "chevvai": chevvai,
+                "raguketu": raguketu,
+                "matching_score":matching_score,
                 "action_score": action_scores[pid],
                 "action_log":"",
                 "dateofjoin": detail.get("DateOfJoin") if detail.get("DateOfJoin") else None,
