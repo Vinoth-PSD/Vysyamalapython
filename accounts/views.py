@@ -3956,8 +3956,28 @@ def get_company_or_business_new(company, business):
     return company if company and company not in [None, "0", "N/A", ""] else \
            (business if business and business not in [None, "0", "N/A", ""] else "N/A")
 
+def get_action_log(profile_id,to_id):
+    try:
+        logs = AdminPrintLogs.objects.filter(profile_id=profile_id, sentprofile_id=to_id)
+        if not logs.exists():
+            return "No logs"
 
+        formatted_logs = ",".join(f"{log.action_type}({log.format_type})" for log in logs)
+        return formatted_logs
+    except Exception as e:
+        return "No logs"
 
+def get_bulk_action_logs(from_profile_id, to_profile_ids):
+    logs = AdminPrintLogs.objects.filter(profile_id=from_profile_id, sentprofile_id__in=to_profile_ids)
+
+    logs_map = {}
+    for log in logs:
+        pid = log.sentprofile_id
+        if pid not in logs_map:
+            logs_map[pid] = []
+        logs_map[pid].append(f"{log.action_type}({log.format_type})")
+
+    return {pid: ", ".join(actions) for pid, actions in logs_map.items()}
 
 class Get_prof_list_match(APIView):
 
@@ -4118,7 +4138,7 @@ class Get_prof_list_match(APIView):
 
         print('plans',plans)
         print('family_statuses',family_statuses)
-
+        logs_map = get_bulk_action_logs(profile_id, profile_ids)
         for detail in profile_details:
 
             # print(detail)
@@ -4173,7 +4193,8 @@ class Get_prof_list_match(APIView):
                 "raguketu": raguketu,
                 "matching_score":matching_score,
                 "action_score": action_scores[pid],
-                "action_log":"",
+                "action_log":logs_map.get(pid, "No logs"),
+                # get_action_log(profile_id,detail.get("ProfileId"))
                 "dateofjoin": detail.get("DateOfJoin") if detail.get("DateOfJoin") else None,
             })
 

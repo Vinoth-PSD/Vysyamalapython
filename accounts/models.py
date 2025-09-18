@@ -1331,13 +1331,15 @@ class Get_profiledata_Matching(models.Model):
             field_of_study = field_of_study or partner_pref.pref_fieldof_study
             degree = degree or partner_pref.degree
 
-            annual_income_ids = partner_pref.pref_anual_income or ""
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT MIN(income_amount), MAX(income_amount) FROM masterannualincome WHERE FIND_IN_SET(id, %s)",
-                    [annual_income_ids]
-                )
-                min_income, max_income = cursor.fetchone() or (None, None)
+            annual_income_min = partner_pref.pref_anual_income
+            annual_income_max = partner_pref.pref_anual_income_max
+            # annual_income_ids = partner_pref.pref_anual_income or ""
+            # with connection.cursor() as cursor:
+            #     cursor.execute(
+            #         "SELECT MIN(income_amount), MAX(income_amount) FROM masterannualincome WHERE FIND_IN_SET(id, %s)",
+            #         [annual_income_ids]
+            #     )
+            #     min_income, max_income = cursor.fetchone() or (None, None)
 
             # Base query
             base_query = """
@@ -1384,7 +1386,15 @@ class Get_profiledata_Matching(models.Model):
                     query_params.extend([from_date_obj, to_date_obj])
                 except ValueError:
                     pass    
-            
+            inc_min = min_anual_income
+            inc_max = max_anual_income
+            if inc_min and inc_max:
+                base_query += "AND f.anual_income BETWEEN %s AND %s"
+                query_params.extend([inc_min, inc_max])
+            elif annual_income_min and annual_income_max:
+                base_query += "AND f.anual_income BETWEEN %s AND %s "
+                query_params.extend([annual_income_min,annual_income_max])
+
             if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
                 base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"
                 query_params.append(str(my_suya_gothram_admin))
@@ -1451,11 +1461,6 @@ class Get_profiledata_Matching(models.Model):
                 base_query += """ AND
                 ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
 
-            inc_min = min_anual_income or min_income
-            inc_max = max_anual_income or max_income
-            if inc_min and inc_max:
-                base_query += " AND ((h.income_amount BETWEEN %s AND %s) OR (h.income_amount IS NULL OR h.income_amount = ''))"
-                query_params.extend([inc_min, inc_max])
             # Height logic
             final_height_from = height_from or partner_pref.pref_height_from
             final_height_to = height_to or partner_pref.pref_height_to
@@ -2088,6 +2093,7 @@ class Get_profiledata_Matching(models.Model):
             my_suya_gothram_admin = my_family.suya_gothram_admin
 
             pref_annual_income = partner_pref.pref_anual_income
+            pref_annual_income_max = partner_pref.pref_anual_income_max
             
             pref_marital_status = partner_pref.pref_marital_status
             partner_pref_education = partner_pref.pref_education
@@ -2102,17 +2108,17 @@ class Get_profiledata_Matching(models.Model):
             field_of_study = partner_pref.pref_fieldof_study
             degree = partner_pref.degree
             # Get min and max income
-            min_income, max_income = 0, 0
-            if pref_annual_income:
-                with connection.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT MIN(income_amount), MAX(income_amount)
-                        FROM masterannualincome
-                        WHERE FIND_IN_SET(id, %s) > 0
-                    """, [pref_annual_income])
-                    min_max_income = cursor.fetchone()
-                    if min_max_income:
-                        min_income, max_income = min_max_income
+            # min_income, max_income = 0, 0
+            # if pref_annual_income:
+            #     with connection.cursor() as cursor:
+            #         cursor.execute("""
+            #             SELECT MIN(income_amount), MAX(income_amount)
+            #             FROM masterannualincome
+            #             WHERE FIND_IN_SET(id, %s) > 0
+            #         """, [pref_annual_income])
+            #         min_max_income = cursor.fetchone()
+            #         if min_max_income:
+            #             min_income, max_income = min_max_income
 
             # Parse age difference
             try:
@@ -2154,6 +2160,9 @@ class Get_profiledata_Matching(models.Model):
 
             params = [profile_id, gender, profile_id, min_dob, max_dob]
 
+            if pref_annual_income and pref_annual_income_max:
+                base_query += "AND f.anual_income BETWEEN %s AND %s "
+                params.extend([pref_annual_income,pref_annual_income_max])
             # Gothram filter
             if my_suya_gothram_admin and my_suya_gothram_admin != '0':
                 base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"
@@ -2173,9 +2182,9 @@ class Get_profiledata_Matching(models.Model):
                 params.append(partner_pref_education)
 
             # Income
-            if min_income and max_income:
-                base_query += " AND ((h.income_amount BETWEEN %s AND %s) OR h.income_amount IS NULL OR h.income_amount = '')"
-                params.extend([min_income, max_income])
+            # if min_income and max_income:
+            #     base_query += " AND ((h.income_amount BETWEEN %s AND %s) OR h.income_amount IS NULL OR h.income_amount = '')"
+            #     params.extend([min_income, max_income])
 
             # Stars
             if partner_pref_porutham_star_rasi:
@@ -2562,7 +2571,7 @@ class Get_profiledata_Matching(models.Model):
                                 foreign_intrest=None, has_photos=None, height_from=None, height_to=None,
                                 matching_stars=None, min_anual_income=None, max_anual_income=None,
                                 membership=None,profile_name=None,father_alive=None,mother_alive=None,martial_status=None,
-                                mobile_no=None, profile_dob=None,status=None
+                                mobile_no=None, profile_dob=None,status=None,dob_date=None,dob_month=None,dob_year=None
                                 ):
 
         try:
@@ -2584,6 +2593,30 @@ class Get_profiledata_Matching(models.Model):
             """
 
             query_params = []
+
+            if dob_year:
+                try:
+                    dob_year = int(dob_year)
+                    base_query += " AND EXTRACT(YEAR FROM a.Profile_dob) = %s"
+                    query_params.append(dob_year)
+                except ValueError:
+                    pass
+
+            if dob_month:
+                try:
+                    dob_month = int(dob_month)
+                    base_query += " AND EXTRACT(MONTH FROM a.Profile_dob) = %s"
+                    query_params.append(dob_month)
+                except ValueError:
+                    pass
+
+            if dob_date:
+                try:
+                    dob_date = int(dob_date)
+                    base_query += " AND EXTRACT(DAY FROM a.Profile_dob) = %s"
+                    query_params.append(dob_date)
+                except ValueError:
+                    pass
 
             if status is not None and status != '':
                 try:
