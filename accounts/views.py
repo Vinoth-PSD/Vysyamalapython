@@ -3968,14 +3968,35 @@ def get_action_log(profile_id,to_id):
         return "No logs"
 
 def get_bulk_action_logs(from_profile_id, to_profile_ids):
-    logs = AdminPrintLogs.objects.filter(profile_id=from_profile_id, sentprofile_id__in=to_profile_ids)
+    format_short_map = {
+        "match_full_profile": "fp",
+        "match_full_profile_black": "fp",
+        "match_compatability_color": "mch",
+        "match_compatability_black": "mch",
+        "match_compatability_without_horo": "mc",
+        "match_compatability_without_horo_black": "mc"
+    }
+    action_short_map = {
+        "print":"prnt",
+        "whatsapp":"whts",
+        "email":"email"
+    }
+
+    logs = AdminPrintLogs.objects.filter(
+        profile_id=from_profile_id,
+        sentprofile_id__in=to_profile_ids
+    )
 
     logs_map = {}
     for log in logs:
         pid = log.sentprofile_id
         if pid not in logs_map:
             logs_map[pid] = []
-        logs_map[pid].append(f"{log.action_type}({log.format_type})")
+
+        short_format = format_short_map.get(log.format_type, log.format_type)
+        short_action = action_short_map.get(log.action_type.lower(), log.action_type)
+        updated_at_str = log.updated_at.strftime("%Y-%m-%d")
+        logs_map[pid].append(f"{short_action}-{short_format}({updated_at_str})")
 
     return {pid: ", ".join(actions) for pid, actions in logs_map.items()}
 
