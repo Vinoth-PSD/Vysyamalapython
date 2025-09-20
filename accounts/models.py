@@ -2562,6 +2562,275 @@ class Get_profiledata_Matching(models.Model):
         #print("Query result:", result)
         return result
 
+    @staticmethod
+    def get_profile_visibility(
+        gender,
+        profile_id,
+        start,
+        per_page,
+        order_by,
+        profession=None,
+        age_from=None,
+        age_to=None,
+        education=None,
+        foreign_intrest=None,
+        height_from=None,
+        height_to=None,
+        min_anual_income=None,
+        max_anual_income=None,
+        ragu=None,
+        chev=None,
+        marital_status=None,
+        family_status=None,
+        field_of_study=None,
+        degree=None
+    ):
+        try:
+            today = date.today()
+
+            profile = get_object_or_404(Registration1, ProfileId=profile_id)
+            gender = profile.Gender
+            profile_dob = profile.Profile_dob
+
+            partner_pref = get_object_or_404(ProfileVisibility, profile_id=profile_id)
+
+            # Preferences fallback
+            pref_annual_income = partner_pref.visibility_anual_income
+            pref_annual_income_max = partner_pref.visibility_anual_income_max
+            partner_pref_education = education or partner_pref.visibility_education
+            partner_pref_age_from = age_from or partner_pref.visibility_age_from
+            partner_pref_age_to = age_to or partner_pref.visibility_age_to  # ✅ fixed
+            partner_pref_height_from = height_from or partner_pref.visibility_height_from
+            partner_pref_height_to = height_to or partner_pref.visibility_height_to
+            partner_pref_profession = profession or partner_pref.visibility_profession
+            partner_pref_foreign_interest = partner_pref.visibility_foreign_interest
+            partner_pref_ragukethu = partner_pref.visibility_ragukethu
+            partner_pref_chevvai = partner_pref.visibility_chevvai
+            partner_pref_familysts = partner_pref.visibility_family_status
+            field_of_study = field_of_study or partner_pref.visibility_field_of_study
+            degree = degree or partner_pref.degree
+
+            # DOB range calculation
+            try:
+                if partner_pref_age_from and partner_pref_age_to:
+                    from_age = int(partner_pref_age_from)
+                    to_age = int(partner_pref_age_to)
+                    if from_age > 0 and to_age > 0 and from_age <= to_age:
+                        min_dob = today - relativedelta(years=to_age)
+                        max_dob = today - relativedelta(years=from_age)
+                    else:
+                        raise ValueError("Invalid age range")
+                else:
+                    if gender.upper() == "MALE":
+                        min_dob = profile_dob - relativedelta(years=5)
+                        max_dob = profile_dob
+                    elif gender.upper() == "FEMALE":
+                        min_dob = profile_dob
+                        max_dob = profile_dob + relativedelta(years=5)
+            except (ValueError, TypeError):
+                if gender.upper() == "MALE":
+                    min_dob = profile_dob - relativedelta(years=5)
+                    max_dob = profile_dob
+                else:
+                    min_dob = profile_dob
+                    max_dob = profile_dob + relativedelta(years=5)
+
+            # Base query
+            base_query = """
+                SELECT DISTINCT a.*, e.birthstar_name, e.birth_rasi_name,
+                       c.family_status, c.father_occupation, c.suya_gothram,
+                       e.calc_chevvai_dhosham, e.calc_raguketu_dhosham,
+                       f.degree, f.other_degree, f.profession, f.highest_education,
+                       f.actual_income, f.anual_income, f.work_city, f.work_state,
+                       f.work_country, f.designation, f.business_name, f.company_name,
+                       f.nature_of_business,
+                       g.EducationLevel, d.star, h.income
+                FROM logindetails a
+                JOIN profile_suggested_pref s ON a.ProfileId = s.profile_id 
+                JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
+                JOIN profile_familydetails c ON a.ProfileId = c.profile_id
+                JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
+                JOIN masterbirthstar d ON d.id = e.birthstar_name 
+                JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
+                LEFT JOIN mastereducation g ON f.highest_education = g.RowId 
+                LEFT JOIN masterannualincome h ON h.id = f.anual_income
+                LEFT JOIN masterprofession r ON r.RowId = f.profession
+                LEFT JOIN profile_images pi ON a.ProfileId = pi.profile_id
+                WHERE a.Status = 1 
+                  AND a.Plan_id NOT IN (0,16)
+                  AND a.gender != %s 
+                  AND a.ProfileId != %s
+                  AND a.Profile_dob BETWEEN %s AND %s
+            """
+
+            query_params = [gender, profile_id, min_dob, max_dob]
+
+            # Income filter
+            if min_anual_income and max_anual_income:
+                base_query += " AND h.id BETWEEN %s AND %s"
+                query_params.extend([min_anual_income, max_anual_income])
+            elif pref_annual_income and pref_annual_income_max:
+                base_query += " AND h.id BETWEEN %s AND %s"
+                query_params.extend([pref_annual_income, pref_annual_income_max])
+
+            # Education filter
+            if partner_pref_education:
+                base_query += " AND FIND_IN_SET(g.RowId, %s) > 0"
+                query_params.append(partner_pref_education)
+
+            # Profession filter (fixed column)
+            if partner_pref_profession:
+                base_query += " AND FIND_IN_SET(f.profession, %s) > 0"
+                query_params.append(partner_pref_profession)
+
+            # Foreign interest
+            pref_foreign = foreign_intrest or partner_pref_foreign_interest
+            if pref_foreign and pref_foreign.strip().lower() in ['yes', 'no']:
+                if pref_foreign.lower() == "yes":
+                    base_query += " AND f.work_country != '1'"
+                else:
+                    base_query += " AND f.work_country = '1'"
+
+            # Dosham filters
+            if not chev and not ragu:
+                if partner_pref_ragukethu:
+                    if partner_pref_ragukethu.lower() == 'yes':
+                        base_query += " AND (LOWER(e.calc_raguketu_dhosham) IN ('yes','true') OR e.calc_raguketu_dhosham IN ('1',1,'','NULL'))"
+                    elif partner_pref_ragukethu.lower() == 'no':
+                        base_query += " AND (LOWER(e.calc_raguketu_dhosham) IN ('no','false') OR e.calc_raguketu_dhosham IN ('2',2,'','NULL'))"
+
+                if partner_pref_chevvai:
+                    if partner_pref_chevvai.lower() == 'yes':
+                        base_query += " AND (LOWER(e.calc_chevvai_dhosham) IN ('yes','true') OR e.calc_chevvai_dhosham IN ('1',1,'','NULL'))"
+                    elif partner_pref_chevvai.lower() == 'no':
+                        base_query += " AND (LOWER(e.calc_chevvai_dhosham) IN ('no','false') OR e.calc_chevvai_dhosham IN ('2',2,'','NULL'))"
+
+            # Height filters
+            if partner_pref_height_from and partner_pref_height_to:
+                base_query += " AND a.Profile_height BETWEEN %s AND %s"
+                query_params.extend([partner_pref_height_from, partner_pref_height_to])
+            elif partner_pref_height_from:
+                base_query += " AND a.Profile_height >= %s"
+                query_params.append(partner_pref_height_from)
+            elif partner_pref_height_to:
+                base_query += " AND a.Profile_height <= %s"
+                query_params.append(partner_pref_height_to)
+
+            # Search profession list filter
+            # if profession:
+            #     profession_list = [p.strip() for p in profession.split(',') if p.strip().isdigit()]
+            #     if profession_list:
+            #         placeholders = ','.join(['%s'] * len(profession_list))
+            #         base_query += f" AND f.profession IN ({placeholders})"
+            #         query_params.extend(profession_list)
+
+            # # Search location filter
+            # if search_location:
+            #     base_query += " AND a.Profile_state = %s"
+            #     query_params.append(search_location)
+
+            # if state:
+            #     base_query += """
+            #         AND (
+            #             FIND_IN_SET(f.work_state, %s) > 0 OR
+            #             FIND_IN_SET(a.Profile_state, %s) > 0 OR
+            #             a.Profile_state IS NULL OR a.Profile_state = ''
+            #         )
+            #     """
+            #     query_params.extend([state, state])
+
+            # Family status filter
+            if family_status:
+                statuses = [s.strip() for s in str(family_status).split(',') if s.strip()]
+                if statuses:
+                    family_status_filters = ["FIND_IN_SET(%s, c.family_status) > 0" for _ in statuses]
+                    base_query += " AND (" + " OR ".join(family_status_filters) + ")"
+                    query_params.extend(statuses)
+            elif partner_pref_familysts:
+                base_query += " AND (FIND_IN_SET(c.family_status, %s) > 0 OR c.family_status IS NULL OR c.family_status='')"
+                query_params.append(partner_pref_familysts)
+
+            # Field of study filter
+            if field_of_study:
+                fields = [f.strip() for f in field_of_study.split(',') if f.strip()]
+                if fields:
+                    placeholders = ','.join(['%s'] * len(fields))
+                    base_query += f" AND f.field_ofstudy IN ({placeholders})"
+                    query_params.extend(fields)
+
+            # Degree filter
+            if degree:
+                degrees = [d.strip() for d in degree.split(',') if d.strip()]
+                if degrees:
+                    placeholders = ','.join(['%s'] * len(degrees))
+                    base_query += f" AND f.degree IN ({placeholders})"
+                    query_params.extend(degrees)
+
+            # Order by
+            try:
+                order_by = int(order_by)
+            except (ValueError, TypeError):
+                order_by = None
+
+            if order_by == 1:
+                orderby_cond = " ORDER BY a.DateOfJoin ASC"
+            else:
+                orderby_cond = " ORDER BY a.DateOfJoin DESC"
+
+            query = base_query + orderby_cond
+
+            # First fetch for total count
+            with connection.cursor() as cursor:
+                cursor.execute(query, query_params)
+                all_profile_ids = [row[0] for row in cursor.fetchall()]
+                total_count = len(all_profile_ids)
+                profile_with_indices = {str(i + 1): pid for i, pid in enumerate(all_profile_ids)}
+
+            # Add pagination
+            query += " LIMIT %s OFFSET %s"
+            query_params.extend([per_page, start])
+
+            with connection.cursor() as cursor:
+                cursor.execute(query, query_params)
+                rows = cursor.fetchall()
+                if rows:
+                    columns = [col[0] for col in cursor.description]
+                    results = [dict(zip(columns, row)) for row in rows]
+                    return results, total_count, profile_with_indices
+
+            return [], 0, {}
+
+        except Exception as e:
+            print(f"visibility Profile Error: {str(e)}")
+            return [], 0, {}
+    
+    @staticmethod
+    def get_profile_details(profile_ids):
+        
+        query = '''SELECT l.*, pp.*, pf.*, ph.*, pe.*,mr.name as rasi_name,mb.star as star_name , mp.Profession as profession_name
+            FROM logindetails l 
+            LEFT JOIN profile_edudetails pe ON pe.profile_id = l.ProfileId 
+            LEFT JOIN profile_familydetails pf ON pf.profile_id = l.ProfileId 
+            LEFT JOIN profile_horoscope ph ON ph.profile_id = l.ProfileId 
+            LEFT JOIN profile_partner_pref pp ON pp.profile_id = l.ProfileId 
+            LEFT JOIN masterrasi mr ON mr.id = ph.birth_rasi_name 
+            LEFT JOIN masterbirthstar mb ON mb.id = ph.birthstar_name
+            LEFT JOIN masterprofession mp ON mp.RowId = pe.profession
+            WHERE l.ProfileId IN %s  '''
+
+
+        with connection.cursor() as cursor:
+            cursor.execute(query,[tuple(profile_ids)])
+            columns = [col[0] for col in cursor.description]
+            rows = cursor.fetchall()
+            result = [
+                dict(zip(columns, row))
+                for row in rows
+            ]
+        #print("Query result:", result)
+        return result
+
+
 
     @staticmethod
     def get_common_profile_list(start, per_page, 

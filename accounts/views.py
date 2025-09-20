@@ -88,6 +88,7 @@ from .serializers import PlanSubscriptionSerializer,PlanSubscriptionListSerializ
 from authentication.helpers.matching import preload_matching_scores , get_matching_score_util
 from django.core.cache import caches
 from django.core.cache import cache
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from authentication.views import get_profile_image_azure_optimized
 # from authentication.models import ProfileVisibility
@@ -4419,7 +4420,132 @@ class Get_suggest_list_match(APIView):
 
         
         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
+
+class Get_visibility_list_match(APIView):
+    def post(self, request):
+        serializer = GetproflistSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        profile_id = serializer.validated_data['profile_id']
+
+        # ✅ Safely get profile
+        try:
+            profile_data = Registration1.objects.get(ProfileId=profile_id)
+        except Registration1.DoesNotExist:
+            return JsonResponse({"Status": 0, "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        gender = profile_data.Gender
+
+        # ✅ Get filters safely
+        search_profile_id = request.data.get('search_profile_id')
+        search_profession = request.data.get('search_profession')
+        search_age = request.data.get('search_age')
+        search_location = request.data.get('search_location')
+        order_by = request.data.get('order_by')
+
+        # ✅ Pagination (defaults)
+        try:
+            per_page = int(request.data.get('per_page', 10))
+        except (ValueError, TypeError):
+            per_page = 10
+
+        try:
+            page_number = int(request.data.get('page_number', 1))
+        except (ValueError, TypeError):
+            page_number = 1
+
+        per_page = max(1, per_page)
+        page_number = max(1, page_number)
+
+        # Fetch all matching profiles first
+        # ✅ Fetch all matching profiles first (parameter names now match the function)
+        profile_details, total_count, profile_with_indices = Get_profiledata_Matching.get_profile_visibility(
+            gender,
+            profile_id,
+            start=0,
+            per_page=100000,  # Get all then paginate
+            order_by=order_by,
+            profession=request.data.get('profession'),  # ✅ renamed
+            age_from=request.data.get('from_age'),      # ✅ renamed
+            age_to=request.data.get('to_age'),          # ✅ renamed
+            education=request.data.get('education'),
+            foreign_intrest=request.data.get('foreign_intrest'),
+            height_from=request.data.get('height_from'),
+            height_to=request.data.get('height_to'),
+            min_anual_income=request.data.get('min_anual_income'),
+            max_anual_income=request.data.get('max_anual_income'),
+            ragu=request.data.get('ragu'),
+            chev=request.data.get('chev'),
+            marital_status=request.data.get('marital_status'),
+            family_status=request.data.get('family_status'),
+            field_of_study=request.data.get('pref_fieldof_study'),
+            degree=request.data.get('degree')
+        )
+
+
+        # Paginate results
+        paginator = Paginator(profile_details, per_page)
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = []
+
+        my_profile_details = get_profile_details([profile_id])
+        my_gender = my_profile_details[0]['Gender']
+        my_star_id = my_profile_details[0]['birthstar_name']
+        my_rasi_id = my_profile_details[0]['birth_rasi_name']
+
+        restricted_profile_details = [
+            {
+                "profile_id": detail.get("ProfileId"),
+                "profile_name": detail.get("Profile_name"),
+                "profile_img": Get_profile_image(
+                    detail.get("ProfileId"),
+                    gender="female" if gender.lower() == "male" else "male",
+                    no_of_image=1,
+                    photo_protection=0,
+                    is_admin=True
+                ),
+                "profile_age": calculate_age(detail.get("Profile_dob")),
+                "plan": get_plan(detail.get("Plan_id")),
+                "family_status": get_family_status(detail.get("family_status")),
+                "degree": degree(detail.get("degree"), detail.get("other_degree")),
+                "anual_income": get_annual_income(detail.get("anual_income"), detail.get("actual_income")),
+                "star": detail.get("star"),
+                "profession": getprofession(detail.get("profession")),
+                "city": detail.get("Profile_city") if detail.get("Profile_city") not in [None, "0", "N/A", "~"] else "N/A",
+                "state": get_state_name(detail.get("Profile_state")) if detail.get("Profile_state") not in [None, "0", "N/A", "~"] else "N/A",
+                "work_place": get_location(detail.get("work_city"), detail.get("work_state"), detail.get("work_country")),
+                "designation": get_designation_or_nature(detail.get("designation"), detail.get("nature_of_business")),
+                "company_name": get_company_or_business(detail.get("company_name"), detail.get("business_name")),
+                "father_occupation": detail.get("father_occupation") if detail.get("father_occupation") not in [None, "0", "N/A", "~"] else "N/A",
+                "suya_gothram": detail.get("suya_gothram") if detail.get("suya_gothram") not in [None, "0", "N/A", "~"] else "N/A",
+                "chevvai": get_dhosham(detail.get("calc_chevvai_dhosham")),
+                "raguketu": get_dhosham(detail.get("calc_raguketu_dhosham")),
+                "photo_protection": detail.get("Photo_protection"),
+                "matching_score": Get_matching_score(my_star_id, my_rasi_id, detail.get("birthstar_name"), detail.get("birth_rasi_name"), my_gender),
+                "dateofjoin": detail.get("DateOfJoin") if detail.get("DateOfJoin") else None,
+            }
+            for detail in page_obj
+        ]
+
+        return JsonResponse({
+            "Status": 1 if restricted_profile_details else 0,
+            "message": "Matching records fetched successfully" if restricted_profile_details else "No matching records",
+            "profiles": restricted_profile_details,
+            "total_count": total_count,
+            "received_per_page": per_page,
+            "received_page_number": page_number,
+            "calculated_per_page": per_page,
+            "calculated_page_number": page_number,
+            "all_profile_ids": profile_with_indices,
+            "search_result": "1"
+        }, status=status.HTTP_200_OK)
 
 
 def send_bulk_email(request):
