@@ -1034,6 +1034,7 @@ class Get_profiledata(models.Model):
                 age_diff = 5  # Fallback to default if conversion fails
 
             pref_annual_income = partner_pref.pref_anual_income
+            pref_annual_income_max = partner_pref.pref_anual_income_max
             pref_marital_status = partner_pref.pref_marital_status
             partner_pref_education = partner_pref.pref_education
             partner_pref_height_from = partner_pref.pref_height_from
@@ -1049,18 +1050,18 @@ class Get_profiledata(models.Model):
             field_of_study = partner_pref.pref_fieldof_study
             degree = partner_pref.degree
 
-            min_max_query = """
-                SELECT MIN(income_amount) AS min_income, 
-                    MAX(income_amount) AS max_income
-                FROM masterannualincome
-                WHERE FIND_IN_SET(id, %s) > 0"""
+            # min_max_query = """
+            #     SELECT MIN(income_amount) AS min_income, 
+            #         MAX(income_amount) AS max_income
+            #     FROM masterannualincome
+            #     WHERE FIND_IN_SET(id, %s) > 0"""
 
-            with connection.cursor() as cursor:
-                cursor.execute(min_max_query, [pref_annual_income])
-                min_max_income = cursor.fetchone()
+            # with connection.cursor() as cursor:
+            #     cursor.execute(min_max_query, [pref_annual_income])
+            #     min_max_income = cursor.fetchone()
             
-            if min_max_income:
-                min_income, max_income = min_max_income
+            # if min_max_income:
+            #     min_income, max_income = min_max_income
             
             try:
                 age_difference = int(age_difference_str)
@@ -1195,9 +1196,20 @@ class Get_profiledata(models.Model):
                     query_params.append(my_suya_gothram)
 
 
-                if min_income and max_income:
-                    base_query += " AND ((h.income_amount BETWEEN %s AND %s) OR (h.income_amount IS NULL OR h.income_amount = '')) "
-                    query_params.extend([min_income, max_income])
+                # if min_income and max_income:
+                #     base_query += " AND ((h.income_amount BETWEEN %s AND %s) OR (h.income_amount IS NULL OR h.income_amount = '')) "
+                #     query_params.extend([min_income, max_income])
+
+
+
+                pref_annual_income = None if pref_annual_income in ("null", "", None) else pref_annual_income
+                pref_annual_income_max = None if pref_annual_income_max in ("null", "", None) else pref_annual_income_max
+                
+                
+                if pref_annual_income and pref_annual_income_max:
+                    base_query += "AND f.anual_income BETWEEN %s AND %s "
+                    query_params.extend([pref_annual_income,pref_annual_income_max])
+
 
                 if partner_pref_porutham_star_rasi:
                     base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
