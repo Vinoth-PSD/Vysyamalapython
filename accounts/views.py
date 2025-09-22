@@ -8276,7 +8276,7 @@ class AdminProfilePDFView(APIView):
         birth_rasi_id = horoscope_data.birth_rasi_name
         gender = login.Gender
         porutham_data = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
-        didi = horoscope_data.lagnam_didi or "Not specified"
+        didi = horoscope_data.didi or "Not specified"
         nalikai = horoscope_data.nalikai or "Not specified"
         lagnam="Unknown"
         try:
@@ -8619,7 +8619,7 @@ class AdminMatchProfilePDFView(APIView):
 
                 porutham_data1 = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
                 porutham_data = fetch_porutham_details(profile_id, profile_to)
-                didi = horoscope_data.lagnam_didi or "Not specified"
+                didi = horoscope_data.didi or "Not specified"
                 nalikai = horoscope_data.nalikai or "Not specified"
                 def format_time_am_pm(time_str):
                     if not time_str:  # Handles None or empty strings
