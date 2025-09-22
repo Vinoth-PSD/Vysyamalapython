@@ -1289,7 +1289,7 @@ class Get_profiledata_Matching(models.Model):
         father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None,field_of_study=None,
         degree=None,from_date=None,to_date=None ,action_type=None , status=None,search=None
     ):
-        print('action_type 123',action_type,'status 123',status)
+        # print('action_type 123',action_type,'status 123',status)
         try:
             profile = get_object_or_404(Registration1, ProfileId=profile_id)
             current_age = calculate_age(profile.Profile_dob)
@@ -1358,20 +1358,102 @@ class Get_profiledata_Matching(models.Model):
                     JOIN masterbirthstar d ON d.id = e.birthstar_name
                     JOIN profile_edudetails f
                         ON a.ProfileId = f.profile_id
-                    JOIN mastereducation g ON f.highest_education = g.RowId
-                    JOIN masterannualincome h ON h.id = f.anual_income
+                    LEFT JOIN mastereducation g ON f.highest_education = g.RowId
+                    LEFT JOIN masterannualincome h ON h.id = f.anual_income
                     JOIN profile_familydetails c ON a.ProfileId = c.profile_id
                     LEFT JOIN masterprofession prof ON f.profession = prof.RowId
                     LEFT JOIN vw_profile_images pi ON a.ProfileId = pi.profile_id
+                    LEFT JOIN profile_visibility pv ON pv.profile_id = a.ProfileId
                     LEFT JOIN profile_visit_logs v
                         ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
+
+                    JOIN profile_edudetails f_from ON f_from.profile_id = %s
+                    JOIN profile_familydetails f1_from ON f1_from.profile_id = %s
+                    JOIN profile_horoscope h1_from ON h1_from.profile_id = %s
+                    JOIN logindetails l1_from ON l1_from.ProfileId = %s
+                    LEFT JOIN masterannualincome h_from ON h_from.id = f_from.anual_income
+
+
+
                     WHERE a.Status = 1 
+
+                    AND (
+                        -- If the opposite profile is Platinum, apply pv only when set
+                        (
+                            a.Plan_id IN (3,17)
+                        AND (
+                            (%s = 'male' 
+                                AND (pv.visibility_age_from IS NULL OR pv.visibility_age_from = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= pv.visibility_age_from)
+                                AND (pv.visibility_age_to IS NULL OR pv.visibility_age_to = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= pv.visibility_age_to)
+                                AND a.Profile_dob > %s -- viewer must be older than candidate
+                            )
+                            OR
+                            (%s = 'female' 
+                                AND (pv.visibility_age_from IS NULL OR pv.visibility_age_from = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= pv.visibility_age_from)
+                                AND (pv.visibility_age_to IS NULL OR pv.visibility_age_to = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= pv.visibility_age_to)
+                                AND a.Profile_dob < %s -- viewer must be younger than candidate
+                            )
+                        )
+                        AND (pv.visibility_height_from IS NULL OR pv.visibility_height_from = '' OR l1_from.Profile_height >= pv.visibility_height_from)
+                        AND (pv.visibility_height_to IS NULL OR pv.visibility_height_to = '' OR l1_from.Profile_height <= pv.visibility_height_to)
+                        AND (pv.visibility_profession IS NULL OR pv.visibility_profession = '' OR FIND_IN_SET(f_from.profession, pv.visibility_profession) > 0)
+                        AND (pv.visibility_education IS NULL OR pv.visibility_education = '' OR FIND_IN_SET(f_from.highest_education, pv.visibility_education) > 0)
+                        AND (pv.visibility_anual_income IS NULL OR pv.visibility_anual_income = '' 
+                        OR h_from.id >= pv.visibility_anual_income)
+                        AND (pv.visibility_anual_income_max IS NULL OR pv.visibility_anual_income_max = '' 
+                        OR h_from.id <= pv.visibility_anual_income_max)
+
+                        AND (pv.degree IS NULL OR pv.degree = '' OR FIND_IN_SET(f_from.degree, pv.degree) > 0)
+                        AND (pv.visibility_field_of_study IS NULL OR pv.visibility_field_of_study = '' OR FIND_IN_SET(f_from.field_ofstudy, pv.visibility_field_of_study) > 0)
+                        AND (pv.visibility_family_status IS NULL OR pv.visibility_family_status = '' OR FIND_IN_SET(f1_from.family_status, pv.visibility_family_status) > 0)
+                        -- Chevvai visibility
+                        AND (
+                            pv.visibility_chevvai IS NULL OR pv.visibility_chevvai = '' 
+                            OR (
+                                (LOWER(pv.visibility_chevvai) IN ('yes','true','1') 
+                                    AND (LOWER(h1_from.calc_chevvai_dhosham) = 'yes' OR LOWER(h1_from.calc_chevvai_dhosham) = 'true' 
+                                        OR h1_from.calc_chevvai_dhosham = '1' OR h1_from.calc_chevvai_dhosham = 1 
+                                        OR h1_from.calc_chevvai_dhosham IS NULL OR h1_from.calc_chevvai_dhosham =''))
+                                OR
+                                (LOWER(pv.visibility_chevvai) IN ('no','false','2') 
+                                    AND (LOWER(h1_from.calc_chevvai_dhosham) = 'no' OR LOWER(h1_from.calc_chevvai_dhosham) = 'false' 
+                                        OR h1_from.calc_chevvai_dhosham = '2' OR h1_from.calc_chevvai_dhosham = 2 
+                                        OR h1_from.calc_chevvai_dhosham IS NULL OR h1_from.calc_chevvai_dhosham =''))
+                            )
+                        )
+                        -- Ragukethu visibility
+                        AND (
+                            pv.visibility_ragukethu IS NULL OR pv.visibility_ragukethu = '' 
+                            OR (
+                                (LOWER(pv.visibility_ragukethu) IN ('yes','true','1') 
+                                    AND (LOWER(h1_from.calc_raguketu_dhosham) = 'yes' OR LOWER(h1_from.calc_raguketu_dhosham) = 'true' 
+                                        OR h1_from.calc_raguketu_dhosham = '1' OR h1_from.calc_raguketu_dhosham = 1 
+                                        OR h1_from.calc_raguketu_dhosham IS NULL OR h1_from.calc_raguketu_dhosham =''))
+                                OR
+                                (LOWER(pv.visibility_ragukethu) IN ('no','false','2') 
+                                    AND (LOWER(h1_from.calc_raguketu_dhosham) = 'no' OR LOWER(h1_from.calc_raguketu_dhosham) = 'false' 
+                                        OR h1_from.calc_raguketu_dhosham = '2' OR h1_from.calc_raguketu_dhosham = 2 
+                                        OR h1_from.calc_raguketu_dhosham IS NULL OR h1_from.calc_raguketu_dhosham =''))
+                            )
+                        )
+                    )
+                    OR 
+                    -- If opposite profile is not Platinum → skip pv.* checks
+                    (a.Plan_id NOT IN (3,16,17))
+                )
+
+
+
                     AND a.Plan_id NOT IN (0,3, 16, 17)
                     AND a.gender != %s
                     AND a.ProfileId != %s
-                    AND a.Profile_dob BETWEEN %s AND %s"""
+                    AND a.Profile_dob BETWEEN %s AND %s """
 
-            query_params = [profile_id, gender, profile_id, min_dob, max_dob]
+            query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,gender,profile.Profile_dob,gender,profile.Profile_dob,gender, profile_id, min_dob, max_dob]
             if search:
                 base_query += """ AND (a.Profile_name LIKE %s
                                 OR a.ProfileId LIKE %s
@@ -1388,6 +1470,13 @@ class Get_profiledata_Matching(models.Model):
                     pass    
             inc_min = min_anual_income
             inc_max = max_anual_income
+
+            inc_min = None if inc_min in ("null", "", None) else inc_min
+            inc_max = None if inc_max in ("null", "", None) else inc_max
+            annual_income_min = None if annual_income_min in ("null", "", None) else annual_income_min
+            annual_income_max = None if annual_income_max in ("null", "", None) else annual_income_max
+
+
             if inc_min and inc_max:
                 base_query += "AND f.anual_income BETWEEN %s AND %s"
                 query_params.extend([inc_min, inc_max])
@@ -1455,11 +1544,12 @@ class Get_profiledata_Matching(models.Model):
                 degrees = [d.strip() for d in degree.split(',') if d.strip()]
                 if degrees:
                     placeholders = ','.join(['%s'] * len(degrees))
-                    base_query += f" AND f.degree IN ({placeholders})"
+                    # base_query += f" AND f.degree IN ({placeholders})"
+                    base_query += f" AND f.degree IN ({placeholders}) OR f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"
                     query_params.extend(degrees)
-            else:
-                base_query += """ AND
-                ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
+            # else:
+            #     base_query += """ AND
+            #     ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
 
             # Height logic
             final_height_from = height_from or partner_pref.pref_height_from
@@ -1536,9 +1626,9 @@ class Get_profiledata_Matching(models.Model):
             # Foreign interest
             if pref_foreign and pref_foreign.strip().lower() in ['yes', 'no']:
                 if pref_foreign.lower() == "yes":
-                    base_query += " AND f.work_country != '1'"
+                    base_query += "  AND (f.work_country != '1' OR f.work_country IS NULL OR f.work_country='' OR a.Profile_country!='1' OR a.Profile_country='' OR a.Profile_country IS NULL)"
                 elif pref_foreign.lower() == "no":
-                    base_query += " AND f.work_country = '1'"
+                    base_query += "  AND (f.work_country = '1' OR f.work_country IS NULL OR f.work_country='' OR a.Profile_country='1')"
             
             conditions = []
 
@@ -1565,16 +1655,16 @@ class Get_profiledata_Matching(models.Model):
             if not ragu or chev:
                 if ragukethu and ragukethu.lower() == 'yes':
                     
-                    base_query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'True' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
+                    base_query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'true' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
                 elif ragukethu and ragukethu.lower() == 'no':
-                    base_query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'False' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
+                    base_query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'false' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
 
                 if chevvai and chevvai.lower() == 'yes':
                     # base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
 
-                    base_query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'True' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+                    base_query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'true' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
                 elif chevvai and chevvai.lower() == 'no':
-                    base_query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'False' OR e.calc_chevvai_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+                    base_query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'false' OR e.calc_chevvai_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
 
 
             # Combine all conditions
@@ -1595,8 +1685,8 @@ class Get_profiledata_Matching(models.Model):
                     base_query += " AND c.mother_alive = 'no'"
             
             if status is not None:
-                print('status is not none')
-                print('status is',status)
+                # print('status is not none')
+                # print('status is',status)
                 if status == "unsent":
                     action_filter = "" if action_type == "all" else "AND sp.action_type = %s"
                     base_query += """
