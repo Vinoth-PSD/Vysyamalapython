@@ -2237,19 +2237,99 @@ class Get_profiledata_Matching(models.Model):
                 JOIN profile_horoscope e ON a.ProfileId = e.profile_id
                 JOIN masterbirthstar d ON d.id = e.birthstar_name
                 JOIN profile_edudetails f ON a.ProfileId = f.profile_id
-                JOIN mastereducation g ON f.highest_education = g.RowId
-                JOIN masterannualincome h ON h.id = f.anual_income
+                lEFT JOIN mastereducation g ON f.highest_education = g.RowId
+                lEFT JOIN masterannualincome h ON h.id = f.anual_income
+                LEFT JOIN profile_visibility pv ON pv.profile_id = a.ProfileId
                 JOIN profile_familydetails c ON a.ProfileId = c.profile_id
                 LEFT JOIN vw_profile_images pi ON a.ProfileId = pi.profile_id
                 LEFT JOIN profile_visit_logs v ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
+
+                
+                JOIN profile_edudetails f_from ON f_from.profile_id = %s
+                JOIN profile_familydetails f1_from ON f1_from.profile_id = %s
+                JOIN profile_horoscope h1_from ON h1_from.profile_id = %s
+                JOIN logindetails l1_from ON l1_from.ProfileId = %s
+                LEFT JOIN masterannualincome h_from ON h_from.id = f_from.anual_income
+                
+                
                 WHERE a.Status = 1 
-                AND a.Plan_id NOT IN (0,3,16,17)
+                AND (
+                        -- If the opposite profile is Platinum, apply pv only when set
+                        (
+                            a.Plan_id IN (3,17)
+                        AND (
+                            (%s = 'male' 
+                                AND (pv.visibility_age_from IS NULL OR pv.visibility_age_from = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= pv.visibility_age_from)
+                                AND (pv.visibility_age_to IS NULL OR pv.visibility_age_to = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= pv.visibility_age_to)
+                                AND a.Profile_dob > %s -- viewer must be older than candidate
+                            )
+                            OR
+                            (%s = 'female' 
+                                AND (pv.visibility_age_from IS NULL OR pv.visibility_age_from = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= pv.visibility_age_from)
+                                AND (pv.visibility_age_to IS NULL OR pv.visibility_age_to = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= pv.visibility_age_to)
+                                AND a.Profile_dob < %s -- viewer must be younger than candidate
+                            )
+                        )
+                        AND (pv.visibility_height_from IS NULL OR pv.visibility_height_from = '' OR l1_from.Profile_height >= pv.visibility_height_from)
+                        AND (pv.visibility_height_to IS NULL OR pv.visibility_height_to = '' OR l1_from.Profile_height <= pv.visibility_height_to)
+                        AND (pv.visibility_profession IS NULL OR pv.visibility_profession = '' OR FIND_IN_SET(f_from.profession, pv.visibility_profession) > 0)
+                        AND (pv.visibility_education IS NULL OR pv.visibility_education = '' OR FIND_IN_SET(f_from.highest_education, pv.visibility_education) > 0)
+                        AND (pv.visibility_anual_income IS NULL OR pv.visibility_anual_income = '' 
+                        OR h_from.id >= pv.visibility_anual_income)
+                        AND (pv.visibility_anual_income_max IS NULL OR pv.visibility_anual_income_max = '' 
+                        OR h_from.id <= pv.visibility_anual_income_max)
+
+                        AND (pv.degree IS NULL OR pv.degree = '' OR FIND_IN_SET(f_from.degree, pv.degree) > 0)
+                        AND (pv.visibility_field_of_study IS NULL OR pv.visibility_field_of_study = '' OR FIND_IN_SET(f_from.field_ofstudy, pv.visibility_field_of_study) > 0)
+                        AND (pv.visibility_family_status IS NULL OR pv.visibility_family_status = '' OR FIND_IN_SET(f1_from.family_status, pv.visibility_family_status) > 0)
+                        -- Chevvai visibility
+                        AND (
+                            pv.visibility_chevvai IS NULL OR pv.visibility_chevvai = '' 
+                            OR (
+                                (LOWER(pv.visibility_chevvai) IN ('yes','true','1') 
+                                    AND (LOWER(h1_from.calc_chevvai_dhosham) = 'yes' OR LOWER(h1_from.calc_chevvai_dhosham) = 'true' 
+                                        OR h1_from.calc_chevvai_dhosham = '1' OR h1_from.calc_chevvai_dhosham = 1 
+                                        OR h1_from.calc_chevvai_dhosham IS NULL OR h1_from.calc_chevvai_dhosham =''))
+                                OR
+                                (LOWER(pv.visibility_chevvai) IN ('no','false','2') 
+                                    AND (LOWER(h1_from.calc_chevvai_dhosham) = 'no' OR LOWER(h1_from.calc_chevvai_dhosham) = 'false' 
+                                        OR h1_from.calc_chevvai_dhosham = '2' OR h1_from.calc_chevvai_dhosham = 2 
+                                        OR h1_from.calc_chevvai_dhosham IS NULL OR h1_from.calc_chevvai_dhosham =''))
+                            )
+                        )
+                        -- Ragukethu visibility
+                        AND (
+                            pv.visibility_ragukethu IS NULL OR pv.visibility_ragukethu = '' 
+                            OR (
+                                (LOWER(pv.visibility_ragukethu) IN ('yes','true','1') 
+                                    AND (LOWER(h1_from.calc_raguketu_dhosham) = 'yes' OR LOWER(h1_from.calc_raguketu_dhosham) = 'true' 
+                                        OR h1_from.calc_raguketu_dhosham = '1' OR h1_from.calc_raguketu_dhosham = 1 
+                                        OR h1_from.calc_raguketu_dhosham IS NULL OR h1_from.calc_raguketu_dhosham =''))
+                                OR
+                                (LOWER(pv.visibility_ragukethu) IN ('no','false','2') 
+                                    AND (LOWER(h1_from.calc_raguketu_dhosham) = 'no' OR LOWER(h1_from.calc_raguketu_dhosham) = 'false' 
+                                        OR h1_from.calc_raguketu_dhosham = '2' OR h1_from.calc_raguketu_dhosham = 2 
+                                        OR h1_from.calc_raguketu_dhosham IS NULL OR h1_from.calc_raguketu_dhosham =''))
+                            )
+                        )
+                    )
+                    OR 
+                    -- If opposite profile is not Platinum → skip pv.* checks
+                    (a.Plan_id NOT IN (3,16,17))
+                )
                 AND a.gender != %s
                 AND a.ProfileId != %s
                 AND a.Profile_dob BETWEEN %s AND %s"""
 
-            params = [profile_id, gender, profile_id, min_dob, max_dob]
+            params = [profile_id,profile_id,profile_id,profile_id,profile_id,gender,profile.Profile_dob,gender,profile.Profile_dob, gender, profile_id, min_dob, max_dob]
 
+            pref_annual_income = None if pref_annual_income in ("null", "", None) else pref_annual_income
+            pref_annual_income_max = None if pref_annual_income_max in ("null", "", None) else pref_annual_income_max
+            
             if pref_annual_income and pref_annual_income_max:
                 base_query += "AND f.anual_income BETWEEN %s AND %s "
                 params.extend([pref_annual_income,pref_annual_income_max])
@@ -2300,9 +2380,9 @@ class Get_profiledata_Matching(models.Model):
             # Foreign Interest
             if pref_foreign and pref_foreign.strip().lower() in ['yes', 'no']:
                 if pref_foreign.lower() == "yes":
-                    base_query += " AND f.work_country != '1'"
+                    base_query += " AND (f.work_country != '1' OR f.work_country IS NULL OR f.work_country='' OR a.Profile_country!='1' OR a.Profile_country='' OR a.Profile_country IS NULL)"
                 else:
-                    base_query += " AND f.work_country = '1'"
+                    base_query += " AND (f.work_country = '1' OR f.work_country IS NULL OR f.work_country='' OR a.Profile_country='1')"
 
             if field_of_study:
                 fields = [f.strip() for f in field_of_study.split(',') if f.strip()]
@@ -2315,11 +2395,12 @@ class Get_profiledata_Matching(models.Model):
                 degrees = [d.strip() for d in degree.split(',') if d.strip()]
                 if degrees:
                     placeholders = ','.join(['%s'] * len(degrees))
-                    base_query += f" AND f.degree IN ({placeholders})"
+                    # base_query += f" AND f.degree IN ({placeholders})"
+                    base_query += f" AND f.degree IN ({placeholders}) OR f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"
                     params.extend(degrees)
-            else:
-                base_query += """ AND
-                ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
+            # else:
+            #     base_query += """ AND
+            #     ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
              
             if ragukethu and ragukethu.lower() == 'yes':
                 
@@ -2356,6 +2437,9 @@ class Get_profiledata_Matching(models.Model):
                         return 'NULL'
                     return str(value)
                 return query % tuple(map(escape, params))
+
+            print("Final matching Match Count SQL:")
+            print(format_sql_for_debug(base_query, params))
 
             # print("COUNT EXECUTABLE QUERY ➤\n", format_sql_for_debug(base_query, params))
 
@@ -2614,8 +2698,8 @@ class Get_profiledata_Matching(models.Model):
                     query = query.replace('%s', escape(p), 1)
                 return query
 
-            print("🔍 Final Suggest Match Count SQL:")
-            print(format_sql_for_debug(query, params))
+            # print("🔍 Final Suggest Match Count SQL:")
+            # print(format_sql_for_debug(query, params))
 
             with connection.cursor() as cursor:
                 cursor.execute(query, params)

@@ -1426,6 +1426,7 @@ class Get_profiledata(models.Model):
             partner_pref = get_object_or_404(Partnerpref, profile_id=profile_id)
             age_difference_str = partner_pref.pref_age_differences
             pref_annual_income = partner_pref.pref_anual_income
+            pref_annual_income_max = partner_pref.pref_anual_income_max
             pref_marital_status = partner_pref.pref_marital_status
             partner_pref_education = partner_pref.pref_education
             partner_pref_height_from = partner_pref.pref_height_from
@@ -1448,15 +1449,15 @@ class Get_profiledata(models.Model):
             degree = partner_pref.degree
 
             # Get Min/Max income range from masterannualincome
-            with connection.cursor() as cursor:
-                cursor.execute("""
-                    SELECT MIN(income_amount), MAX(income_amount)
-                    FROM masterannualincome
-                    WHERE FIND_IN_SET(id, %s) > 0
-                """, [pref_annual_income])
-                min_max_income = cursor.fetchone()
+            # with connection.cursor() as cursor:
+            #     cursor.execute("""
+            #         SELECT MIN(income_amount), MAX(income_amount)
+            #         FROM masterannualincome
+            #         WHERE FIND_IN_SET(id, %s) > 0
+            #     """, [pref_annual_income])
+            #     min_max_income = cursor.fetchone()
 
-            min_income, max_income = min_max_income if min_max_income else (None, None)
+            # min_income, max_income = min_max_income if min_max_income else (None, None)
 
             try:
                 age_difference = int(age_difference_str)
@@ -1604,9 +1605,16 @@ class Get_profiledata(models.Model):
                     query_params.append(my_suya_gothram)
             
             
-            if min_income and max_income:
-                    query += " AND ((h.income_amount BETWEEN %s AND %s) OR (h.income_amount IS NULL OR h.income_amount = '')) "
-                    query_params.extend([min_income, max_income])
+            # if min_income and max_income:
+            #         query += " AND ((h.income_amount BETWEEN %s AND %s) OR (h.income_amount IS NULL OR h.income_amount = '')) "
+            #         query_params.extend([min_income, max_income])
+
+            pref_annual_income = None if pref_annual_income in ("null", "", None) else pref_annual_income
+            pref_annual_income_max = None if pref_annual_income_max in ("null", "", None) else pref_annual_income_max          
+
+            if pref_annual_income and pref_annual_income_max:
+                    query += "AND f.anual_income BETWEEN %s AND %s "
+                    query_params.extend([pref_annual_income,pref_annual_income_max])
 
             if partner_pref_education:
                 query += " AND FIND_IN_SET(g.RowId, %s) > 0"
@@ -1661,7 +1669,7 @@ class Get_profiledata(models.Model):
                 if degrees:
                     placeholders = ','.join(['%s'] * len(degrees))
                     # query += f" AND (f.degree IN ({placeholders}) OR ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree=''))"
-                    query += f" AND (pv.degree IS NULL OR pv.degree = '' OR FIND_IN_SET(f_from.degree, pv.degree) > 0)"
+                    query +=  f" AND (f.degree IN ({placeholders}) OR ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree=''))"
 
                     query_params.extend(degrees)
             # else:
