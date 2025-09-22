@@ -3540,6 +3540,131 @@ class My_profile_visit(APIView):
 
 
 
+# class My_viewed_profiles(APIView):
+#     def post(self, request):
+#         serializer = serializers.Profile_idValidationSerializer(data=request.data)
+
+#         if serializer.is_valid():
+#             profile_id = serializer.validated_data.get('profile_id')
+#             page = int(request.data.get('page_number', 1))
+#             per_page = int(request.data.get('per_page', 10))
+
+#             try:
+#                 #  Ensure all_profiles are ordered by datetime DESC
+#                 all_profiles = (
+#                     models.Profile_visitors.objects
+#                     .filter(profile_id=profile_id)
+#                     .order_by('-datetime')
+#                 )
+
+#                 all_profile_ids = {
+#                     str(index + 1): p_id
+#                     for index, p_id in enumerate(
+#                         all_profiles.values_list('viewed_profile', flat=True)
+#                     )
+#                 }
+
+#                 total_records = all_profiles.count()
+#                 start = (page - 1) * per_page
+#                 end = start + per_page
+
+#                 #  Ensure pagination respects ordering
+#                 fetch_data = all_profiles[start:end]
+
+#                 if fetch_data.exists():
+#                     # profile_ids = list(fetch_data.values_list('viewed_profile', flat=True))
+
+#                     # #  Pass ordered profile_ids (preserves ordering)
+#                     # profile_details = get_profile_details(profile_ids)
+
+#                     profile_ids = list(fetch_data.values_list('viewed_profile', flat=True))
+#                     profile_details = get_profile_details(profile_ids)
+
+#                     profile_datetimes = get_profile_view_datetimes(profile_id, profile_ids)
+
+
+#                     profile_data = models.Registration1.objects.get(ProfileId=profile_id)
+#                     horo_data = models.Horoscope.objects.get(profile_id=profile_id)
+
+#                     my_star_id = horo_data.birthstar_name
+#                     my_rasi_id = horo_data.birth_rasi_name
+#                     my_gender = profile_data.Gender
+#                     my_status = profile_data.Status
+
+#                     photo_viewing = get_permission_limits(profile_id, 'photo_viewing')
+
+#                     if photo_viewing == 1 and my_status != 0:
+#                         image_function = lambda detail: get_profile_image_azure_optimized(
+#                             detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection")
+#                         )
+#                     else:
+#                         image_function = lambda detail: get_profile_image_azure_optimized(
+#                             detail.get("ProfileId"), my_gender, 1, 1
+#                         )
+
+#                     restricted_profile_details = [
+#                         {
+#                             "visited_profileid": detail.get("ProfileId"),
+#                             "visited_profile_name": detail.get("Profile_name"),
+#                             "visited_Profile_img": image_function(detail),
+#                             "visited_profile_age": calculate_age(detail.get("Profile_dob")),
+#                             "visited_verified": detail.get("Profile_verified"),
+#                             "visited_height": detail.get("Profile_height"),
+#                             "visited_star": detail.get("star_name"),
+#                             "visited_profession": getprofession(detail.get("profession")),
+#                             "visited_city": detail.get("Profile_city"),
+#                             "visited_degree": degree(
+#                                 detail.get("degree") if isinstance(detail, dict) else None,
+#                                 detail.get("other_degree") if isinstance(detail, dict) else None
+#                             ),
+#                             "visited_match_score": Get_matching_score(
+#                                 my_star_id,
+#                                 my_rasi_id,
+#                                 detail.get("birthstar_name"),
+#                                 detail.get("birth_rasi_name"),
+#                                 my_gender
+#                             ),
+#                             "visited_views": count_records(models.Profile_visitors, {'status': 1, 'viewed_profile': detail.get("ProfileId")}),
+#                             "visited_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
+#                             "visited_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
+#                             "visited_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
+#                             "visited_profile_wishlist": Get_wishlist(profile_id, detail.get("ProfileId")),
+#                             "visited_datetime":profile_datetimes.get(detail.get("ProfileId")).strftime("%b %d, %Y"),
+#                         }
+#                         for detail in profile_details
+#                     ]
+
+#                     restricted_profile_details.sort(key=lambda x: profile_datetimes.get(x["visited_profileid"]),reverse=True)
+
+#                     combined_data = {
+#                         "profiles": restricted_profile_details,
+#                         "page": page,
+#                         "per_page": per_page,
+#                         "total_pages": (total_records + per_page - 1) // per_page,
+#                         "total_records": total_records,
+#                         "all_profile_ids": all_profile_ids,
+#                     }
+
+#                     return JsonResponse(
+#                         {"Status": 1, "message": "Fetched viewed profile lists successfully",
+#                          "data": combined_data, "viewed_profile_count": total_records},
+#                         status=status.HTTP_200_OK
+#                     )
+
+#                 return JsonResponse(
+#                     {"Status": 0, "message": "No viewed profiles found for the given profile ID"},
+#                     status=status.HTTP_200_OK
+#                 )
+
+#             except models.Profile_visitors.DoesNotExist:
+#                 return JsonResponse(
+#                     {"Status": 0, "message": "No viewed profiles found for the given profile ID"},
+#                     status=status.HTTP_200_OK
+#                 )
+
+#         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class My_viewed_profiles(APIView):
     def post(self, request):
         serializer = serializers.Profile_idValidationSerializer(data=request.data)
@@ -3549,12 +3674,27 @@ class My_viewed_profiles(APIView):
             page = int(request.data.get('page_number', 1))
             per_page = int(request.data.get('per_page', 10))
 
+            # Get user-provided sorting field (default: viewed datetime)
+            sort_by = request.data.get('sort_by', 'datetime')  # allowed: datetime, profile_id
+            #sort_order = request.data.get('sort_order', 'desc')  # allowed: asc, desc
+
+            sort_order = "desc"  # allowed: asc, desc
+
             try:
-                #  Ensure all_profiles are ordered by datetime DESC
+                # Determine ordering dynamically
+                if sort_by == "profile_id":
+                    order_field = "viewed_profile"
+                else:
+                    order_field = "datetime"
+
+                if sort_order == "desc":
+                    order_field = f"-{order_field}"
+
+                # Fetch ordered data
                 all_profiles = (
                     models.Profile_visitors.objects
                     .filter(profile_id=profile_id)
-                    .order_by('-datetime')
+                    .order_by(order_field, "-datetime")  # secondary sort ensures stable order
                 )
 
                 all_profile_ids = {
@@ -3567,21 +3707,12 @@ class My_viewed_profiles(APIView):
                 total_records = all_profiles.count()
                 start = (page - 1) * per_page
                 end = start + per_page
-
-                #  Ensure pagination respects ordering
                 fetch_data = all_profiles[start:end]
 
                 if fetch_data.exists():
-                    # profile_ids = list(fetch_data.values_list('viewed_profile', flat=True))
-
-                    # #  Pass ordered profile_ids (preserves ordering)
-                    # profile_details = get_profile_details(profile_ids)
-
                     profile_ids = list(fetch_data.values_list('viewed_profile', flat=True))
                     profile_details = get_profile_details(profile_ids)
-
                     profile_datetimes = get_profile_view_datetimes(profile_id, profile_ids)
-
 
                     profile_data = models.Registration1.objects.get(ProfileId=profile_id)
                     horo_data = models.Horoscope.objects.get(profile_id=profile_id)
@@ -3624,17 +3755,30 @@ class My_viewed_profiles(APIView):
                                 detail.get("birth_rasi_name"),
                                 my_gender
                             ),
-                            "visited_views": count_records(models.Profile_visitors, {'status': 1, 'viewed_profile': detail.get("ProfileId")}),
+                            "visited_views": count_records(
+                                models.Profile_visitors,
+                                {'status': 1, 'viewed_profile': detail.get("ProfileId")}
+                            ),
                             "visited_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
                             "visited_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "visited_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "visited_profile_wishlist": Get_wishlist(profile_id, detail.get("ProfileId")),
-                            "visited_datetime":profile_datetimes.get(detail.get("ProfileId")).strftime("%b %d, %Y"),
+                            "visited_datetime": profile_datetimes.get(detail.get("ProfileId")).strftime("%b %d, %Y"),
                         }
                         for detail in profile_details
                     ]
 
-                    restricted_profile_details.sort(key=lambda x: profile_datetimes.get(x["visited_profileid"]),reverse=True)
+                    # Ensure sorting applies to final data too (important if profile_details not pre-sorted)
+                    if sort_by == "profile_id":
+                        restricted_profile_details.sort(
+                            key=lambda x: x["visited_profileid"],
+                            reverse=(sort_order == "desc")
+                        )
+                    else:
+                        restricted_profile_details.sort(
+                            key=lambda x: profile_datetimes.get(x["visited_profileid"]),
+                            reverse=(sort_order == "desc")
+                        )
 
                     combined_data = {
                         "profiles": restricted_profile_details,
@@ -3663,7 +3807,6 @@ class My_viewed_profiles(APIView):
                 )
 
         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 def get_profile_view_datetimes(profile_id, profile_ids):
@@ -7190,12 +7333,15 @@ class GetMyProfilePersonal(APIView):
             # plan_name=models.PlanDetails.objects.get(id=plan_id).plan_name
             
             
-            if plan_id in (6, 7, 8, 9):
+           
+            if registration.Status in ("0", 0):
+                plan_name = "Unapproved"
+                valid_upto = ""
+
+            elif plan_id in ('6', '7', '8', '9'):
                 plan_name='Free'
-                valid_upto = profileplan_details.membership_todate.date() if profileplan_details.membership_todate else None
-            
-            
-            
+                # valid_upto = profileplan_details.membership_todate.date() if profileplan_details.membership_todate else None
+                valid_upto = ''
             elif  plan_id:
                 try:
                     plan_name = models.PlanDetails.objects.get(id=plan_id).plan_name
@@ -7219,13 +7365,7 @@ class GetMyProfilePersonal(APIView):
                 #valid_upto='No validity on you current plan'
 
                 valid_upto = profileplan_details.membership_todate.date() if profileplan_details.membership_todate else ''
-
-
-            
-
-
-
-            
+        
             birth_star=horoscope_serializer.data.get("birthstar_name")
             # try:
             #     birth_starname=models.Birthstar.objects.get(id=birth_star).star
@@ -7281,10 +7421,10 @@ class GetMyProfilePersonal(APIView):
             district_name=get_district_name(education_details_serializer.data.get('work_district'))
             city_name=get_city_name(education_details_serializer.data.get('work_city'))
 
-            print('country_name',country_name)
-            print('state_name',state_name)
-            print('district_name',district_name)
-            print('city_name',city_name)
+            # print('country_name',country_name)
+            # print('state_name',state_name)
+            # print('district_name',district_name)
+            # print('city_name',city_name)
             
             location_name = next((name for name in [city_name, district_name, state_name, country_name] if name),None)
 
