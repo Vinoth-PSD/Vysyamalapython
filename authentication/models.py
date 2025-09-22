@@ -1010,57 +1010,6 @@ class Get_profiledata(models.Model):
     Gender = models.TextField(max_length=100)  # Changed from CharField to TextField
     Mobile_no = models.CharField(max_length=50)
    
-    # @staticmethod
-    # def get_profile_list(gender,profile_id):
-    #     # query = '''SELECT l.*,pi.*,pp.*pf.*,ph.*,pe.* FROM logindetails l LEFT JOIN profile_edudetails pe ON pe.profile_id=l.ProfileId LEFT JOIN profile_familydetails pf ON pf.profile_id=l.ProfileId LEFT JOIN profile_horoscope ph ON ph.profile_id=l.ProfileId LEFT JOIN profile_images pi ON pi.profile_id=l.ProfileId LEFT JOIN profile_partner_pref pp ON pp.profile_id=l.ProfileId '''
-    #     query = '''SELECT a.*, a.ProfileId, a.Profile_name, a.Profile_marital_status, a.Profile_dob, a.Profile_height, a.Profile_city, f.profession, 
-    #             f.highest_education, g.EducationLevel, d.star as star_name , e.birthstar_name ,e.birth_rasi_name
-    #             FROM logindetails a 
-    #             JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
-    #             JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
-    #             JOIN masterbirthstar d ON d.id = e.birthstar_name 
-    #             JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
-    #             JOIN mastereducation g ON f.highest_education = g.RowId 
-    #             WHERE a.Gender != %s AND a.ProfileId != %s '''
-    #     with connection.cursor() as cursor:
-    #         cursor.execute(query,[gender,profile_id])
-    #         columns = [col[0] for col in cursor.description]
-    #         rows = cursor.fetchall()
-    #         result = [
-    #             dict(zip(columns, row))
-    #             for row in rows
-    #         ]
-    #     #print("Query result:", result)
-    #     return result
-    # @staticmethod
-    # def get_profile_details(profile_ids):
-    #     # query = '''SELECT l.*, pi.*, pp.*, pf.*, ph.*, pe.*
-    #     #     FROM logindetails l 
-    #     #     LEFT JOIN profile_edudetails pe ON pe.profile_id = l.ProfileId 
-    #     #     LEFT JOIN profile_familydetails pf ON pf.profile_id = l.ProfileId 
-    #     #     LEFT JOIN profile_horoscope ph ON ph.profile_id = l.ProfileId 
-    #     #     LEFT JOIN profile_images pi ON pi.profile_id = l.ProfileId 
-    #     #     LEFT JOIN profile_partner_pref pp ON pp.profile_id = l.ProfileId 
-    #     #     WHERE l.ProfileId IN %s  '''
-    #     query = '''SELECT l.*, pp.*, pf.*, ph.*, pe.*
-    #         FROM logindetails l 
-    #         LEFT JOIN profile_edudetails pe ON pe.profile_id = l.ProfileId 
-    #         LEFT JOIN profile_familydetails pf ON pf.profile_id = l.ProfileId 
-    #         LEFT JOIN profile_horoscope ph ON ph.profile_id = l.ProfileId 
-    #         LEFT JOIN profile_partner_pref pp ON pp.profile_id = l.ProfileId 
-    #         WHERE l.ProfileId IN %s  '''
-    #     with connection.cursor() as cursor:
-    #         cursor.execute(query,[tuple(profile_ids)])
-    #         columns = [col[0] for col in cursor.description]
-    #         rows = cursor.fetchall()
-    #         result = [
-    #             dict(zip(columns, row))
-    #             for row in rows
-    #         ]
-    #     #print("Query result:", result)
-    #     return result
-
-
     #updated by vinoth 1908-2024
 
     @staticmethod
@@ -1122,13 +1071,6 @@ class Get_profiledata(models.Model):
                 age_difference = int(search_age)
             age_diff = int(age_difference) if age_difference else 5
 
-            # if gender.upper() == "MALE":
-            #     min_age = max(current_age - age_diff, 18)
-            #     max_age = current_age
-            # elif gender.upper() == "FEMALE":
-            #     min_age = max(current_age, 18)
-            #     max_age = current_age + age_diff
-            
             if gender.upper() == "MALE":
                 max_dob  = profile.Profile_dob + relativedelta(years=age_diff)  # older partner limit
                 min_dob = profile.Profile_dob                                  # same age
@@ -1292,11 +1234,6 @@ class Get_profiledata(models.Model):
                         placeholders = ','.join(['%s'] * len(degrees))
                         base_query += f" AND f.degree IN ({placeholders}) OR f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"
                         query_params.extend(degrees)
-                # else:
-                #     base_query += """ AND
-                #     ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
-
-
 
                 if partner_pref_foreign_intrest and partner_pref_foreign_intrest.lower() == 'yes':
                     base_query += " AND (f.work_country != '1' OR f.work_country IS NULL OR f.work_country='' OR a.Profile_country!='1' OR a.Profile_country='' OR a.Profile_country IS NULL)"
@@ -1344,20 +1281,17 @@ class Get_profiledata(models.Model):
                     search_location_cond = " AND a.Profile_state = %s"
                     query_params.append(search_location)
 
-                # Updated ordering logic
-                # plan_priority = "FIELD(a.Plan_id, 2,15,1,14,11,12,13,6,7,8,9)"
-                # photo_priority = "(SELECT 1 FROM profile_images WHERE profile_id = a.ProfileId AND image_approved = 1 AND is_deleted = 0 LIMIT 1) IS NOT NULL"
-                # view_priority = "v.viewed_profile IS NULL"
-
                 try:
-                    # [Previous code remains the same until the ordering logic]
-                    
+
                     # Updated ordering logic with proper image priority
+                    # Define the priority conditions
+                    # Priority columns
                     plan_priority = "FIELD(a.Plan_id, 3,17,2,15,1,14,11,12,13,6,7,8,9)"
-                    # Changed to ensure profiles with images come first
-                    # photo_priority = "CASE WHEN (SELECT 1 FROM profile_images WHERE profile_id = a.ProfileId AND image_approved = 1 AND is_deleted = 0 LIMIT 1) IS NOT NULL THEN 0 ELSE 1 END"
                     photo_priority = "CASE WHEN pi.first_image_id IS NOT NULL THEN 0 ELSE 1 END"
                     view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END"
+
+                    # Flag for grouping: 0 = new (within 30 days), 1 = old
+                    recent_priority = "CASE WHEN a.DateOfJoin >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 0 ELSE 1 END"
 
                     try:
                         order_by = int(order_by)
@@ -1365,15 +1299,43 @@ class Get_profiledata(models.Model):
                         order_by = None
 
                     if order_by == 1:
-                        orderby_cond = f" ORDER BY {view_priority} , {plan_priority}, {photo_priority} , a.DateOfJoin DESC"
+                        # Sort by recent first, then separate ordering for each group
+                        orderby_cond = (
+                            f" ORDER BY {view_priority}, "
+                            f"{recent_priority}, "  # Group new profiles first
+                            # For new profiles, use DateOfJoin & photo priority only
+                            f"CASE WHEN {recent_priority}=0 THEN {photo_priority} END ASC, "
+                            f"CASE WHEN {recent_priority}=0 THEN a.DateOfJoin END DESC, "
+                            # For old profiles, use plan priority and normal ordering
+                            f"CASE WHEN {recent_priority}=1 THEN {plan_priority} END ASC, "
+                            f"CASE WHEN {recent_priority}=1 THEN {photo_priority} END ASC, "
+                            f"CASE WHEN {recent_priority}=1 THEN a.DateOfJoin END DESC"
+                        )
                     elif order_by == 2:
-                        orderby_cond = f" ORDER BY {view_priority},{plan_priority}, {photo_priority} , a.DateOfJoin ASC"
+                        orderby_cond = (
+                            f" ORDER BY {view_priority}, "
+                            f"{recent_priority}, "
+                            f"CASE WHEN {recent_priority}=0 THEN {photo_priority} END ASC, "
+                            f"CASE WHEN {recent_priority}=0 THEN a.DateOfJoin END ASC, "
+                            f"CASE WHEN {recent_priority}=1 THEN {plan_priority} END ASC, "
+                            f"CASE WHEN {recent_priority}=1 THEN {photo_priority} END ASC, "
+                            f"CASE WHEN {recent_priority}=1 THEN a.DateOfJoin END ASC"
+                        )
                     else:
-                        orderby_cond = f" ORDER BY {view_priority},{plan_priority}, {photo_priority}, a.DateOfJoin DESC"
-                
-                
+                        orderby_cond = (
+                            f" ORDER BY {view_priority}, "
+                            f"{recent_priority}, "
+                            f"CASE WHEN {recent_priority}=0 THEN {photo_priority} END ASC, "
+                            f"CASE WHEN {recent_priority}=0 THEN a.DateOfJoin END DESC, "
+                            f"CASE WHEN {recent_priority}=1 THEN {plan_priority} END ASC, "
+                            f"CASE WHEN {recent_priority}=1 THEN {photo_priority} END ASC, "
+                            f"CASE WHEN {recent_priority}=1 THEN a.DateOfJoin END DESC"
+                        )
+
+
+            
                 except Exception as e:
-                    print(f"Error in profile listing: {str(e)}")
+                    # print(f"Error in profile listing: {str(e)}")
                     return [], 0, {}
 
                 query = base_query + height_conditions + search_profile_id_cond + search_profession_cond + search_location_cond + orderby_cond
