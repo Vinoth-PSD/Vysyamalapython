@@ -14136,9 +14136,15 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 #         dasa_day = dasa_month = dasa_year = 0
 
                 dasa_balance_str=dasa_format_date(horoscope.dasa_balance)
-                match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+                match = re.match(
+                        r"(?:(\d{2})/(\d{2})/(\d{2}))|(?:(\d+)\s+Year[s]?,\s+(\d+)\s+Month[s]?,\s+(\d+)\s+Day[s]?)",
+                        dasa_balance_str or ""
+                    )
                 if match:
-                    dasa_year, dasa_month, dasa_day = match.groups()
+                    if match.group(1):
+                        dasa_year, dasa_month, dasa_day = match.group(1), match.group(2), match.group(3)
+                    else:
+                        dasa_year, dasa_month, dasa_day = match.group(4), match.group(5), match.group(6) 
 
                 #print(dasa_balance_str,'dasa_balance_str')
 
@@ -15146,10 +15152,18 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 dasa_day = dasa_month = dasa_year = 0
                 # Try to split if format is correct
                 dasa_balance_str=dasa_format_date(horoscope.dasa_balance)
-                match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+                # match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+                # if match:
+                #     dasa_year, dasa_month, dasa_day = match.groups()
+                match = re.match(
+                        r"(?:(\d{2})/(\d{2})/(\d{2}))|(?:(\d+)\s+Year[s]?,\s+(\d+)\s+Month[s]?,\s+(\d+)\s+Day[s]?)",
+                        dasa_balance_str or ""
+                    )
                 if match:
-                    dasa_year, dasa_month, dasa_day = match.groups()
-                
+                    if match.group(1):
+                        dasa_year, dasa_month, dasa_day = match.group(1), match.group(2), match.group(3)
+                    else:
+                        dasa_year, dasa_month, dasa_day = match.group(4), match.group(5), match.group(6) 
                 
                 #father_occupation_id = family_detail.father_occupation
                 father_occupation = family_detail.father_occupation or "N/A"
@@ -19419,9 +19433,18 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 dasa_day = dasa_month = dasa_year = 0
                 # Try to split if format is correct
                 dasa_balance_str=dasa_format_date(horoscope.dasa_balance)
-                match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+                # match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+                # if match:
+                #     dasa_year, dasa_month, dasa_day = match.groups()
+                match = re.match(
+                        r"(?:(\d{2})/(\d{2})/(\d{2}))|(?:(\d+)\s+Year[s]?,\s+(\d+)\s+Month[s]?,\s+(\d+)\s+Day[s]?)",
+                        dasa_balance_str or ""
+                    )
                 if match:
-                    dasa_year, dasa_month, dasa_day = match.groups()
+                    if match.group(1):
+                        dasa_year, dasa_month, dasa_day = match.group(1), match.group(2), match.group(3)
+                    else:
+                        dasa_year, dasa_month, dasa_day = match.group(4), match.group(5), match.group(6) 
                 dasa_name = get_dasa_name(horoscope.dasa_name)
                 image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
 
@@ -20476,10 +20499,20 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 dasa_day = dasa_month = dasa_year = 0
                 # Try to split if format is correct
                 dasa_balance_str=dasa_format_date(horoscope.dasa_balance)
-                match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
-                if match:
-                    dasa_year, dasa_month, dasa_day = match.groups()
+                # match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+                # if match:
+                #     dasa_year, dasa_month, dasa_day = match.groups()
                 
+                match = re.match(
+                        r"(?:(\d{2})/(\d{2})/(\d{2}))|(?:(\d+)\s+Year[s]?,\s+(\d+)\s+Month[s]?,\s+(\d+)\s+Day[s]?)",
+                        dasa_balance_str or ""
+                    )
+                if match:
+                    if match.group(1):
+                        dasa_year, dasa_month, dasa_day = match.group(1), match.group(2), match.group(3)
+                    else:
+                        dasa_year, dasa_month, dasa_day = match.group(4), match.group(5), match.group(6) 
+                        
                 #father_occupation_id = family_detail.father_occupation
                 father_occupation = family_detail.father_occupation or "N/A"
 

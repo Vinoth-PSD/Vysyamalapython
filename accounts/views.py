@@ -8335,9 +8335,15 @@ class AdminProfilePDFView(APIView):
         amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))   
         dasa_day = dasa_month = dasa_year = 0
         dasa_balance_str=dasa_format_date(horoscope_data.dasa_balance)
-        match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+        match = re.match(
+                        r"(?:(\d{2})/(\d{2})/(\d{2}))|(?:(\d+)\s+Year[s]?,\s+(\d+)\s+Month[s]?,\s+(\d+)\s+Day[s]?)",
+                        dasa_balance_str or ""
+                    )
         if match:
-            dasa_year, dasa_month, dasa_day = match.groups()  
+            if match.group(1):
+                dasa_year, dasa_month, dasa_day = match.group(1), match.group(2), match.group(3)
+            else:
+                dasa_year, dasa_month, dasa_day = match.group(4), match.group(5), match.group(6) 
             
         date =  format_date_of_birth(login.Profile_dob)
         context_data = {
@@ -8719,9 +8725,16 @@ class AdminMatchProfilePDFView(APIView):
                 amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))
                 dasa_day, dasa_month, dasa_year = 0, 0, 0
                 dasa_balance_str=dasa_format_date(horoscope_data.dasa_balance)
-                match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+                # match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+                match = re.match(
+                        r"(?:(\d{2})/(\d{2})/(\d{2}))|(?:(\d+)\s+Year[s]?,\s+(\d+)\s+Month[s]?,\s+(\d+)\s+Day[s]?)",
+                        dasa_balance_str or ""
+                    )
                 if match:
-                    dasa_year, dasa_month, dasa_day = match.groups()
+                    if match.group(1):
+                        dasa_year, dasa_month, dasa_day = match.group(1), match.group(2), match.group(3)
+                    else:
+                        dasa_year, dasa_month, dasa_day = match.group(4), match.group(5), match.group(6)
                 # print("porutham",porutham_data)
                 date =  format_date_of_birth(login.Profile_dob)
                 my_date =  format_date_of_birth(login_my.Profile_dob)
