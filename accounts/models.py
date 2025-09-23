@@ -1347,7 +1347,7 @@ class Get_profiledata_Matching(models.Model):
                         a.ProfileId, a.Plan_id, a.DateOfJoin, a.Photo_protection,
                         a.Profile_city,a.Profile_state,a.Profile_country, a.Profile_verified, a.Profile_name, a.Profile_dob,
                         c.family_status,c.father_occupation,c.suya_gothram,e.calc_chevvai_dhosham,e.calc_raguketu_dhosham,
-                        a.Profile_height, e.birthstar_name, e.birth_rasi_name, f.degree,f.other_degree,
+                        a.Profile_height, a.Status ,e.birthstar_name, e.birth_rasi_name, f.degree,f.other_degree,
                         f.profession, f.highest_education,f.actual_income,f.anual_income,f.work_city,
                         f.work_state,f.work_country,f.designation,f.company_name,f.business_name,f.nature_of_business,g.EducationLevel, d.star, h.income,
                         v.viewed_profile,
@@ -1375,7 +1375,7 @@ class Get_profiledata_Matching(models.Model):
 
 
 
-                    WHERE a.Status = 1 
+                    WHERE a.gender != %s 
 
                     AND (
                         -- If the opposite profile is Platinum, apply pv only when set
@@ -1446,14 +1446,11 @@ class Get_profiledata_Matching(models.Model):
                     (a.Plan_id NOT IN (3,16,17))
                 )
 
-
-
                     AND a.Plan_id NOT IN (0,3, 16, 17)
-                    AND a.gender != %s
                     AND a.ProfileId != %s
                     AND a.Profile_dob BETWEEN %s AND %s """
 
-            query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,gender,profile.Profile_dob,gender,profile.Profile_dob,gender, profile_id, min_dob, max_dob]
+            query_params = [gender,profile_id,profile_id,profile_id,profile_id,profile_id,gender,profile.Profile_dob,gender,profile.Profile_dob, profile_id,min_dob, max_dob]
             if search:
                 base_query += """ AND (a.Profile_name LIKE %s
                                 OR a.ProfileId LIKE %s
@@ -1689,6 +1686,8 @@ class Get_profiledata_Matching(models.Model):
                 # print('status is',status)
                 if status == "unsent":
                     action_filter = "" if action_type == "all" else "AND sp.action_type = %s"
+                    
+                    base_query += " AND a.Status = 1 " #approved Only
                     base_query += """
                     AND NOT EXISTS (
                         SELECT 1 
@@ -1702,8 +1701,12 @@ class Get_profiledata_Matching(models.Model):
                         query_params.append(action_type)
 
                 elif status == "sent":
-                    print('status is sent')
+                    # print('status is sent')
+                    base_query += " AND a.Status != 0 " #Shows the deleted profiles also if it is already sent but deleted later
                     action_filter = "" if action_type == "all" else "AND sp.action_type = %s"
+                    
+
+                    
                     base_query += """
                     AND EXISTS (
                         SELECT 1 
@@ -1716,6 +1719,7 @@ class Get_profiledata_Matching(models.Model):
                     if action_type != "all":
                         query_params.append(action_type)
                 else:
+                    base_query += " AND a.Status = 1 "   #approved Only
                     pass
 
             

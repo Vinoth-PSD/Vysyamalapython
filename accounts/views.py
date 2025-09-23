@@ -4218,6 +4218,7 @@ class Get_prof_list_match(APIView):
                 "action_log":logs_map.get(pid, "No logs"),
                 # get_action_log(profile_id,detail.get("ProfileId"))
                 "dateofjoin": detail.get("DateOfJoin") if detail.get("DateOfJoin") else None,
+                "profile_status":detail.get("Status"),
             })
 
         return JsonResponse({
