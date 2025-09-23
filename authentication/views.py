@@ -3079,6 +3079,10 @@ class My_intrests_list(APIView):
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
                     else:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
+                    interest_map = {
+                        str(interest.profile_to): interest.req_datetime
+                        for interest in fetch_data
+                    }
                     restricted_profile_details = [
                         {
                             "myint_profileid": detail.get("ProfileId"),
@@ -3094,7 +3098,7 @@ class My_intrests_list(APIView):
                             "myint_degree":degree(detail.get("degree") if isinstance(detail, dict) else None,detail.get("other_degree") if isinstance(detail, dict) else None),
                             "myint_match_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
                             "myint_views":count_records(models.Profile_visitors, {'status': 1,'viewed_profile':detail.get("ProfileId")}),
-                            "myint_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
+                            "myint_lastvisit": interest_map.get(str(detail.get("ProfileId"))).strftime("%b %d, %Y"),
                             "myint_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "myint_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "myint_profile_wishlist":Get_wishlist(profile_id,detail.get("ProfileId")),
@@ -3204,7 +3208,10 @@ class Get_mutual_intrests(APIView):
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
                     # mutual_condition = Q(status=2) & (Q(profile_from=profile_id) | Q(profile_to=profile_id))
                     # mutual_int_count = count_records_forQ(models.Express_interests, mutual_condition)
-                    
+                    interest_map = {
+                        str(interest.profile_to): interest.response_datetime
+                        for interest in fetch_data
+                    }
                     restricted_profile_details = [
                         {
                             "mutint_profileid": detail.get("ProfileId"),
@@ -3220,7 +3227,7 @@ class Get_mutual_intrests(APIView):
                             "mutint_degree":get_degree(detail.get("ug_degeree")),
                             "mutint_match_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
                             "mutint_views":count_records(models.Profile_visitors, {'status': 1,'viewed_profile':detail.get("ProfileId")}),
-                            "mutint_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
+                            "mutint_lastvisit": interest_map.get(str(detail.get("ProfileId"))).strftime("%b %d, %Y"),
                             "mutint_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "mutint_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "mutint_profile_wishlist":Get_wishlist(profile_id,detail.get("ProfileId")),
@@ -3369,6 +3376,10 @@ class Get_profile_wishlist(APIView):
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
                     else:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
+                    wishlist_map = {
+                        str(wishlist.profile_to): wishlist.marked_datetime
+                        for wishlist in fetch_data
+                    }
                     restricted_profile_details = [
                         {
                             "wishlist_profileid": detail.get("ProfileId"),
@@ -3385,7 +3396,7 @@ class Get_profile_wishlist(APIView):
                             "wishlist_city":get_city_name(detail.get("Profile_city")),
                             "wishlist_match_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
                             "wishlist_views":count_records(models.Profile_visitors, {'status': 1,'viewed_profile':detail.get("ProfileId")}),
-                            "wishlist_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
+                            "wishlist_lastvisit": wishlist_map.get(str(detail.get("ProfileId"))).strftime("%b %d, %Y"),
                             "wishlist_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "wishlist_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "wishlist_profile":Get_wishlist(profile_id,detail.get("ProfileId")),
@@ -3492,6 +3503,11 @@ class My_profile_visit(APIView):
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
                     else:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
+                    visitor_map = {
+                        str(visitor.profile_id): visitor.datetime
+                        for visitor in fetch_data
+                    }
+
                     restricted_profile_details = [
                         {
                             "viwed_profileid": detail.get("ProfileId"),
@@ -3507,7 +3523,7 @@ class My_profile_visit(APIView):
                             "viwed_degree":degree(detail.get("degree") if isinstance(detail, dict) else None,detail.get("other_degree") if isinstance(detail, dict) else None),
                             "viwed_match_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
                             "viwed_views":count_records(models.Profile_visitors, {'status': 1,'viewed_profile':detail.get("ProfileId")}),
-                            "viwed_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
+                            "viwed_lastvisit": visitor_map.get(str(detail.get("ProfileId"))).strftime("%b %d, %Y"),
                             "viwed_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "viwed_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "viwed_profile_wishlist":Get_wishlist(profile_id,detail.get("ProfileId")),
@@ -3917,7 +3933,7 @@ class Get_personal_notes(APIView):
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection"))
                     else:
                         image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), my_gender, 1,1)
-                                      
+
                     restricted_profile_details = [
                         {
                             "notes_profileid": detail.get("ProfileId"),
@@ -3936,7 +3952,7 @@ class Get_personal_notes(APIView):
                             "notes_degree":get_degree(detail.get("ug_degeree")),
                             "notes_match_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
                             "notes_views":count_records(models.Profile_visitors, {'status': 1,'viewed_profile':detail.get("ProfileId")}),
-                            "notes_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
+                            "notes_lastvisit":notes_mapping.get(detail.get("ProfileId"), ('datetime', ''))[1].strftime("%b %d, %Y"),
                             "notes_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "notes_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "notes_profile_wishlist":Get_wishlist(profile_id,detail.get("ProfileId")),
@@ -8272,7 +8288,7 @@ class Save_plan_package(APIView):
             
             except models.Registration1.DoesNotExist:
                 return JsonResponse({"status": "error", "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
-            
+                      
 
 # def GetMarsRahuKethuDoshamDetails(raw_input):
 #     # def post(self, request):
