@@ -7986,6 +7986,7 @@ class Save_plan_package(APIView):
         total_amount = request.data.get('total_amount')
         order_id = request.data.get('order_id')
         gpay_online = request.data.get('gpay_online')
+        description = request.data.get('description')
         
         if str(gpay_online) == "1":
 
@@ -7997,6 +7998,18 @@ class Save_plan_package(APIView):
               
             # Authentication successful, create token
             token, created = Token.objects.get_or_create(user=user)
+            models.PaymentTransaction.objects.create(
+                profile_id=profile_id,  # Assuming you have user authentication
+                order_id="",
+                amount=total_amount,  # Save in INR
+                plan_id=plan_id,
+                addon_package=addon_package_id,
+                payment_type='Gpay',
+                description=description,
+                status=1,
+                created_at=timezone.now()
+            )
+
 
             notify_count=models.Profile_notification.objects.filter(profile_id=profile_id, is_read=0).count()
 
@@ -8171,7 +8184,7 @@ class Save_plan_package(APIView):
                 profile_id=profile_id,              # e.g., '123'
                 plan_id=plan_id,               # e.g., 7
                 paid_amount=total_amount,             # e.g., Decimal('499.99')
-                payment_mode='Online',     # e.g., 'UPI'
+                payment_mode='Razor pay',     # e.g., 'UPI'
                 status=1,   
                 payment_by='user_self',                             # e.g., 1 for success, or your own logic
                 payment_date=datetime.now(),          # current timestamp
@@ -10842,7 +10855,7 @@ class CreateOrderView(APIView):
             profile_id=data.get("profile_id")
             plan_id=data.get("plan_id", "")
             addon_package=data.get("addon_package", "")
-
+            description=data.get("description", "")
             order_data = {
                 "amount": amount,
                 "currency": currency,
@@ -10858,7 +10871,8 @@ class CreateOrderView(APIView):
                 amount=amount / 100,  # Save in INR
                 plan_id=plan_id,
                 addon_package=addon_package,
-                payment_type='Online',
+                payment_type='Razor pay',
+                description=description,
                 status=1,
                 created_at=timezone.now()
             )
