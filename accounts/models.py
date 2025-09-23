@@ -1450,7 +1450,7 @@ class Get_profiledata_Matching(models.Model):
                     AND a.ProfileId != %s
                     AND a.Profile_dob BETWEEN %s AND %s """
 
-            query_params = [gender,profile_id,profile_id,profile_id,profile_id,profile_id,gender,profile.Profile_dob,gender,profile.Profile_dob, profile_id,min_dob, max_dob]
+            query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,gender,gender,profile.Profile_dob,gender,profile.Profile_dob, profile_id,min_dob, max_dob]
             if search:
                 base_query += """ AND (a.Profile_name LIKE %s
                                 OR a.ProfileId LIKE %s
