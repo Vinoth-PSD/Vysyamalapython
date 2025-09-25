@@ -3829,6 +3829,7 @@ class PaymentTransaction(models.Model):
     description = models.TextField(null=True, blank=True)
     owner_id = models.IntegerField(null=True, blank=True)
     addon_package=models.CharField(max_length=255, null=True, blank=True)
+    admin_status=models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         managed = False  # Table already exists in DB

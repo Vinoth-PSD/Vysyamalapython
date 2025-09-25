@@ -1282,8 +1282,18 @@ class PaymentTransactionListSerializer(serializers.Serializer):
     discount_amont = serializers.DecimalField(max_digits=10, decimal_places=2)
     payment_type = serializers.CharField()
     payment_refno = serializers.CharField()
+    Profile_city = serializers.CharField()
+    Profile_state = serializers.SerializerMethodField()
     profile_status = serializers.SerializerMethodField()
+    admin_status = serializers.CharField()
     
+    def get_Profile_state(self,obj):
+        state_id = obj.get('Profile_state')
+        try:
+            State_name = State.objects.get(id=state_id)
+            return State_name.name
+        except Exception as e:  
+            return "N/A"
     
     def get_profile_status(self, obj):
         profile_status_id = obj.get('profile_status')

@@ -22,11 +22,12 @@ from django.shortcuts import get_object_or_404
 from datetime import datetime, timedelta , date
 from django.utils import timezone
 import calendar
-
+import csv
+from django.utils.encoding import smart_str
 from django.core.mail import send_mail
 from django.core.mail import EmailMessage
 from email.mime.image import MIMEImage
-
+from django.http import StreamingHttpResponse
 from rest_framework.parsers import JSONParser, MultiPartParser
 import json
 from django.forms.models import model_to_dict
@@ -9052,6 +9053,23 @@ class LoginLogView(generics.ListAPIView):
 class PlanSubscriptionCreateView(generics.CreateAPIView):
     queryset = PlanSubscription.objects.all()
     serializer_class = PlanSubscriptionSerializer
+    
+    def perform_create(self, serializer):
+        subscription = serializer.save()
+
+        PaymentTransaction.objects.create(
+            profile_id=subscription.profile_id,
+            plan_id=subscription.plan_id,
+            order_id=subscription.order_id,
+            payment_id=subscription.payment_id,
+            amount=subscription.paid_amount,
+            status='2',
+            created_at=timezone.now(),
+            payment_type=subscription.payment_mode,
+            discount_amont=subscription.discount,
+            payment_refno=subscription.gpay_no,
+            addon_package=subscription.addon_package
+        )
  
  
 # List subscriptions (only status=1)
@@ -9149,6 +9167,7 @@ def process_transaction(request):
         )
  
         transaction.status = "2"  # or 2 if int based
+        transaction.owner_id = admin_user
         transaction.save()
  
         return Response(
@@ -9158,6 +9177,7 @@ def process_transaction(request):
  
     elif action.lower() == "reject":
         transaction.status = "3"  # or 3 if int based
+        transaction.owner_id = admin_user
         transaction.save()
  
         return Response(
@@ -9189,14 +9209,16 @@ class TransactionHistoryView(generics.ListAPIView):
     def get_queryset(self):
         from_date = self.request.query_params.get('from_date', None)
         to_date = self.request.query_params.get('to_date', None)
+        filter_type = self.request.query_params.get('filter_type')
+        search = self.request.query_params.get('search')
         status_ids = [1, 2, 3]
         placeholders = ', '.join(['%s'] * len(status_ids))
 
         sql = f"""
             SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId,ld.status as profile_status,
-                ld.Profile_dob, ld.Profile_whatsapp, ld.Plan_id, pt.status, ld.DateOfJoin, pl.plan_name,
+                ld.Profile_dob, ld.Profile_whatsapp, ld.Plan_id,ld.Profile_city,ld.Profile_state, pt.status, ld.DateOfJoin, pl.plan_name,
                 ld.membership_startdate, ld.membership_enddate, pt.id AS transaction_id, pt.order_id, pt.created_at,
-                pt.payment_id, pt.amount, pt.discount_amont,pt.payment_type,pt.payment_refno
+                pt.payment_id, pt.amount, pt.discount_amont,pt.payment_type,pt.admin_status AS admin_status,pt.payment_refno
             FROM payment_transaction pt
             LEFT JOIN plan_master pl ON pt.Plan_id = pl.id
             LEFT JOIN logindetails ld ON ld.ProfileId = pt.profile_id
@@ -9205,14 +9227,45 @@ class TransactionHistoryView(generics.ListAPIView):
 
         params = status_ids.copy()
 
-        if from_date and to_date:
-            try:
+        try:
+            if filter_type == "today":
+                today = datetime.today().date()
+                sql += " AND DATE(pt.created_at) = %s"
+                params.append(today)
+
+            elif filter_type == "last_week":
+                today = datetime.today().date()
+                last_week_start = today - timedelta(days=today.weekday() + 7)
+                last_week_end = last_week_start + timedelta(days=6)
+                sql += " AND DATE(pt.created_at) BETWEEN %s AND %s"
+                params += [last_week_start, last_week_end]
+
+            elif filter_type == "new_approved":
+                sql += " AND ld.status IN (%s, %s)"
+                params += [0, 1]
+                
+            elif filter_type == "delete_others":
+                sql += " AND ld.status NOT IN (%s, %s)"
+                params += [0, 1]
+
+            elif from_date and to_date:
                 start_date = datetime.strptime(from_date, "%Y-%m-%d").date()
                 end_date = datetime.strptime(to_date, "%Y-%m-%d").date()
                 sql += " AND DATE(pt.created_at) BETWEEN %s AND %s"
                 params += [start_date, end_date]
-            except Exception:
-                pass
+        except Exception:
+            pass
+        
+        if search:
+            sql += """
+                    AND (
+                        LOWER(CAST(ld.ProfileId AS CHAR)) LIKE LOWER(%s) OR
+                        LOWER(ld.Profile_name) LIKE LOWER(%s) OR
+                        LOWER(ld.Mobile_no) LIKE LOWER(%s)
+                    )
+                """
+            search_term = f"%{search}%"
+            params += [search_term, search_term, search_term]
 
         sql += " ORDER BY pt.created_at DESC"
 
@@ -9224,4 +9277,105 @@ class TransactionHistoryView(generics.ListAPIView):
 
         return rows
 
-    
+class Echo:
+    def write(self, value):
+        return value
+
+
+def iter_cursor(cursor, arraysize=1000):
+    cols = [col[0] for col in cursor.description]
+    while True:
+        batch = cursor.fetchmany(arraysize)
+        if not batch:
+            break
+        for row in batch:
+            yield dict(zip(cols, row))
+
+
+class TransactionHistoryExportView(generics.GenericAPIView):
+
+    def get(self, request, *args, **kwargs):
+        from_date = request.query_params.get('from_date')
+        to_date = request.query_params.get('to_date')
+        filter_type = request.query_params.get('filter_type')
+        search = request.query_params.get('search')
+        status_ids = [1, 2, 3]
+        placeholders = ', '.join(['%s'] * len(status_ids))
+
+        sql = f"""
+            SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId,
+                   ld.status as profile_status, ld.Profile_dob, ld.Profile_whatsapp, ld.Plan_id,
+                   ld.Profile_city, ld.Profile_state, pt.status, ld.DateOfJoin, pl.plan_name,
+                   ld.membership_startdate, ld.membership_enddate, pt.id AS transaction_id,
+                   pt.order_id, pt.created_at, pt.payment_id, pt.amount, pt.discount_amont,
+                   pt.payment_type, pt.admin_status AS admin_status, pt.payment_refno
+            FROM payment_transaction pt
+            LEFT JOIN plan_master pl ON pt.Plan_id = pl.id
+            LEFT JOIN logindetails ld ON ld.ProfileId = pt.profile_id
+            WHERE pt.status IN ({placeholders})
+        """
+
+        params = status_ids.copy()
+
+        try:
+            today = datetime.today().date()
+
+            if filter_type == "today":
+                sql += " AND pt.created_at >= %s AND pt.created_at < %s"
+                params += [today, today + timedelta(days=1)]
+
+            elif filter_type == "last_week":
+                last_week_start = today - timedelta(days=today.weekday() + 7)
+                last_week_end = last_week_start + timedelta(days=7)
+                sql += " AND pt.created_at >= %s AND pt.created_at < %s"
+                params += [last_week_start, last_week_end]
+
+            elif filter_type == "new_approved":
+                sql += " AND ld.status IN (%s, %s)"
+                params += [0, 1]
+
+            elif filter_type == "delete_others":
+                sql += " AND ld.status NOT IN (%s, %s)"
+                params += [0, 1]
+
+            elif from_date and to_date:
+                start_date = datetime.strptime(from_date, "%Y-%m-%d").date()
+                end_date = datetime.strptime(to_date, "%Y-%m-%d").date() + timedelta(days=1)
+                sql += " AND pt.created_at >= %s AND pt.created_at < %s"
+                params += [start_date, end_date]
+
+        except Exception:
+            pass
+
+        if search:
+            sql += """
+                AND (
+                    CAST(ld.ProfileId AS CHAR) LIKE %s OR
+                    LOWER(ld.Profile_name) LIKE LOWER(%s) OR
+                    ld.Mobile_no LIKE %s
+                )
+            """
+            search_term = f"%{search}%"
+            params += [search_term, search_term, search_term]
+
+        sql += " ORDER BY pt.created_at DESC"
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+
+            def row_stream():
+                cols = [col[0] for col in cursor.description]
+                yield cols  # header
+                for row in iter_cursor(cursor):
+                    yield [smart_str(v) for v in row.values()]
+
+            pseudo_buffer = Echo()
+            writer = csv.writer(pseudo_buffer)
+
+            response = StreamingHttpResponse(
+                (writer.writerow(row) for row in row_stream()),
+                content_type="text/csv"
+            )
+            response['Content-Disposition'] = 'attachment; filename="transaction_history.csv"'
+            return response
+        
