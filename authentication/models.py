@@ -1326,12 +1326,7 @@ class Get_profiledata(models.Model):
                     elif order_by == 2:
                         orderby_cond = (
                             f" ORDER BY {view_priority}, "
-                            f"{recent_priority}, "
-                            f"CASE WHEN {recent_priority}=0 THEN {photo_priority} END ASC, "
-                            f"CASE WHEN {recent_priority}=0 THEN a.DateOfJoin END ASC, "
-                            f"CASE WHEN {recent_priority}=1 THEN {plan_priority} END ASC, "
-                            f"CASE WHEN {recent_priority}=1 THEN {photo_priority} END ASC, "
-                            f"CASE WHEN {recent_priority}=1 THEN a.DateOfJoin END ASC"
+                            f" a.DateOfJoin DESC"
                         )
                     else:
                         orderby_cond = (
