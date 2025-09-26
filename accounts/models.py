@@ -1451,261 +1451,12 @@ class Get_profiledata_Matching(models.Model):
                     AND a.Profile_dob BETWEEN %s AND %s """
 
             query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,gender,gender,profile.Profile_dob,gender,profile.Profile_dob, profile_id,min_dob, max_dob]
-            if search:
-                base_query += """ AND (a.Profile_name LIKE %s
-                                OR a.ProfileId LIKE %s
-                                OR prof.profession LIKE %s )"""
-                search_param = f"%{search.strip()}%"
-                query_params.extend([search_param] * 3)
-            if from_date and to_date:
-                try:
-                    from_date_obj = datetime.strptime(from_date, '%Y-%m-%d').date()
-                    to_date_obj = datetime.strptime(to_date, '%Y-%m-%d').date()+ timedelta(days=1) - timedelta(seconds=1)
-                    base_query += " AND a.DateOfJoin BETWEEN %s AND %s"
-                    query_params.extend([from_date_obj, to_date_obj])
-                except ValueError:
-                    pass    
-            inc_min = min_anual_income
-            inc_max = max_anual_income
-
-            inc_min = None if inc_min in ("null", "", None) else inc_min
-            inc_max = None if inc_max in ("null", "", None) else inc_max
-            annual_income_min = None if annual_income_min in ("null", "", None) else annual_income_min
-            annual_income_max = None if annual_income_max in ("null", "", None) else annual_income_max
-
-    
-            if inc_min and inc_max:
-                base_query += "AND f.anual_income BETWEEN %s AND %s"
-                query_params.extend([int(inc_min), int(inc_max)])
-            elif annual_income_min and annual_income_max:
-                base_query += "AND f.anual_income BETWEEN %s AND %s "
-                query_params.extend([int(annual_income_min),int(annual_income_max)])
-
-            if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
-                base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"
-                query_params.append(str(my_suya_gothram_admin))
-            if my_suya_gothram and str(my_suya_gothram).strip() != "":
-                base_query += " AND (c.suya_gothram IS NULL OR c.suya_gothram = '' OR c.suya_gothram != %s )"
-                query_params.append(my_suya_gothram)
-
-            family_status_conditions = []
-
-            if partner_pref_familysts:
-                family_status_conditions.append(
-                    "(FIND_IN_SET(c.family_status, %s) > 0 OR c.family_status IS NULL OR c.family_status = '')"
-                )
-                query_params.append(partner_pref_familysts)
-
-            if family_status:
-                statuses = [s.strip() for s in str(family_status).split(',') if s.strip()]
-                if statuses:
-                    status_filters = []
-                    for status_f in statuses:
-                        status_filters.append("FIND_IN_SET(%s, c.family_status) > 0")
-                        query_params.append(status_f)
-                    family_status_conditions.append("(" + " OR ".join(status_filters) + ")")
-
-            if family_status_conditions:
-                base_query += " AND (" + " OR ".join(family_status_conditions) + ")"
-         
-            if pref_education and pref_education.strip():
-                edu_list = [e.strip() for e in pref_education.split(',') if e.strip().isdigit()]
-                if edu_list:
-                    placeholders = ','.join(['%s'] * len(edu_list))
-                    base_query += f" AND g.RowId IN ({placeholders})"
-                    query_params.extend(edu_list)
-            if matching_stars and matching_stars.strip():
-                try:
-                    base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
-                    query_params.append(matching_stars.strip())
-                except Exception as e:
-                    print(" Error processing matching_stars:", e)
-            else :
-                if porutham_star_rasi and porutham_star_rasi.strip():
-                    base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
-                    query_params.append(porutham_star_rasi.strip())
-
-            if marital_status:
-                marital_status_str = ",".join(marital_status) if isinstance(marital_status, list) else marital_status.strip()
-                base_query += " AND FIND_IN_SET(a.Profile_marital_status, %s) > 0"
-                query_params.append(marital_status_str)
-
-            if field_of_study:
-                fields = [f.strip() for f in field_of_study.split(',') if f.strip()]
-                if fields:
-                    placeholders = ','.join(['%s'] * len(fields))
-                    base_query += f" AND f.field_ofstudy IN ({placeholders})"
-                    query_params.extend(fields)
-                    
-            if degree:
-                degrees = [d.strip() for d in degree.split(',') if d.strip()]
-                if degrees:
-                    placeholders = ','.join(['%s'] * len(degrees))
-                    # base_query += f" AND f.degree IN ({placeholders})"
-                    base_query += f" AND f.degree IN ({placeholders}) OR f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"
-                    query_params.extend(degrees)
-            # else:
-            #     base_query += """ AND
-            #     ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
-
-            # Height logic
-            final_height_from = height_from or partner_pref.pref_height_from
-            final_height_to = height_to or partner_pref.pref_height_to
-            if final_height_from and final_height_to:
-                base_query += " AND a.Profile_height BETWEEN %s AND %s"
-                query_params.extend([final_height_from, final_height_to])
-            elif final_height_from:
-                base_query += " AND a.Profile_height >= %s"
-                query_params.append(final_height_from)
-            elif final_height_to:
-                base_query += " AND a.Profile_height <= %s"
-                query_params.append(final_height_to)
-
-            # Apply extra filters
-            if search_profile_id:
-                base_query += " AND (a.ProfileId = %s OR a.Profile_name LIKE %s)"
-                query_params.extend([search_profile_id, f"%{search_profile_id.strip()}%"])
-
-            if search_profession:
-                professions = [p.strip() for p in search_profession.split(",") if p.strip()]
-                placeholders = ", ".join(["%s"] * len(professions))
-                base_query += f" AND f.profession IN ({placeholders})"
-                query_params.extend(professions)
-
-            if search_location:
-                base_query += " AND a.Profile_state = %s"
-                query_params.append(search_location)
-
-            if complexion:
-                complexion_list = [c.strip() for c in complexion.split(',') if c.strip().isdigit()]
-                if complexion_list:
-                    placeholders = ','.join(['%s'] * len(complexion_list))
-                    base_query += f" AND a.Profile_complexion IN ({placeholders})"
-                    query_params.extend(complexion_list)
-
-            if city:
-                base_query += " AND a.Profile_city = %s"
-                query_params.append(city)
-
-            if state:
-                base_query += """
-                    AND (
-                        FIND_IN_SET(f.work_state, %s) > 0 OR
-                        FIND_IN_SET(a.Profile_state, %s) > 0 OR
-                        a.Profile_state IS NULL OR
-                        a.Profile_state = ''
-                    )
-                """
-                query_params.extend([state, state])
-
-            elif partner_pref_state:
-                base_query += """
-                    AND (
-                        FIND_IN_SET(f.work_state, %s) > 0 OR
-                        FIND_IN_SET(a.Profile_state, %s) > 0 OR
-                        a.Profile_state IS NULL OR
-                        a.Profile_state = ''
-                    )
-                """
-                query_params.extend([partner_pref_state, partner_pref_state])
-
-            if has_photos and has_photos.lower() == "yes":
-                base_query += " AND pi.first_image_id IS NOT NULL"
-
-            if membership:
-                membership_ids = [m.strip() for m in membership.split(",") if m.strip().isdigit()]
-                if membership_ids:
-                    placeholders = ','.join(['%s'] * len(membership_ids))
-                    base_query += f" AND a.Plan_id IN ({placeholders})"
-                    query_params.extend(membership_ids)
-
-
-            # Foreign interest
-            if pref_foreign and pref_foreign.strip().lower() in ['yes', 'no']:
-                if pref_foreign.lower() == "yes":
-                    base_query += "  AND (f.work_country != '1' OR f.work_country IS NULL OR f.work_country='' OR a.Profile_country!='1' OR a.Profile_country='' OR a.Profile_country IS NULL)"
-                elif pref_foreign.lower() == "no":
-                    base_query += "  AND (f.work_country = '1' OR f.work_country IS NULL OR f.work_country='' OR a.Profile_country='1')"
             
-            conditions = []
-
-            if chev and chev.lower() == 'yes':
-                conditions.append("""
-                    (
-                        LOWER(e.calc_chevvai_dhosham) IN ('yes', 'true')
-                        OR e.calc_chevvai_dhosham IN ('1', 1)
-                        OR e.calc_chevvai_dhosham IS NULL
-                    )
-                """)
-
-            if ragu and ragu.lower() == 'yes':
-                conditions.append("""
-                    (
-                        LOWER(e.calc_raguketu_dhosham) IN ('yes', 'true')
-                        OR e.calc_raguketu_dhosham IN ('1', 1)
-                        OR e.calc_raguketu_dhosham IS NULL
-                    )
-                """)
-
-            # Strict dosham filters — only apply fallback if primary is missing
-            strict_conditions = []
-            if not ragu or chev:
-                if ragukethu and ragukethu.lower() == 'yes':
-                    
-                    base_query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'true' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
-                elif ragukethu and ragukethu.lower() == 'no':
-                    base_query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'false' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
-
-                if chevvai and chevvai.lower() == 'yes':
-                    # base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
-
-                    base_query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'true' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
-                elif chevvai and chevvai.lower() == 'no':
-                    base_query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'false' OR e.calc_chevvai_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
-
-
-            # Combine all conditions
-            all_conditions = conditions + strict_conditions
-
-            if all_conditions:
-                base_query += f"\nAND ({' OR '.join(all_conditions)})"
-
-            if father_alive is not None and father_alive.strip().lower() in ['yes', 'no']:
-                if father_alive =='yes':
-                    base_query += " AND c.father_alive = 'yes'"
-                else:
-                    base_query += " AND c.father_alive = 'no'"
-            if mother_alive is not None and mother_alive.strip().lower() in ['yes', 'no']:
-                if mother_alive == 'yes':
-                    base_query += " AND c.mother_alive = 'yes'"
-                else:
-                    base_query += " AND c.mother_alive = 'no'"
             
-            if status is not None:
-                # print('status is not none')
-                # print('status is',status)
-                if status == "unsent":
-                    action_filter = "" if action_type == "all" else "AND sp.action_type = %s"
-                    
-                    base_query += " AND a.Status = 1 " #approved Only
-                    base_query += """
-                    AND NOT EXISTS (
-                        SELECT 1 
-                        FROM admin_sentprofiles sp
-                        WHERE sp.profile_id = %s 
-                        AND sp.sentprofile_id = a.ProfileId
-                        {action_filter}
-                    )""".format(action_filter=action_filter)
-                    query_params.append(profile_id)
-                    if action_type != "all":
-                        query_params.append(action_type)
-
-                elif status == "sent":
+            if status == "sent":
                     # print('status is sent')
                     base_query += " AND a.Status != 0 " #Shows the deleted profiles also if it is already sent but deleted later
                     action_filter = "" if action_type == "all" else "AND sp.action_type = %s"
-                    
-
                     
                     base_query += """
                     AND EXISTS (
@@ -1718,9 +1469,294 @@ class Get_profiledata_Matching(models.Model):
                     query_params.append(profile_id)
                     if action_type != "all":
                         query_params.append(action_type)
-                else:
-                    base_query += " AND a.Status = 1 "   #approved Only
-                    pass
+                    
+
+                    if search:
+                        base_query += """ AND (a.Profile_name LIKE %s
+                                        OR a.ProfileId LIKE %s
+                                        OR prof.profession LIKE %s )"""
+                        search_param = f"%{search.strip()}%"
+                        query_params.extend([search_param] * 3)
+            
+            
+            
+            
+            
+            else:
+
+                if search:
+                    base_query += """ AND (a.Profile_name LIKE %s
+                                    OR a.ProfileId LIKE %s
+                                    OR prof.profession LIKE %s )"""
+                    search_param = f"%{search.strip()}%"
+                    query_params.extend([search_param] * 3)
+                
+                
+                
+                if from_date and to_date:
+                    try:
+                        from_date_obj = datetime.strptime(from_date, '%Y-%m-%d').date()
+                        to_date_obj = datetime.strptime(to_date, '%Y-%m-%d').date()+ timedelta(days=1) - timedelta(seconds=1)
+                        base_query += " AND a.DateOfJoin BETWEEN %s AND %s"
+                        query_params.extend([from_date_obj, to_date_obj])
+                    except ValueError:
+                        pass    
+                inc_min = min_anual_income
+                inc_max = max_anual_income
+
+                inc_min = None if inc_min in ("null", "", None) else inc_min
+                inc_max = None if inc_max in ("null", "", None) else inc_max
+                annual_income_min = None if annual_income_min in ("null", "", None) else annual_income_min
+                annual_income_max = None if annual_income_max in ("null", "", None) else annual_income_max
+
+        
+                if inc_min and inc_max:
+                    base_query += "AND f.anual_income BETWEEN %s AND %s"
+                    query_params.extend([int(inc_min), int(inc_max)])
+                elif annual_income_min and annual_income_max:
+                    base_query += "AND f.anual_income BETWEEN %s AND %s "
+                    query_params.extend([int(annual_income_min),int(annual_income_max)])
+
+                if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
+                    base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"
+                    query_params.append(str(my_suya_gothram_admin))
+                if my_suya_gothram and str(my_suya_gothram).strip() != "":
+                    base_query += " AND (c.suya_gothram IS NULL OR c.suya_gothram = '' OR c.suya_gothram != %s )"
+                    query_params.append(my_suya_gothram)
+
+                family_status_conditions = []
+
+                if partner_pref_familysts:
+                    family_status_conditions.append(
+                        "(FIND_IN_SET(c.family_status, %s) > 0 OR c.family_status IS NULL OR c.family_status = '')"
+                    )
+                    query_params.append(partner_pref_familysts)
+
+                if family_status:
+                    statuses = [s.strip() for s in str(family_status).split(',') if s.strip()]
+                    if statuses:
+                        status_filters = []
+                        for status_f in statuses:
+                            status_filters.append("FIND_IN_SET(%s, c.family_status) > 0")
+                            query_params.append(status_f)
+                        family_status_conditions.append("(" + " OR ".join(status_filters) + ")")
+
+                if family_status_conditions:
+                    base_query += " AND (" + " OR ".join(family_status_conditions) + ")"
+            
+                if pref_education and pref_education.strip():
+                    edu_list = [e.strip() for e in pref_education.split(',') if e.strip().isdigit()]
+                    if edu_list:
+                        placeholders = ','.join(['%s'] * len(edu_list))
+                        base_query += f" AND g.RowId IN ({placeholders})"
+                        query_params.extend(edu_list)
+                if matching_stars and matching_stars.strip():
+                    try:
+                        base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
+                        query_params.append(matching_stars.strip())
+                    except Exception as e:
+                        print(" Error processing matching_stars:", e)
+                else :
+                    if porutham_star_rasi and porutham_star_rasi.strip():
+                        base_query += " AND FIND_IN_SET(CONCAT(e.birthstar_name, '-', e.birth_rasi_name), %s) > 0"
+                        query_params.append(porutham_star_rasi.strip())
+
+                if marital_status:
+                    marital_status_str = ",".join(marital_status) if isinstance(marital_status, list) else marital_status.strip()
+                    base_query += " AND FIND_IN_SET(a.Profile_marital_status, %s) > 0"
+                    query_params.append(marital_status_str)
+
+                if field_of_study:
+                    fields = [f.strip() for f in field_of_study.split(',') if f.strip()]
+                    if fields:
+                        placeholders = ','.join(['%s'] * len(fields))
+                        base_query += f" AND f.field_ofstudy IN ({placeholders})"
+                        query_params.extend(fields)
+                        
+                if degree:
+                    degrees = [d.strip() for d in degree.split(',') if d.strip()]
+                    if degrees:
+                        placeholders = ','.join(['%s'] * len(degrees))
+                        # base_query += f" AND f.degree IN ({placeholders})"
+                        base_query += f" AND f.degree IN ({placeholders}) OR f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"
+                        query_params.extend(degrees)
+                # else:
+                #     base_query += """ AND
+                #     ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
+
+                # Height logic
+                final_height_from = height_from or partner_pref.pref_height_from
+                final_height_to = height_to or partner_pref.pref_height_to
+                if final_height_from and final_height_to:
+                    base_query += " AND a.Profile_height BETWEEN %s AND %s"
+                    query_params.extend([final_height_from, final_height_to])
+                elif final_height_from:
+                    base_query += " AND a.Profile_height >= %s"
+                    query_params.append(final_height_from)
+                elif final_height_to:
+                    base_query += " AND a.Profile_height <= %s"
+                    query_params.append(final_height_to)
+
+                # Apply extra filters
+                if search_profile_id:
+                    base_query += " AND (a.ProfileId = %s OR a.Profile_name LIKE %s)"
+                    query_params.extend([search_profile_id, f"%{search_profile_id.strip()}%"])
+
+                if search_profession:
+                    professions = [p.strip() for p in search_profession.split(",") if p.strip()]
+                    placeholders = ", ".join(["%s"] * len(professions))
+                    base_query += f" AND f.profession IN ({placeholders})"
+                    query_params.extend(professions)
+
+                if search_location:
+                    base_query += " AND a.Profile_state = %s"
+                    query_params.append(search_location)
+
+                if complexion:
+                    complexion_list = [c.strip() for c in complexion.split(',') if c.strip().isdigit()]
+                    if complexion_list:
+                        placeholders = ','.join(['%s'] * len(complexion_list))
+                        base_query += f" AND a.Profile_complexion IN ({placeholders})"
+                        query_params.extend(complexion_list)
+
+                if city:
+                    base_query += " AND a.Profile_city = %s"
+                    query_params.append(city)
+
+                if state:
+                    base_query += """
+                        AND (
+                            FIND_IN_SET(f.work_state, %s) > 0 OR
+                            FIND_IN_SET(a.Profile_state, %s) > 0 OR
+                            a.Profile_state IS NULL OR
+                            a.Profile_state = ''
+                        )
+                    """
+                    query_params.extend([state, state])
+
+                elif partner_pref_state:
+                    base_query += """
+                        AND (
+                            FIND_IN_SET(f.work_state, %s) > 0 OR
+                            FIND_IN_SET(a.Profile_state, %s) > 0 OR
+                            a.Profile_state IS NULL OR
+                            a.Profile_state = ''
+                        )
+                    """
+                    query_params.extend([partner_pref_state, partner_pref_state])
+
+                if has_photos and has_photos.lower() == "yes":
+                    base_query += " AND pi.first_image_id IS NOT NULL"
+
+                if membership:
+                    membership_ids = [m.strip() for m in membership.split(",") if m.strip().isdigit()]
+                    if membership_ids:
+                        placeholders = ','.join(['%s'] * len(membership_ids))
+                        base_query += f" AND a.Plan_id IN ({placeholders})"
+                        query_params.extend(membership_ids)
+
+
+                # Foreign interest
+                if pref_foreign and pref_foreign.strip().lower() in ['yes', 'no']:
+                    if pref_foreign.lower() == "yes":
+                        base_query += "  AND (f.work_country != '1' OR f.work_country IS NULL OR f.work_country='' OR a.Profile_country!='1' OR a.Profile_country='' OR a.Profile_country IS NULL)"
+                    elif pref_foreign.lower() == "no":
+                        base_query += "  AND (f.work_country = '1' OR f.work_country IS NULL OR f.work_country='' OR a.Profile_country='1')"
+                
+                conditions = []
+
+                if chev and chev.lower() == 'yes':
+                    conditions.append("""
+                        (
+                            LOWER(e.calc_chevvai_dhosham) IN ('yes', 'true')
+                            OR e.calc_chevvai_dhosham IN ('1', 1)
+                            OR e.calc_chevvai_dhosham IS NULL
+                        )
+                    """)
+
+                if ragu and ragu.lower() == 'yes':
+                    conditions.append("""
+                        (
+                            LOWER(e.calc_raguketu_dhosham) IN ('yes', 'true')
+                            OR e.calc_raguketu_dhosham IN ('1', 1)
+                            OR e.calc_raguketu_dhosham IS NULL
+                        )
+                    """)
+
+                # Strict dosham filters — only apply fallback if primary is missing
+                strict_conditions = []
+                if not ragu or chev:
+                    if ragukethu and ragukethu.lower() == 'yes':
+                        
+                        base_query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'true' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
+                    elif ragukethu and ragukethu.lower() == 'no':
+                        base_query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'false' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
+
+                    if chevvai and chevvai.lower() == 'yes':
+                        # base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
+
+                        base_query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'true' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+                    elif chevvai and chevvai.lower() == 'no':
+                        base_query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'false' OR e.calc_chevvai_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
+
+
+                # Combine all conditions
+                all_conditions = conditions + strict_conditions
+
+                if all_conditions:
+                    base_query += f"\nAND ({' OR '.join(all_conditions)})"
+
+                if father_alive is not None and father_alive.strip().lower() in ['yes', 'no']:
+                    if father_alive =='yes':
+                        base_query += " AND c.father_alive = 'yes'"
+                    else:
+                        base_query += " AND c.father_alive = 'no'"
+                if mother_alive is not None and mother_alive.strip().lower() in ['yes', 'no']:
+                    if mother_alive == 'yes':
+                        base_query += " AND c.mother_alive = 'yes'"
+                    else:
+                        base_query += " AND c.mother_alive = 'no'"
+                
+                if status is not None:
+                    # print('status is not none')
+                    # print('status is',status)
+                    if status == "unsent":
+                        action_filter = "" if action_type == "all" else "AND sp.action_type = %s"
+                        
+                        base_query += " AND a.Status = 1 " #approved Only
+                        base_query += """
+                        AND NOT EXISTS (
+                            SELECT 1 
+                            FROM admin_sentprofiles sp
+                            WHERE sp.profile_id = %s 
+                            AND sp.sentprofile_id = a.ProfileId
+                            {action_filter}
+                        )""".format(action_filter=action_filter)
+                        query_params.append(profile_id)
+                        if action_type != "all":
+                            query_params.append(action_type)
+
+                    elif status == "sent":
+                        # print('status is sent')
+                        base_query += " AND a.Status != 0 " #Shows the deleted profiles also if it is already sent but deleted later
+                        action_filter = "" if action_type == "all" else "AND sp.action_type = %s"
+                        
+
+                        
+                        base_query += """
+                        AND EXISTS (
+                            SELECT 1 
+                            FROM admin_sentprofiles sp
+                            WHERE sp.profile_id = %s 
+                            AND sp.sentprofile_id = a.ProfileId
+                            {action_filter}
+                        )""".format(action_filter=action_filter)
+                        query_params.append(profile_id)
+                        if action_type != "all":
+                            query_params.append(action_type)
+                    else:
+                        base_query += " AND a.Status = 1 "   #approved Only
+                        pass
 
             
             # ORDER BY
