@@ -1208,7 +1208,7 @@ class Get_profiledata(models.Model):
                 
                 if pref_annual_income and pref_annual_income_max:
                     base_query += "AND f.anual_income BETWEEN %s AND %s "
-                    query_params.extend([pref_annual_income,pref_annual_income_max])
+                    query_params.extend([int(pref_annual_income),int(pref_annual_income_max)])
 
 
                 if partner_pref_porutham_star_rasi:
@@ -1614,7 +1614,7 @@ class Get_profiledata(models.Model):
 
             if pref_annual_income and pref_annual_income_max:
                     query += "AND f.anual_income BETWEEN %s AND %s "
-                    query_params.extend([pref_annual_income,pref_annual_income_max])
+                    query_params.extend([int(pref_annual_income),int(pref_annual_income_max)])
 
             if partner_pref_education:
                 query += " AND FIND_IN_SET(g.RowId, %s) > 0"

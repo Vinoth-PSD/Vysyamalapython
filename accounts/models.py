@@ -1473,13 +1473,13 @@ class Get_profiledata_Matching(models.Model):
             annual_income_min = None if annual_income_min in ("null", "", None) else annual_income_min
             annual_income_max = None if annual_income_max in ("null", "", None) else annual_income_max
 
-
+    
             if inc_min and inc_max:
                 base_query += "AND f.anual_income BETWEEN %s AND %s"
-                query_params.extend([inc_min, inc_max])
+                query_params.extend([int(inc_min), int(inc_max)])
             elif annual_income_min and annual_income_max:
                 base_query += "AND f.anual_income BETWEEN %s AND %s "
-                query_params.extend([annual_income_min,annual_income_max])
+                query_params.extend([int(annual_income_min),int(annual_income_max)])
 
             if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
                 base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"
@@ -2336,7 +2336,7 @@ class Get_profiledata_Matching(models.Model):
             
             if pref_annual_income and pref_annual_income_max:
                 base_query += "AND f.anual_income BETWEEN %s AND %s "
-                params.extend([pref_annual_income,pref_annual_income_max])
+                params.extend([int(pref_annual_income),int(pref_annual_income_max)])
             # Gothram filter
             if my_suya_gothram_admin and my_suya_gothram_admin != '0':
                 base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"

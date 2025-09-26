@@ -9207,67 +9207,94 @@ class TransactionHistoryView(generics.ListAPIView):
     pagination_class = StandardResultsPaging
 
     def get_queryset(self):
-        from_date = self.request.query_params.get('from_date', None)
-        to_date = self.request.query_params.get('to_date', None)
+        from_date = self.request.query_params.get('from_date')
+        to_date = self.request.query_params.get('to_date')
         filter_type = self.request.query_params.get('filter_type')
         search = self.request.query_params.get('search')
         status_ids = [1, 2, 3]
         placeholders = ', '.join(['%s'] * len(status_ids))
 
-        sql = f"""
-            SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId,ld.status as profile_status,
-                ld.Profile_dob, ld.Profile_whatsapp, ld.Plan_id,ld.Profile_city,ld.Profile_state, pt.status, ld.DateOfJoin, pl.plan_name,
-                ld.membership_startdate, ld.membership_enddate, pt.id AS transaction_id, pt.order_id, pt.created_at,
-                pt.payment_id, pt.amount, pt.discount_amont,pt.payment_type,pt.admin_status AS admin_status,pt.payment_refno
+        sql_pt = f"""
+            SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId,
+                   ld.status as profile_status, ld.Profile_dob, ld.Profile_whatsapp, pt.Plan_id,
+                   ld.Profile_city, ld.Profile_state, pt.status, ld.DateOfJoin, pl.plan_name,
+                   ld.membership_startdate, ld.membership_enddate, pt.id AS transaction_id,
+                   pt.order_id, pt.created_at, pt.payment_id, pt.amount, pt.discount_amont,
+                   pt.payment_type, pt.admin_status, pt.payment_refno
             FROM payment_transaction pt
             LEFT JOIN plan_master pl ON pt.Plan_id = pl.id
             LEFT JOIN logindetails ld ON ld.ProfileId = pt.profile_id
             WHERE pt.status IN ({placeholders})
         """
 
-        params = status_ids.copy()
+        sql_ps = f"""
+            SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId,
+                   ld.status as profile_status, ld.Profile_dob, ld.Profile_whatsapp, ps.plan_id,
+                   ld.Profile_city, ld.Profile_state, ps.status, ld.DateOfJoin, pl.plan_name,
+                   ps.validity_startdate AS membership_startdate, ps.validity_enddate AS membership_enddate,
+                   ps.id AS transaction_id, ps.order_id, ps.payment_date AS created_at,
+                   ps.payment_id, ps.paid_amount AS amount, ps.discount AS discount_amont,
+                   ps.payment_mode AS payment_type, ps.admin_user AS admin_status,
+                   ps.gpay_no AS payment_refno
+            FROM plan_subscription ps
+            LEFT JOIN plan_master pl ON ps.plan_id = pl.id
+            LEFT JOIN logindetails ld ON ld.ProfileId = ps.profile_id
+            WHERE ps.profile_id NOT IN (SELECT profile_id FROM payment_transaction)
+              AND ps.status IN ({placeholders})
+        """
+
+        sql = f"""
+            SELECT * FROM (
+                {sql_pt}
+                UNION ALL
+                {sql_ps}
+            ) AS combined
+            WHERE 1=1
+        """
+
+        params = status_ids.copy() + status_ids.copy()
 
         try:
             if filter_type == "today":
                 today = datetime.today().date()
-                sql += " AND DATE(pt.created_at) = %s"
+                sql += " AND DATE(combined.created_at) = %s"
                 params.append(today)
 
             elif filter_type == "last_week":
                 today = datetime.today().date()
                 last_week_start = today - timedelta(days=today.weekday() + 7)
                 last_week_end = last_week_start + timedelta(days=6)
-                sql += " AND DATE(pt.created_at) BETWEEN %s AND %s"
+                sql += " AND DATE(combined.created_at) BETWEEN %s AND %s"
                 params += [last_week_start, last_week_end]
 
             elif filter_type == "new_approved":
-                sql += " AND ld.status IN (%s, %s)"
+                sql += " AND combined.profile_status IN (%s, %s)"
                 params += [0, 1]
-                
+
             elif filter_type == "delete_others":
-                sql += " AND ld.status NOT IN (%s, %s)"
+                sql += " AND combined.profile_status NOT IN (%s, %s)"
                 params += [0, 1]
 
             elif from_date and to_date:
                 start_date = datetime.strptime(from_date, "%Y-%m-%d").date()
                 end_date = datetime.strptime(to_date, "%Y-%m-%d").date()
-                sql += " AND DATE(pt.created_at) BETWEEN %s AND %s"
+                sql += " AND DATE(combined.created_at) BETWEEN %s AND %s"
                 params += [start_date, end_date]
         except Exception:
             pass
-        
+
         if search:
             sql += """
-                    AND (
-                        LOWER(CAST(ld.ProfileId AS CHAR)) LIKE LOWER(%s) OR
-                        LOWER(ld.Profile_name) LIKE LOWER(%s) OR
-                        LOWER(ld.Mobile_no) LIKE LOWER(%s)
-                    )
-                """
+                AND (
+                    LOWER(CAST(combined.ProfileId AS CHAR)) LIKE LOWER(%s) OR
+                    LOWER(combined.Profile_name) LIKE LOWER(%s) OR
+                    LOWER(combined.Mobile_no) LIKE LOWER(%s)
+                )
+            """
             search_term = f"%{search}%"
             params += [search_term, search_term, search_term]
 
-        sql += " ORDER BY pt.created_at DESC"
+        sql += " ORDER BY combined.created_at DESC"
 
         # print("Final SQL:", sql)
         # print("Params:", params)
