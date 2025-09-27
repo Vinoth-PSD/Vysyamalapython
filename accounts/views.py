@@ -92,6 +92,8 @@ from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from authentication.views import get_profile_image_azure_optimized
+from .models import DataHistory
+from django.db.models import QuerySet
 # from authentication.models import ProfileVisibility
 # from authentication.serializers import ProfileVisibilityListSerializer
 
@@ -1892,6 +1894,7 @@ class SubmitProfileAPIView(APIView):
         horoscope_data = parse_json_field(request.data.get('horoscope_details', {}))
         partner_pref_data = parse_json_field(request.data.get('partner_pref_details', {}))
         suggested_pref_data = parse_json_field(request.data.get('suggested_pref_details', {}))
+        owner = request.data.get('owner_id')
         
         horoscope_file = request.FILES.get('horoscope_file')
         if horoscope_file:
@@ -2058,6 +2061,18 @@ class SubmitProfileAPIView(APIView):
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
+        try:
+            if owner:
+                owner_id =int(owner)
+            else:
+                owner_id = None
+            DataHistory.objects.create(
+                                profile_id=profile_id,
+                                profile_status=0,
+                                owner_id=owner_id
+                            )
+        except Exception as e:
+            pass
         # Success response
         return Response({"status": "success", "ProfileId": profile_id}, status=status.HTTP_201_CREATED)
 
@@ -2271,6 +2286,7 @@ class EditProfileAPIView(APIView):
 
 
         if profile_common_data:
+            owner = profile_common_data.get("owner_id")
             # Only include the common data keys that are available in the request
             login_common_data = clean_none_fields({
                 "Addon_package": profile_common_data.get("Addon_package"),
@@ -2310,7 +2326,49 @@ class EditProfileAPIView(APIView):
                 "membership_todate": parse_membership_date(profile_common_data.get("membership_todate")),
 
             })
+            
+            try:
+                if owner:
+                    owner_id =int(owner)
+                else:
+                    owner_id = None
+                old_status = getattr(login_detail, 'status', None)
+                new_status = profile_common_data.get("status") or old_status
 
+                old_plan_id = getattr(login_detail, 'Plan_id', None)
+                new_plan_id = profile_common_data.get("secondary_status") or old_plan_id
+                if old_status is not None and int(old_status) != int(new_status) and int(old_plan_id) != int(new_plan_id):
+                    try:
+                        DataHistory.objects.create(
+                            profile_id=profile_id,
+                            profile_status=new_status,
+                            plan_id=new_plan_id,
+                            owner_id = owner_id
+                        )
+                    except Exception as e:
+                        pass
+                elif old_status is not None and int(old_status) != int(new_status):
+                    try:
+                        DataHistory.objects.create(
+                            profile_id=profile_id,
+                            profile_status=new_status,
+                            owner_id = owner_id
+                        )
+                    except Exception as e:
+                        pass
+                    
+                elif int(old_plan_id) != int(new_plan_id):
+                    try:
+                        DataHistory.objects.create(
+                            profile_id=profile_id,
+                            profile_status=new_status, 
+                            plan_id=new_plan_id,
+                            owner_id = owner_id
+                        )
+                    except Exception as e:
+                        pass
+            except Exception as e:
+                pass
             # print('login_common_data', login_common_data)
             # Update Login Details
             login_detail = LoginDetails.objects.get(ProfileId=profile_id)
@@ -9286,9 +9344,9 @@ class TransactionHistoryView(generics.ListAPIView):
         if search:
             sql += """
                 AND (
-                    LOWER(CAST(combined.ProfileId AS CHAR)) LIKE LOWER(%s) OR
-                    LOWER(combined.Profile_name) LIKE LOWER(%s) OR
-                    LOWER(combined.Mobile_no) LIKE LOWER(%s)
+                    CAST(combined.ProfileId AS CHAR) LIKE %s OR
+                    combined.Profile_name LIKE %s OR
+                    combined.Mobile_no LIKE %s
                 )
             """
             search_term = f"%{search}%"
@@ -9298,15 +9356,13 @@ class TransactionHistoryView(generics.ListAPIView):
 
         # print("Final SQL:", sql)
         # print("Params:", params)
+        self.sql = sql
+        self.params = params
         with connection.cursor() as cursor:
             cursor.execute(sql, params)
             rows = dictfetchall(cursor)
 
         return rows
-
-class Echo:
-    def write(self, value):
-        return value
 
 
 def iter_cursor(cursor, arraysize=1000):
@@ -9318,91 +9374,79 @@ def iter_cursor(cursor, arraysize=1000):
         for row in batch:
             yield dict(zip(cols, row))
 
+class Echo:
+    def write(self, value):
+        return value
 
 class TransactionHistoryExportView(generics.GenericAPIView):
+    serializer_class = PaymentTransactionListSerializer
 
     def get(self, request, *args, **kwargs):
-        from_date = request.query_params.get('from_date')
-        to_date = request.query_params.get('to_date')
-        filter_type = request.query_params.get('filter_type')
-        search = request.query_params.get('search')
-        status_ids = [1, 2, 3]
-        placeholders = ', '.join(['%s'] * len(status_ids))
+        # Reuse SQL builder logic
+        view = TransactionHistoryView()
+        view.request = request
+        view.get_queryset()  # This sets view.sql and view.params
 
-        sql = f"""
-            SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId,
-                   ld.status as profile_status, ld.Profile_dob, ld.Profile_whatsapp, ld.Plan_id,
-                   ld.Profile_city, ld.Profile_state, pt.status, ld.DateOfJoin, pl.plan_name,
-                   ld.membership_startdate, ld.membership_enddate, pt.id AS transaction_id,
-                   pt.order_id, pt.created_at, pt.payment_id, pt.amount, pt.discount_amont,
-                   pt.payment_type, pt.admin_status AS admin_status, pt.payment_refno
-            FROM payment_transaction pt
-            LEFT JOIN plan_master pl ON pt.Plan_id = pl.id
-            LEFT JOIN logindetails ld ON ld.ProfileId = pt.profile_id
-            WHERE pt.status IN ({placeholders})
-        """
+        sql = getattr(view, 'sql', None)
+        params = getattr(view, 'params', [])
 
-        params = status_ids.copy()
+        if not sql:
+            return HttpResponse("Failed to generate SQL", status=500)
 
-        try:
-            today = datetime.today().date()
+        # Get serializer field names for CSV header
+        serializer = self.get_serializer()
+        field_names = list(serializer.fields.keys())
 
-            if filter_type == "today":
-                sql += " AND pt.created_at >= %s AND pt.created_at < %s"
-                params += [today, today + timedelta(days=1)]
+        pseudo_buffer = Echo()
+        writer = csv.writer(pseudo_buffer)
 
-            elif filter_type == "last_week":
-                last_week_start = today - timedelta(days=today.weekday() + 7)
-                last_week_end = last_week_start + timedelta(days=7)
-                sql += " AND pt.created_at >= %s AND pt.created_at < %s"
-                params += [last_week_start, last_week_end]
+        def row_stream():
+            # Yield header
+            yield writer.writerow(field_names)
 
-            elif filter_type == "new_approved":
-                sql += " AND ld.status IN (%s, %s)"
-                params += [0, 1]
-
-            elif filter_type == "delete_others":
-                sql += " AND ld.status NOT IN (%s, %s)"
-                params += [0, 1]
-
-            elif from_date and to_date:
-                start_date = datetime.strptime(from_date, "%Y-%m-%d").date()
-                end_date = datetime.strptime(to_date, "%Y-%m-%d").date() + timedelta(days=1)
-                sql += " AND pt.created_at >= %s AND pt.created_at < %s"
-                params += [start_date, end_date]
-
-        except Exception:
-            pass
-
-        if search:
-            sql += """
-                AND (
-                    CAST(ld.ProfileId AS CHAR) LIKE %s OR
-                    LOWER(ld.Profile_name) LIKE LOWER(%s) OR
-                    ld.Mobile_no LIKE %s
-                )
-            """
-            search_term = f"%{search}%"
-            params += [search_term, search_term, search_term]
-
-        sql += " ORDER BY pt.created_at DESC"
-
-        with connection.cursor() as cursor:
-            cursor.execute(sql, params)
-
-            def row_stream():
+            # Stream rows directly from DB cursor
+            with connection.cursor() as cursor:
+                cursor.execute(sql, params)
                 cols = [col[0] for col in cursor.description]
-                yield cols  # header
-                for row in iter_cursor(cursor):
-                    yield [smart_str(v) for v in row.values()]
 
-            pseudo_buffer = Echo()
-            writer = csv.writer(pseudo_buffer)
+                while True:
+                    rows = cursor.fetchmany(2000)  # Fetch in chunks
+                    if not rows:
+                        break
+                    for row in rows:
+                        # Convert DB row to dict
+                        row_dict = dict(zip(cols, row))
 
-            response = StreamingHttpResponse(
-                (writer.writerow(row) for row in row_stream()),
-                content_type="text/csv"
-            )
-            response['Content-Disposition'] = 'attachment; filename="transaction_history.csv"'
-            return response
-        
+                        # Serialize using DRF serializer (safe for dict input if field names match)
+                        serialized = self.get_serializer(row_dict)
+                        csv_row = [smart_str(serialized.data.get(field)) for field in field_names]
+                        yield writer.writerow(csv_row)
+
+        response = StreamingHttpResponse(
+            row_stream(),
+            content_type='text/csv; charset=utf-8'
+        )
+        response['Content-Disposition'] = 'attachment; filename="transaction_history.csv"'
+        return response
+
+
+class DataHistoryListView(generics.GenericAPIView):
+         
+        def get(self, request, *args, **kwargs):
+            profile_id = request.query_params.get('profile_id')
+            
+            sql = f"""
+                SELECT dh.profile_id,dh.date_time,mp.status_name,dh.others,pm.plan_name
+                FROM datahistory dh LEFT JOIN masterprofilestatus mp ON mp.status_code = dh.profile_status
+                LEFT JOIN plan_master pm ON pm.id = dh.plan_id
+                WHERE dh.profile_id = %s
+            """
+            params= (profile_id)
+            
+            sql += " ORDER BY dh.date_time DESC"
+            
+            with connection.cursor() as cursor:
+                cursor.execute(sql, params)
+                rows = dictfetchall(cursor)
+
+            return Response(rows)

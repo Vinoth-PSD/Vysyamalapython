@@ -195,5 +195,6 @@ urlpatterns = [
     path("process-transaction/", views.process_transaction, name="process_transaction"),
     path('payment-transactions/',views.PaymentTransactionListView.as_view(),name='payment-transactions'),
     path('transaction-history/',views.TransactionHistoryView.as_view(),name='transaction-history'),
-    path('transaction-export/',views.TransactionHistoryExportView.as_view(),name='transaction-export')
+    path('transaction-export/',views.TransactionHistoryExportView.as_view(),name='transaction-export'),
+    path('data-history/',views.DataHistoryListView.as_view(),name='data-history')
 ]

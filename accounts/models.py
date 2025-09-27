@@ -3939,3 +3939,17 @@ class AdminPrintLogs(models.Model):
     class Meta:
         managed = False  
         db_table = 'admin_sentprofiles'
+        
+class DataHistory(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)
+    owner_id = models.IntegerField(blank=True, null=True)
+    date_time = models.DateTimeField(default=timezone.now)
+    profile_status = models.IntegerField(default=0)
+    plan_id = models.IntegerField(blank=True, null=True)
+    others =  models.CharField(max_length=255,blank=True, null=True)
+    
+    class Meta:
+        managed = False  
+        db_table = 'datahistory'
+    
