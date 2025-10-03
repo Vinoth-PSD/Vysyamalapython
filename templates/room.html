@@ -118,9 +118,13 @@
         const username = "{{ username }}";
         const display = document.querySelector('#display');
 
-        const chatSocket = new WebSocket(
-'wsst://vsysmalamat-e:hsftcdbnexhhfv.uestus2-80.axurewebsites.net/ws/chat/' + roomName + '/'
-        );
+        // ✅ FIXED: Use dynamic protocol and host
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const chatSocket = new WebSocket(protocol + '//' + window.location.host + '/ws/chat/' + roomName + '/');
+
+        chatSocket.onopen = function (e) {
+            console.log('WebSocket connection established successfully');
+        };
 
         chatSocket.onmessage = function (e) {
             const data = JSON.parse(e.data);
@@ -139,6 +143,10 @@
             console.error('Chat socket closed unexpectedly');
         };
 
+        chatSocket.onerror = function (e) {
+            console.error('WebSocket error:', e);
+        };
+
         document.querySelector('#post-form').onsubmit = function (e) {
             e.preventDefault();
             const messageInput = document.querySelector('#message');
@@ -148,8 +156,6 @@
                 'message': message,
                 'username': username
             }));
-
-
 
             messageInput.value = '';
         };
