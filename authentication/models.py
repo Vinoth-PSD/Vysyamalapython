@@ -1381,13 +1381,13 @@ class Get_profiledata(models.Model):
                         try:
                             return query % tuple(map(escape, params))
                         except Exception as e:
-                            print("Error formatting query:", e)
+                            #print("Error formatting query:", e)
                             return query
 
                     # Usage:
                 final_query = format_sql_for_debug(query, query_params)
 
-                print(final_query) 
+                #print(final_query) 
 
                 with connection.cursor() as cursor:
                     cursor.execute(query, query_params)
@@ -1401,11 +1401,11 @@ class Get_profiledata(models.Model):
                         return [], 0, {}
 
             except Exception as e:
-                print(f"Error in profile listing: {str(e)}")
+                #print(f"Error in profile listing: {str(e)}")
                 return [], 0, {}
 
         except Exception as e:
-            print(f"Error in profile listing: {str(e)}")
+            #print(f"Error in profile listing: {str(e)}")
             return [], 0, {}
 
 
@@ -1699,7 +1699,7 @@ class Get_profiledata(models.Model):
             return []  # Return empty list if no matches found
 
         except Exception as e:
-            print(f"Error: {e}")
+            #print(f"Error: {e}")
             return []
 
 
@@ -1890,7 +1890,7 @@ class Get_profiledata(models.Model):
                     # print("Error formatting query:", e)
                     return query
                 
-            print("MySQL Executable Query:", format_sql_for_debug(query, query_params))
+            #print("MySQL Executable Query:", format_sql_for_debug(query, query_params))
 
             with connection.cursor() as cursor:
                 # cursor.execute(query.format(operator=age_condition_operator), query_params)
@@ -1905,7 +1905,7 @@ class Get_profiledata(models.Model):
             return []  # Return empty list if no matches found
 
         except Exception as e:
-            print(f"Error: {e}")
+            #print(f"Error: {e}")
             return []
 
 
