@@ -83,3 +83,5 @@ svglib==1.5.1
 xhtml2pdf==0.2.16
 PyPDF2>=2.0.0
 django-redis>=5.3.0
+websockets>=11.0
+wsproto>=1.2.0
