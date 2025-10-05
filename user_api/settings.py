@@ -343,18 +343,32 @@ AZURE_REDIS_HOST = 'vysyamalamat.redis.cache.windows.net'
 AZURE_REDIS_KEY = '3rD01MGuA9RO7XtSGp5PkwsMHOiMIKc6rAzCaPJd3BA='
 
 
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [(
+#                 f"rediss://:{AZURE_REDIS_KEY}@{AZURE_REDIS_HOST}:6380/1"  # DB 1 for channels
+#             )],
+#             "ssl": True,
+#         },
+#     },
+# }
+
+
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [(
-                f"rediss://:{AZURE_REDIS_KEY}@{AZURE_REDIS_HOST}:6380/1"  # DB 1 for channels
-            )],
-            "ssl": True,
+            "hosts": [{
+                "address": f"rediss://:{AZURE_REDIS_KEY}@{AZURE_REDIS_HOST}:6380/1",
+                "ssl": True,
+                "ssl_cert_reqs": None,
+            }]
+            #"symmetric_encryption_keys": [SECRET_KEY],  # Optional but recommended
         },
     },
 }
-
 
 ASGI_APPLICATION = 'user_api.asgi.application'
 
