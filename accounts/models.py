@@ -1289,6 +1289,11 @@ class Get_profiledata_Matching(models.Model):
         father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None,field_of_study=None,
         degree=None,from_date=None,to_date=None ,action_type=None , status=None,search=None
     ):
+        
+
+
+        
+        
         # print('action_type 123',action_type,'status 123',status)
         try:
             profile = get_object_or_404(Registration1, ProfileId=profile_id)
@@ -1659,29 +1664,33 @@ class Get_profiledata_Matching(models.Model):
                 # Foreign interest
                 if pref_foreign and pref_foreign.strip().lower() in ['yes', 'no']:
                     if pref_foreign.lower() == "yes":
-                        base_query += "  AND (f.work_country != '1' OR f.work_country IS NULL OR f.work_country='' OR a.Profile_country!='1' OR a.Profile_country='' OR a.Profile_country IS NULL)"
+                        base_query += "  AND (f.work_country != '1' OR a.Profile_country!='1')"
                     elif pref_foreign.lower() == "no":
-                        base_query += "  AND (f.work_country = '1' OR f.work_country IS NULL OR f.work_country='' OR a.Profile_country='1')"
+                        base_query += "  AND (f.work_country = '1' OR a.Profile_country='1')"
                 
                 conditions = []
+                print('ragu',ragu)
+                print('chevai',chev)
 
-                if chev and chev.lower() == 'yes':
-                    conditions.append("""
-                        (
-                            LOWER(e.calc_chevvai_dhosham) IN ('yes', 'true')
-                            OR e.calc_chevvai_dhosham IN ('1', 1)
-                            OR e.calc_chevvai_dhosham IS NULL
-                        )
-                    """)
+                # if chev and chev.lower() == 'yes':
+                #     print('2353543')
+                #     conditions.append("""
+                #         (
+                #             LOWER(e.calc_chevvai_dhosham) IN ('yes', 'true')
+                #             OR e.calc_chevvai_dhosham IN ('1', 1)
+                #             OR e.calc_chevvai_dhosham IS NULL
+                #         )
+                #     """)
 
-                if ragu and ragu.lower() == 'yes':
-                    conditions.append("""
-                        (
-                            LOWER(e.calc_raguketu_dhosham) IN ('yes', 'true')
-                            OR e.calc_raguketu_dhosham IN ('1', 1)
-                            OR e.calc_raguketu_dhosham IS NULL
-                        )
-                    """)
+                # if ragu and ragu.lower() == 'yes':
+                #     print('545454545')
+                #     conditions.append("""
+                #         (
+                #             LOWER(e.calc_raguketu_dhosham) IN ('yes', 'true')
+                #             OR e.calc_raguketu_dhosham IN ('1', 1)
+                #             OR e.calc_raguketu_dhosham IS NULL
+                #         )
+                #     """)
 
                 # Strict dosham filters — only apply fallback if primary is missing
                 strict_conditions = []
