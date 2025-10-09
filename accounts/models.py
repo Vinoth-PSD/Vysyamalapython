@@ -1329,8 +1329,8 @@ class Get_profiledata_Matching(models.Model):
                 marital_status = partner_pref.pref_marital_status
             porutham_star_rasi = matching_stars or partner_pref.pref_porutham_star_rasi
             pref_foreign = foreign_intrest or partner_pref.pref_foreign_intrest
-            ragukethu = partner_pref.pref_ragukethu
-            chevvai = partner_pref.pref_chevvai
+            ragukethu = ragu or partner_pref.pref_ragukethu
+            chevvai = chev or partner_pref.pref_chevvai
             partner_pref_familysts = partner_pref.pref_family_status
             partner_pref_state = partner_pref.pref_state
             field_of_study = field_of_study or partner_pref.pref_fieldof_study
@@ -1669,8 +1669,8 @@ class Get_profiledata_Matching(models.Model):
                         base_query += "  AND (f.work_country = '1' OR a.Profile_country='1')"
                 
                 conditions = []
-                print('ragu',ragu)
-                print('chevai',chev)
+                # print('ragu',ragu)
+                # print('ragukethu',ragukethu)
 
                 # if chev and chev.lower() == 'yes':
                 #     print('2353543')
@@ -1694,18 +1694,18 @@ class Get_profiledata_Matching(models.Model):
 
                 # Strict dosham filters — only apply fallback if primary is missing
                 strict_conditions = []
-                if not ragu or chev:
-                    if ragukethu and ragukethu.lower() == 'yes':
-                        
+                # if not ragu or chev:
+                if ragukethu and ragukethu.lower() == 'yes':
+                
                         base_query += " AND (LOWER(e.calc_raguketu_dhosham) = 'yes' OR LOWER(e.calc_raguketu_dhosham) = 'true' OR e.calc_raguketu_dhosham = '1' OR e.calc_raguketu_dhosham = 1 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='' )"
-                    elif ragukethu and ragukethu.lower() == 'no':
+                elif ragukethu and ragukethu.lower() == 'no':
                         base_query += "  AND (LOWER(e.calc_raguketu_dhosham) = 'no' OR LOWER(e.calc_raguketu_dhosham) = 'false' OR e.calc_raguketu_dhosham = '2' OR e.calc_raguketu_dhosham = 2 OR e.calc_raguketu_dhosham IS NULL OR e.calc_raguketu_dhosham ='')"
 
-                    if chevvai and chevvai.lower() == 'yes':
+                if chevvai and chevvai.lower() == 'yes':
                         # base_query += " AND LOWER(e.chevvai_dosaham) = 'yes'"
 
                         base_query += " AND (LOWER(e.calc_chevvai_dhosham) = 'yes' OR LOWER(e.calc_chevvai_dhosham) = 'true' OR e.calc_chevvai_dhosham = '1' OR e.calc_chevvai_dhosham = 1 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
-                    elif chevvai and chevvai.lower() == 'no':
+                elif chevvai and chevvai.lower() == 'no':
                         base_query += "  AND (LOWER(e.calc_chevvai_dhosham) = 'no' OR LOWER(e.calc_chevvai_dhosham) = 'false' OR e.calc_chevvai_dhosham = '2' OR e.calc_chevvai_dhosham = 2 OR e.calc_chevvai_dhosham IS NULL OR e.calc_chevvai_dhosham ='')"
 
 
