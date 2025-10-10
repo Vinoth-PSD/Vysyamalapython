@@ -10205,6 +10205,152 @@ def get_country_name(country_id):
         return country_id 
 
 
+# class GetFeaturedList(APIView):
+
+#     def post(self, request):
+#         profile_id = request.data.get('profile_id')
+#         if not profile_id:
+#             return JsonResponse({'status': 'failure', 'message': 'profile_id is required.'}, status=400)
+
+#         # --- Get gender and DOB ---
+#         try:
+#             with connection.cursor() as cursor:
+#                 cursor.execute("SELECT Gender, Profile_dob FROM logindetails WHERE ProfileId = %s", [profile_id])
+#                 result = cursor.fetchone()
+#                 if not result:
+#                     return JsonResponse({'status': 'failure', 'message': 'Profile not found'}, status=404)
+#                 gender, profile_dob = result
+#                 profile_age = calculate_age(profile_dob)
+#         except Exception as e:
+#             return JsonResponse({'status': 'failure', 'message': str(e)}, status=500)
+
+#         # --- Pagination ---
+#         received_per_page = request.data.get('per_page')
+#         received_page_number = request.data.get('page_number')
+#         per_page = int(received_per_page) if received_per_page else 10
+#         page_number = int(received_page_number) if received_page_number else 1
+#         per_page = max(1, per_page)
+#         start = (page_number - 1) * per_page
+
+#         # --- Filters from request ---
+#         from_age = request.data.get('from_age')
+#         to_age = request.data.get('to_age')
+#         from_height = request.data.get('from_height')
+#         to_height = request.data.get('to_height')
+
+#         # STEP 1: Get Matching (Partner Preference) IDs
+#         partner_results = models.Get_profiledata.get_profile_list_for_pref_type(profile_id=profile_id, use_suggested=False)
+#         partner_ids = set(str(p['ProfileId']) for p in partner_results)
+        
+#         # STEP 2: Get All Featured IDs with Filters
+#         query = """
+#             SELECT ProfileId FROM logindetails
+#             WHERE gender != %s
+#             AND ProfileId != %s
+#             AND Plan_id IN (2, 15)
+#             AND Profile_dob IS NOT NULL AND status =1
+#         """
+#         params = [gender, profile_id]
+
+#         if from_age:
+#             query += " AND TIMESTAMPDIFF(YEAR, Profile_dob, CURDATE()) >= %s"
+#             params.append(int(from_age))
+#         if to_age:
+#             query += " AND TIMESTAMPDIFF(YEAR, Profile_dob, CURDATE()) <= %s"
+#             params.append(int(to_age))
+#         if from_height:
+#             query += " AND Profile_height >= %s"
+#             params.append(int(from_height))
+#         if to_height:
+#             query += " AND Profile_height <= %s"
+#             params.append(int(to_height))
+
+#         try:
+#             with connection.cursor() as cursor:
+#                 cursor.execute(query, params)
+#                 featured_ids = set(str(row[0]) for row in cursor.fetchall())
+#         except Exception as e:
+#             return JsonResponse({'status': 'failure', 'message': str(e)}, status=500)
+
+#         # STEP 3: Subtract Matching from Featured IDs
+#         unique_ids = list(featured_ids - partner_ids)
+
+#         if not unique_ids:
+#             return JsonResponse({'status': 'failure', 'message': 'No unique featured profiles found.'}, status=404)
+
+#         # STEP 4: Fetch Full Data with JOINs
+#         placeholders = ','.join(['%s'] * len(unique_ids))
+#         details_query = f"""
+#             SELECT DISTINCT a.ProfileId, a.Plan_id, a.DateOfJoin, a.Photo_protection, a.Profile_city,
+#                    a.Profile_verified, a.Profile_name, a.Profile_dob, a.Profile_height,
+#                    e.birthstar_name, e.birth_rasi_name,
+#                    f.ug_degeree, f.profession, f.highest_education,f.degree,f.other_degree,
+#                    g.EducationLevel, d.star, h.income,
+#                    IF(i.id IS NOT NULL, 1, 0) AS has_image
+#             FROM logindetails a
+#             JOIN profile_horoscope e ON a.ProfileId = e.profile_id
+#             JOIN masterbirthstar d ON d.id = e.birthstar_name
+#             JOIN profile_edudetails f ON a.ProfileId = f.profile_id
+#             JOIN mastereducation g ON f.highest_education = g.RowId
+#             JOIN masterannualincome h ON h.id = f.anual_income
+#             LEFT JOIN profile_images i ON a.ProfileId = i.profile_id
+#                 AND i.image_approved = 1 AND i.is_deleted = 0
+#             WHERE a.ProfileId IN ({placeholders})
+#             ORDER BY has_image DESC, a.DateOfJoin DESC
+#             LIMIT %s OFFSET %s
+#         """
+
+#         count_query = f"""
+#             SELECT COUNT(*) FROM (
+#                 SELECT ProfileId FROM logindetails
+#                 WHERE ProfileId IN ({placeholders})
+#             ) AS count_alias
+#         """
+
+#         query_params = unique_ids + [per_page, start]
+#         count_params = unique_ids
+
+#         try:
+#             with connection.cursor() as cursor:
+#                 cursor.execute(count_query, count_params)
+#                 total_count = cursor.fetchone()[0]
+
+#                 cursor.execute(details_query, query_params)
+#                 rows = cursor.fetchall()
+#                 if not rows:
+#                     return JsonResponse({'status': 'failure', 'message': 'No records found.'}, status=404)
+
+#                 columns = [col[0] for col in cursor.description]
+#                 results = [dict(zip(columns, row)) for row in rows]
+
+#         except Exception as e:
+#             return JsonResponse({'status': 'failure', 'message': f'DB Error: {str(e)}'}, status=500)
+
+#         # STEP 5: Apply transformation (e.g., horoscope logic)
+#         try:
+#             profile_horo = models.Horoscope.objects.get(profile_id=profile_id)
+#             source_rasi_id = profile_horo.birth_rasi_name
+#             source_star_id = profile_horo.birthstar_name
+#         except models.Horoscope.DoesNotExist:
+#             source_rasi_id = None
+#             source_star_id = None
+
+#         final_data = [
+#             transform_data(entry, profile_id, gender, source_rasi_id, source_star_id)
+#             for entry in results
+#         ]
+
+#         return JsonResponse({
+#             'status': 'success',
+#             'total_count': total_count,
+#             'data': final_data,
+#             'received_per_page': received_per_page,
+#             'received_page_number': received_page_number,
+#             'calculated_per_page': per_page,
+#             'calculated_page_number': page_number,
+#         }, status=200)
+
+
 class GetFeaturedList(APIView):
 
     def post(self, request):
@@ -10248,22 +10394,33 @@ class GetFeaturedList(APIView):
             WHERE gender != %s
             AND ProfileId != %s
             AND Plan_id IN (2, 15)
-            AND Profile_dob IS NOT NULL AND status =1
+            AND Profile_dob IS NOT NULL AND status = 1
         """
         params = [gender, profile_id]
 
-        if from_age:
-            query += " AND TIMESTAMPDIFF(YEAR, Profile_dob, CURDATE()) >= %s"
-            params.append(int(from_age))
-        if to_age:
-            query += " AND TIMESTAMPDIFF(YEAR, Profile_dob, CURDATE()) <= %s"
-            params.append(int(to_age))
-        if from_height:
-            query += " AND Profile_height >= %s"
-            params.append(int(from_height))
-        if to_height:
-            query += " AND Profile_height <= %s"
-            params.append(int(to_height))
+        # --- Gender-based DOB filtering (full date comparison) ---
+        if gender.lower() == 'male':
+            # Show only younger females (DOB > male DOB)
+            query += " AND Profile_dob > %s"
+            params.append(profile_dob)
+        elif gender.lower() == 'female':
+            # Show only older males (DOB < female DOB)
+            query += " AND Profile_dob < %s"
+            params.append(profile_dob)
+
+        # --- Additional optional filters ---
+        # if from_age:
+        #     query += " AND TIMESTAMPDIFF(YEAR, Profile_dob, CURDATE()) >= %s"
+        #     params.append(int(from_age))
+        # if to_age:
+        #     query += " AND TIMESTAMPDIFF(YEAR, Profile_dob, CURDATE()) <= %s"
+        #     params.append(int(to_age))
+        # if from_height:
+        #     query += " AND Profile_height >= %s"
+        #     params.append(int(from_height))
+        # if to_height:
+        #     query += " AND Profile_height <= %s"
+        #     params.append(int(to_height))
 
         try:
             with connection.cursor() as cursor:
@@ -10349,6 +10506,9 @@ class GetFeaturedList(APIView):
             'calculated_per_page': per_page,
             'calculated_page_number': page_number,
         }, status=200)
+
+
+
 
 class SuggestedProfiles1(APIView):
 
