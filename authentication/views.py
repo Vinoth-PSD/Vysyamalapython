@@ -10390,11 +10390,14 @@ class GetFeaturedList(APIView):
         
         # STEP 2: Get All Featured IDs with Filters
         query = """
-            SELECT ProfileId FROM logindetails
+            SELECT l.ProfileId FROM logindetails l LEFT JOIN profile_plan_feature_limits pfl ON pfl.profile_id=l.ProfileId
             WHERE gender != %s
-            AND ProfileId != %s
-            AND Plan_id IN (2, 15)
-            AND Profile_dob IS NOT NULL AND status = 1
+            AND l.ProfileId != %s
+            AND pfl.featured_profile = '1'
+            AND CURDATE() BETWEEN pfl.membership_fromdate AND pfl.membership_todate
+            AND (pfl.membership_fromdate >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+			OR pfl.boosted_date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) )
+            AND l.Profile_dob IS NOT NULL AND l.status = '1'
         """
         params = [gender, profile_id]
 
@@ -11951,30 +11954,39 @@ class FeaturedProfile(APIView):
 
         try:
             # Raw SQL query to fetch random profiles
-            query = """
-            SELECT 
-                    ld.ProfileId,ld.Profile_name,  ld.Gender,  ld.Profile_dob, ld.Profile_height, ld.Profile_city, ld.Photo_protection FROM (
-                    SELECT ProfileId
-                    FROM logindetails
-                    WHERE LOWER(Gender) = LOWER(%s)
-                    AND Status = 1
-                    AND Plan_id IN (2, 15)
-                    ORDER BY RAND()
-                    LIMIT 10
-                ) AS rand_ld
-                JOIN logindetails ld ON ld.ProfileId = rand_ld.ProfileId
-                JOIN (
-                    SELECT pi1.*
-                    FROM profile_images pi1
-                    INNER JOIN (
-                        SELECT profile_id, MIN(id) AS min_id
-                        FROM profile_images
-                        WHERE image_approved = 1 
-                        AND is_deleted = 0
-                        GROUP BY profile_id
-                    ) AS pi2 ON pi1.id = pi2.min_id
-                ) AS i ON i.profile_id = ld.ProfileId;
-            """
+            query = """SELECT 
+    ld.ProfileId, 
+    ld.Profile_name,  
+    ld.Gender,  
+    ld.Profile_dob, 
+    ld.Profile_height, 
+    ld.Profile_city, 
+    ld.Photo_protection 
+FROM (
+    SELECT l1.ProfileId
+    FROM logindetails l1
+    LEFT JOIN profile_plan_feature_limits pf ON pf.profile_id=l1.ProfileId
+    WHERE LOWER(Gender) = LOWER()
+    AND l1.Status = 1
+    AND l1.Plan_id IN (2, 15)
+    AND pf.featured_profile = 1
+    AND CURDATE() BETWEEN membership_fromdate AND membership_todate
+    AND (membership_fromdate >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) OR pf.boosted_date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH))    
+    ORDER BY RAND()
+    LIMIT 10
+) AS rand_ld
+JOIN logindetails ld ON ld.ProfileId = rand_ld.ProfileId
+JOIN (
+    SELECT pi1.*
+    FROM profile_images pi1
+    INNER JOIN (
+        SELECT profile_id, MIN(id) AS min_id
+        FROM profile_images
+        WHERE image_approved = 1 
+        AND is_deleted = 0
+        GROUP BY profile_id
+    ) AS pi2 ON pi1.id = pi2.min_id
+) AS i ON i.profile_id = ld.ProfileId;"""
             with connection.cursor() as cursor:
                 cursor.execute(query, [normalized_gender])
                 columns = [col[0] for col in cursor.description]
