@@ -11966,7 +11966,7 @@ FROM (
     SELECT l1.ProfileId
     FROM logindetails l1
     LEFT JOIN profile_plan_feature_limits pf ON pf.profile_id=l1.ProfileId
-    WHERE LOWER(Gender) = LOWER()
+    WHERE LOWER(Gender) = LOWER(%s)
     AND l1.Status = 1
     AND l1.Plan_id IN (2, 15)
     AND pf.featured_profile = 1
@@ -11986,7 +11986,8 @@ JOIN (
         AND is_deleted = 0
         GROUP BY profile_id
     ) AS pi2 ON pi1.id = pi2.min_id
-) AS i ON i.profile_id = ld.ProfileId;"""
+) AS i ON i.profile_id = ld.ProfileId;
+"""
             with connection.cursor() as cursor:
                 cursor.execute(query, [normalized_gender])
                 columns = [col[0] for col in cursor.description]
