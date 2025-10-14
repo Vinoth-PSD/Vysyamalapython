@@ -2287,6 +2287,7 @@ class EditProfileAPIView(APIView):
 
         if profile_common_data:
             owner = profile_common_data.get("owner_id")
+            # print('inside profile common data update',profile_common_data.get("primary_status"))
             # Only include the common data keys that are available in the request
             login_common_data = clean_none_fields({
                 "Addon_package": profile_common_data.get("Addon_package"),
@@ -2301,8 +2302,8 @@ class EditProfileAPIView(APIView):
                 "membership_startdate": parse_membership_date(profile_common_data.get("membership_fromdate")),
                 "membership_enddate": parse_membership_date(profile_common_data.get("membership_todate")),
                 "Profile_for": profile_common_data.get("Profile_for"),
-                "primary_status":profile_common_data.get("primary_status"),
-                "secondary_status":profile_common_data.get("secondary_status"),
+                "primary_status":profile_common_data.get("status"),
+                "secondary_status":profile_common_data.get("primary_status"),
                 "plan_status":profile_common_data.get("secondary_status"),
                 "Plan_id": str(profile_common_data.get("secondary_status")),
                 "Otp_verify":profile_common_data.get("mobile_otp_verify"),
@@ -2742,7 +2743,7 @@ class GetProfEditDetailsAPIView(APIView):
                 # "payment_date":payment_date,
                 "payment_date": payment_date.strftime("%d-%m-%Y") if payment_date else None ,
                 "payment_mode":payment_mode,
-                "profile_status": get_profile_status(login_detail.status,login_detail.primary_status,login_detail.secondary_status),
+                "profile_status": get_profile_status(login_detail.status,login_detail.secondary_status,login_detail.Plan_id),
                 "add_on_pack_name":", ".join(
     Addonpackages.objects.filter(
         package_id__in=[package_id.strip() for package_id in login_detail.Addon_package.split(",")] if login_detail.Addon_package else []
