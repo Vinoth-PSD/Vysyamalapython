@@ -21,6 +21,7 @@ from .views import CommonProfileSearchAPIView,PlanSubscriptionCreateView,PlanSub
 
 router = DefaultRouter()
 
+
 router.register(r'profile_owner', ModeViewSet)
 router.register(r'education-levels', EducationLevelViewSet) 
 router.register(r'properties', PropertyViewSet)

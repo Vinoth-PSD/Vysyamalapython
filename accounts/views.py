@@ -94,6 +94,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from authentication.views import get_profile_image_azure_optimized
 from .models import DataHistory
 from django.db.models import QuerySet
+
 # from authentication.models import ProfileVisibility
 # from authentication.serializers import ProfileVisibilityListSerializer
 

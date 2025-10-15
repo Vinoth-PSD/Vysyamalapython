@@ -14,6 +14,7 @@ from authentication.models import Get_profiledata as gpt
 from dateutil.relativedelta import relativedelta
 
 
+
 class ProfileStatus(models.Model):
     status_code = models.IntegerField(primary_key=True)  
     status_name = models.CharField(max_length=255)

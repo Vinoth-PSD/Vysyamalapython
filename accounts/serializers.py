@@ -20,6 +20,7 @@ from .models import Invoice
 from .models import MasterhighestEducation
 from .models import PlanSubscription
 
+
 class ProfileStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProfileStatus
