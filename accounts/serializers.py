@@ -20,7 +20,6 @@ from .models import Invoice
 from .models import MasterhighestEducation
 from .models import PlanSubscription
 
-
 class ProfileStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProfileStatus
@@ -1269,7 +1268,6 @@ class PaymentTransactionListSerializer(serializers.Serializer):
     Profile_whatsapp = serializers.CharField()
     EmailId = serializers.EmailField()
     Profile_dob = serializers.DateField()
-    Plan_id = serializers.CharField()
     plan_name = serializers.CharField()
     status = serializers.SerializerMethodField()
     DateOfJoin = serializers.SerializerMethodField()
@@ -1287,6 +1285,7 @@ class PaymentTransactionListSerializer(serializers.Serializer):
     Profile_state = serializers.SerializerMethodField()
     profile_status = serializers.SerializerMethodField()
     admin_status = serializers.CharField()
+    action_log = serializers.ListField(child=serializers.DictField(), required=False)
     
     def get_Profile_state(self,obj):
         state_id = obj.get('Profile_state')

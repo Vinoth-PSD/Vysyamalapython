@@ -94,7 +94,6 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from authentication.views import get_profile_image_azure_optimized
 from .models import DataHistory
 from django.db.models import QuerySet
-
 # from authentication.models import ProfileVisibility
 # from authentication.serializers import ProfileVisibilityListSerializer
 
@@ -9262,47 +9261,172 @@ class PaymentTransactionListView(APIView):
         serializer = PaymentTransactionSerializer(transactions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+# class TransactionHistoryView(generics.ListAPIView):
+#     serializer_class = PaymentTransactionListSerializer
+#     pagination_class = StandardResultsPaging
+
+#     def get_queryset(self):
+#         from_date = self.request.query_params.get('from_date')
+#         to_date = self.request.query_params.get('to_date')
+#         filter_type = self.request.query_params.get('filter_type')
+#         search = self.request.query_params.get('search')
+#         status_ids = [1, 2, 3]
+#         placeholders = ', '.join(['%s'] * len(status_ids))
+
+#         sql_pt = f"""
+#             SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId,
+#                    ld.status as profile_status, ld.Profile_dob, ld.Profile_whatsapp, pt.Plan_id,
+#                    ld.Profile_city, ld.Profile_state, pt.status, ld.DateOfJoin, pl.plan_name,
+#                    ld.membership_startdate, ld.membership_enddate, pt.id AS transaction_id,
+#                    pt.order_id, pt.created_at, pt.payment_id, pt.amount, pt.discount_amont,
+#                    pt.payment_type, pt.admin_status, pt.payment_refno,
+#                    'payment_transaction' AS source
+#             FROM payment_transaction pt
+#             LEFT JOIN plan_master pl ON pt.Plan_id = pl.id
+#             LEFT JOIN logindetails ld ON ld.ProfileId = pt.profile_id
+#             WHERE pt.status IN ({placeholders})
+#         """
+
+#         sql_ps = f"""
+#             SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId,
+#                    ld.status as profile_status, ld.Profile_dob, ld.Profile_whatsapp, ps.plan_id,
+#                    ld.Profile_city, ld.Profile_state, ps.status, ld.DateOfJoin, pl.plan_name,
+#                    ps.validity_startdate AS membership_startdate, ps.validity_enddate AS membership_enddate,
+#                    ps.id AS transaction_id, ps.order_id, ps.payment_date AS created_at,
+#                    ps.payment_id, ps.paid_amount AS amount, ps.discount AS discount_amont,
+#                    ps.payment_mode AS payment_type, ps.admin_user AS admin_status,
+#                    ps.gpay_no AS payment_refno,
+#                    'plan_subscription' AS source
+#             FROM plan_subscription ps
+#             LEFT JOIN plan_master pl ON ps.plan_id = pl.id
+#             LEFT JOIN logindetails ld ON ld.ProfileId = ps.profile_id
+#             WHERE ps.profile_id NOT IN (SELECT profile_id FROM payment_transaction)
+#               AND ps.status IN ({placeholders})
+#         """
+
+#         sql = f"""
+#             SELECT * FROM (
+#                 SELECT *,
+#                     ROW_NUMBER() OVER (PARTITION BY combined.ProfileId ORDER BY combined.created_at DESC) AS rn
+#                 FROM (
+#                     {sql_pt}
+#                     UNION ALL
+#                     {sql_ps}
+#                 ) AS combined
+#                 WHERE 1=1
+#             """
+#         params = status_ids.copy() + status_ids.copy()
+
+#         try:
+#             if filter_type == "today":
+#                 today = datetime.today().date()
+#                 sql += " AND DATE(combined.created_at) = %s"
+#                 params.append(today)
+
+#             elif filter_type == "last_week":
+#                 today = datetime.today().date()
+#                 last_week_start = today - timedelta(days=today.weekday() + 7)
+#                 last_week_end = last_week_start + timedelta(days=6)
+#                 sql += " AND DATE(combined.created_at) BETWEEN %s AND %s"
+#                 params += [last_week_start, last_week_end]
+
+#             elif filter_type == "new_approved":
+#                 sql += " AND combined.profile_status IN (%s, %s)"
+#                 params += [0, 1]
+
+#             elif filter_type == "delete_others":
+#                 sql += " AND combined.profile_status NOT IN (%s, %s)"
+#                 params += [0, 1]
+
+#             elif from_date and to_date:
+#                 start_date = datetime.strptime(from_date, "%Y-%m-%d").date()
+#                 end_date = datetime.strptime(to_date, "%Y-%m-%d").date()
+#                 sql += " AND DATE(combined.created_at) BETWEEN %s AND %s"
+#                 params += [start_date, end_date]
+#         except Exception:
+#             pass
+
+#         if search:
+#             sql += """
+#                 AND (
+#                     CAST(combined.ProfileId AS CHAR) LIKE %s OR
+#                     combined.Profile_name LIKE %s OR
+#                     combined.Mobile_no LIKE %s
+#                 )
+#             """
+#             search_term = f"%{search}%"
+#             params += [search_term, search_term, search_term]
+
+#         sql += """
+#             ) AS ranked
+#             WHERE rn = 1
+#             ORDER BY ranked.created_at DESC
+#         """
+
+#         # print("Final SQL:", sql)
+#         # print("Params:", params)
+#         self.sql = sql
+#         self.params = params
+#         with connection.cursor() as cursor:
+#             cursor.execute(sql, params)
+#             rows = dictfetchall(cursor)
+
+#         return rows
+
+def dictfetchall(cursor):
+    "Return all rows from a cursor as a dict"
+    desc = cursor.description
+    return [
+        dict(zip([col[0] for col in desc], row))
+        for row in cursor.fetchall()
+    ]
+
 class TransactionHistoryView(generics.ListAPIView):
     serializer_class = PaymentTransactionListSerializer
     pagination_class = StandardResultsPaging
 
     def get_queryset(self):
-        from_date = self.request.query_params.get('from_date')
-        to_date = self.request.query_params.get('to_date')
-        filter_type = self.request.query_params.get('filter_type')
-        search = self.request.query_params.get('search')
+        request = self.request
+        from_date = request.query_params.get('from_date')
+        to_date = request.query_params.get('to_date')
+        filter_type = request.query_params.get('filter_type')
+        search = request.query_params.get('search')
+
         status_ids = [1, 2, 3]
         placeholders = ', '.join(['%s'] * len(status_ids))
 
-        sql_pt = f"""
-            SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId,
-                   ld.status as profile_status, ld.Profile_dob, ld.Profile_whatsapp, pt.Plan_id,
-                   ld.Profile_city, ld.Profile_state, pt.status, ld.DateOfJoin, pl.plan_name,
-                   ld.membership_startdate, ld.membership_enddate, pt.id AS transaction_id,
-                   pt.order_id, pt.created_at, pt.payment_id, pt.amount, pt.discount_amont,
-                   pt.payment_type, pt.admin_status, pt.payment_refno,
-                   'payment_transaction' AS source
-            FROM payment_transaction pt
-            LEFT JOIN plan_master pl ON pt.Plan_id = pl.id
-            LEFT JOIN logindetails ld ON ld.ProfileId = pt.profile_id
-            WHERE pt.status IN ({placeholders})
-        """
+        def build_transaction_sql(source, table_alias, date_field, start_date_field,end_date_field,amount_field, discount_field, payment_type_field, admin_field, ref_field):
+            return f"""
+                SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId,
+                    ld.status AS profile_status, ld.Profile_dob, ld.Profile_whatsapp, {table_alias}.plan_id,
+                    ld.Profile_city, ld.Profile_state, {table_alias}.status, ld.DateOfJoin, pl.plan_name,
+                    {start_date_field} AS membership_startdate, {end_date_field} AS membership_enddate,
+                    {table_alias}.id AS transaction_id, {table_alias}.order_id, {table_alias}.{date_field} AS created_at,
+                    {table_alias}.payment_id, {table_alias}.{amount_field} AS amount, {table_alias}.{discount_field} AS discount_amont,
+                    {table_alias}.{payment_type_field} AS payment_type, {table_alias}.{admin_field} AS admin_status,
+                    {table_alias}.{ref_field} AS payment_refno,
+                    '{source}' AS source
+                FROM {source} {table_alias}
+                LEFT JOIN plan_master pl ON {table_alias}.plan_id = pl.id
+                LEFT JOIN logindetails ld ON ld.ProfileId = {table_alias}.profile_id
+            """
 
-        sql_ps = f"""
-            SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId,
-                   ld.status as profile_status, ld.Profile_dob, ld.Profile_whatsapp, ps.plan_id,
-                   ld.Profile_city, ld.Profile_state, ps.status, ld.DateOfJoin, pl.plan_name,
-                   ps.validity_startdate AS membership_startdate, ps.validity_enddate AS membership_enddate,
-                   ps.id AS transaction_id, ps.order_id, ps.payment_date AS created_at,
-                   ps.payment_id, ps.paid_amount AS amount, ps.discount AS discount_amont,
-                   ps.payment_mode AS payment_type, ps.admin_user AS admin_status,
-                   ps.gpay_no AS payment_refno,
-                   'plan_subscription' AS source
-            FROM plan_subscription ps
-            LEFT JOIN plan_master pl ON ps.plan_id = pl.id
-            LEFT JOIN logindetails ld ON ld.ProfileId = ps.profile_id
+
+        sql_pt = build_transaction_sql(
+            source="payment_transaction", table_alias="pt",
+            date_field="created_at", amount_field="amount", discount_field="discount_amont",
+            payment_type_field="payment_type", admin_field="admin_status", ref_field="payment_refno",
+            start_date_field="ld.membership_startdate", end_date_field="ld.membership_enddate"
+        ) + f" WHERE pt.status IN ({placeholders})"
+
+        sql_ps = build_transaction_sql(
+            source="plan_subscription", table_alias="ps",
+            date_field="payment_date", amount_field="paid_amount", discount_field="discount",
+            payment_type_field="payment_mode", admin_field="admin_user", ref_field="gpay_no",
+            start_date_field="ps.validity_startdate", end_date_field="ps.validity_enddate"
+        ) + f"""
             WHERE ps.profile_id NOT IN (SELECT profile_id FROM payment_transaction)
-              AND ps.status IN ({placeholders})
+            AND ps.status IN ({placeholders})
         """
 
         sql = f"""
@@ -9315,37 +9439,33 @@ class TransactionHistoryView(generics.ListAPIView):
                     {sql_ps}
                 ) AS combined
                 WHERE 1=1
-            """
-        params = status_ids.copy() + status_ids.copy()
+        """
+        params = status_ids + status_ids
 
         try:
             if filter_type == "today":
                 today = datetime.today().date()
                 sql += " AND DATE(combined.created_at) = %s"
                 params.append(today)
-
             elif filter_type == "last_week":
                 today = datetime.today().date()
                 last_week_start = today - timedelta(days=today.weekday() + 7)
                 last_week_end = last_week_start + timedelta(days=6)
                 sql += " AND DATE(combined.created_at) BETWEEN %s AND %s"
-                params += [last_week_start, last_week_end]
-
+                params.extend([last_week_start, last_week_end])
             elif filter_type == "new_approved":
                 sql += " AND combined.profile_status IN (%s, %s)"
-                params += [0, 1]
-
+                params.extend([0, 1])
             elif filter_type == "delete_others":
                 sql += " AND combined.profile_status NOT IN (%s, %s)"
-                params += [0, 1]
-
+                params.extend([0, 1])
             elif from_date and to_date:
                 start_date = datetime.strptime(from_date, "%Y-%m-%d").date()
                 end_date = datetime.strptime(to_date, "%Y-%m-%d").date()
                 sql += " AND DATE(combined.created_at) BETWEEN %s AND %s"
-                params += [start_date, end_date]
-        except Exception:
-            pass
+                params.extend([start_date, end_date])
+        except Exception as e:
+            print(f"Filter error: {e}")
 
         if search:
             sql += """
@@ -9356,7 +9476,7 @@ class TransactionHistoryView(generics.ListAPIView):
                 )
             """
             search_term = f"%{search}%"
-            params += [search_term, search_term, search_term]
+            params.extend([search_term] * 3)
 
         sql += """
             ) AS ranked
@@ -9364,16 +9484,61 @@ class TransactionHistoryView(generics.ListAPIView):
             ORDER BY ranked.created_at DESC
         """
 
-        # print("Final SQL:", sql)
-        # print("Params:", params)
-        self.sql = sql
-        self.params = params
         with connection.cursor() as cursor:
             cursor.execute(sql, params)
-            rows = dictfetchall(cursor)
+            main_rows = dictfetchall(cursor)
 
-        return rows
+        if not main_rows:
+            return []
 
+        profile_ids = [row["ProfileId"] for row in main_rows]
+        transaction_ids = [row["transaction_id"] for row in main_rows]
+
+        placeholders_profiles = ', '.join(['%s'] * len(profile_ids))
+        placeholders_txns = ', '.join(['%s'] * len(transaction_ids))
+
+        other_txn_sql = f"""
+            SELECT pt.profile_id AS ProfileId,
+                pt.status,
+                pt.created_at,
+                pt.id AS transaction_id,
+                pl.plan_name,
+                (
+                    SELECT GROUP_CONCAT(mp.name SEPARATOR ', ')
+                    FROM masteradonpackages mp
+                    WHERE FIND_IN_SET(mp.package_id, pt.addon_package)
+                ) AS addon_packages
+            FROM payment_transaction pt
+            LEFT JOIN plan_master pl ON pt.Plan_id = pl.id
+            WHERE pt.profile_id IN ({placeholders_profiles})
+            AND pt.id NOT IN ({placeholders_txns})
+            ORDER BY pt.created_at DESC
+        """
+
+        with connection.cursor() as cursor:
+            cursor.execute(other_txn_sql, profile_ids + transaction_ids)
+            action_logs = dictfetchall(cursor)
+
+        logs_by_profile = defaultdict(list)
+        for log in action_logs:
+            logs_by_profile[log["ProfileId"]].append({
+                "status": self.map_status_code(log["status"]),
+                "plan_name": log.get("plan_name"),
+                "addon_packages": log.get("addon_packages"),
+                "created_at": log["created_at"].date() if isinstance(log["created_at"], datetime) else log["created_at"],
+            })
+
+        for row in main_rows:
+            row["action_log"] = logs_by_profile.get(row["ProfileId"], [])
+
+        return main_rows    
+
+    def map_status_code(self, code):
+        return {
+            1: "Initialized",
+            2: "Paid",
+            3: "Failed"
+        }.get(code, "Unknown")
 
 def iter_cursor(cursor, arraysize=1000):
     cols = [col[0] for col in cursor.description]
@@ -9465,6 +9630,9 @@ class FeaturedProfilesView(APIView):
     pagination_class = StandardResultsPaging
 
     def get(self, request):
+        from_date = request.query_params.get('from_date')
+        to_date = request.query_params.get('to_date')
+        search = request.query_params.get('search')
         sql = """
             SELECT pf.profile_id,ld.Profile_name,ld.Gender,masterstate.name,pl.plan_name,pf.boosted_date,pf.boosted_enddate,ms.status_name
             FROM profile_plan_feature_limits pf
@@ -9473,10 +9641,25 @@ class FeaturedProfilesView(APIView):
             LEFT JOIN masterstate ON ld.Profile_state = masterstate.id
             LEFT JOIN masterprofilestatus ms ON ld.status = ms.status_code
             Where pf.featured_profile = 1
-            ORDER BY pf.boosted_date DESC
+            
         """
         params = []
 
+        if from_date and to_date:
+            try:
+                start_date = datetime.strptime(from_date, "%Y-%m-%d").date()
+                end_date = datetime.strptime(to_date, "%Y-%m-%d").date()
+                sql += " AND DATE(pf.boosted_date) BETWEEN %s AND %s"
+                params += [start_date, end_date]
+            except ValueError:
+                pass
+            
+        if search:
+            search_pattern = f"%{search}%"
+            sql += """ AND (ld.Profile_name LIKE %s OR ld.ProfileId LIKE %s )"""
+            params += [search_pattern, search_pattern]
+            
+        sql += "ORDER BY pf.boosted_date DESC"
         with connection.cursor() as cursor:
             cursor.execute(sql, params)
             rows = dictfetchall(cursor)
