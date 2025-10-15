@@ -9279,7 +9279,8 @@ class TransactionHistoryView(generics.ListAPIView):
                    ld.Profile_city, ld.Profile_state, pt.status, ld.DateOfJoin, pl.plan_name,
                    ld.membership_startdate, ld.membership_enddate, pt.id AS transaction_id,
                    pt.order_id, pt.created_at, pt.payment_id, pt.amount, pt.discount_amont,
-                   pt.payment_type, pt.admin_status, pt.payment_refno
+                   pt.payment_type, pt.admin_status, pt.payment_refno,
+                   'payment_transaction' AS source
             FROM payment_transaction pt
             LEFT JOIN plan_master pl ON pt.Plan_id = pl.id
             LEFT JOIN logindetails ld ON ld.ProfileId = pt.profile_id
@@ -9294,7 +9295,8 @@ class TransactionHistoryView(generics.ListAPIView):
                    ps.id AS transaction_id, ps.order_id, ps.payment_date AS created_at,
                    ps.payment_id, ps.paid_amount AS amount, ps.discount AS discount_amont,
                    ps.payment_mode AS payment_type, ps.admin_user AS admin_status,
-                   ps.gpay_no AS payment_refno
+                   ps.gpay_no AS payment_refno,
+                   'plan_subscription' AS source
             FROM plan_subscription ps
             LEFT JOIN plan_master pl ON ps.plan_id = pl.id
             LEFT JOIN logindetails ld ON ld.ProfileId = ps.profile_id
@@ -9304,13 +9306,15 @@ class TransactionHistoryView(generics.ListAPIView):
 
         sql = f"""
             SELECT * FROM (
-                {sql_pt}
-                UNION ALL
-                {sql_ps}
-            ) AS combined
-            WHERE 1=1
-        """
-
+                SELECT *,
+                    ROW_NUMBER() OVER (PARTITION BY combined.ProfileId ORDER BY combined.created_at DESC) AS rn
+                FROM (
+                    {sql_pt}
+                    UNION ALL
+                    {sql_ps}
+                ) AS combined
+                WHERE 1=1
+            """
         params = status_ids.copy() + status_ids.copy()
 
         try:
@@ -9353,7 +9357,11 @@ class TransactionHistoryView(generics.ListAPIView):
             search_term = f"%{search}%"
             params += [search_term, search_term, search_term]
 
-        sql += " ORDER BY combined.created_at DESC"
+        sql += """
+            ) AS ranked
+            WHERE rn = 1
+            ORDER BY ranked.created_at DESC
+        """
 
         # print("Final SQL:", sql)
         # print("Params:", params)
@@ -9451,3 +9459,81 @@ class DataHistoryListView(generics.GenericAPIView):
                 rows = dictfetchall(cursor)
 
             return Response(rows)
+
+class FeaturedProfilesView(APIView):
+    pagination_class = StandardResultsPaging
+
+    def get(self, request):
+        sql = """
+            SELECT pf.profile_id,ld.Profile_name,ld.Gender,masterstate.name,pl.plan_name,pf.boosted_date,pf.boosted_enddate,ms.status_name
+            FROM profile_plan_feature_limits pf
+            LEFT JOIN logindetails ld ON pf.profile_id = ld.ProfileId
+            LEFT JOIN plan_master pl ON pf.Plan_id = pl.id
+            LEFT JOIN masterstate ON ld.Profile_state = masterstate.id
+            LEFT JOIN masterprofilestatus ms ON ld.status = ms.status_code
+            Where pf.featured_profile = 1
+            ORDER BY pf.boosted_date DESC
+        """
+        params = []
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            rows = dictfetchall(cursor)
+            
+        three_months_ago = datetime.today().date() - timedelta(days=90)
+        for row in rows:
+            boosted_date = row.get("boosted_date")
+            if boosted_date and boosted_date >= three_months_ago:
+                row["active"] = "Yes"
+            else:
+                row["active"] = "No"
+                
+        paginator = self.pagination_class()
+        paginated_data = paginator.paginate_queryset(rows, request)
+
+        return paginator.get_paginated_response(paginated_data)
+    
+class FeaturedProfileAddView(APIView):
+    def post(self, request):
+        profile_id = request.data.get('profile_id')
+        boosted_date = request.data.get('boosted_startdate')
+        boosted_enddate = request.data.get('boosted_enddate')
+
+        if not profile_id or not boosted_date or not boosted_enddate:
+            return Response({
+                "status": "error",
+                "message": "profile_id, boosted_startdate, and boosted_enddate are required"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            profile = Registration1.objects.filter(ProfileId=profile_id).first()
+            if not profile:
+                return Response({
+                    "status": "error",
+                    "message": "Profile not found"
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            pf = Profile_PlanFeatureLimit.objects.get(profile_id=profile_id)
+            pf.featured_profile = 1
+            pf.boosted_date = boosted_date
+            pf.boosted_enddate = boosted_enddate
+
+            pf.save()
+
+            return Response({
+                "status": "success",
+                "message": "Updated to featured profile successfully"
+            }, status=status.HTTP_200_OK)
+
+        except Profile_PlanFeatureLimit.DoesNotExist:
+            return Response({
+                "status": "error",
+                "message": "Feature record not found for this profile"
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            print(f"Error adding featured profile: {str(e)}")
+            return Response({
+                "status": "error",
+                "message": f"An unexpected error occurred: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

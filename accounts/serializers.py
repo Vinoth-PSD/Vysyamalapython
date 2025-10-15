@@ -1311,14 +1311,20 @@ class PaymentTransactionListSerializer(serializers.Serializer):
     
     def get_status(self, obj):
         status_id = obj.get('status')
-        if status_id == 1:
-            return "Initialized"
-        elif status_id == 2:
-            return "Paid"
-        elif status_id == 3:    
-            return "Failed"
+        source = obj.get('source')
+
+        if source == 'plan_subscription':
+            if status_id == 1:
+                return "Paid"
         else:
-            return "Not Initialized"
+            if status_id == 1:
+                return "Initialized"
+            elif status_id == 2:
+                return "Paid"
+            elif status_id == 3:    
+                return "Failed"
+            else:
+                return "Not Initialized"
         
     def get_DateOfJoin(self, obj):
         return obj['DateOfJoin'].date() if obj.get('DateOfJoin') else None
