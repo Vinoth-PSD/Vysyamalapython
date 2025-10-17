@@ -5586,7 +5586,7 @@ class Get_profile_det_match(APIView):
         cached = cache.get(cache_key)
         if cached:
             return cached
- 
+       
         try:
             assist = models.Profile_vysassist.objects.filter(
                 profile_from=profile_from,
@@ -5596,19 +5596,29 @@ class Get_profile_det_match(APIView):
             if not assist:
                 return None
  
-            # Since there is no followups model, return a default data structure
-            data = [{
-                "comments": f"{assist.to_message} (Request sent)",
-                "update_at": assist.req_datetime
-            }]
+            # 🔹 Manually get followups from ProfileVysAssistFollowup model
+            followups = models.ProfileVysAssistFollowup.objects.filter(
+                assist_id=assist.id
+            ).order_by('-update_at')[:5]
  
-            cache.set(cache_key, data, 300)  # Cache for 5 minutes
+            # 🔹 Serialize followup data (if exists)
+            if followups.exists():
+                data = serializers.ProfileVysAssistFollowupSerializer(followups, many=True).data
+            else:
+                # No followups found → show the default assist message
+                data = [{
+                    "comments": f"{assist.to_message} (Request sent)",
+                    "update_at": assist.req_datetime
+                }]
+ 
+            # Cache for 5 minutes
+            cache.set(cache_key, data, 300)
             return data
  
         except Exception as e:
             logger.error(f"Vysya assist error: {str(e)}")
             return None
-
+ 
 
 
 
@@ -21972,65 +21982,3 @@ class Free_packages(APIView):
                     "payment_type":"Gpay Online",
                     "data_message": f"Thank you for registering in Vysyamala. Your profile has been successfully submitted.Your Profile Id is  {profile_id} . We truly appreciate you taking the time to join Vysyamala—it means a lot to us! Our customer support team will review your details and get in touch with you shortly to complete the approval process. Welcome to the Vysyamala family!",
                     'token':token.key ,'profile_id':profile_id ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till }, status=status.HTTP_200_OK)
- 
-            birth_rasi_id=''
-            if horodetails:
-                birth_star_id=horodetails.birthstar_name
-                birth_rasi_id=horodetails.birth_rasi_name
- 
-            if profile_images:
-                profile_image = profile_images.image.url
-            #default image icon
-            else:
-           
-                profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
-                base_url = settings.MEDIA_URL
-                profile_image = base_url+profile_icon
- 
- 
-            plan_id = logindetails.Plan_id
-            plan_limits_json=''
-           
-            if plan_id:
-                plan_limits=models.PlanFeatureLimit.objects.filter(plan_id=plan_id)
-           
-                serializer = serializers.PlanFeatureLimitSerializer(plan_limits, many=True)
-                plan_limits_json = serializer.data
- 
- 
-            logindetails_exists = models.Registration1.objects.filter(ProfileId=profile_id).filter(Profile_address__isnull=False).exclude(Profile_address__exact='').first()
- 
-            family_details_exists=models.Familydetails.objects.filter(profile_id=profile_id).first()
-            horo_details_exists=models.Horoscope.objects.filter(profile_id=profile_id).first()
-            education_details_exists=models.Edudetails.objects.filter(profile_id=profile_id).first()
-            partner_details_exists=models.Partnerpref.objects.filter(profile_id=profile_id).first()
- 
-            profile_planfeature = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id, status=1).first()
-            valid_till = profile_planfeature.membership_todate if profile_planfeature else None
- 
-            #check the address is exists for the contact s page contact us details stored in the logindetails page only
-            if not logindetails_exists:
-           
-                profile_completion=1     #contact details not exists  
- 
-            elif not family_details_exists:
-               
-                profile_completion=2    #Family details not exists  
- 
-            elif not horo_details_exists:
-                profile_completion=3    #Horo details not exists  
- 
-            elif not education_details_exists:
-                profile_completion=4        #Edu details not exists  
- 
-            elif not partner_details_exists:
-                profile_completion=5            #Partner details not exists            
- 
-            # Success response
-            return JsonResponse({
-                    "status": "success",
-                    "message": "Plans and packages updated successfully",
-                    "payment_type":"Gpay Online",
-                    "data_message": f"Thank you for registering in Vysyamala. Your profile has been successfully submitted.Your Profile Id is  {profile_id} . We truly appreciate you taking the time to join Vysyamala—it means a lot to us! Our customer support team will review your details and get in touch with you shortly to complete the approval process. Welcome to the Vysyamala family!",
-                    'token':token.key ,'profile_id':profile_id ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till }, status=status.HTTP_200_OK)
- 
