@@ -3040,9 +3040,19 @@ class My_intrests_list(APIView):
             profile_id = serializer.validated_data.get('profile_id')
             page = int(request.data.get('page_number', 1))
             per_page = int(request.data.get('per_page', 10))  
+            
+            sort_by = request.data.get('sort_by','datetime') 
+            sort_order = "desc"
+
             try:
-                                
-                all_profiles = models.Express_interests.objects.filter(profile_from=profile_id, status=1)
+                if sort_by == "profile_id":
+                    order_field = "profile_to"
+                else:
+                    order_field = "req_datetime"
+
+                if sort_order == "desc":
+                    order_field = f"-{order_field}"               
+                all_profiles = models.Express_interests.objects.filter(profile_from=profile_id, status=1).order_by(order_field)
 
                 # Now, create the dictionary of all profile IDs.
                 all_profile_ids = {str(index + 1): profile_id for index, profile_id in enumerate(all_profiles.values_list('profile_to', flat=True))}
@@ -3054,7 +3064,7 @@ class My_intrests_list(APIView):
                 end = start + per_page
                 
                 
-                fetch_data = models.Express_interests.objects.filter(profile_from=profile_id,status=1)[start:end]
+                fetch_data = models.Express_interests.objects.filter(profile_from=profile_id,status=1).order_by(order_field)[start:end]
                 if fetch_data.exists():
                     profile_ids = fetch_data.values_list('profile_to', flat=True)
                     profile_details = get_profile_details(profile_ids)
@@ -3106,7 +3116,14 @@ class My_intrests_list(APIView):
                         }
                         for detail in profile_details
                     ]
-                    
+                    if sort_by == "profile_id":
+                        restricted_profile_details.sort(
+                            key=lambda x: x["myint_profileid"],
+                            reverse=(sort_order == "desc")
+                        )
+                    else:
+                        pass
+                        
                     #serialized_fetch_data = serializers.ExpressintrSerializer(fetch_data, many=True).data
                     #serialized_profile_details = serializers.ProfileDetailsSerializer(profile_details, many=True).data
 
@@ -3140,10 +3157,20 @@ class Get_mutual_intrests(APIView):
             page = int(request.data.get('page_number', 1))
             per_page = int(request.data.get('per_page', 10))  
             
+            sort_by = request.data.get('sort_by','datetime') 
+            sort_order = "desc"
+
             try:
+                if sort_by == "profile_id":
+                    order_field = "profile_to"
+                else:
+                    order_field = "response_datetime"
+
+                if sort_order == "desc":
+                    order_field = f"-{order_field}"
                 all_profiles = models.Express_interests.objects.filter(
                     (Q(profile_from=profile_id) | Q(profile_to=profile_id)) & Q(status=2)
-                )
+                ).order_by(order_field)
 
                 # Get both profile_from and profile_to IDs, and exclude the current profile_id
                 profile_to_ids = all_profiles.values_list('profile_to', flat=True)
@@ -3165,7 +3192,7 @@ class Get_mutual_intrests(APIView):
 
                 #fetch_data = models.Express_interests.objects.filter(profile_from=profile_id , profile_to=profile_id)
                 fetch_data = models.Express_interests.objects.filter(
-                    (Q(profile_from=profile_id) | Q(profile_to=profile_id)) &  Q(status=2))[start:end]
+                    (Q(profile_from=profile_id) | Q(profile_to=profile_id)) &  Q(status=2)).order_by(order_field)[start:end]
 
                 if fetch_data.exists():
                     #profile_ids = fetch_data.values_list('profile_to', flat=True)
@@ -3234,7 +3261,13 @@ class Get_mutual_intrests(APIView):
                         }
                         for detail in profile_details
                     ]
-                    
+                    if sort_by == "profile_id":
+                        restricted_profile_details.sort(
+                            key=lambda x: x["mutint_profileid"],
+                            reverse=(sort_order == "desc")
+                        )
+                    else:
+                        pass
                     #serialized_fetch_data = serializers.ExpressintrSerializer(fetch_data, many=True).data
                     #serialized_profile_details = serializers.ProfileDetailsSerializer(profile_details, many=True).data
 
@@ -3336,11 +3369,20 @@ class Get_profile_wishlist(APIView):
             per_page = int(request.data.get('per_page', 10))  
 
            
+            sort_by = request.data.get('sort_by','datetime') 
+            sort_order = "desc"
 
             try:
+                if sort_by == "profile_id":
+                    order_field = "profile_to"
+                else:
+                    order_field = "marked_datetime"
+
+                if sort_order == "desc":
+                    order_field = f"-{order_field}"
                 # total_records = models.Profile_wishlists.objects.filter(profile_from=profile_id, status=1).count()
 
-                all_profiles = models.Profile_wishlists.objects.filter(profile_from=profile_id, status=1)
+                all_profiles = models.Profile_wishlists.objects.filter(profile_from=profile_id, status=1).order_by(order_field)
                 all_profile_ids = {str(index + 1): profile_id for index, profile_id in enumerate(all_profiles.values_list('profile_to', flat=True))}
                     
                     # Get the total number of records
@@ -3349,7 +3391,7 @@ class Get_profile_wishlist(APIView):
                 start = (page - 1) * per_page
                 end = start + per_page
 
-                fetch_data = models.Profile_wishlists.objects.filter(profile_from=profile_id,status=1)[start:end]
+                fetch_data = models.Profile_wishlists.objects.filter(profile_from=profile_id,status=1).order_by(order_field)[start:end]
                 if fetch_data.exists():
                     profile_ids = fetch_data.values_list('profile_to', flat=True)
                     profile_details = get_profile_details(profile_ids)
@@ -3405,10 +3447,18 @@ class Get_profile_wishlist(APIView):
                         }
                         for detail in profile_details
                     ]
-                    
+                    if sort_by == "profile_id":
+                        restricted_profile_details.sort(
+                            key=lambda x: x["wishlist_profileid"],
+                            reverse=(sort_order == "desc")
+                        )
+                    else:
+                       pass
                     #serialized_fetch_data = serializers.ExpressintrSerializer(fetch_data, many=True).data
                     #serialized_profile_details = serializers.ProfileDetailsSerializer(profile_details, many=True).data
-
+                    # print("order",order_field)
+                    # print("soirt",sort_by)
+                    # print("res",restricted_profile_details)
                     combined_data = {
                         #"interests": serialized_fetch_data,
                         "profiles": restricted_profile_details,
@@ -3466,10 +3516,19 @@ class My_profile_visit(APIView):
         if serializer.is_valid():
             profile_id = serializer.validated_data.get('profile_id')
             page = int(request.data.get('page_number', 1))
-            per_page = int(request.data.get('per_page', 10))  
+            per_page = int(request.data.get('per_page', 10)) 
+            sort_by = request.data.get('sort_by','-datetime') 
+            sort_order = "desc"
+
             try:
-                
-                all_profiles = models.Profile_visitors.objects.filter(viewed_profile=profile_id)
+                if sort_by == "profile_id":
+                    order_field = "profile_id"
+                else:
+                    order_field = "datetime"
+
+                if sort_order == "desc":
+                    order_field = f"-{order_field}"
+                all_profiles = models.Profile_visitors.objects.filter(viewed_profile=profile_id).order_by(order_field)
                 all_profile_ids = {str(index + 1): profile_id for index, profile_id in enumerate(all_profiles.values_list('profile_id', flat=True))}
 
                 total_records = all_profiles.count()
@@ -3477,7 +3536,7 @@ class My_profile_visit(APIView):
                 end = start + per_page
 
                 
-                fetch_data = models.Profile_visitors.objects.filter(viewed_profile=profile_id)[start:end]
+                fetch_data = models.Profile_visitors.objects.filter(viewed_profile=profile_id).order_by(order_field)[start:end]
                 if fetch_data.exists():
                     
                     profile_ids = fetch_data.values_list('profile_id', flat=True)
@@ -3531,7 +3590,16 @@ class My_profile_visit(APIView):
                         }
                         for detail in profile_details
                     ]
-                    
+                    if sort_by == "profile_id":
+                        restricted_profile_details.sort(
+                            key=lambda x: x["viwed_profileid"],
+                            reverse=(sort_order == "desc")
+                        )
+                    else:
+                        restricted_profile_details.sort(
+                            key=lambda x: x["viwed_lastvisit"],
+                            reverse=(sort_order == "desc")
+                        )
                     #serialized_fetch_data = serializers.ExpressintrSerializer(fetch_data, many=True).data
                     #serialized_profile_details = serializers.ProfileDetailsSerializer(profile_details, many=True).data
 
@@ -5518,31 +5586,25 @@ class Get_profile_det_match(APIView):
         cached = cache.get(cache_key)
         if cached:
             return cached
-        
+ 
         try:
             assist = models.Profile_vysassist.objects.filter(
                 profile_from=profile_from,
                 profile_to=profile_to
-            ).prefetch_related(
-                Prefetch('followups', 
-                    queryset=models.ProfileVysAssistFollowup.objects
-                        .order_by('-update_at')[:5]
-                )
             ).first()
-
+ 
             if not assist:
                 return None
-
-            followups = assist.followups.all()
-            data = serializers.ProfileVysAssistFollowupSerializer(
-                followups, many=True
-            ).data if followups else [{
+ 
+            # Since there is no followups model, return a default data structure
+            data = [{
                 "comments": f"{assist.to_message} (Request sent)",
                 "update_at": assist.req_datetime
             }]
-            
+ 
             cache.set(cache_key, data, 300)  # Cache for 5 minutes
             return data
+ 
         except Exception as e:
             logger.error(f"Vysya assist error: {str(e)}")
             return None
@@ -6176,9 +6238,19 @@ class Get_photo_request_list(APIView):
             profile_id = serializer.validated_data.get('profile_id')
             page = int(request.data.get('page_number', 1))
             per_page = int(request.data.get('per_page', 10))  
+            sort_by = request.data.get('sort_by','datetime') 
+            sort_order = "desc"
+
             try:
-                
-                all_profiles = models.Photo_request.objects.filter(profile_to=profile_id,status__in=[1, 2, 3])
+                if sort_by == "profile_id":
+                    order_field = "profile_from"
+                else:
+                    order_field = "req_datetime"
+
+                if sort_order == "desc":
+                    order_field = f"-{order_field}"    
+
+                all_profiles = models.Photo_request.objects.filter(profile_to=profile_id,status__in=[1, 2, 3]).order_by(order_field)
                 all_profile_ids = {str(index + 1): profile_id for index, profile_id in enumerate(all_profiles.values_list('profile_from', flat=True))}
 
                 total_records = all_profiles.count()
@@ -6187,7 +6259,7 @@ class Get_photo_request_list(APIView):
                 end = start + per_page
                 
                 
-                fetch_data = models.Photo_request.objects.filter(profile_to=profile_id,status__in=[1, 2, 3])[start:end]
+                fetch_data = models.Photo_request.objects.filter(profile_to=profile_id,status__in=[1, 2, 3]).order_by(order_field)[start:end]
                 if fetch_data.exists():
                     profile_ids = fetch_data.values_list('profile_from', flat=True)
                     profile_details = get_profile_details(profile_ids)
@@ -6246,7 +6318,13 @@ class Get_photo_request_list(APIView):
                     ]
 
                     #print('fetch_data',fetch_data)
-                    
+                    if sort_by == "profile_id":
+                        restricted_profile_details.sort(
+                            key=lambda x: x["req_profileid"],
+                            reverse=(sort_order == "desc")
+                        )
+                    else:
+                        pass
                     #serialized_fetch_data = serializers.ExpressintrSerializer(fetch_data, many=True).data
                     #serialized_profile_details = serializers.ProfileDetailsSerializer(profile_details, many=True).data
 
@@ -21793,3 +21871,166 @@ class Degree_list(APIView):
             return JsonResponse(serializer.data, safe=False)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class Free_packages(APIView):
+    def post(self, request):
+ 
+            profile_id = request.data.get('profile_id')
+           
+            user, created = User.objects.get_or_create(username=profile_id)
+            if created:
+                # Handle user creation logic if needed
+                pass
+             
+            # Authentication successful, create token
+            token, created = Token.objects.get_or_create(user=user)
+ 
+ 
+            notify_count=models.Profile_notification.objects.filter(profile_id=profile_id, is_read=0).count()
+ 
+            logindetails=models.Registration1.objects.filter(ProfileId=profile_id).first()
+ 
+            profile_for=logindetails.Profile_for
+            try:
+                    Profile_owner = models.Profileholder.objects.get(Mode=profile_for).ModeName
+            except models.Profileholder.DoesNotExist:
+                    Profile_owner = None
+           
+            logindetails.Last_login_date=timezone.now()
+            logindetails.save()
+ 
+       
+            horodetails=models.Horoscope.objects.filter(profile_id=profile_id).first()
+            profile_images=models.Image_Upload.objects.filter(profile_id=profile_id).first()  
+            gender = logindetails.Gender
+            height = logindetails.Profile_height
+            marital_status=logindetails.Profile_marital_status
+            quick_reg=logindetails.quick_registration
+            if not quick_reg:
+                quick_reg=0
+ 
+            profile_icon=''
+            profile_completion=0
+            birth_star_id=''
+            birth_rasi_id=''
+            if horodetails:
+                birth_star_id=horodetails.birthstar_name
+                birth_rasi_id=horodetails.birth_rasi_name
+ 
+            if profile_images:
+                profile_image = profile_images.image.url
+            #default image icon
+            else:
+           
+                profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
+                base_url = settings.MEDIA_URL
+                profile_image = base_url+profile_icon
+ 
+ 
+            plan_id = logindetails.Plan_id
+            plan_limits_json=''
+           
+            if plan_id:
+                plan_limits=models.PlanFeatureLimit.objects.filter(plan_id=plan_id)
+           
+                serializer = serializers.PlanFeatureLimitSerializer(plan_limits, many=True)
+                plan_limits_json = serializer.data
+ 
+ 
+            logindetails_exists = models.Registration1.objects.filter(ProfileId=profile_id).filter(Profile_address__isnull=False).exclude(Profile_address__exact='').first()
+ 
+            family_details_exists=models.Familydetails.objects.filter(profile_id=profile_id).first()
+            horo_details_exists=models.Horoscope.objects.filter(profile_id=profile_id).first()
+            education_details_exists=models.Edudetails.objects.filter(profile_id=profile_id).first()
+            partner_details_exists=models.Partnerpref.objects.filter(profile_id=profile_id).first()
+ 
+            profile_planfeature = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id, status=1).first()
+            valid_till = profile_planfeature.membership_todate if profile_planfeature else None
+ 
+            #check the address is exists for the contact s page contact us details stored in the logindetails page only
+            if not logindetails_exists:
+           
+                profile_completion=1     #contact details not exists  
+ 
+            elif not family_details_exists:
+               
+                profile_completion=2    #Family details not exists  
+ 
+            elif not horo_details_exists:
+                profile_completion=3    #Horo details not exists  
+ 
+            elif not education_details_exists:
+                profile_completion=4        #Edu details not exists  
+ 
+            elif not partner_details_exists:
+                profile_completion=5            #Partner details not exists            
+ 
+            # Success response
+            return JsonResponse({
+                    "status": "success",
+                    "message": "Plans and packages updated successfully",
+                    "payment_type":"Gpay Online",
+                    "data_message": f"Thank you for registering in Vysyamala. Your profile has been successfully submitted.Your Profile Id is  {profile_id} . We truly appreciate you taking the time to join Vysyamala—it means a lot to us! Our customer support team will review your details and get in touch with you shortly to complete the approval process. Welcome to the Vysyamala family!",
+                    'token':token.key ,'profile_id':profile_id ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till }, status=status.HTTP_200_OK)
+ 
+            birth_rasi_id=''
+            if horodetails:
+                birth_star_id=horodetails.birthstar_name
+                birth_rasi_id=horodetails.birth_rasi_name
+ 
+            if profile_images:
+                profile_image = profile_images.image.url
+            #default image icon
+            else:
+           
+                profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
+                base_url = settings.MEDIA_URL
+                profile_image = base_url+profile_icon
+ 
+ 
+            plan_id = logindetails.Plan_id
+            plan_limits_json=''
+           
+            if plan_id:
+                plan_limits=models.PlanFeatureLimit.objects.filter(plan_id=plan_id)
+           
+                serializer = serializers.PlanFeatureLimitSerializer(plan_limits, many=True)
+                plan_limits_json = serializer.data
+ 
+ 
+            logindetails_exists = models.Registration1.objects.filter(ProfileId=profile_id).filter(Profile_address__isnull=False).exclude(Profile_address__exact='').first()
+ 
+            family_details_exists=models.Familydetails.objects.filter(profile_id=profile_id).first()
+            horo_details_exists=models.Horoscope.objects.filter(profile_id=profile_id).first()
+            education_details_exists=models.Edudetails.objects.filter(profile_id=profile_id).first()
+            partner_details_exists=models.Partnerpref.objects.filter(profile_id=profile_id).first()
+ 
+            profile_planfeature = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id, status=1).first()
+            valid_till = profile_planfeature.membership_todate if profile_planfeature else None
+ 
+            #check the address is exists for the contact s page contact us details stored in the logindetails page only
+            if not logindetails_exists:
+           
+                profile_completion=1     #contact details not exists  
+ 
+            elif not family_details_exists:
+               
+                profile_completion=2    #Family details not exists  
+ 
+            elif not horo_details_exists:
+                profile_completion=3    #Horo details not exists  
+ 
+            elif not education_details_exists:
+                profile_completion=4        #Edu details not exists  
+ 
+            elif not partner_details_exists:
+                profile_completion=5            #Partner details not exists            
+ 
+            # Success response
+            return JsonResponse({
+                    "status": "success",
+                    "message": "Plans and packages updated successfully",
+                    "payment_type":"Gpay Online",
+                    "data_message": f"Thank you for registering in Vysyamala. Your profile has been successfully submitted.Your Profile Id is  {profile_id} . We truly appreciate you taking the time to join Vysyamala—it means a lot to us! Our customer support team will review your details and get in touch with you shortly to complete the approval process. Welcome to the Vysyamala family!",
+                    'token':token.key ,'profile_id':profile_id ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till }, status=status.HTTP_200_OK)
+ 

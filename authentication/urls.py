@@ -239,7 +239,7 @@ urlpatterns = [
 
     path('pref_degree_list/',views.Degree_list.as_view(),name='pref_degree_list'),
 
-
+    path('Free_packages/',views.Free_packages.as_view(),name='Free_packages'),
 
 
       #  path('get_blurred_image/', views.get_blurred_image.as_view(), name='get_blurred_image'),
