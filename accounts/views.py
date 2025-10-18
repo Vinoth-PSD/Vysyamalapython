@@ -2670,7 +2670,7 @@ class GetProfEditDetailsAPIView(APIView):
                 return value
         
         profession_name = safe_get_by_id(Profession, edu_detail.profession, 'profession')
-        qualification_name = safe_get_by_id(MasterhighestEducation, edu_detail.highest_education, 'degeree_name')
+        qualification_name = safe_get_by_id(MasterhighestEducation, edu_detail.degree, 'degeree_name')
         
         
         country_name=safe_get_by_id(Country,edu_detail.work_country,'name')
@@ -5162,6 +5162,12 @@ class ProfileVysAssistView(APIView):
                 ProfileId=assist.profile_to
             ).first()
 
+            status_comments = {
+                0: "Removed",
+                1: "Request Sent",
+                2: "Accepted",
+                3: "Rejected"
+            }
             # Only add to the result if both profile_from and profile_to exist
             if profile_from_data and profile_to_data:
                 result.append({
@@ -5175,7 +5181,7 @@ class ProfileVysAssistView(APIView):
                     'to_message': assist.to_message,
                     'req_datetime': assist.req_datetime,
                     'response_datetime': assist.response_datetime,
-                    'status': assist.status  # 1: request sent, 2: accepted, 3: rejected, 0: removed
+                    'status': status_comments.get(assist.status)  # 1: request sent, 2: accepted, 3: rejected, 0: removed
                 })
 
         # Implement pagination
@@ -7553,8 +7559,6 @@ class GenerateInvoicePDF(APIView):
         serializer = InvoiceSerializer(data=request.data)
         if serializer.is_valid():
             data = serializer.validated_data
-            today = datetime.date.today()
-
             # Load and encode the logo image
             logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'newlogo.png')
             print(logo_path)
@@ -7653,7 +7657,7 @@ class GenerateInvoicePDF(APIView):
                 </tr>
             </table>
 
-            <p><strong>In words:</strong> Seven Thousand Nine Hundred only.</p>
+            <p><strong>In words:</strong></p>
 
             <table class="table" style="width: 50%; margin-top: 20px;">
                 <tr>
