@@ -898,7 +898,7 @@ class Newprofile_get(generics.ListAPIView):
             SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId, 
                    ld.Profile_dob,  ld.Profile_whatsapp, ld.Profile_alternate_mobile, ld.Plan_id, ld.status, 
                    ld.DateOfJoin, ld.Last_login_date, ld.Profile_for, ms.MaritalStatus, cm.complexion_desc, s.name AS state_name, 
-                   cy.city_name AS Profile_city, cy.city_name , c.name AS country_name, d.name AS district_name,
+                   ld.Profile_city AS Profile_city, cy.city_name , c.name AS country_name, d.name AS district_name,
                    pfd.family_status, ped.highest_education, ped.anual_income, ph.birthstar_name , mp.profession AS profession ,pl.plan_name ,ld.Owner_id
             FROM logindetails ld
             LEFT JOIN maritalstatusmaster ms ON ld.Profile_marital_status = ms.StatusId
