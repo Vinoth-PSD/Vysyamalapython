@@ -93,7 +93,7 @@ import time  # For performance measurement
 import logging
 from functools import lru_cache
 from django.db.models import Prefetch
-import imgkit
+# import imgkit
 
 
 
@@ -22048,44 +22048,44 @@ def generate_table_html(grid_dict, title):
     </html>
     """
 
-class Rasi_Image(APIView):
-    def post(self, request):
-        user_profile_id = request.data.get("profile_id")
-        if not user_profile_id:
-            return Response({"message": "Profile_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-        horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
+# class Rasi_Image(APIView):
+#     def post(self, request):
+#         user_profile_id = request.data.get("profile_id")
+#         if not user_profile_id:
+#             return Response({"message": "Profile_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+#         horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
 
-        if horoscope.rasi_kattam:
-            rasi_kattam_data = parse_data(horoscope.rasi_kattam)
-        else:
-            rasi_kattam_data = parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
+#         if horoscope.rasi_kattam:
+#             rasi_kattam_data = parse_data(horoscope.rasi_kattam)
+#         else:
+#             rasi_kattam_data = parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
 
-        rasi_kattam_data.extend([default_placeholder] * (12 - len(rasi_kattam_data)))
+#         rasi_kattam_data.extend([default_placeholder] * (12 - len(rasi_kattam_data)))
 
-        print("rasi",rasi_kattam_data)
+#         print("rasi",rasi_kattam_data)
 
-        html_content = generate_table_html( rasi_kattam_data, title="Rasi Chart")
+#         html_content = generate_table_html( rasi_kattam_data, title="Rasi Chart")
 
-        img_data = imgkit.from_string(html_content, False)
+#         img_data = imgkit.from_string(html_content, False)
 
-        return HttpResponse(img_data, content_type="image/jpeg")
+#         return HttpResponse(img_data, content_type="image/jpeg")
     
-class Amsam_Image(APIView):
-    def post(self, request):
-        user_profile_id = request.data.get("profile_id")
-        if not user_profile_id:
-            return Response({"message": "Profile_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-        horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
+# class Amsam_Image(APIView):
+#     def post(self, request):
+#         user_profile_id = request.data.get("profile_id")
+#         if not user_profile_id:
+#             return Response({"message": "Profile_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+#         horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
 
-        if horoscope.amsa_kattam:
-            amsa_kattam_data = parse_data(horoscope.amsa_kattam)
-        else:
-            amsa_kattam_data = parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
+#         if horoscope.amsa_kattam:
+#             amsa_kattam_data = parse_data(horoscope.amsa_kattam)
+#         else:
+#             amsa_kattam_data = parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
 
-        amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))
+#         amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))
 
-        html_content = generate_table_html(amsa_kattam_data, title="Amsam")
+#         html_content = generate_table_html(amsa_kattam_data, title="Amsam")
 
-        img_data = imgkit.from_string(html_content, False)
+#         img_data = imgkit.from_string(html_content, False)
 
-        return HttpResponse(img_data, content_type="image/jpeg")
+#         return HttpResponse(img_data, content_type="image/jpeg")
