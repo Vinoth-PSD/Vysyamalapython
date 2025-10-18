@@ -1331,6 +1331,7 @@ class Get_profiledata_Matching(models.Model):
             else:
                 marital_status = partner_pref.pref_marital_status
             porutham_star_rasi = matching_stars or partner_pref.pref_porutham_star_rasi
+            print("pporutham",porutham_star_rasi)
             pref_foreign = foreign_intrest or partner_pref.pref_foreign_intrest
             ragukethu = ragu or partner_pref.pref_ragukethu
             chevvai = chev or partner_pref.pref_chevvai
@@ -3215,7 +3216,7 @@ class Get_profiledata_Matching(models.Model):
 
             # Foreign interest
             if foreign_intrest and foreign_intrest != "0":
-                base_query += " AND b.pref_foreign_intrest = %s"
+                base_query += " AND (a.Profile_city != 0 OR f.work_country != 0)"
                 query_params.append(foreign_intrest)
 
             # Has photos
