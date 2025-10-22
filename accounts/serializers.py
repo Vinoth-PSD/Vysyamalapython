@@ -922,11 +922,18 @@ class QuickUploadSerializer(serializers.ModelSerializer):
     horoscope_file = serializers.SerializerMethodField()
     Profile_for = serializers.SerializerMethodField()  # Fetch human-readable name for Profile_for
     Profile_marital_status = serializers.SerializerMethodField()  # Fetch human-readable name for Profile_marital_status
-
+    status = serializers.SerializerMethodField()
+    plan_name = serializers.SerializerMethodField()
     class Meta:
         model = LoginDetails
-        fields = ['ProfileId', 'Profile_for', 'Gender', 'Mobile_no', 'Profile_name', 'Profile_marital_status', 'Profile_idproof', 'horoscope_file']
+        fields = ['ProfileId', 'Profile_for', 'Gender', 'Mobile_no', 'Profile_name', 'Profile_marital_status', 'Profile_idproof', 'horoscope_file','DateOfJoin','status','Plan_id','plan_name']
 
+    def get_plan_name(self,obj):
+        try:
+            plan = PlanDetails.objects.get(id=obj.Plan_id)
+            return plan.plan_name
+        except Exception:
+            return "N/A"
     def get_horoscope_file(self, obj):
         try:
             horoscope = ProfileHoroscope.objects.get(profile_id=obj.ProfileId)
@@ -956,6 +963,14 @@ class QuickUploadSerializer(serializers.ModelSerializer):
             return marital_status.MaritalStatus  
         except MaritalStatus.DoesNotExist:
             return None  
+
+    def get_status(self, obj):
+        profile_status_id = obj.status
+        try:
+            status = ProfileStatus.objects.get(status_code=profile_status_id)
+            return status.status_name 
+        except Exception as e:    
+            return "N/A"
 
 
 class MatchingscoreSerializer(serializers.ModelSerializer):
