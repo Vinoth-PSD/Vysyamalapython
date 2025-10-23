@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 25px;
+            font-size: 13px;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .table th, .table td {
+            border: 1px solid #000;
+            padding: 10px;
+            text-align: left;
+        }
+        .table th {
+            background-color: #ffffff;
+        }
+        .note {
+            margin-top: 30px;
+            font-style: italic;
+            font-weight: bold;
+            text-align: center;
+        }
+        .bottom-contact {
+            margin-top: 10px;
+            font-size: 11px;
+            border-top: 1px solid #ccc;
+            padding-top: 5px;
+        }
+        .text-green {
+            color: rgb(31, 90, 41) !important;
+        }
+    </style>
+</head>
+<body>
+
+<table style="width: 100%;">
+    <tr>
+        <td style="vertical-align: top; width: 60%; font-size: 13px;" class="text-green">
+            {% if encoded_logo %}
+                <img src="data:image/png;base64,{{ encoded_logo }}" style="height: 50px;width: 150px;"><br>
+            {% endif %}
+            <strong>To</strong><br>
+            {{ customer_name }}<br>
+            {{ address }}
+        </td>
+        <td style="vertical-align: top; text-align: right;" class="text-green">
+            <h2 style="margin: 0; color: #9c9c9c;">Invoice</h2>
+            Date: {{ date }}<br>
+            Invoice #: V{{ invoice_number }}<br>
+            Vysyamala ID: {{ vysyamala_id }}<br>
+        </td>
+    </tr>
+</table>
+
+<table class="table">
+    <tr>
+        <th>Service Description</th>
+        <th>Price</th>
+        <th>Net Price</th>
+    </tr>
+    <tr>
+        <td>
+            {{ service_description }}<br>
+            <small>Valid till: {{ valid_till }} or engagement date whichever is earlier</small>
+        </td>
+        <td>{{ price }}</td>
+        <td>{{ price }}</td>
+    </tr>
+    <tr>
+        <td colspan="2"><strong>Total</strong></td>
+        <td><strong>{{ price }}</strong></td>
+    </tr>
+</table>
+
+<p><strong>In words:</strong> Four Thousand Nine Hundred only.</p>
+
+<table class="table" style="width: 50%; margin-top: 20px;">
+    <tr>
+        <th>Payment Mode</th>
+        <td>{{ payment_mode }}</td>
+    </tr>
+</table>
+
+<p class="note">Thank you for your opportunity to serve you!</p>
+
+<div class="bottom-contact">
+    <table style="width: 100%;">
+        <p>
+            <td class ="text-green" style="vertical-align: top; width: 50%;">
+                Vysyamala<br>
+                C/o. YK Lavanya<br>
+                <a>No.2, Krishnaswamy Street (Lane)</a><br>
+                A6-2nd Floor, Sri Vinayaga Flats<br>
+                Ganapathipuram, Chrompet<br>
+                Chennai – 600 044
+            </td>
+
+            <td style="vertical-align: top; text-align: right; font-size: 11px;">
+               <p class="text-green" style="font-weight:700"> Web: <a href="http://www.vysyamala.com">www.vysyamala.com</a></p>
+                <p class="text-green" style="font-weight:700">Email:<a>vysyamala@gmail.com</a></p>
+                <p class="text-green" style="font-weight:700">Facebook: <a>www.fb.com/vysyamala</a></p>
+                <p class="text-green" style="font-weight:700">Whatsapp: 9043085524</p>
+                <p class="text-green" style="font-weight:700">Customer Support: 9944851550(10 a.m. to 6 p.m.)</p>
+               
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" style="text-align: center; font-style: italic; font-size: 12px; padding-top: 10px;">
+                May Goddess Sri Vasavi Kanyaka Parameswari bless you and your family with peace & prosperity!
+            </td>
+        </tr>
+    </table>
+</div>
+
+</body>
+</html>

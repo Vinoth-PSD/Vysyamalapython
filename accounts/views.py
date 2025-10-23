@@ -7554,164 +7554,211 @@ class PaymentTransactionListView(generics.ListAPIView):
             'data': enriched_data
         })
     
-class GenerateInvoicePDF(APIView):
-    def post(self, request):
-        serializer = InvoiceSerializer(data=request.data)
-        if serializer.is_valid():
-            data = serializer.validated_data
-            # Load and encode the logo image
-            logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'newlogo.png')
-            print(logo_path)
-            try:
-                with open(logo_path, "rb") as image_file:
-                    encoded_logo = base64.b64encode(image_file.read()).decode()
-            except FileNotFoundError:
-                encoded_logo = ""
+# class GenerateInvoicePDF(APIView):
+#     def post(self, request):
+#         serializer = InvoiceSerializer(data=request.data)
+#         if serializer.is_valid():
+#             data = serializer.validated_data
+#             # Load and encode the logo image
+#             logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'newlogo.png')
+#             print(logo_path)
+#             try:
+#                 with open(logo_path, "rb") as image_file:
+#                     encoded_logo = base64.b64encode(image_file.read()).decode()
+#             except FileNotFoundError:
+#                 encoded_logo = ""
 
-            html_string = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body {{
-                        font-family: Arial, sans-serif;
-                        padding: 25px;
-                        font-size: 13px;
-                    }}
-                    .invoice-meta {{
-                        text-align: right;
-                        font-size: 13px;
-                    }}
-                    .invoice-meta h2 {{
-                        color: #9c9c9c;
-                        margin: 0 0 10px 0;
-                    }}
-                    .table {{
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-top: 10px;
-                    }}
-                    .table th, .table td {{
-                        border: 1px solid #000;
-                        padding: 10px;
-                        text-align: left;
-                    }}
-                    .table th {{
-                        background-color: #f2f2f2;
-                    }}
-                    .footer {{
-                        margin-top: 20px;
-                        font-size: 12px;
-                    }}
-                    .note {{
-                        margin-top: 30px;
-                        font-style: italic;
-                        font-weight: bold;
-                        text-align: center;
-                    }}
-                    .bottom-contact {{
-                        margin-top: 10px;  /* reduced from 30px */
-                        font-size: 11px;
-                        border-top: 1px solid #ccc;
-                        padding-top: 5px;  /* optional: tighter padding */
-                    }}
+#             html_string = f"""
+#             <!DOCTYPE html>
+#             <html>
+#             <head>
+#                 <style>
+#                     body {{
+#                         font-family: Arial, sans-serif;
+#                         padding: 25px;
+#                         font-size: 13px;
+#                     }}
+#                     .invoice-meta {{
+#                         text-align: right;
+#                         font-size: 13px;
+#                     }}
+#                     .invoice-meta h2 {{
+#                         color: #9c9c9c;
+#                         margin: 0 0 10px 0;
+#                     }}
+#                     .table {{
+#                         width: 100%;
+#                         border-collapse: collapse;
+#                         margin-top: 10px;
+#                     }}
+#                     .table th, .table td {{
+#                         border: 1px solid #000;
+#                         padding: 10px;
+#                         text-align: left;
+#                     }}
+#                     .table th {{
+#                         background-color: #f2f2f2;
+#                     }}
+#                     .footer {{
+#                         margin-top: 20px;
+#                         font-size: 12px;
+#                     }}
+#                     .note {{
+#                         margin-top: 30px;
+#                         font-style: italic;
+#                         font-weight: bold;
+#                         text-align: center;
+#                     }}
+#                     .bottom-contact {{
+#                         margin-top: 10px;  /* reduced from 30px */
+#                         font-size: 11px;
+#                         border-top: 1px solid #ccc;
+#                         padding-top: 5px;  /* optional: tighter padding */
+#                     }}
                     
-                </style>
-            </head>
-            <body>
+#                 </style>
+#             </head>
+#             <body>
             
-            <table style="width: 100%;">
-                <tr>
-                    <td style="vertical-align: top; width: 60%; font-size: 13px;">
-                        {'<img src="data:image/png;base64,' + encoded_logo + '" style="height: 70px;"><br>' if encoded_logo else ''}
-                        <strong>To</strong><br>
-                        {data.get('customer_name', '')}<br>
-                        {data['address'].replace(chr(10), '<br>') if data.get("address") else ""}
-                    </td>
-                    <td style="vertical-align: top; text-align: right;">
-                        <h2 style="margin: 0; color: #9c9c9c;">Invoice</h2>
-                        Date: {data['date']}<br>
-                        Invoice #: {data['invoice_number']}<br>
-                        Vysyamala ID: {data['vysyamala_id']}<br>
-                    </td>
-                </tr>
-            </table>
+#             <table style="width: 100%;">
+#                 <tr>
+#                     <td style="vertical-align: top; width: 60%; font-size: 13px;">
+#                         {'<img src="data:image/png;base64,' + encoded_logo + '" style="height: 70px;"><br>' if encoded_logo else ''}
+#                         <strong>To</strong><br>
+#                         {data.get('customer_name', '')}<br>
+#                         {data['address'].replace(chr(10), '<br>') if data.get("address") else ""}
+#                     </td>
+#                     <td style="vertical-align: top; text-align: right;">
+#                         <h2 style="margin: 0; color: #9c9c9c;">Invoice</h2>
+#                         Date: {data['date']}<br>
+#                         Invoice #: {data['invoice_number']}<br>
+#                         Vysyamala ID: {data['vysyamala_id']}<br>
+#                     </td>
+#                 </tr>
+#             </table>
 
-            <table class="table">
-                <tr>
-                    <th>Service Description</th>
-                    <th>Price</th>
-                    <th>Net Price</th>
-                </tr>
-                <tr>
-                    <td>
-                        {data['service_description']}<br>
-                        <small>Valid till: {data['valid_till']} or engagement date whichever is earlier</small>
-                    </td>
-                    <td>{data['price']}</td>
-                    <td>{data['price']}</td>
-                </tr>
-                <tr>
-                    <td colspan="2"><strong>Total</strong></td>
-                    <td><strong>{data['price']}</strong></td>
-                </tr>
-            </table>
+#             <table class="table">
+#                 <tr>
+#                     <th>Service Description</th>
+#                     <th>Price</th>
+#                     <th>Net Price</th>
+#                 </tr>
+#                 <tr>
+#                     <td>
+#                         {data['service_description']}<br>
+#                         <small>Valid till: {data['valid_till']} or engagement date whichever is earlier</small>
+#                     </td>
+#                     <td>{data['price']}</td>
+#                     <td>{data['price']}</td>
+#                 </tr>
+#                 <tr>
+#                     <td colspan="2"><strong>Total</strong></td>
+#                     <td><strong>{data['price']}</strong></td>
+#                 </tr>
+#             </table>
 
-            <p><strong>In words:</strong></p>
+#             <p><strong>In words:</strong></p>
 
-            <table class="table" style="width: 50%; margin-top: 20px;">
-                <tr>
-                    <th>Payment Mode</th>
-                    <td>Online Transfer</td>
-                </tr>
-            </table>
+#             <table class="table" style="width: 50%; margin-top: 20px;">
+#                 <tr>
+#                     <th>Payment Mode</th>
+#                     <td>Online Transfer</td>
+#                 </tr>
+#             </table>
 
-            <p class="note">Thank you for your opportunity to serve you!</p>
+#             <p class="note">Thank you for your opportunity to serve you!</p>
 
-            <div class="bottom-contact">
-                <table style="width: 100%;">
-                    <tr>
-                        <td style="vertical-align: top; width: 50%;">
-                            Vysyamala<br>
-                            C/o. YK Lavanya<br>
-                            No.2, Krishnaswamy Street (Lane)<br>
-                            A6-2nd Floor, Sri Vinayaga Flats<br>
-                            Ganapathipuram, Chrompet<br>
-                            Chennai – 600 044
-                        </td>
-                        <td style="vertical-align: top; text-align: right; font-size: 11px;">
-                            Web: <a href="http://www.vysyamala.com">www.vysyamala.com</a> |
-                            Email: vysyamala@gmail.com |
-                            Facebook: www.fb.com/vysyamala<br>
-                            Whatsapp: 9043085524 |
-                            Customer Support: 9944851550 (8 a.m. to 8 p.m.)
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="2" style="text-align: center; font-style: italic; font-size: 12px; padding-top: 10px;">
-                            May Goddess Sri Vasavi Kanyaka Parameswari bless you and your family with peace & prosperity!
-                        </td>
-                    </tr>
-                </table>
-            </div>
+#             <div class="bottom-contact">
+#                 <table style="width: 100%;">
+#                     <tr>
+#                         <td style="vertical-align: top; width: 50%;">
+#                             Vysyamala<br>
+#                             C/o. YK Lavanya<br>
+#                             No.2, Krishnaswamy Street (Lane)<br>
+#                             A6-2nd Floor, Sri Vinayaga Flats<br>
+#                             Ganapathipuram, Chrompet<br>
+#                             Chennai – 600 044
+#                         </td>
+#                         <td style="vertical-align: top; text-align: right; font-size: 11px;">
+#                             Web: <a href="http://www.vysyamala.com">www.vysyamala.com</a> |
+#                             Email: vysyamala@gmail.com |
+#                             Facebook: www.fb.com/vysyamala<br>
+#                             Whatsapp: 9043085524 |
+#                             Customer Support: 9944851550 (8 a.m. to 8 p.m.)
+#                         </td>
+#                     </tr>
+#                     <tr>
+#                         <td colspan="2" style="text-align: center; font-style: italic; font-size: 12px; padding-top: 10px;">
+#                             May Goddess Sri Vasavi Kanyaka Parameswari bless you and your family with peace & prosperity!
+#                         </td>
+#                     </tr>
+#                 </table>
+#             </div>
         
 
-            </body>
-            </html>
-            """
+#             </body>
+#             </html>
+#             """
 
-            result = BytesIO()
-            pisa_status = pisa.CreatePDF(src=html_string, dest=result)
+#             result = BytesIO()
+#             pisa_status = pisa.CreatePDF(src=html_string, dest=result)
 
-            if pisa_status.err:
-                return Response({"error": "Error generating PDF"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#             if pisa_status.err:
+#                 return Response({"error": "Error generating PDF"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            response = HttpResponse(result.getvalue(), content_type='application/pdf')
-            response['Content-Disposition'] = f'inline; filename="invoice_{data["invoice_number"]}.pdf"'
-            return response
+#             response = HttpResponse(result.getvalue(), content_type='application/pdf')
+#             response['Content-Disposition'] = f'inline; filename="invoice_{data["invoice_number"]}.pdf"'
+#             return response
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class GenerateInvoicePDF(APIView):
+    def get(self, request):
+        subscription_id = request.query_params.get('subscription_id')
+        if not subscription_id:
+            return Response({"error": "subscription_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            subscription = PlanSubscription.objects.get(id=subscription_id)
+        except PlanSubscription.DoesNotExist:
+            return Response({"error": "Subscription not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Load and encode the logo image from URL
+        image_url = "https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png"
+        try:
+            response = requests.get(image_url)
+            encoded_logo = base64.b64encode(response.content).decode() if response.status_code == 200 else ""
+        except Exception:
+            encoded_logo = ""
+
+        # Prepare invoice data
+        data = {
+            'encoded_logo': encoded_logo,
+            'customer_name': subscription.payment_by or "Valued Customer",
+            'address': "Address not available",
+            'date': subscription.payment_date.strftime("%d/%m/%Y") if subscription.payment_date else "",
+            'invoice_number': subscription.id,
+            'vysyamala_id': subscription.profile_id or "",
+            'service_description': f"{subscription.payment_for or 'Membership'} {subscription.offer or ''}",
+            'price': f"{subscription.paid_amount or 0:.0f}",
+            'valid_till': subscription.validity_enddate.strftime("%d-%m-%Y") if subscription.validity_enddate else "",
+            'payment_mode': subscription.payment_mode or "Online Transfer",
+        }
+
+        # Render HTML template with data
+        html_string = render_to_string("invoice.html", data)
+
+        # Generate PDF
+        result = BytesIO()
+        pisa_status = pisa.CreatePDF(src=html_string, dest=result)
+
+        if pisa_status.err:
+            return Response({"error": "Error generating PDF"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="invoice_{data["invoice_number"]}.pdf"'
+        return response
+       
 def process_and_blur_image(image_bytes):
     """Process image bytes and return blurred image bytes"""
     try:
