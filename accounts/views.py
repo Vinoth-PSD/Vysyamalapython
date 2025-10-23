@@ -8466,7 +8466,7 @@ class AdminProfilePDFView(APIView):
                 ("6", format_star_names(porutham_data.get("6 Poruthams"))),
                 ("5", format_star_names(porutham_data.get("5 Poruthams"))),
             ]),
-            "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}/"
+            "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}"
         }
 
 
@@ -8868,7 +8868,7 @@ class AdminMatchProfilePDFView(APIView):
                     ]),
                     "porutham_rows":porutham_rows ,
                     "porutham_show":porutham_show,
-                    "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}/"
+                    "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}"
                 }
 
                 template_map = {
@@ -9647,7 +9647,7 @@ class FeaturedProfilesView(APIView):
             LEFT JOIN plan_master pl ON pf.Plan_id = pl.id
             LEFT JOIN masterstate ON ld.Profile_state = masterstate.id
             LEFT JOIN masterprofilestatus ms ON ld.status = ms.status_code
-            Where pf.featured_profile = 1
+            Where pf.featured_profile = 1 AND ld.status = 1 
             
         """
         params = []

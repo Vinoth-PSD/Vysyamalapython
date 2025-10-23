@@ -1249,7 +1249,7 @@ class LoginLogSerializer(serializers.ModelSerializer):
 class PlanSubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlanSubscription
-        fields = ['profile_id', 'paid_amount', 'payment_mode', 'payment_date', 'status','payment_for','discount']
+        fields = ['profile_id', 'paid_amount', 'payment_mode', 'payment_date', 'status','payment_for','discount','validity_startdate','validity_enddate','offer','order_id','notes','package_amount','addon_package','payment_id']
  
  
 class PlanSubscriptionListSerializer(serializers.ModelSerializer):
@@ -1266,7 +1266,14 @@ class PlanSubscriptionListSerializer(serializers.ModelSerializer):
             'payment_id',
             'gpay_no',
             'payment_for',
-            'discount'
+            'discount',
+            'validity_startdate',
+            'validity_enddate',
+            'offer',
+            'order_id',
+            'notes',
+            'package_amount',
+            'addon_package'
         ]
  
 class PaymentTransactionSerializer(serializers.ModelSerializer):
