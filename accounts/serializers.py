@@ -1206,7 +1206,7 @@ class AdminUserDropdownSerializer(serializers.ModelSerializer):
     class Meta:
         model = AdminUser
         fields = ['id', 'username']
-        
+
 class CommonProfileSearchSerializer(serializers.Serializer):
     search_profile_id = serializers.CharField(required=False, allow_blank=True)
     profile_name = serializers.CharField(required=False, allow_blank=True)
@@ -1245,13 +1245,13 @@ class LoginLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = Registration1
         fields = ['ProfileId', 'Profile_name', 'Last_login_date', 'EmailId', 'Mobile_no']
-        
+
 class PlanSubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlanSubscription
-        fields = ['profile_id', 'paid_amount', 'payment_mode', 'payment_date', 'status','payment_for','discount','validity_startdate','validity_enddate','offer','order_id','notes','package_amount','addon_package','payment_id']
- 
- 
+        fields = ['profile_id', 'paid_amount', 'payment_mode', 'payment_date', 'status','payment_for','discount','validity_startdate','validity_enddate','offer','order_id','notes','package_amount','addon_package','payment_id','gpay_no','plan_id']
+
+
 class PlanSubscriptionListSerializer(serializers.ModelSerializer):
     """For List/Detail"""
     class Meta:
