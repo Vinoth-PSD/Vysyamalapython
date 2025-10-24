@@ -1273,7 +1273,8 @@ class PlanSubscriptionListSerializer(serializers.ModelSerializer):
             'order_id',
             'notes',
             'package_amount',
-            'addon_package'
+            'addon_package',
+            'plan_id'
         ]
  
 class PaymentTransactionSerializer(serializers.ModelSerializer):
