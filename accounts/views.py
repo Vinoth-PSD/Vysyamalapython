@@ -9775,3 +9775,22 @@ class FeaturedProfileAddView(APIView):
                 "status": "error",
                 "message": f"An unexpected error occurred: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+class Renewalplans(generics.GenericAPIView):
+    def post(self, request):
+        plan_type = request.data.get('type')
+
+        if plan_type == 'new':
+            statuses = PlanDetails.objects.filter(master_substatus__in=[5, 6],plan_status=1)
+        elif plan_type == 'renewal':
+            statuses = PlanDetails.objects.filter(master_substatus=7).exclude(id=4)
+        else:
+            statuses = PlanDetails.objects.filter(master_substatus__in=[5, 6, 7],plan_status=1)
+
+        serializer = PlandetailsSerializer(statuses, many=True)
+        return Response({
+            'status': 'success',
+            'data': serializer.data
+        })
