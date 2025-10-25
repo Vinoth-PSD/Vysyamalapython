@@ -18,7 +18,7 @@ from .models import MarriageSettleDetails
 from .models import PaymentTransaction
 from .models import Invoice
 from .models import MasterhighestEducation
-from .models import PlanSubscription
+from .models import PlanSubscription,Addonpackages
 
 class ProfileStatusSerializer(serializers.ModelSerializer):
     class Meta:
@@ -1254,6 +1254,8 @@ class PlanSubscriptionSerializer(serializers.ModelSerializer):
 
 class PlanSubscriptionListSerializer(serializers.ModelSerializer):
     """For List/Detail"""
+    payment_for = serializers.SerializerMethodField()
+    
     class Meta:
         model = PlanSubscription
         fields = [
@@ -1274,8 +1276,33 @@ class PlanSubscriptionListSerializer(serializers.ModelSerializer):
             'notes',
             'package_amount',
             'addon_package',
-            'plan_id'
+            'plan_id',
+            'is_sent_email'
         ]
+    def get_payment_for(self, obj):
+        response_parts = []
+
+        if obj.plan_id and obj.plan_id != 0:
+            try:
+                plan = PlanDetails.objects.get(id=obj.plan_id)
+                response_parts.append(plan.plan_name)
+            except PlanDetails.DoesNotExist:
+                pass
+
+        if obj.addon_package:
+            addon_ids = [int(pk.strip()) for pk in obj.addon_package.split(",") if pk.strip().isdigit()]
+            addon_qs = Addonpackages.objects.filter(package_id__in=addon_ids)
+            addon_names = [addon.name for addon in addon_qs]
+            if addon_names:
+                response_parts.append(", ".join(addon_names))
+
+        return " + ".join(response_parts) if response_parts else None 
+    # def get_payment_for(self, obj):
+    #     try:
+    #         plan = PlanDetails.objects.get(id=obj.plan_id)
+    #         return plan.plan_name 
+    #     except PlanDetails.DoesNotExist:
+    #         return None
  
 class PaymentTransactionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -1292,6 +1319,7 @@ class PaymentTransactionListSerializer(serializers.Serializer):
     EmailId = serializers.EmailField()
     Profile_dob = serializers.DateField()
     plan_name = serializers.CharField()
+    current_plan_name = serializers.CharField()
     status = serializers.SerializerMethodField()
     DateOfJoin = serializers.SerializerMethodField()
     years = serializers.SerializerMethodField()
@@ -1307,7 +1335,7 @@ class PaymentTransactionListSerializer(serializers.Serializer):
     Profile_city = serializers.CharField()
     Profile_state = serializers.SerializerMethodField()
     profile_status = serializers.SerializerMethodField()
-    admin_status = serializers.CharField()
+    a_status = serializers.CharField()
     action_log = serializers.ListField(child=serializers.DictField(), required=False)
     
     def get_Profile_state(self,obj):
@@ -1351,3 +1379,5 @@ class PaymentTransactionListSerializer(serializers.Serializer):
         
     def get_DateOfJoin(self, obj):
         return obj['DateOfJoin'].date() if obj.get('DateOfJoin') else None
+    
+    

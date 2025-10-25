@@ -1,122 +1,193 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 25px;
-            font-size: 13px;
-        }
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        .table th, .table td {
-            border: 1px solid #000;
-            padding: 10px;
-            text-align: left;
-        }
-        .table th {
-            background-color: #ffffff;
-        }
-        .note {
-            margin-top: 30px;
-            font-style: italic;
-            font-weight: bold;
-            text-align: center;
-        }
-        .bottom-contact {
-            margin-top: 10px;
-            font-size: 11px;
-            border-top: 1px solid #ccc;
-            padding-top: 5px;
-        }
-        .text-green {
-            color: rgb(31, 90, 41) !important;
-        }
+      body {
+        font-family: Arial, sans-serif;
+        padding: 0px;
+        font-size: 13px;
+      }
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin:0px;
+        margin-top: 10px;
+        
+      }
+      .table th,
+      .table td {
+        border: 1px solid #000;
+        padding: 10px;
+        text-align: left;
+      }
+      .table th {
+        background-color: #ffffff;
+      }
+      .note {
+        margin-top: 30px;
+        font-style: italic;
+        font-weight: bold;
+        text-align: center;
+      }
+      .bottom-contact {
+        margin-top: 10px;
+        font-size: 11px;
+        border-top: 1px solid #000;
+        padding-top: 5px;
+      }
+      .text-green {
+        color: rgb(31, 90, 41) !important;
+      }
     </style>
-</head>
-<body>
-
-<table style="width: 100%;">
-    <tr>
-        <td style="vertical-align: top; width: 60%; font-size: 13px;" class="text-green">
-            {% if encoded_logo %}
-                <img src="data:image/png;base64,{{ encoded_logo }}" style="height: 50px;width: 150px;"><br>
-            {% endif %}
-            <strong>To</strong><br>
-            {{ customer_name }}<br>
-            {{ address }}
-        </td>
-        <td style="vertical-align: top; text-align: right;" class="text-green">
-            <h2 style="margin: 0; color: #9c9c9c;">Invoice</h2>
-            Date: {{ date }}<br>
-            Invoice #: V{{ invoice_number }}<br>
-            Vysyamala ID: {{ vysyamala_id }}<br>
-        </td>
-    </tr>
-</table>
-
-<table class="table">
-    <tr>
-        <th>Service Description</th>
-        <th>Price</th>
-        <th>Net Price</th>
-    </tr>
-    <tr>
+  </head>
+  <body>
+    <table style="border:2px solid #f0ed46; padding:5px;padding-left:20px;width: 100%; box-sizing: border-box;">
+        <tr>
         <td>
-            {{ service_description }}<br>
-            <small>Valid till: {{ valid_till }} or engagement date whichever is earlier</small>
+    <table style="margin-bottom: 30px; width: 100%">
+      <tr>
+        <td
+          style="vertical-align: top; font-size: 13px; text-align: left"
+          class="text-green"
+        >
+          {% if encoded_logo %}
+          <img
+            src="data:image/png;base64,{{ encoded_logo }}"
+            style="height: 40px; width: 150px; object-fit: contain;"
+          /><br />
+          {% endif %}
+          <strong>To</strong><br />
+          <b>{{ customer_name }}<br />
+          {{ address }}</b>
         </td>
-        <td>{{ price }}</td>
-        <td>{{ price }}</td>
-    </tr>
-    <tr>
-        <td colspan="2"><strong>Total</strong></td>
-        <td><strong>{{ price }}</strong></td>
-    </tr>
-</table>
+        <td style="vertical-align: top; text-align: right" class="text-green">
+          <h2 style="font-size:2rem;margin: 0; color: #9c9c9c"><b>Invoice</b></h2>
+          <b>Date:</b>{{ date }}<br />
+          <b>Invoice #:</b> V{{ invoice_number }}<br />
+          <b>Vysyamala ID:</b> {{ vysyamala_id }}<br />
+        </td>
+      </tr>
+    </table>
 
-<p><strong>In words:</strong> Four Thousand Nine Hundred only.</p>
+    <table class="table">
+      <tr>
+        <th colspan="3">Service Description</th>
+        {% comment %} <th>Price</th> {% endcomment %}
+        <th>Price</th>
+      </tr>
+      <tr>
+        <td colspan="3">
+          {{ service_description }}<br />
+          <b>{{offer}}</b><br/>
+          <b
+            >Valid till: {{ valid_till }} or engagement date whichever is
+            earlier</b
+          >
+        {% if addon_items %}
+            <p>Add-on Services</p>
+        {% endif %}
+   {% for addon in addon_items %}
+    
+        <p>{{ addon.name }} - {{ addon.description }}</p>
+      
+      {% endfor %}
+        </td>
+        {% comment %} <td>{{ price }}
+            {% for addon in addon_items %}
+            <p>{{ addon.amount }}</p>
+            {%endfor%}
+        </td>    {% endcomment %}
+        <td>{{ price }}
+            <p></p>
+            {% for addon in addon_items %}
+            <p>{{ addon.amount }}</p>
+            {%endfor%}
+        </td>
+        {% if addon_items %}
+     
+      </tr>
+   
+      <tr>
+        <td colspan="3"><strong>Add-on Total</strong></td>
+        <td><strong>{{ addon_total }}</strong></td>
+      </tr>
+      {% endif %}
+      
+      <tr>
+        <td colspan="3">Net Total</td>
+        <td><strong>{{ net_price }}</strong></td>
+      </tr>
+      {% if discount %}
+      <tr>
+        <td colspan="3">Discount</td>
+        <td><strong>{{ discount }}</strong></td>
+      </tr>
+      {% endif %}
+      <tr>
+        <td colspan="3"><strong>Grand Total</strong></td>
+        <td><strong>{{ total_price }}</strong></td>
+      </tr>
+    </table>
 
-<table class="table" style="width: 50%; margin-top: 20px;">
-    <tr>
+    <p><strong>In words:</strong> Four Thousand Nine Hundred only.</p>
+
+    <table class="table" style="width: 50%; margin-top: 20px">
+      <tr>
         <th>Payment Mode</th>
         <td>{{ payment_mode }}</td>
-    </tr>
-</table>
+      </tr>
+    </table>
 
-<p class="note">Thank you for your opportunity to serve you!</p>
+    <p class="note">Thank you for your opportunity to serve you!</p>
 
-<div class="bottom-contact">
-    <table style="width: 100%;">
-        <p>
-            <td class ="text-green" style="vertical-align: top; width: 50%;">
-                Vysyamala<br>
-                C/o. YK Lavanya<br>
-                <a>No.2, Krishnaswamy Street (Lane)</a><br>
-                A6-2nd Floor, Sri Vinayaga Flats<br>
-                Ganapathipuram, Chrompet<br>
-                Chennai – 600 044
-            </td>
+    <div class="bottom-contact">
+      <table style="width: 100%">
+        <tr>
+          <td class="text-green" style="vertical-align: top; width: 50%">
+            <b>Vysyamala</b><br />
+            C/o. YK Lavanya<br />
+            <b><a>No.2, Krishnaswamy Street (Lane)</a><br />
+            A6-2nd Floor, Sri Vinayaga Flats<br />
+            Ganapathipuram, Chrompet<br />
+            Chennai – 600 044</b>
+          </td>
 
-            <td style="vertical-align: top; text-align: right; font-size: 11px;">
-               <p class="text-green" style="font-weight:700"> Web: <a href="http://www.vysyamala.com">www.vysyamala.com</a></p>
-                <p class="text-green" style="font-weight:700">Email:<a>vysyamala@gmail.com</a></p>
-                <p class="text-green" style="font-weight:700">Facebook: <a>www.fb.com/vysyamala</a></p>
-                <p class="text-green" style="font-weight:700">Whatsapp: 9043085524</p>
-                <p class="text-green" style="font-weight:700">Customer Support: 9944851550(10 a.m. to 6 p.m.)</p>
-               
-            </td>
+          <td style="vertical-align: top; text-align: right; font-size: 11px">
+            <p class="text-green" style="font-weight: 700">
+              Web: <a href="http://www.vysyamala.com">www.vysyamala.com</a>
+            </p>
+            <p class="text-green" style="font-weight: 700">
+              Email: <a>vysyamala@gmail.com</a>
+            </p>
+            <p class="text-green" style="font-weight: 700">
+              Facebook: <a>www.fb.com/vysyamala</a>
+            </p>
+            <p class="text-green" style="font-weight: 700">
+              <b>Whatsapp: 9043085524</b>
+            </p>
+            <p class="text-green" style="font-weight: 700">
+              <b>Customer Support: 9944851550 (10 a.m. to 6 p.m.)</b>
+            </p>
+          </td>
         </tr>
         <tr>
-            <td colspan="2" style="text-align: center; font-style: italic; font-size: 12px; padding-top: 10px;">
-                May Goddess Sri Vasavi Kanyaka Parameswari bless you and your family with peace & prosperity!
-            </td>
+          <td
+            colspan="2"
+            style="
+              text-align: center;
+              font-style: italic;
+              font-size: 12px;
+              padding-top: 10px;
+            "
+          >
+            May Goddess Sri Vasavi Kanyaka Parameswari bless you and your family
+            with peace & prosperity!
+          </td>
         </tr>
-    </table>
-</div>
-
-</body>
+      </table>
+    </div>
+</td>
+</tr>
+</table>
+  </body>
 </html>

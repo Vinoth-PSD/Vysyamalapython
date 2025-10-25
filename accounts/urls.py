@@ -200,6 +200,6 @@ urlpatterns = [
     path('data-history/',views.DataHistoryListView.as_view(),name='data-history'),
     path('featured-profiles/', views.FeaturedProfilesView.as_view(), name='featured-profiles'),
     path('featured-profiles-add/', views.FeaturedProfileAddView.as_view(), name='featured-profiles-add'),
-    path('renewal-plan/',views.Renewalplans.as_view(),name='Renewalplan')
-    
+    path('renewal-plan/',views.Renewalplans.as_view(),name='Renewalplan'),
+    path('send-invoice/',views.SendInvoicePDF.as_view(),name='Renewalplan')
 ]

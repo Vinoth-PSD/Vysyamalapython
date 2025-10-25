@@ -7723,6 +7723,16 @@ class GenerateInvoicePDF(APIView):
         except PlanSubscription.DoesNotExist:
             return Response({"error": "Subscription not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        try:
+            profile = Registration1.objects.get(ProfileId=subscription.profile_id)
+        except Exception:
+            profile = None
+        if profile:
+            customer_name = profile.Profile_name
+            address = f"{profile.Profile_address or ''}\n{profile.Profile_city or ''}, {profile.Profile_state or ''} - {profile.Profile_pincode or ''}\nPhone: {profile.Mobile_no or ''}\nEmail: {profile.EmailId or ''}"
+        else:
+            customer_name = None
+            address = "Address not available"
         # Load and encode the logo image from URL
         image_url = "https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png"
         try:
@@ -7731,18 +7741,57 @@ class GenerateInvoicePDF(APIView):
         except Exception:
             encoded_logo = ""
 
-        # Prepare invoice data
+        if subscription.payment_mode:
+            mode = subscription.payment_mode.strip().lower()
+            print(mode)
+            if mode in ["razorpay"]:
+                payment_mode = "Online Transfer"
+            else:
+                payment_mode = "Cash/Cheque/DD"
+        else:
+            payment_mode = "Cash/Cheque/DD"
+        
+        try:
+            addon_ids = [int(pk.strip()) for pk in subscription.addon_package.split(",") if pk.strip().isdigit()]
+            addon_qs = Addonpackages.objects.filter(package_id__in=addon_ids)
+
+            addon_items = []
+            addon_total = 0
+            for addon in addon_qs:
+                addon_items.append({
+                    "name": addon.name,
+                    "description": addon.description,
+                    "amount": addon.amount or 0
+                })
+                addon_total += addon.amount or 0
+        except Exception:
+            addon_items = []
+            addon_total = 0
+
+        base_price = subscription.package_amount or 0
+        total_price = base_price + addon_total-subscription.discount
+        net_price = base_price + addon_total
+        if subscription.plan_id and subscription.plan_id > 0:
+            plan_name = PlanDetails.objects.filter(id=subscription.plan_id).values_list('plan_name', flat=True).first()   
+        else:
+            plan_name = ""
         data = {
             'encoded_logo': encoded_logo,
-            'customer_name': subscription.payment_by or "Valued Customer",
-            'address': "Address not available",
+            'customer_name': customer_name if customer_name else "Valued Customer",
+            'address': address,
             'date': subscription.payment_date.strftime("%d/%m/%Y") if subscription.payment_date else "",
             'invoice_number': subscription.id,
             'vysyamala_id': subscription.profile_id or "",
-            'service_description': f"{subscription.payment_for or 'Membership'} {subscription.offer or ''}",
-            'price': f"{subscription.paid_amount or 0:.0f}",
+            'service_description':plan_name or "" ,
+            'offer': subscription.offer or "",
+            'price': f"{base_price:.0f}",
             'valid_till': subscription.validity_enddate.strftime("%d-%m-%Y") if subscription.validity_enddate else "",
-            'payment_mode': subscription.payment_mode or "Online Transfer",
+            'payment_mode': payment_mode or "N/A",
+            'addon_items': addon_items,
+            'addon_total': f"{addon_total:.0f}",
+            'discount': f"{subscription.discount:.0f}",
+            'total_price': f"{total_price:.0f}",
+            'net_price': f"{net_price:.0f}",
         }
 
         # Render HTML template with data
@@ -9442,15 +9491,18 @@ class TransactionHistoryView(generics.ListAPIView):
         to_date = request.query_params.get('to_date')
         filter_type = request.query_params.get('filter_type')
         search = request.query_params.get('search')
+        t_status = request.query_params.get('t_status')
+        a_status = request.query_params.get('a_status')
 
         status_ids = [1, 2, 3]
         placeholders = ', '.join(['%s'] * len(status_ids))
 
-        def build_transaction_sql(source, table_alias, date_field, start_date_field,end_date_field,amount_field, discount_field, payment_type_field, admin_field, ref_field):
+        def build_transaction_sql(source, table_alias, date_field, start_date_field, end_date_field, amount_field, discount_field, payment_type_field, admin_field, ref_field):
             return f"""
                 SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId,
-                    ld.status AS profile_status, ld.Profile_dob, ld.Profile_whatsapp, {table_alias}.plan_id,
-                    ld.Profile_city, ld.Profile_state, {table_alias}.status, ld.DateOfJoin, pl.plan_name,
+                    ld.status AS profile_status, ld.Profile_dob, ld.Profile_whatsapp,
+                    ld.Plan_id ,ld.Plan_status AS profile_plan_id, {table_alias}.plan_id AS transaction_plan_id,
+                    ld.Profile_city, ld.Profile_state, {table_alias}.status, ld.DateOfJoin, pl.plan_name,cpl.plan_name AS current_plan_name,
                     {start_date_field} AS membership_startdate, {end_date_field} AS membership_enddate,
                     {table_alias}.id AS transaction_id, {table_alias}.order_id, {table_alias}.{date_field} AS created_at,
                     {table_alias}.payment_id, {table_alias}.{amount_field} AS amount, {table_alias}.{discount_field} AS discount_amont,
@@ -9460,6 +9512,7 @@ class TransactionHistoryView(generics.ListAPIView):
                 FROM {source} {table_alias}
                 LEFT JOIN plan_master pl ON {table_alias}.plan_id = pl.id
                 LEFT JOIN logindetails ld ON ld.ProfileId = {table_alias}.profile_id
+                LEFT JOIN plan_master cpl ON ld.plan_id = cpl.id
             """
 
 
@@ -9517,6 +9570,19 @@ class TransactionHistoryView(generics.ListAPIView):
                 params.extend([start_date, end_date])
         except Exception as e:
             print(f"Filter error: {e}")
+
+        if t_status:
+            try:
+                t_status = int(t_status)
+                if t_status == 1:
+                    sql += " AND ((combined.source = 'payment_transaction' AND combined.status = 1))"
+                elif t_status == 2:
+                    sql += " AND ((combined.source = 'payment_transaction' AND combined.status = 2) OR (combined.source = 'plan_subscription' AND combined.status = 1))"
+                elif t_status == 3:
+                    sql += " AND ((combined.source = 'payment_transaction' AND combined.status = 3) OR (combined.source = 'plan_subscription' AND combined.status = 0))"
+            except Exception as e:
+                print(f"Invalid t_status value:{str(e)}")
+                pass
 
         if search:
             sql += """
@@ -9581,10 +9647,17 @@ class TransactionHistoryView(generics.ListAPIView):
                 "addon_packages": log.get("addon_packages"),
                 "created_at": log["created_at"].date() if isinstance(log["created_at"], datetime) else log["created_at"],
             })
-
         for row in main_rows:
             row["action_log"] = logs_by_profile.get(row["ProfileId"], [])
+            transaction_plan_id = row.get("transaction_plan_id")
+            profile_plan_id = row.get("profile_plan_id")
+            # print("tran_id:",transaction_plan_id, profile_plan_id)
+            row["a_status"] = "active" if transaction_plan_id == profile_plan_id else "inactive" 
 
+        if a_status in ["0", "1"]:
+            status_label = "active" if a_status == "1" else "inactive"
+            main_rows = [row for row in main_rows if row["a_status"] == status_label]
+            
         return main_rows    
 
     def map_status_code(self, code):
@@ -9611,53 +9684,24 @@ class TransactionHistoryExportView(generics.GenericAPIView):
     serializer_class = PaymentTransactionListSerializer
 
     def get(self, request, *args, **kwargs):
-        # Reuse SQL builder logic
         view = TransactionHistoryView()
         view.request = request
-        view.get_queryset()  # This sets view.sql and view.params
+        main_rows = view.get_queryset()  # use returned rows directly
 
-        sql = getattr(view, 'sql', None)
-        params = getattr(view, 'params', [])
-
-        if not sql:
-            return HttpResponse("Failed to generate SQL", status=500)
-
-        # Get serializer field names for CSV header
-        serializer = self.get_serializer()
-        field_names = list(serializer.fields.keys())
+        serializer = self.get_serializer(main_rows, many=True)
+        field_names = list(serializer.child.fields.keys())
 
         pseudo_buffer = Echo()
         writer = csv.writer(pseudo_buffer)
 
         def row_stream():
-            # Yield header
             yield writer.writerow(field_names)
+            for item in serializer.data:
+                yield writer.writerow([smart_str(item.get(f)) for f in field_names])
 
-            # Stream rows directly from DB cursor
-            with connection.cursor() as cursor:
-                cursor.execute(sql, params)
-                cols = [col[0] for col in cursor.description]
-
-                while True:
-                    rows = cursor.fetchmany(2000)  # Fetch in chunks
-                    if not rows:
-                        break
-                    for row in rows:
-                        # Convert DB row to dict
-                        row_dict = dict(zip(cols, row))
-
-                        # Serialize using DRF serializer (safe for dict input if field names match)
-                        serialized = self.get_serializer(row_dict)
-                        csv_row = [smart_str(serialized.data.get(field)) for field in field_names]
-                        yield writer.writerow(csv_row)
-
-        response = StreamingHttpResponse(
-            row_stream(),
-            content_type='text/csv; charset=utf-8'
-        )
+        response = StreamingHttpResponse(row_stream(), content_type="text/csv; charset=utf-8")
         response['Content-Disposition'] = 'attachment; filename="transaction_history.csv"'
         return response
-
 
 class DataHistoryListView(generics.GenericAPIView):
          
@@ -9794,3 +9838,129 @@ class Renewalplans(generics.GenericAPIView):
             'status': 'success',
             'data': serializer.data
         })
+        
+class SendInvoicePDF(APIView):
+    def get(self, request):
+        subscription_id = request.query_params.get('subscription_id')
+        if not subscription_id:
+            return Response({"error": "subscription_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            subscription = PlanSubscription.objects.get(id=subscription_id)
+        except PlanSubscription.DoesNotExist:
+            return Response({"error": "Subscription not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            profile = Registration1.objects.get(ProfileId=subscription.profile_id)
+        except Exception:
+            profile = None
+
+        if profile:
+            customer_name = profile.Profile_name
+            address = f"{profile.Profile_address or ''}\n{profile.Profile_city or ''}, {profile.Profile_state or ''} - {profile.Profile_pincode or ''}\nPhone: {profile.Mobile_no or ''}\nEmail: {profile.EmailId or ''}"
+            recipient_email = profile.EmailId
+        else:
+            customer_name = None
+            address = "Address not available"
+            recipient_email = None
+
+        image_url = "https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png"
+        try:
+            response = requests.get(image_url)
+            encoded_logo = base64.b64encode(response.content).decode() if response.status_code == 200 else ""
+        except Exception:
+            encoded_logo = ""
+
+        if subscription.payment_mode:
+            mode = subscription.payment_mode.strip().lower()
+            if mode in ["razorpay"]:
+                payment_mode = "Online Transfer"
+            else:
+                payment_mode = "Cash/Cheque/DD"
+        else:
+            payment_mode = "Cash/Cheque/DD"
+
+        try:
+            addon_ids = [int(pk.strip()) for pk in subscription.addon_package.split(",") if pk.strip().isdigit()]
+            addon_qs = Addonpackages.objects.filter(package_id__in=addon_ids)
+
+            addon_items = []
+            addon_total = 0
+            for addon in addon_qs:
+                addon_items.append({
+                    "name": addon.name,
+                    "description": addon.description,
+                    "amount": addon.amount or 0
+                })
+                addon_total += addon.amount or 0
+        except Exception:
+            addon_items = []
+            addon_total = 0
+
+        base_price = subscription.package_amount or 0
+        total_price = base_price + addon_total - subscription.discount
+        net_price = base_price + addon_total
+        
+        if subscription.plan_id and subscription.plan_id > 0:
+            plan_name = PlanDetails.objects.filter(id=subscription.plan_id).values_list('plan_name', flat=True).first()   
+        else:
+            plan_name = ""
+        data = {
+            'encoded_logo': encoded_logo,
+            'customer_name': customer_name if customer_name else "Valued Customer",
+            'address': address,
+            'date': subscription.payment_date.strftime("%d/%m/%Y") if subscription.payment_date else "",
+            'invoice_number': subscription.id,
+            'vysyamala_id': subscription.profile_id or "",
+            'service_description':plan_name or "" ,
+            'offer': subscription.offer or "",
+            'price': f"{base_price:.0f}",
+            'valid_till': subscription.validity_enddate.strftime("%d-%m-%Y") if subscription.validity_enddate else "",
+            'payment_mode': payment_mode or "N/A",
+            'addon_items': addon_items,
+            'addon_total': f"{addon_total:.0f}",
+            'discount': f"{subscription.discount:.0f}",
+            'total_price': f"{total_price:.0f}",
+            'net_price': f"{net_price:.0f}",
+        }
+
+        html_string = render_to_string("invoice.html", data)
+        pdf_buffer = BytesIO()
+        pisa_status = pisa.CreatePDF(src=html_string, dest=pdf_buffer)
+
+        if pisa_status.err:
+            return Response({"error": "Error generating PDF"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        email_body = """
+Dear Mrs. {CustomerName}, 🙏
+
+Thank you for choosing Vysyamala and opting for the {MembershipPlan} membership.
+
+Your invoice is attached for your reference ✅  
+For any assistance, kindly contact our support: 99448 51550.
+
+With the blessings of Goddess Sri Kannika Parameswari,  
+we wish you a happy and blessed journey towards finding your life partner 🌸
+
+Team Vysyamala  
+www.vysyamala.com
+        """.format(
+            CustomerName=customer_name or "Customer",
+            MembershipPlan=plan_name or ""
+        )
+        if recipient_email:
+            email = EmailMessage(
+                subject=f"Invoice V{subscription.id} from Vysyamala",
+                body=email_body,
+                to=[recipient_email]
+            )
+            email.attach(f"invoice_{subscription.id}.pdf", pdf_buffer.getvalue(), "application/pdf")
+            try:
+                email.send()
+                subscription.is_sent_email = True
+                subscription.save()
+                return Response({"success": "Email sent successfully!"}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({"error": f"Failed to send email: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            return Response({"error": "Recipient email not found"}, status=status.HTTP_400_BAD_REQUEST)

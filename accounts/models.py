@@ -513,6 +513,7 @@ class PlanSubscription(models.Model):
     offer = models.CharField(max_length=255,null=True,blank=True)
     notes = models.CharField(max_length=255,null=True,blank=True)
     package_amount = models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
+    is_sent_email = models.BooleanField(default=False)
  
     class Meta:
         managed = False  
