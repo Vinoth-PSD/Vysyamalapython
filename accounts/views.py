@@ -826,6 +826,12 @@ class LoginDetailsViewSet(viewsets.ModelViewSet):
         # Save the instance with the generated or provided ProfileId
         serializer.save(ProfileId=profile_id)
 
+    def destroy(self, request, *args, **kwargs):
+        return Response(
+            {"detail": "Delete operation is not allowed for this resource."},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
 
 class ProfileFamilyDetailsViewSet(viewsets.ModelViewSet):
     queryset = ProfileFamilyDetails.objects.all()
