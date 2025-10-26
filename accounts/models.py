@@ -1342,13 +1342,6 @@ class Get_profiledata_Matching(models.Model):
 
             annual_income_min = partner_pref.pref_anual_income
             annual_income_max = partner_pref.pref_anual_income_max
-            # annual_income_ids = partner_pref.pref_anual_income or ""
-            # with connection.cursor() as cursor:
-            #     cursor.execute(
-            #         "SELECT MIN(income_amount), MAX(income_amount) FROM masterannualincome WHERE FIND_IN_SET(id, %s)",
-            #         [annual_income_ids]
-            #     )
-            #     min_income, max_income = cursor.fetchone() or (None, None)
 
             # Base query
             base_query = """

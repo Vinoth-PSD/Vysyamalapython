@@ -777,7 +777,6 @@ def Update_AdminComments(request, profile_id):
         return Response(response_data,status=status.HTTP_200_OK)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 @api_view(['POST'])
 def basic_details(request):
     if request.method == 'POST':
@@ -813,7 +812,7 @@ class LoginDetailsViewSet(viewsets.ModelViewSet):
             new_profile_id = "VY240001"
         
         return new_profile_id
-
+    
     @transaction.atomic
     def perform_create(self, serializer):
         # Check if ProfileId exists in the incoming data
