@@ -1296,11 +1296,7 @@ class Get_profiledata_Matching(models.Model):
         father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None,field_of_study=None,
         degree=None,from_date=None,to_date=None ,action_type=None , status=None,search=None
     ):
-        
 
-
-        
-        
         # print('action_type 123',action_type,'status 123',status)
         try:
             profile = get_object_or_404(Registration1, ProfileId=profile_id)
@@ -1335,12 +1331,12 @@ class Get_profiledata_Matching(models.Model):
             else:
                 marital_status = partner_pref.pref_marital_status
             porutham_star_rasi = matching_stars or partner_pref.pref_porutham_star_rasi
-            print("pporutham",porutham_star_rasi)
+            # print("pporutham",porutham_star_rasi)
             pref_foreign = foreign_intrest or partner_pref.pref_foreign_intrest
             ragukethu = ragu or partner_pref.pref_ragukethu
             chevvai = chev or partner_pref.pref_chevvai
-            partner_pref_familysts = partner_pref.pref_family_status
-            partner_pref_state = partner_pref.pref_state
+            partner_pref_familysts = family_status or partner_pref.pref_family_status
+            partner_pref_state = state or partner_pref.pref_state
             field_of_study = field_of_study or partner_pref.pref_fieldof_study
             degree = degree or partner_pref.degree
 
@@ -1539,23 +1535,32 @@ class Get_profiledata_Matching(models.Model):
 
                 family_status_conditions = []
 
-                if partner_pref_familysts:
-                    family_status_conditions.append(
-                        "(FIND_IN_SET(c.family_status, %s) > 0 OR c.family_status IS NULL OR c.family_status = '')"
-                    )
-                    query_params.append(partner_pref_familysts)
+                # if partner_pref_familysts:
+                #     family_status_conditions.append(
+                #         "(FIND_IN_SET(c.family_status, %s) > 0 OR c.family_status IS NULL OR c.family_status = '')"
+                #     )
+                #     query_params.append(partner_pref_familysts)
 
-                if family_status:
-                    statuses = [s.strip() for s in str(family_status).split(',') if s.strip()]
-                    if statuses:
-                        status_filters = []
-                        for status_f in statuses:
-                            status_filters.append("FIND_IN_SET(%s, c.family_status) > 0")
-                            query_params.append(status_f)
-                        family_status_conditions.append("(" + " OR ".join(status_filters) + ")")
+                fstatuses = [s.strip() for s in str(partner_pref_familysts).split(',') if s.strip()]
+
+                if fstatuses:
+                    # Generate placeholders for the IN query (e.g., %s, %s, %s)
+                    placeholders = ','.join(['%s'] * len(fstatuses))
+                    family_status_conditions.append(f"(c.family_status IN ({placeholders}))")
+                    query_params.extend(fstatuses)
+
+                # if family_status:
+                #     statuses = [s.strip() for s in str(family_status).split(',') if s.strip()]
+                #     if statuses:
+                #         status_filters = []
+                #         for status_f in statuses:
+                #             status_filters.append("FIND_IN_SET(%s, c.family_status) > 0")
+                #             query_params.append(status_f)
+                #         family_status_conditions.append("(" + " OR ".join(status_filters) + ")")
 
                 if family_status_conditions:
-                    base_query += " AND (" + " OR ".join(family_status_conditions) + ")"
+
+                    base_query += " AND ((" + " OR ".join(family_status_conditions) + ") OR c.family_status IS NULL OR c.family_status='' )"
             
                 if pref_education and pref_education.strip():
                     edu_list = [e.strip() for e in pref_education.split(',') if e.strip().isdigit()]
@@ -1575,9 +1580,12 @@ class Get_profiledata_Matching(models.Model):
                         query_params.append(porutham_star_rasi.strip())
 
                 if marital_status:
-                    marital_status_str = ",".join(marital_status) if isinstance(marital_status, list) else marital_status.strip()
-                    base_query += " AND FIND_IN_SET(a.Profile_marital_status, %s) > 0"
-                    query_params.append(marital_status_str)
+                    statuses = marital_status if isinstance(marital_status, list) else marital_status.split(',')
+                    statuses = [s.strip() for s in statuses if s.strip()]
+                    if statuses:
+                        placeholders = ','.join(['%s'] * len(statuses))
+                        base_query += f" AND a.Profile_marital_status IN ({placeholders})"
+                        query_params.extend(statuses)
 
                 if field_of_study:
                     fields = [f.strip() for f in field_of_study.split(',') if f.strip()]
@@ -1802,12 +1810,6 @@ class Get_profiledata_Matching(models.Model):
 
             total = len(all_ids)
             profile_with_indices = {str(i + 1): pid for i, pid in enumerate(all_ids)}
-            # total=0
-            # profile_with_indices={}
-
-            # Pagination
-            # final_query += " LIMIT %s, %s"
-            # query_params.extend([start, per_page])
             
             def format_sql_for_debug(query, params):
                 def escape(value):
@@ -1823,9 +1825,9 @@ class Get_profiledata_Matching(models.Model):
                     print("Error formatting query:", e)
                     return query
 
-            # Usage:
-            print("MySQL Executable Query:")
-            print(format_sql_for_debug(final_query, query_params))
+            # # Usage:
+            # print("MySQL Executable Query:")
+            # print(format_sql_for_debug(final_query, query_params))
 
             with connection.cursor() as cursor:
                 cursor.execute(final_query, query_params)
@@ -1839,7 +1841,7 @@ class Get_profiledata_Matching(models.Model):
             return [], 0, {}
 
         except Exception as e:
-            print(f"[ERROR] get_profile_list: {str(e)}")
+            # print(f"[ERROR] get_profile_list: {str(e)}")
             return [], 0, {}
     
     @staticmethod

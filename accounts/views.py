@@ -4218,8 +4218,8 @@ class Get_prof_list_match(APIView):
         anualincomes = {i.id: i.income for i in AnnualIncome.objects.all()}
 
 
-        print('plans',plans)
-        print('family_statuses',family_statuses)
+        # print('plans',plans)
+        # print('family_statuses',family_statuses)
         logs_map = get_bulk_action_logs(profile_id, profile_ids)
         for detail in profile_details:
 
