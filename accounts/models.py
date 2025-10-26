@@ -1294,7 +1294,7 @@ class Get_profiledata_Matching(models.Model):
         height_from=None, height_to=None,
         matching_stars=None, min_anual_income=None, max_anual_income=None, membership=None,ragu=None, chev=None,
         father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None,field_of_study=None,
-        degree=None,from_date=None,to_date=None ,action_type=None , status=None,search=None
+        degree=None,from_date=None,to_date=None ,action_type=None , status=None,search=None ,except_viewed=None , except_visitor=None
     ):
 
         # print('action_type 123',action_type,'status 123',status)
@@ -1662,6 +1662,25 @@ class Get_profiledata_Matching(models.Model):
                 if has_photos and has_photos.lower() == "yes":
                     base_query += " AND pi.first_image_id IS NOT NULL"
 
+                if except_viewed ==1:
+                    # Exclude profiles that I have already viewed
+                    base_query += """
+                        AND a.ProfileId NOT IN (
+                            SELECT v1.viewed_profile FROM profile_visit_logs v1 WHERE v1.profile_id = %s
+                        )
+                    """
+                    query_params.append(profile_id)
+
+                if except_visitor ==1:
+                    # Exclude profiles that have already visited me
+                    base_query += """
+                        AND a.ProfileId NOT IN (
+                            SELECT v2.profile_id FROM profile_visit_logs v2 WHERE v2.viewed_profile = %s
+                        )
+                    """
+                    query_params.append(profile_id)
+
+
                 if membership:
                     membership_ids = [m.strip() for m in membership.split(",") if m.strip().isdigit()]
                     if membership_ids:
@@ -1834,7 +1853,7 @@ class Get_profiledata_Matching(models.Model):
             return [], 0, {}
 
         except Exception as e:
-            # print(f"[ERROR] get_profile_list: {str(e)}")
+            print(f"[ERROR] get_profile_list: {str(e)}")
             return [], 0, {}
     
     @staticmethod
@@ -2176,7 +2195,7 @@ class Get_profiledata_Matching(models.Model):
                     # print("Error formatting query:", e)
                     return query
                 
-            print("MySQL Executable Query:", format_sql_for_debug(query, query_params))
+            # print("MySQL Executable Query:", format_sql_for_debug(query, query_params))
             with connection.cursor() as cursor:
                 cursor.execute(query, query_params)
                 rows = cursor.fetchall()
@@ -2490,8 +2509,8 @@ class Get_profiledata_Matching(models.Model):
                     return str(value)
                 return query % tuple(map(escape, params))
 
-            print("Final matching Match Count SQL:")
-            print(format_sql_for_debug(base_query, params))
+            # print("Final matching Match Count SQL:")
+            # print(format_sql_for_debug(base_query, params))
 
             # print("COUNT EXECUTABLE QUERY ➤\n", format_sql_for_debug(base_query, params))
 
@@ -2872,7 +2891,7 @@ class Get_profiledata_Matching(models.Model):
                        f.nature_of_business,
                        g.EducationLevel, d.star, h.income
                 FROM logindetails a
-                JOIN profile_suggested_pref s ON a.ProfileId = s.profile_id 
+                JOIN profile_visibility s ON a.ProfileId = s.profile_id 
                 JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
                 JOIN profile_familydetails c ON a.ProfileId = c.profile_id
                 JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
@@ -2942,29 +2961,6 @@ class Get_profiledata_Matching(models.Model):
                 base_query += " AND a.Profile_height <= %s"
                 query_params.append(partner_pref_height_to)
 
-            # Search profession list filter
-            # if profession:
-            #     profession_list = [p.strip() for p in profession.split(',') if p.strip().isdigit()]
-            #     if profession_list:
-            #         placeholders = ','.join(['%s'] * len(profession_list))
-            #         base_query += f" AND f.profession IN ({placeholders})"
-            #         query_params.extend(profession_list)
-
-            # # Search location filter
-            # if search_location:
-            #     base_query += " AND a.Profile_state = %s"
-            #     query_params.append(search_location)
-
-            # if state:
-            #     base_query += """
-            #         AND (
-            #             FIND_IN_SET(f.work_state, %s) > 0 OR
-            #             FIND_IN_SET(a.Profile_state, %s) > 0 OR
-            #             a.Profile_state IS NULL OR a.Profile_state = ''
-            #         )
-            #     """
-            #     query_params.extend([state, state])
-
             # Family status filter
             if family_status:
                 statuses = [s.strip() for s in str(family_status).split(',') if s.strip()]
@@ -3029,6 +3025,158 @@ class Get_profiledata_Matching(models.Model):
         except Exception as e:
             print(f"visibility Profile Error: {str(e)}")
             return [], 0, {}
+
+    @staticmethod
+    def get_visibility_match_count(
+        gender,
+        profile_id
+    ):
+        try:
+            today = date.today()
+
+            profile = get_object_or_404(Registration1, ProfileId=profile_id)
+            gender = profile.Gender
+            profile_dob = profile.Profile_dob
+
+            partner_pref = get_object_or_404(ProfileVisibility, profile_id=profile_id)
+
+            # Preferences fallback
+            pref_annual_income = partner_pref.visibility_anual_income
+            pref_annual_income_max = partner_pref.visibility_anual_income_max
+            partner_pref_education =  partner_pref.visibility_education
+            partner_pref_age_from =  partner_pref.visibility_age_from
+            partner_pref_age_to =  partner_pref.visibility_age_to  
+            partner_pref_height_from = partner_pref.visibility_height_from
+            partner_pref_height_to =  partner_pref.visibility_height_to
+            partner_pref_profession =  partner_pref.visibility_profession
+            partner_pref_foreign_interest = partner_pref.visibility_foreign_interest
+            partner_pref_ragukethu = partner_pref.visibility_ragukethu
+            partner_pref_chevvai = partner_pref.visibility_chevvai
+            partner_pref_familysts = partner_pref.visibility_family_status
+            field_of_study = partner_pref.visibility_field_of_study
+            degree = partner_pref.degree
+
+            # DOB range calculation
+            try:
+                if partner_pref_age_from and partner_pref_age_to:
+                    from_age = int(partner_pref_age_from)
+                    to_age = int(partner_pref_age_to)
+                    if from_age > 0 and to_age > 0 and from_age <= to_age:
+                        min_dob = today - relativedelta(years=to_age)
+                        max_dob = today - relativedelta(years=from_age)
+                    else:
+                        raise ValueError("Invalid age range")
+                else:
+                    if gender.upper() == "MALE":
+                        min_dob = profile_dob - relativedelta(years=5)
+                        max_dob = profile_dob
+                    elif gender.upper() == "FEMALE":
+                        min_dob = profile_dob
+                        max_dob = profile_dob + relativedelta(years=5)
+            except (ValueError, TypeError):
+                if gender.upper() == "MALE":
+                    min_dob = profile_dob - relativedelta(years=5)
+                    max_dob = profile_dob
+                else:
+                    min_dob = profile_dob
+                    max_dob = profile_dob + relativedelta(years=5)
+
+            # Base query
+            base_query = """
+                SELECT COUNT(DISTINCT a.ProfileId) AS match_count
+                FROM logindetails a
+                JOIN profile_visibility s ON a.ProfileId = s.profile_id 
+                JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
+                JOIN profile_familydetails c ON a.ProfileId = c.profile_id
+                JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
+                LEFT JOIN masterbirthstar d ON d.id = e.birthstar_name 
+                JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
+                LEFT JOIN mastereducation g ON f.highest_education = g.RowId 
+                LEFT JOIN masterannualincome h ON h.id = f.anual_income
+                LEFT JOIN masterprofession r ON r.RowId = f.profession
+                LEFT JOIN profile_images pi ON a.ProfileId = pi.profile_id
+                WHERE a.Status = 1 
+                  AND a.Plan_id NOT IN (0,16)
+                  AND a.gender != %s 
+                  AND a.ProfileId != %s
+                  AND a.Profile_dob BETWEEN %s AND %s
+            """
+
+            query_params = [gender, profile_id, min_dob, max_dob]
+
+            # Income filter
+            if pref_annual_income and pref_annual_income_max:
+                base_query += " AND h.id BETWEEN %s AND %s"
+                query_params.extend([pref_annual_income, pref_annual_income_max])
+
+            # Education filter
+            if partner_pref_education:
+                base_query += " AND FIND_IN_SET(g.RowId, %s) > 0"
+                query_params.append(partner_pref_education)
+
+            # Profession filter (fixed column)
+            if partner_pref_profession:
+                base_query += " AND FIND_IN_SET(f.profession, %s) > 0"
+                query_params.append(partner_pref_profession)
+
+            # Foreign interest
+            pref_foreign = partner_pref_foreign_interest
+            if pref_foreign and pref_foreign.strip().lower() in ['yes', 'no']:
+                if pref_foreign.lower() == "yes":
+                    base_query += " AND f.work_country != '1'"
+                else:
+                    base_query += " AND f.work_country = '1'"
+
+
+                if partner_pref_chevvai:
+                    if partner_pref_chevvai.lower() == 'yes':
+                        base_query += " AND (LOWER(e.calc_chevvai_dhosham) IN ('yes','true') OR e.calc_chevvai_dhosham IN ('1',1,'','NULL'))"
+                    elif partner_pref_chevvai.lower() == 'no':
+                        base_query += " AND (LOWER(e.calc_chevvai_dhosham) IN ('no','false') OR e.calc_chevvai_dhosham IN ('2',2,'','NULL'))"
+
+            # Height filters
+            if partner_pref_height_from and partner_pref_height_to:
+                base_query += " AND a.Profile_height BETWEEN %s AND %s"
+                query_params.extend([partner_pref_height_from, partner_pref_height_to])
+            elif partner_pref_height_from:
+                base_query += " AND a.Profile_height >= %s"
+                query_params.append(partner_pref_height_from)
+            elif partner_pref_height_to:
+                base_query += " AND a.Profile_height <= %s"
+                query_params.append(partner_pref_height_to)
+
+
+            if partner_pref_familysts:
+                base_query += " AND (FIND_IN_SET(c.family_status, %s) > 0 OR c.family_status IS NULL OR c.family_status='')"
+                query_params.append(partner_pref_familysts)
+
+            # Field of study filter
+            if field_of_study:
+                fields = [f.strip() for f in field_of_study.split(',') if f.strip()]
+                if fields:
+                    placeholders = ','.join(['%s'] * len(fields))
+                    base_query += f" AND f.field_ofstudy IN ({placeholders})"
+                    query_params.extend(fields)
+
+            # Degree filter
+            if degree:
+                degrees = [d.strip() for d in degree.split(',') if d.strip()]
+                if degrees:
+                    placeholders = ','.join(['%s'] * len(degrees))
+                    base_query += f" AND f.degree IN ({placeholders})"
+                    query_params.extend(degrees)
+
+            with connection.cursor() as cursor:
+                cursor.execute(base_query,query_params)
+                count_row = cursor.fetchone()
+                return count_row[0] if count_row else 0
+
+        except Exception as e:
+            print("[ERROR] get_visibilitymatchcount:", e)
+            return 0
+    
+    
+    
     
     @staticmethod
     def get_profile_details(profile_ids):

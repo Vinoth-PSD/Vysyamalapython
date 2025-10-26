@@ -2267,7 +2267,7 @@ class EditProfileAPIView(APIView):
 
         # Step 7: Retrieve and update ProfileEduDetails
         if profile_visibility_data:
-            print('inside profile visibility')
+            # print('inside profile visibility')
             try:
                 print('update the existing record')
                 profvis_detail = ProfileVisibility.objects.get(profile_id=profile_id)
@@ -2771,6 +2771,10 @@ class GetProfEditDetailsAPIView(APIView):
             or 0
         ) 
 
+        visibility_count = (
+            Get_profiledata_Matching.get_visibility_match_count(gender, profile_id)
+            or 0
+        ) 
 
         suggest_profile_count = suggest_profile_details  # This will not cause an error
         # print('suggest_profile_count:', suggest_profile_count)
@@ -2817,7 +2821,8 @@ class GetProfEditDetailsAPIView(APIView):
                 "mutual_int_count":mutual_int_count,
                 "shortlisted_count":0,
                 "prsent_count":0,
-                "varequest_count":vys_prof_count        
+                "varequest_count":vys_prof_count,
+                "visibility_count": visibility_count 
         }
 
         try:
@@ -4198,7 +4203,9 @@ class Get_prof_list_match(APIView):
             to_date=request.data.get('to_dateofjoin'),
             action_type=request.data.get('action_type'),
             status=request.data.get('status'),
-            search = request.data.get('search')
+            search = request.data.get('search'),
+            except_viewed = request.data.get('except_viewed'),
+            except_visitor = request.data.get('except_visitor')
         )
 
         if not profile_details:
