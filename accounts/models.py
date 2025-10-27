@@ -1353,7 +1353,7 @@ class Get_profiledata_Matching(models.Model):
                         f.profession, f.highest_education,f.actual_income,f.anual_income,f.work_city,
                         f.work_state,f.work_country,f.designation,f.company_name,f.business_name,f.nature_of_business,g.EducationLevel, d.star, h.income,
                         v.viewed_profile,
-                        pi.first_image_id AS has_image ,pi.image as profile_image ,TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) AS profile_age
+                        pi.first_image_id AS has_image ,pi.image as profile_image ,TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) AS profile_age , asp.sent_date
                     FROM logindetails a
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
                     JOIN profile_horoscope e ON a.ProfileId = e.profile_id
@@ -1374,7 +1374,7 @@ class Get_profiledata_Matching(models.Model):
                     JOIN profile_horoscope h1_from ON h1_from.profile_id = %s
                     JOIN logindetails l1_from ON l1_from.ProfileId = %s
                     LEFT JOIN masterannualincome h_from ON h_from.id = f_from.anual_income
-
+                    LEFT JOIN admin_sentprofiles asp ON asp.sentprofile_id = a.ProfileId AND asp.profile_id = %s
 
 
                     WHERE a.gender != %s 
@@ -1452,7 +1452,7 @@ class Get_profiledata_Matching(models.Model):
                     AND a.ProfileId != %s
                     AND a.Profile_dob BETWEEN %s AND %s """
 
-            query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,gender,gender,profile.Profile_dob,gender,profile.Profile_dob, profile_id,min_dob, max_dob]
+            query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,profile_id,gender,gender,profile.Profile_dob,gender,profile.Profile_dob, profile_id,min_dob, max_dob]
             
             
             if status == "sent":
@@ -1468,6 +1468,9 @@ class Get_profiledata_Matching(models.Model):
                         AND sp.sentprofile_id = a.ProfileId
                         {action_filter}
                     )""".format(action_filter=action_filter)
+
+                    base_query += " ORDER BY asp.sent_date DESC "
+                
                     query_params.append(profile_id)
                     if action_type != "all":
                         query_params.append(action_type)
@@ -1592,7 +1595,7 @@ class Get_profiledata_Matching(models.Model):
                     if degrees:
                         placeholders = ','.join(['%s'] * len(degrees))
                         # base_query += f" AND f.degree IN ({placeholders})"
-                        base_query += f" AND (f.degree IN ({placeholders}))"
+                        base_query += f" AND f.degree IN ({placeholders}) OR f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"
                         query_params.extend(degrees)
                 # else:
                 #     base_query += """ AND
@@ -1778,8 +1781,6 @@ class Get_profiledata_Matching(models.Model):
                         base_query += " AND a.Status != 0 " #Shows the deleted profiles also if it is already sent but deleted later
                         action_filter = "" if action_type == "all" else "AND sp.action_type = %s"
                         
-
-                        
                         base_query += """
                         AND EXISTS (
                             SELECT 1 
@@ -1787,7 +1788,10 @@ class Get_profiledata_Matching(models.Model):
                             WHERE sp.profile_id = %s 
                             AND sp.sentprofile_id = a.ProfileId
                             {action_filter}
-                        )""".format(action_filter=action_filter)
+                        ) """.format(action_filter=action_filter)
+
+                        base_query += " ORDER BY asp.sent_date DESC "
+                        
                         query_params.append(profile_id)
                         if action_type != "all":
                             query_params.append(action_type)
@@ -1795,29 +1799,9 @@ class Get_profiledata_Matching(models.Model):
                         base_query += " AND a.Status = 1 "   #approved Only
                         pass
 
-            
-            # ORDER BY
-            try:
-                order_by = int(order_by)
-            except:
-                order_by = None
-
-            plan_priority = "FIELD(a.Plan_id, 2,15,1,14,11,12,13,6,7,8,9)"
-            photo_priority = "CASE WHEN pi.first_image_id IS NOT NULL THEN 0 ELSE 1 END"
-            #view_priority = "CASE WHEN v.viewed_profile IS NULL THEN 0 ELSE 1 END"
-
-            if order_by == 1:
-                order_cond = f" ORDER BY  {plan_priority}, {photo_priority} , a.DateOfJoin DESC"
-            elif order_by == 2:
-                order_cond = f" ORDER BY {plan_priority}, {photo_priority} , a.DateOfJoin ASC"
-            else:
-                order_cond = f" ORDER BY {plan_priority}, {photo_priority}, a.DateOfJoin DESC"
-
-            final_query = base_query + order_cond
-
             # COUNT
             with connection.cursor() as cursor:
-                cursor.execute(final_query, query_params)
+                cursor.execute(base_query, query_params)
                 all_ids = [row[0] for row in cursor.fetchall()]
 
             total = len(all_ids)
@@ -1839,10 +1823,10 @@ class Get_profiledata_Matching(models.Model):
 
             # # Usage:
             # print("MySQL Executable Query:")
-            # print(format_sql_for_debug(final_query, query_params))
+            # print(format_sql_for_debug(base_query, query_params))
 
             with connection.cursor() as cursor:
-                cursor.execute(final_query, query_params)
+                cursor.execute(base_query, query_params)
                 rows = cursor.fetchall()
 
                 if rows:
