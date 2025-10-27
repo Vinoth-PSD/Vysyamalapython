@@ -1,116 +1,175 @@
 {% load custom_filters %}
 
 <style>
-    .text-wrap {
-  word-break: break-word;
-  white-space: normal;
-  font-size: 12px;
-  line-height: 1.4;
-}
-td.inner-tabledata {
-  max-width: 80px;
-  overflow-wrap: break-word;
-}
-
+  .text-wrap {
+    word-break: break-word;
+    white-space: normal;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  td.inner-tabledata {
+    max-width: 80px;
+    overflow-wrap: break-word;
+  }
 </style>
 
-
 <div class="section">
-    <table class="outer">
-        <tr>
-            <td>
-                <table class="inner">
-                  
-                    <tr>
-                        <td class="inner-tabledata text-wrap">{{rasi_kattam_data.0|replace_br|safe}}</td>
-                        <td class="inner-tabledata text-wrap">{{rasi_kattam_data.1|replace_br|safe}}</td>
-                        <td class="inner-tabledata text-wrap">{{rasi_kattam_data.2|replace_br|safe}}</td>
-                        <td class="inner-tabledata text-wrap">{{rasi_kattam_data.3|replace_br|safe}}</td>
-                    </tr>
-                    <tr>
-                        <td class="inner-tabledata text-wrap">{{rasi_kattam_data.11|replace_br|safe}}</td>
-                        <td colspan="2" rowspan="2" class="highlight">
-                            Rasi
-                            <p>vysyamala.com</p>
-                        </td>
-                        <td class="inner-tabledata text-wrap">{{rasi_kattam_data.4|replace_br|safe}}</td>
-                    </tr>
-                    <tr>
-                        <td class="inner-tabledata text-wrap">{{rasi_kattam_data.10|replace_br|safe}}</td>
-                        <td class="inner-tabledata text-wrap">{{rasi_kattam_data.5|replace_br|safe}}</td>
-                    </tr>
-                    <tr>
-                        <td class="inner-tabledata text-wrap">{{rasi_kattam_data.9|replace_br|safe}}</td>
-                        <td class="inner-tabledata text-wrap">{{rasi_kattam_data.8|replace_br|safe}}</td>
-                        <td class="inner-tabledata text-wrap">{{rasi_kattam_data.7|replace_br|safe}}</td>
-                        <td class="inner-tabledata text-wrap">{{rasi_kattam_data.6|replace_br|safe}}</td>
-                    </tr>
-                </table>
-            </td>
-            <td class="spacer">
-                <table class="table-div dasa-table">
-                    <tr>
-                        <td>
-                            <p><strong>Dasa Name</strong></p>
-                            <p>{{dasa_name}}</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <p><strong>Dasa Balance</strong></p>
-                            <p>{{dasa_year|default:"0"}} Years</p>
-                            <p>{{dasa_month|default:"0"}} Months</p>
-                            <p>{{dasa_day|default:"0"}} Days</p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-            <td>
-                <table class="inner">
-                    <tr>
-                        <td class="inner-tabledata text-wrap">{{amsa_kattam_data.0|replace_br|safe}}</td>
-                        <td class="inner-tabledata text-wrap">{{amsa_kattam_data.1|replace_br|safe}}</td>
-                        <td class="inner-tabledata text-wrap">{{amsa_kattam_data.2|replace_br|safe}}</td>
-                        <td class="inner-tabledata text-wrap">{{amsa_kattam_data.3|replace_br|safe}}</td>
-                    </tr>
-                    <tr>
-                        <td class="inner-tabledata text-wrap">{{amsa_kattam_data.11|replace_br|safe}}</td>
-                        <td colspan="2" rowspan="2" class="highlight">
-                            Amsam
-                            <p>vysyamala.com</p>
-                        </td>
-                        <td class="inner-tabledata text-wrap">{{amsa_kattam_data.4|replace_br|safe}}</td>
-                    </tr>
-                    <tr>
-                        <td class="inner-tabledata text-wrap">{{amsa_kattam_data.10|replace_br|safe}}</td>
-                        <td class="inner-tabledata text-wrap">{{amsa_kattam_data.5|replace_br|safe}}</td>
-                    </tr>
-                    <tr>
-                        <td class="inner-tabledata text-wrap">{{amsa_kattam_data.9|replace_br|safe}}</td>
-                        <td class="inner-tabledata text-wrap">{{amsa_kattam_data.8|replace_br|safe}}</td>
-                        <td class="inner-tabledata text-wrap">{{amsa_kattam_data.7|replace_br|safe}}</td>
-                        <td class="inner-tabledata text-wrap">{{amsa_kattam_data.6|replace_br|safe}}</td>
-                    </tr>
-                </table>
-                
-                
-            </td>
-        </tr>
-    </table>
-         
-
-</div>
-<div class="section">
-    <table class="add-info"> 
+  <table class="outer">
     <tr>
-        <td>
-            <p><b>Horoscope Hints: </b>{{horo_hint}}</p>
-                        <p><strong>Address: </strong></p>
-            <p><strong> {{ address|safe }}</strong></p>
-
-        </td>
+      <td>
+        <table class="inner">
+          <tr>
+            <td class="inner-tabledata text-wrap">
+              {{rasi_kattam_data.0|replace_br|safe}}
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{rasi_kattam_data.1|replace_br|safe}}
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{rasi_kattam_data.2|replace_br|safe}}
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{rasi_kattam_data.3|replace_br|safe}}
+            </td>
+          </tr>
+          <tr>
+            <td class="inner-tabledata text-wrap">
+              {{rasi_kattam_data.11|replace_br|safe}}
+            </td>
+            <td colspan="2" rowspan="2" class="highlight">
+              RASI
+              <p><strong>vysyamala.com</strong></p>
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{rasi_kattam_data.4|replace_br|safe}}
+            </td>
+          </tr>
+          <tr>
+            <td class="inner-tabledata text-wrap">
+              {{rasi_kattam_data.10|replace_br|safe}}
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{rasi_kattam_data.5|replace_br|safe}}
+            </td>
+          </tr>
+          <tr>
+            <td class="inner-tabledata text-wrap">
+              {{rasi_kattam_data.9|replace_br|safe}}
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{rasi_kattam_data.8|replace_br|safe}}
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{rasi_kattam_data.7|replace_br|safe}}
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{rasi_kattam_data.6|replace_br|safe}}
+            </td>
+          </tr>
+        </table>
+      </td>
+      <td class="spacer">
+        <table class="table-div-horo dasa-table">
+          <tr>
+            <td>
+              <p><strong>Dasa Name</strong></p>
+              <p>{{dasa_name}}</p>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <p><strong>Dasa Balance</strong></p>
+              <p>Years:{{dasa_year|default:"0"}} </p>
+              <p>Months:{{dasa_month|default:"0"}} </p>
+              <p>Days:{{dasa_day|default:"0"}} </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+      <td>
+        <table class="inner">
+          <tr>
+            <td class="inner-tabledata text-wrap">
+              {{amsa_kattam_data.0|replace_br|safe}}
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{amsa_kattam_data.1|replace_br|safe}}
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{amsa_kattam_data.2|replace_br|safe}}
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{amsa_kattam_data.3|replace_br|safe}}
+            </td>
+          </tr>
+          <tr>
+            <td class="inner-tabledata text-wrap">
+              {{amsa_kattam_data.11|replace_br|safe}}
+            </td>
+            <td colspan="2" rowspan="2" class="highlight">
+              AMSAM
+              <p><strong>vysyamala.com</strong></p>
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{amsa_kattam_data.4|replace_br|safe}}
+            </td>
+          </tr>
+          <tr>
+            <td class="inner-tabledata text-wrap">
+              {{amsa_kattam_data.10|replace_br|safe}}
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{amsa_kattam_data.5|replace_br|safe}}
+            </td>
+          </tr>
+          <tr>
+            <td class="inner-tabledata text-wrap">
+              {{amsa_kattam_data.9|replace_br|safe}}
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{amsa_kattam_data.8|replace_br|safe}}
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{amsa_kattam_data.7|replace_br|safe}}
+            </td>
+            <td class="inner-tabledata text-wrap">
+              {{amsa_kattam_data.6|replace_br|safe}}
+            </td>
+          </tr>
+        </table>
+      </td>
     </tr>
-    <tr>
-    <td>
-    </table>
+  </table>
 </div>
+<table class="outer2">
+  <tr>
+    <td>
+        <table class="add-info2"> 
+            <tr>
+            <td>
+                <p><b>Horoscope Hints: </b>{{horo_hint}}</p>
+            </td>
+            </tr>
+        </table>
+    </td>
+  </tr>
+</table>
+<table class="outer2">
+  <tr>
+    <td>
+      <table class="add-info" style="">
+        <tr>
+          <td style="border: 0">
+            <p><strong>Address: </strong></p>
+            <p><strong> {{ address|safe }}</strong></p>
+          </td>
+          <td>
+            <p>Mobile :<strong>{{ contact }}</strong></p>
+            <p>Whatsapp:<strong>{{ whatsapp }}</strong></p>
+            <p>Email:<strong>{{ email }}</strong></p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

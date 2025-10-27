@@ -8631,6 +8631,7 @@ class AdminProfilePDFView(APIView):
                 return JsonResponse({"status": "error", "message": "Invalid format"}, status=400)
 
         except Exception as e:
+            print(f"error{str(e)}")
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 class AdminMatchProfilePDFView(APIView):
@@ -8640,7 +8641,9 @@ class AdminMatchProfilePDFView(APIView):
         format_type = pdf_format or request.query_params.get('pdf_format')  
         profile_to = profile_to or request.query_params.get('profile_to')
         action = action_type or request.query_params.get('action_type')
-        print("format_type", format_type)
+        if format_type == "whatsapp_link_profile":
+            whatsapp_profiles = []
+            
         if not profile_ids:
             return JsonResponse({"status": "error", "message": "profile_id is required"}, status=400)
         elif not format_type:
@@ -8942,6 +8945,18 @@ class AdminMatchProfilePDFView(APIView):
                     else:
                         dasa_year, dasa_month, dasa_day = match.group(4), match.group(5), match.group(6)
                 # print("porutham",porutham_data)
+                
+                if format_type == "whatsapp_link_profile":
+                    profile_link = f"https://vsysmalamat-ejh3ftcdbnezhhfv.westus2-01.azurewebsites.net/auth/profile/{profile_id}/"
+                    profile_data = {
+                        "profile_link": profile_link,
+                        "profile_id": login.ProfileId,
+                        "profile_name": login.Profile_name or "N/A",
+                        "age": calculate_age(login.Profile_dob) if login.Profile_dob else "Unknown",
+                        "star_name": birthstar if birthstar not in [None, ""] else "N/A"
+                    }
+                    whatsapp_profiles.append(profile_data)
+                
                 date =  format_date_of_birth(login.Profile_dob)
                 my_date =  format_date_of_birth(login_my.Profile_dob)
                 context_data = {
@@ -9019,6 +9034,7 @@ class AdminMatchProfilePDFView(APIView):
                     "match_compatability_black": "compatability_black.html",
                     "match_compatability_without_horo": "compatability_only.html",
                     "match_compatability_without_horo_black": "compatability_only_black.html",
+                    "whatsapp_link_profile": "whatsapp_profile.html"
                 }
 
                 if format_type not in template_map:
@@ -9075,7 +9091,17 @@ class AdminMatchProfilePDFView(APIView):
         pdf_merger.write(merged_pdf)
         pdf_merger.close()
         merged_pdf.seek(0)
-
+        if format_type == "whatsapp_link_profile":
+            html_string = render_to_string("whatsapp_profile.html", { "profiles": whatsapp_profiles })
+            pdf_buffer = io.BytesIO()
+            pisa_status = pisa.CreatePDF(html_string, dest=pdf_buffer)
+            if pisa_status.err:
+                return JsonResponse({"status": "error", "message": "PDF generation failed."}, status=500)
+            
+            pdf_buffer.seek(0)
+            response = HttpResponse(pdf_buffer.read(), content_type='application/pdf')
+            response['Content-Disposition'] = 'inline; filename="WhatsAppProfiles.pdf"'
+            return response  
         if not errors:
             if action == 'email':
                 try:

@@ -352,7 +352,7 @@
                 <div class="col-lg-4 col-md-4 col-4">
                     <div class="logo">
                         <a href="/">
-                            <img src="https://www.vysyamala.com/img/newlogo.png" alt="Logo"
+                            <img src="https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png" alt="Logo"
                                 class="logo-img">
                         </a>
                     </div>
@@ -365,7 +365,7 @@
 
                     <nav class="nav">
                         <ul class="nav-list">
-                            <li class="nav-item"><a href="#" onclick="openSearch()">Search</a></li>
+                            {% comment %} <li class="nav-item"><a href="#" onclick="openSearch()">Search</a></li> {% endcomment %}
                             <li class="nav-item"><a href="#" onclick="handiveRegister()">Register</a></li>
                             <!-- <li class="nav-item"><a href="tel:012345678">📞 012345678</a></li>
                             <li class="nav-item"><a href="https://wa.me/012345678">WhatsApp</a></li> -->
@@ -387,9 +387,9 @@
         <div class="mobile-menu-content">
             <button class="close-btn" onclick="toggleMenu()">✖</button>
             <ul>
-                <li><a href="#" onclick="openSearch()">Search</a></li>
+                {% comment %} <li><a href="#" onclick="openSearch()">Search</a></li> {% endcomment %}
                 <li><a href="#" onclick="handiveRegister()">Register</a></li>
-                <li><a class="btn" href="#" onclick="handiveLogout()">Logout</a></li>
+                <li><a class="btn" href="#" onclick="handiveLogout()">Login</a></li>
             </ul>
         </div>
     </div>
@@ -451,7 +451,7 @@
                             
                             <div class="profile-details-text-box" >
                                 <p class="prof">Profession: </p>
-                                <p id="prof">{{ profile_prof }}</p>
+                                <p id="prof">{{ profile_profession }}</p>
                             </div>
 
                         
@@ -604,7 +604,7 @@
                                 <p id="Nakshatra">{{ star }}</p>
                             </div>
 
-                            <a href="#" class="view-profile">View More Profile</a>
+                            <a href="https://www.vysyamala.com/ProfileDetails?id={{profile_id}}" class="view-profile">View More Profile</a>
 
                 
                         </div>
@@ -688,8 +688,8 @@
                 <div class="col-lg-3 col-md-6 col-12">
                     <div class="footer-section">
                         <div class="downloads">
-                            <img src="https://placehold.co/100x40" alt="App Store">
-                            <img src="https://placehold.co/100x40" alt="Google Play">
+                            <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="App Store">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Google_Play_Store_badge_EN.svg/512px-Google_Play_Store_badge_EN.svg.png" alt="Google Play">
                         </div>
                     </div>
                 </div>
@@ -705,7 +705,13 @@
         function toggleMenu() {
             document.getElementById("mobile-menu").classList.toggle("open");
         }
-    </script>
+        document.querySelectorAll('.footer, .header').forEach(function(element) {
+            element.addEventListener('click', function(e) {
+                e.preventDefault();
+                window.location.href = 'https://www.vysyamala.com/';
+            });
+        });
+</script>
 
 </body>
 

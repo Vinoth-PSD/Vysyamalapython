@@ -11168,7 +11168,7 @@ def profile_preview(request: HttpRequest, profile_id):
             Profile_high_edu = None
 
     try:
-            Profile_profession = models.Profespref.objects.get(RowId=profile_details[0]['profession']).profession
+            Profile_profession = profile_details[0]['designation']
     except models.Profespref.DoesNotExist:
             Profile_profession = None
 
@@ -11184,7 +11184,7 @@ def profile_preview(request: HttpRequest, profile_id):
 
     # print(f"Profile details: {profile_details}")
     my_gender=profile_details[0]['Gender']
-    if my_gender=="male":
+    if my_gender.lower()=="male":
         my_gender="female"
         looking_for="Bride"
         my_status="Groom"
@@ -11263,7 +11263,7 @@ def profile_preview_withouphoto(request: HttpRequest, profile_id):
     base_url = settings.MEDIA_URL
     default_img_bride='default_bride.png'
     default_img_groom='default_groom.png'
-    if my_gender=="male":
+    if my_gender.lower()=="male":
         my_gender="female"
         looking_for="Bride"
         my_status="Groom"

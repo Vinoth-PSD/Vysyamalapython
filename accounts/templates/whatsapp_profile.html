@@ -1,0 +1,15 @@
+{% for profile in profiles %}
+<div style="margin-bottom: 20px;font-family: 'Segoe UI Emoji', Arial, sans-serif;">
+    <p>
+ <strong>Check out this profile!</strong></p>
+    <p><strong>Profile Link:</strong> <a href="{{ profile.profile_link }}">{{ profile.profile_link }}</a></p>
+    <p><strong>Profile ID:</strong> {{ profile.profile_id }}</p>
+    <p><strong>Profile Name:</strong> {{ profile.profile_name }}</p>
+    <p><strong>Age:</strong> {{ profile.age }} years</p>
+    <p><strong>Star Name:</strong> {{ profile.star_name }}</p>
+    <hr/>
+    <p><strong>Click here to visit your matrimony profile:</strong> 
+        <a href="https://vsysmalamat-ejh3ftcdbnezhhfv.westus2-01.azurewebsites.net/">Visit Vysyamala</a>
+    </p>
+</div>
+{% endfor %}

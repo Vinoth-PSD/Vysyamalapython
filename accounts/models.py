@@ -1592,7 +1592,7 @@ class Get_profiledata_Matching(models.Model):
                     if degrees:
                         placeholders = ','.join(['%s'] * len(degrees))
                         # base_query += f" AND f.degree IN ({placeholders})"
-                        base_query += f" AND f.degree IN ({placeholders}) OR f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"
+                        base_query += f" AND (f.degree IN ({placeholders}))"
                         query_params.extend(degrees)
                 # else:
                 #     base_query += """ AND

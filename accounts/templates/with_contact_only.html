@@ -1,6 +1,25 @@
 {% include 'pdf_templates/header.html' %}
-    {% include 'pdf_templates/with_contact.html' %}
-    {% include 'pdf_templates/address.html' %}
+    {% include 'pdf_templates/without_contact.html' %}
+    
+<table class="outer2">
+  <tr>
+    <td>
+      <table class="table-div" style="">
+        <tr>
+          <td style="border: 0">
+            <p><strong>Address: </strong></p>
+            <p><strong> {{ address|safe }}</strong></p>
+          </td>
+          <td>
+            <p>Mobile :<strong>{{ contact }}</strong></p>
+            <p>Whatsapp:<strong>{{ whatsapp }}</strong></p>
+            <p>Email:<strong>{{ email }}</strong></p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
     <div class="upload-horo-bg">
         <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
   </div>
