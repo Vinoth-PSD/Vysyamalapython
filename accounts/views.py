@@ -7724,6 +7724,38 @@ class PaymentTransactionListView(generics.ListAPIView):
 
 #         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+def number_to_words(n):
+    units = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"]
+    teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"]
+    tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+
+    def two_digit(num):
+        if num < 10:
+            return units[num]
+        elif num < 20:
+            return teens[num - 10]
+        else:
+            return tens[num // 10] + (" " + units[num % 10] if num % 10 != 0 else "")
+
+    def three_digit(num):
+        if num < 100:
+            return two_digit(num)
+        else:
+            return units[num // 100] + " Hundred" + (" and " + two_digit(num % 100) if num % 100 != 0 else "")
+
+    if n == 0:
+        return "Zero"
+
+    result = ""
+    if n >= 1000:
+        result += two_digit(n // 1000) + " Thousand"
+        if n % 1000 != 0:
+            result += " " + three_digit(n % 1000)
+    else:
+        result += three_digit(n)
+
+    return result + " only"
+
 class GenerateInvoicePDF(APIView):
     def get(self, request):
         subscription_id = request.query_params.get('subscription_id')
@@ -7756,7 +7788,7 @@ class GenerateInvoicePDF(APIView):
         if subscription.payment_mode:
             mode = subscription.payment_mode.strip().lower()
             print(mode)
-            if mode in ["razorpay"]:
+            if mode in ["razorpay","onlinegpay","manualgpay","accounttransfer"]:
                 payment_mode = "Online Transfer"
             else:
                 payment_mode = "Cash/Cheque/DD"
@@ -7803,6 +7835,7 @@ class GenerateInvoicePDF(APIView):
             'addon_total': f"{addon_total:.0f}",
             'discount': f"{subscription.discount:.0f}",
             'total_price': f"{total_price:.0f}",
+            'num_to_words': number_to_words(int(total_price)),
             'net_price': f"{net_price:.0f}",
         }
 
@@ -9885,7 +9918,7 @@ class SendInvoicePDF(APIView):
 
         if subscription.payment_mode:
             mode = subscription.payment_mode.strip().lower()
-            if mode in ["razorpay"]:
+            if mode in ["razorpay","onlinegpay","manualgpay","accounttransfer"]:
                 payment_mode = "Online Transfer"
             else:
                 payment_mode = "Cash/Cheque/DD"
@@ -9933,6 +9966,7 @@ class SendInvoicePDF(APIView):
             'addon_total': f"{addon_total:.0f}",
             'discount': f"{subscription.discount:.0f}",
             'total_price': f"{total_price:.0f}",
+            'num_to_words': number_to_words(int(total_price)),
             'net_price': f"{net_price:.0f}",
         }
 
