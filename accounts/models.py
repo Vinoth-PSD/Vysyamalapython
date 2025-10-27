@@ -1665,23 +1665,28 @@ class Get_profiledata_Matching(models.Model):
                 if has_photos and has_photos.lower() == "yes":
                     base_query += " AND pi.first_image_id IS NOT NULL"
 
-                if except_viewed ==1:
-                    # Exclude profiles that I have already viewed
+                if except_viewed == 1:
                     base_query += """
-                        AND a.ProfileId NOT IN (
-                            SELECT v1.viewed_profile FROM profile_visit_logs v1 WHERE v1.profile_id = %s
+                        AND NOT EXISTS (
+                            SELECT 1 
+                            FROM profile_visit_logs v1 
+                            WHERE v1.viewed_profile = a.ProfileId 
+                            AND v1.profile_id = %s
                         )
                     """
                     query_params.append(profile_id)
 
-                if except_visitor ==1:
-                    # Exclude profiles that have already visited me
+                if except_visitor == 1:
                     base_query += """
-                        AND a.ProfileId NOT IN (
-                            SELECT v2.profile_id FROM profile_visit_logs v2 WHERE v2.viewed_profile = %s
+                        AND NOT EXISTS (
+                            SELECT 1 
+                            FROM profile_visit_logs v2 
+                            WHERE v2.profile_id = a.ProfileId 
+                            AND v2.viewed_profile = %s
                         )
                     """
                     query_params.append(profile_id)
+
 
 
                 if membership:
