@@ -7788,7 +7788,7 @@ class GenerateInvoicePDF(APIView):
         if subscription.payment_mode:
             mode = subscription.payment_mode.strip().lower()
             print(mode)
-            if mode in ["razorpay","onlinegpay","manualgpay","accounttransfer"]:
+            if mode in ["razorpay","razor pay","onlinegpay","manualgpay","accounttransfer","online","payu online payment","by account transfer","online payment","by google pay"]:
                 payment_mode = "Online Transfer"
             else:
                 payment_mode = "Cash/Cheque/DD"
@@ -7811,9 +7811,21 @@ class GenerateInvoicePDF(APIView):
         except Exception:
             addon_items = []
             addon_total = 0
-
-        base_price = subscription.package_amount or 0
-        total_price = base_price + addon_total-subscription.discount
+        try:
+            if subscription.package_amount:
+                plan_amount = subscription.package_amount
+            else:
+                if subscription.plan_id:
+                    plan=PlanDetails.objects.get(id=subscription.plan_id)
+                    plan_amount = plan.plan_price
+                else:
+                    plan_amount=0
+        except Exception:
+            plan_amount=0
+              
+        base_price = plan_amount
+        discount = subscription.discount or 0
+        total_price = base_price + addon_total- discount
         net_price = base_price + addon_total
         if subscription.plan_id and subscription.plan_id > 0:
             plan_name = PlanDetails.objects.filter(id=subscription.plan_id).values_list('plan_name', flat=True).first()   
@@ -7833,7 +7845,7 @@ class GenerateInvoicePDF(APIView):
             'payment_mode': payment_mode or "N/A",
             'addon_items': addon_items,
             'addon_total': f"{addon_total:.0f}",
-            'discount': f"{subscription.discount:.0f}",
+            'discount': f"{discount:.0f}",
             'total_price': f"{total_price:.0f}",
             'num_to_words': number_to_words(int(total_price)),
             'net_price': f"{net_price:.0f}",
@@ -9944,7 +9956,7 @@ class SendInvoicePDF(APIView):
 
         if subscription.payment_mode:
             mode = subscription.payment_mode.strip().lower()
-            if mode in ["razorpay","onlinegpay","manualgpay","accounttransfer"]:
+            if mode in ["razorpay","razor pay","onlinegpay","manualgpay","accounttransfer","online","payu online payment","by account transfer","online payment","by google pay"]:
                 payment_mode = "Online Transfer"
             else:
                 payment_mode = "Cash/Cheque/DD"
@@ -9967,9 +9979,21 @@ class SendInvoicePDF(APIView):
         except Exception:
             addon_items = []
             addon_total = 0
-
-        base_price = subscription.package_amount or 0
-        total_price = base_price + addon_total - subscription.discount
+        try:
+            if subscription.package_amount:
+                plan_amount = subscription.package_amount
+            else:
+                if subscription.plan_id:
+                    plan=PlanDetails.objects.get(id=subscription.plan_id)
+                    plan_amount = plan.plan_price
+                else:
+                    plan_amount=0
+        except Exception:
+            plan_amount=0
+              
+        base_price = plan_amount
+        discount = subscription.discount or 0
+        total_price = base_price + addon_total - discount
         net_price = base_price + addon_total
         
         if subscription.plan_id and subscription.plan_id > 0:
@@ -9990,7 +10014,7 @@ class SendInvoicePDF(APIView):
             'payment_mode': payment_mode or "N/A",
             'addon_items': addon_items,
             'addon_total': f"{addon_total:.0f}",
-            'discount': f"{subscription.discount:.0f}",
+            'discount': f"{discount:.0f}",
             'total_price': f"{total_price:.0f}",
             'num_to_words': number_to_words(int(total_price)),
             'net_price': f"{net_price:.0f}",
