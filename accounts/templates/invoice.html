@@ -22,6 +22,11 @@
       }
       .table th {
         background-color: #ffffff;
+        padding-bottom:0px !important;
+
+      }
+      .table td {
+        padding-bottom:0px !important;
       }
       .note {
         margin-top: 30px;
@@ -53,12 +58,16 @@
           {% if encoded_logo %}
           <img
             src="data:image/png;base64,{{ encoded_logo }}"
-            style="height: 40px; width: 150px; object-fit: contain;"
-          /><br />
+            style="height: 30px; width: 150px; object-fit: contain;"
+          />
+          <br />
+          Online Arya vysya Matrimonial since 2008
+          <br />
+          <br/>
           {% endif %}
           <strong>To</strong><br />
           <b>{{ customer_name }}<br />
-          {{ address }}</b>
+          {{ address|safe}}</b>
         </td>
         <td style="vertical-align: top; text-align: right" class="text-green">
           <h2 style="font-size:2rem;margin: 0; color: #9c9c9c"><b>Invoice</b></h2>
@@ -74,15 +83,19 @@
         <th colspan="3">Service Description</th>
         {% comment %} <th>Price</th> {% endcomment %}
         <th>Price</th>
+        <th>Net Total</th>
       </tr>
       <tr>
         <td colspan="3">
-          {{ service_description }}<br />
-          <b>{{offer}}</b><br/>
+          {% if service_description %} 
+          Vysyamala {{ service_description }} Membership<br />
+          {% endif %}
+         
           <b
             >Valid till: {{ valid_till }} or engagement date whichever is
             earlier</b
-          >
+          ><br/>
+           <b>{{offer}}</b>
         {% comment %} {% if addon_items %}
             <p>Add-on Services</p>
         {% endif %} {% endcomment %}
@@ -103,6 +116,12 @@
             <p>{{ addon.amount }}</p>
             {%endfor%}
         </td>
+        <td>{{ price }}
+            <p></p>
+            {% for addon in addon_items %}
+            <p>{{ addon.amount }}</p>
+            {%endfor%}
+        </td>
         {% comment %} {% if addon_items %}
      
       </tr>
@@ -113,18 +132,18 @@
       </tr>
       {% endif %} {% endcomment %}
       
-      <tr>
+      <!-- <tr>
         <td colspan="3">Net Total</td>
         <td><strong>{{ net_price }}</strong></td>
-      </tr>
-      {% if discount %}
+      </tr> -->
+      {% if discount and not discount == '0' %}
       <tr>
-        <td colspan="3">Discount</td>
+        <td colspan="4">Discount</td>
         <td><strong>{{ discount }}</strong></td>
       </tr>
       {% endif %}
       <tr>
-        <td colspan="3"><strong>Grand Total</strong></td>
+        <td colspan="4"><strong>Grand Total</strong></td>
         <td><strong>{{ total_price }}</strong></td>
       </tr>
     </table>
@@ -133,7 +152,7 @@
 
     <table class="table" style="width: 50%; margin-top: 20px">
       <tr>
-        <th colspan="3" >Payment Mode</th>
+        <th colspan="4" >Payment Mode</th>
         <td>{{ payment_mode }}</td>
       </tr>
     </table>
@@ -146,7 +165,7 @@
           <td class="text-green" style="vertical-align: top; width: 50%">
             <b>Vysyamala</b><br />
             C/o. YK Lavanya<br />
-            <b><a>No.2, Krishnaswamy Street (Lane)</a><br />
+            <b>No.2, Krishnaswamy Street (Lane)<br />
             A6-2nd Floor, Sri Vinayaga Flats<br />
             Ganapathipuram, Chrompet<br />
             Chennai – 600 044</b>
