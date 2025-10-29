@@ -94,6 +94,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from authentication.views import get_profile_image_azure_optimized
 from .models import DataHistory
 from django.db.models import QuerySet
+from django.shortcuts import render
 # from authentication.models import ProfileVisibility
 # from authentication.serializers import ProfileVisibilityListSerializer
 
@@ -8654,6 +8655,8 @@ class AdminMatchProfilePDFView(APIView):
         profile_to = profile_to or request.query_params.get('profile_to')
         action = action_type or request.query_params.get('action_type')
         if format_type == "whatsapp_link_profile":
+            
+            print('whatapp link profiles')
             whatsapp_profiles = []
             
         if not profile_ids:
@@ -8964,6 +8967,11 @@ class AdminMatchProfilePDFView(APIView):
                         "profile_link": profile_link,
                         "profile_id": login.ProfileId,
                         "profile_name": login.Profile_name or "N/A",
+                        "highest_education_my":final_education_my if final_education_my not in [None, ""] else "N/A",
+                        "highest_education":final_education if final_education not in [None, ""] else "N/A",
+                        "annual_income":annual_income if annual_income not in [None, ""] else "N/A",
+                        "occupation":occupation,
+                        "work_place":work_place if work_place not in [None, ""] else "N/A",
                         "age": calculate_age(login.Profile_dob) if login.Profile_dob else "Unknown",
                         "star_name": birthstar if birthstar not in [None, ""] else "N/A"
                     }
@@ -9104,16 +9112,21 @@ class AdminMatchProfilePDFView(APIView):
         pdf_merger.close()
         merged_pdf.seek(0)
         if format_type == "whatsapp_link_profile":
-            html_string = render_to_string("whatsapp_profile.html", { "profiles": whatsapp_profiles })
-            pdf_buffer = io.BytesIO()
-            pisa_status = pisa.CreatePDF(html_string, dest=pdf_buffer)
-            if pisa_status.err:
-                return JsonResponse({"status": "error", "message": "PDF generation failed."}, status=500)
+
+            return render(request, "whatsapp_profile.html", {"profiles": whatsapp_profiles})
+
+
+
+            # html_string = render_to_string("whatsapp_profile.html", { "profiles": whatsapp_profiles })
+            # pdf_buffer = io.BytesIO()
+            # pisa_status = pisa.CreatePDF(html_string, dest=pdf_buffer)
+            # if pisa_status.err:
+            #     return JsonResponse({"status": "error", "message": "PDF generation failed."}, status=500)
             
-            pdf_buffer.seek(0)
-            response = HttpResponse(pdf_buffer.read(), content_type='application/pdf')
-            response['Content-Disposition'] = 'inline; filename="WhatsAppProfiles.pdf"'
-            return response  
+            # pdf_buffer.seek(0)
+            # response = HttpResponse(pdf_buffer.read(), content_type='application/pdf')
+            # response['Content-Disposition'] = 'inline; filename="WhatsAppProfiles.pdf"'
+            # return response  
         if not errors:
             if action == 'email':
                 try:
