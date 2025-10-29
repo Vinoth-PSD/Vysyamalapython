@@ -1,15 +1,65 @@
-{% for profile in profiles %}
-<div style="margin-bottom: 20px;font-family: 'Segoe UI Emoji', Arial, sans-serif;">
-    <p>
- <strong>Check out this profile!</strong></p>
-    <p><strong>Profile Link:</strong> <a href="{{ profile.profile_link }}">{{ profile.profile_link }}</a></p>
-    <p><strong>Profile ID:</strong> {{ profile.profile_id }}</p>
-    <p><strong>Profile Name:</strong> {{ profile.profile_name }}</p>
-    <p><strong>Age:</strong> {{ profile.age }} years</p>
-    <p><strong>Star Name:</strong> {{ profile.star_name }}</p>
-    <hr/>
-    <p><strong>Click here to visit your matrimony profile:</strong> 
-        <a href="https://vsysmalamat-ejh3ftcdbnezhhfv.westus2-01.azurewebsites.net/">Visit Vysyamala</a>
-    </p>
-</div>
-{% endfor %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WhatsApp Profile Preview</title>
+    <style>
+        body {
+            font-family: 'Segoe UI Emoji', Arial, sans-serif;
+            background-color: #f9f9f9;
+            padding: 20px;
+            color: #333;
+        }
+        .profile-card {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        .profile-card hr {
+            margin: 20px 0;
+            border: none;
+            border-top: 1px dashed #ccc;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .footer {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    {% for profile in profiles %}
+    <div class="profile-card">
+        <p><strong>Check out this profile! 🌟</strong></p>
+        <p>🆔 <strong>Profile ID:</strong> {{ profile.profile_id }}</p>
+        <p>👤 <strong>Profile Name:</strong> {{ profile.profile_name }}</p>
+        <p>🎂 <strong>Age:</strong> {{ profile.age }} years</p>
+        <p>✨ <strong>Star Name:</strong> {{ profile.star_name }}</p>
+        <p>💰 <strong>Annual Income:</strong> {{ profile.annual_income|default:"N/A" }}</p>
+        <p>🎓 <strong>Education:</strong> {{ profile.highest_education|default:"N/A" }}</p>
+        <p>💼 <strong>Profession:</strong> {{ profile.occupation|default:"N/A" }}</p>
+        <p>📍 <strong>Place of Stay:</strong> {{ profile.work_place|default:"N/A" }}</p>
+
+        <br/>
+        <p>🌐 <strong>For More Details:</strong> 
+            <a href="{{ profile.profile_link }}" target="_blank">{{ profile.profile_link }}</a>
+        </p>
+        <hr/>
+        <p class="footer">
+            🔗 <strong>Click here to register your profile on Vysyamala:</strong><br/>
+            <a href="https://vysyamala.com" target="_blank">vysyamala.com</a>
+        </p>
+    </div>
+    {% endfor %}
+</body>
+</html>
