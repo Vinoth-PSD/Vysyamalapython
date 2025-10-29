@@ -10048,7 +10048,8 @@ www.vysyamala.com
             email = EmailMessage(
                 subject=f"Invoice V{subscription.id} from Vysyamala",
                 body=email_body,
-                to=[recipient_email]
+                to=[recipient_email],
+                cc=["vysyamala@gmail.com"]
             )
             email.attach(f"invoice_{subscription.id}.pdf", pdf_buffer.getvalue(), "application/pdf")
             try:
