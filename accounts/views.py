@@ -9295,11 +9295,13 @@ class LoginLogView(generics.ListAPIView):
 class PlanSubscriptionCreateView(generics.CreateAPIView):
     queryset = PlanSubscription.objects.all()
     serializer_class = PlanSubscriptionSerializer
-    
+
     def perform_create(self, serializer):
+        # Step 1: Save subscription first
         subscription = serializer.save()
 
-        PaymentTransaction.objects.create(
+        # Step 2: Create related PaymentTransaction
+        transaction = PaymentTransaction.objects.create(
             profile_id=subscription.profile_id,
             plan_id=subscription.plan_id,
             order_id=subscription.order_id,
@@ -9312,8 +9314,13 @@ class PlanSubscriptionCreateView(generics.CreateAPIView):
             payment_refno=subscription.gpay_no,
             addon_package=subscription.addon_package
         )
- 
- 
+
+        # Step 3: Update trans_id in subscription
+        subscription.trans_id = transaction.id
+        subscription.save(update_fields=["trans_id"])
+
+
+
 # List subscriptions (only status=1)
 class PlanSubscriptionListView(generics.ListAPIView):
     serializer_class = PlanSubscriptionListSerializer
@@ -9389,32 +9396,41 @@ def process_transaction(request):
  
  
     if action.lower() == "accept":
-        # Create plan subscription
-        plan_sub = PlanSubscription.objects.create(
-            profile_id=transaction.profile_id,
-            plan_id=transaction.plan_id,
-            addon_package=transaction.addon_package,
-            paid_amount=transaction.amount,
-            discount=transaction.discount_amont or 0,
-            payment_mode=transaction.payment_type,
-            payment_for=payment_for,
-            status=1,  # assuming 1 = active
-            payment_by=transaction.profile_id,  # adjust if different
-            admin_user=admin_user,
-            order_id=transaction.order_id,
-            payment_id=transaction.payment_id,
-            gpay_no="",  # set if needed
-            trans_id=transaction.id,
-            payment_date =datetime.now()
-        )
- 
-        transaction.status = "2"  # or 2 if int based
-        transaction.owner_id = admin_user
-        transaction.save()
- 
+        # Check if PlanSubscription for this transaction already exists
+        existing_plan = PlanSubscription.objects.filter(trans_id=transaction.id).first()
+
+        if not existing_plan:
+            # Create plan subscription only if not already inserted
+            plan_sub = PlanSubscription.objects.create(
+                profile_id=transaction.profile_id,
+                plan_id=transaction.plan_id,
+                addon_package=transaction.addon_package,
+                paid_amount=transaction.amount,
+                discount=transaction.discount_amont or 0,
+                payment_mode=transaction.payment_type,
+                payment_for=payment_for,
+                status=1,  # assuming 1 = active
+                payment_by=transaction.profile_id,  # adjust if different
+                admin_user=admin_user,
+                order_id=transaction.order_id,
+                payment_id=transaction.payment_id,
+                gpay_no="",  # set if needed
+                trans_id=transaction.id,
+                payment_date=datetime.now()
+            )
+
+            transaction.status = "2"  # or 2 if int based
+            transaction.owner_id = admin_user
+            transaction.save()
+            subscription = plan_sub
+            message = "Transaction accepted and subscription created successfully"
+        else:
+            subscription = existing_plan
+            message = f"Subscription already exists for transaction ID {transaction.id}"
+
         return Response(
-            {"status": "success", "message": "Transaction accepted", "subscription_id": plan_sub.id},
-            status=status.HTTP_201_CREATED
+            {"status": "success", "message": message, "subscription_id": subscription.id},
+            status=status.HTTP_200_OK
         )
  
     elif action.lower() == "reject":
