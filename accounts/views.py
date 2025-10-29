@@ -7773,7 +7773,7 @@ class GenerateInvoicePDF(APIView):
             profile = None
         if profile:
             customer_name = profile.Profile_name
-            address = f"{profile.Profile_address or ''}\n{profile.Profile_city or ''}, {profile.Profile_state or ''} - {profile.Profile_pincode or ''}\nPhone: {profile.Mobile_no or ''}\nEmail: {profile.EmailId or ''}"
+            address = f"{profile.Profile_address or ''}<br/>{profile.Profile_city or ''}, {profile.Profile_state or ''} - {profile.Profile_pincode or ''}<br/>Phone: {profile.Mobile_no or ''}<br/>Email: {profile.EmailId or ''}"
         else:
             customer_name = None
             address = "Address not available"

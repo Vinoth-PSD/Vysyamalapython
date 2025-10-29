@@ -1353,7 +1353,7 @@ class Get_profiledata_Matching(models.Model):
                         f.profession, f.highest_education,f.actual_income,f.anual_income,f.work_city,
                         f.work_state,f.work_country,f.designation,f.company_name,f.business_name,f.nature_of_business,g.EducationLevel, d.star, h.income,
                         v.viewed_profile,
-                        pi.first_image_id AS has_image ,pi.image as profile_image ,TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) AS profile_age , asp.sent_date
+                        pi.first_image_id AS has_image ,pi.image as profile_image ,TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) AS profile_age 
                     FROM logindetails a
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
                     JOIN profile_horoscope e ON a.ProfileId = e.profile_id
@@ -1374,7 +1374,7 @@ class Get_profiledata_Matching(models.Model):
                     JOIN profile_horoscope h1_from ON h1_from.profile_id = %s
                     JOIN logindetails l1_from ON l1_from.ProfileId = %s
                     LEFT JOIN masterannualincome h_from ON h_from.id = f_from.anual_income
-                    LEFT JOIN admin_sentprofiles asp ON asp.sentprofile_id = a.ProfileId AND asp.profile_id = %s
+                    
 
 
                     WHERE a.gender != %s 
@@ -1452,7 +1452,7 @@ class Get_profiledata_Matching(models.Model):
                     AND a.ProfileId != %s
                     AND a.Profile_dob BETWEEN %s AND %s """
 
-            query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,profile_id,gender,gender,profile.Profile_dob,gender,profile.Profile_dob, profile_id,min_dob, max_dob]
+            query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,gender,gender,profile.Profile_dob,gender,profile.Profile_dob, profile_id,min_dob, max_dob]
             
             
             if status == "sent":
@@ -1469,7 +1469,7 @@ class Get_profiledata_Matching(models.Model):
                         {action_filter}
                     )""".format(action_filter=action_filter)
 
-                    base_query += " ORDER BY asp.sent_date DESC "
+                    # base_query += " ORDER BY asp.sent_date DESC "
                 
                     query_params.append(profile_id)
                     if action_type != "all":
@@ -1795,7 +1795,7 @@ class Get_profiledata_Matching(models.Model):
                             {action_filter}
                         ) """.format(action_filter=action_filter)
 
-                        base_query += " ORDER BY asp.sent_date DESC "
+                        # base_query += " ORDER BY asp.sent_date DESC "
                         
                         query_params.append(profile_id)
                         if action_type != "all":
