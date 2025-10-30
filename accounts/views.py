@@ -8657,7 +8657,7 @@ class AdminMatchProfilePDFView(APIView):
         format_type = pdf_format or request.query_params.get('pdf_format')  
         profile_to = profile_to or request.query_params.get('profile_to')
         action = action_type or request.query_params.get('action_type')
-        if format_type == "whatsapp_link_profile":
+        if format_type == "whatsapp_link_profile" or format_type == "whatsapp_link_profile_img":
             
             print('whatapp link profiles')
             whatsapp_profiles = []
@@ -8964,8 +8964,24 @@ class AdminMatchProfilePDFView(APIView):
                         dasa_year, dasa_month, dasa_day = match.group(4), match.group(5), match.group(6)
                 # print("porutham",porutham_data)
                 
-                if format_type == "whatsapp_link_profile":
+                if format_type == "whatsapp_link_profile_img":
                     profile_link = f"https://vsysmalamat-ejh3ftcdbnezhhfv.westus2-01.azurewebsites.net/auth/profile/{profile_id}/"
+                    profile_data = {
+                        "profile_link": profile_link,
+                        "profile_id": login.ProfileId,
+                        "profile_name": login.Profile_name or "N/A",
+                        "highest_education_my":final_education_my if final_education_my not in [None, ""] else "N/A",
+                        "highest_education":final_education if final_education not in [None, ""] else "N/A",
+                        "annual_income":annual_income if annual_income not in [None, ""] else "N/A",
+                        "occupation":occupation,
+                        "work_place":work_place if work_place not in [None, ""] else "N/A",
+                        "age": calculate_age(login.Profile_dob) if login.Profile_dob else "Unknown",
+                        "star_name": birthstar if birthstar not in [None, ""] else "N/A"
+                    }
+                    whatsapp_profiles.append(profile_data)
+
+                if format_type == "whatsapp_link_profile":
+                    profile_link = f"https://vsysmalamat-ejh3ftcdbnezhhfv.westus2-01.azurewebsites.net/auth/profile_view/{profile_id}/"
                     profile_data = {
                         "profile_link": profile_link,
                         "profile_id": login.ProfileId,
@@ -9057,7 +9073,8 @@ class AdminMatchProfilePDFView(APIView):
                     "match_compatability_black": "compatability_black.html",
                     "match_compatability_without_horo": "compatability_only.html",
                     "match_compatability_without_horo_black": "compatability_only_black.html",
-                    "whatsapp_link_profile": "whatsapp_profile.html"
+                    "whatsapp_link_profile": "whatsapp_profile.html",
+                    "whatsapp_link_profile_img": "whatsapp_profile.html"
                 }
 
                 if format_type not in template_map:
@@ -9114,7 +9131,7 @@ class AdminMatchProfilePDFView(APIView):
         pdf_merger.write(merged_pdf)
         pdf_merger.close()
         merged_pdf.seek(0)
-        if format_type == "whatsapp_link_profile":
+        if format_type == "whatsapp_link_profile" or format_type == "whatsapp_link_profile_img" :
 
             return render(request, "whatsapp_profile.html", {"profiles": whatsapp_profiles})
 
