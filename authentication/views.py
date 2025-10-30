@@ -12106,7 +12106,7 @@ JOIN (
 
                 profile_img = Get_profile_image(profile_id, photo_gender, 1, profile['Photo_protection'])
                 # Skip if image is 'not found'
-                if profile_img == "not_found_image_url" or profile_img.endswith("not-found.jpg"):  # Adjust the condition as needed
+                if not profile_img or profile_img in ["", None, "not_found_image_url"] or str(profile_img).endswith("not-found.jpg"):
                     continue
 
 
