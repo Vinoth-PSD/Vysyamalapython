@@ -10475,30 +10475,46 @@ class GetFeaturedList(APIView):
         # STEP 1: Get Matching (Partner Preference) IDs
         partner_results = models.Get_profiledata.get_profile_list_for_pref_type(profile_id=profile_id, use_suggested=False)
         partner_ids = set(str(p['ProfileId']) for p in partner_results)
-        
+    
         # STEP 2: Get All Featured IDs with Filters
         query = """
-            SELECT l.ProfileId FROM logindetails l LEFT JOIN profile_plan_feature_limits pfl ON pfl.profile_id=l.ProfileId
+            SELECT l.ProfileId 
+            FROM logindetails l 
+            LEFT JOIN profile_plan_feature_limits pfl ON pfl.profile_id=l.ProfileId
             WHERE gender != %s
             AND l.ProfileId != %s
-            AND pfl.featured_profile = '1'
-            AND CURDATE() BETWEEN pfl.membership_fromdate AND pfl.membership_todate
-            AND (pfl.membership_fromdate >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-			OR pfl.boosted_date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) )
-            AND l.Profile_dob IS NOT NULL AND l.status = '1'
+            AND (pfl.featured_profile = '1' OR pfl.featured_profile = 1)
+            AND CURDATE() BETWEEN CAST(pfl.membership_fromdate AS DATE) AND CAST(pfl.membership_todate AS DATE)
+            AND (
+                -- Either membership started within last 3 months
+                 CAST(pfl.membership_fromdate AS DATE) >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                -- OR currently within boost period
+                OR CURDATE() BETWEEN CAST(pfl.boosted_date AS DATE) AND CAST(pfl.boosted_enddate AS DATE)
+            )
+            AND l.Profile_dob IS NOT NULL 
+            AND l.status = '1'
         """
         params = [gender, profile_id]
 
-        # --- Gender-based DOB filtering (full date comparison) ---
+        # --- Gender-based DOB filtering (age-based comparison) ---
         if gender.lower() == 'male':
-            # Show only younger females (DOB > male DOB)
-            query += " AND Profile_dob > %s"
+            # Show only younger females (age < male age)
+            # Female DOB should be after male DOB (younger)
+            query += " AND l.Profile_dob > %s "
             params.append(profile_dob)
         elif gender.lower() == 'female':
-            # Show only older males (DOB < female DOB)
-            query += " AND Profile_dob < %s"
+            # Show only older males (age > female age)  
+            # Male DOB should be before female DOB (older)
+            query += " AND l.Profile_dob < %s "
             params.append(profile_dob)
 
+        # Add the ORDER BY clause
+        query += """
+            ORDER BY GREATEST(
+                COALESCE(pfl.membership_fromdate, '0000-00-00'), 
+                COALESCE(pfl.boosted_date, '0000-00-00')
+            ) DESC
+        """
         # --- Additional optional filters ---
         # if from_age:
         #     query += " AND TIMESTAMPDIFF(YEAR, Profile_dob, CURDATE()) >= %s"
@@ -10521,6 +10537,9 @@ class GetFeaturedList(APIView):
             return JsonResponse({'status': 'failure', 'message': str(e)}, status=500)
 
         # STEP 3: Subtract Matching from Featured IDs
+        # unique_ids = list(featured_ids - partner_ids)
+
+        #undo the unque id's
         unique_ids = list(featured_ids - partner_ids)
 
         if not unique_ids:
@@ -12043,39 +12062,43 @@ class FeaturedProfile(APIView):
         try:
             # Raw SQL query to fetch random profiles
             query = """SELECT 
-    ld.ProfileId, 
-    ld.Profile_name,  
-    ld.Gender,  
-    ld.Profile_dob, 
-    ld.Profile_height, 
-    ld.Profile_city, 
-    ld.Photo_protection 
-FROM (
-    SELECT l1.ProfileId
-    FROM logindetails l1
-    LEFT JOIN profile_plan_feature_limits pf ON pf.profile_id=l1.ProfileId
-    WHERE LOWER(Gender) = LOWER(%s)
-    AND l1.Status = 1
-    AND l1.Plan_id IN (2, 15)
-    AND pf.featured_profile = 1
-    AND CURDATE() BETWEEN membership_fromdate AND membership_todate
-    AND (membership_fromdate >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) OR pf.boosted_date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH))    
-    ORDER BY RAND()
-    LIMIT 10
-) AS rand_ld
-JOIN logindetails ld ON ld.ProfileId = rand_ld.ProfileId
-JOIN (
-    SELECT pi1.*
-    FROM profile_images pi1
-    INNER JOIN (
-        SELECT profile_id, MIN(id) AS min_id
-        FROM profile_images
-        WHERE image_approved = 1 
-        AND is_deleted = 0
-        GROUP BY profile_id
-    ) AS pi2 ON pi1.id = pi2.min_id
-) AS i ON i.profile_id = ld.ProfileId;
-"""
+                ld.ProfileId, 
+                ld.Profile_name,  
+                ld.Gender,  
+                ld.Profile_dob, 
+                ld.Profile_height, 
+                ld.Profile_city, 
+                ld.Photo_protection 
+            FROM (
+                SELECT l1.ProfileId
+                FROM logindetails l1
+                LEFT JOIN profile_plan_feature_limits pf ON pf.profile_id=l1.ProfileId
+                WHERE LOWER(Gender) = LOWER(%s)
+                AND l1.Status = 1
+                AND (pf.featured_profile = '1' OR pf.featured_profile = 1)
+                AND CURDATE() BETWEEN CAST(pf.membership_fromdate AS DATE) AND CAST(pf.membership_todate AS DATE)
+                AND (
+                -- Either membership started within last 3 months
+                 CAST(pf.membership_fromdate AS DATE) >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                -- OR currently within boost period
+                OR CURDATE() BETWEEN CAST(pf.boosted_date AS DATE) AND CAST(pf.boosted_enddate AS DATE)
+            )    
+                ORDER BY RAND()
+                LIMIT 10
+            ) AS rand_ld
+            JOIN logindetails ld ON ld.ProfileId = rand_ld.ProfileId
+            JOIN (
+                SELECT pi1.*
+                FROM profile_images pi1
+                INNER JOIN (
+                    SELECT profile_id, MIN(id) AS min_id
+                    FROM profile_images
+                    WHERE image_approved = 1 
+                    AND is_deleted = 0
+                    GROUP BY profile_id
+                ) AS pi2 ON pi1.id = pi2.min_id
+            ) AS i ON i.profile_id = ld.ProfileId;
+            """
             with connection.cursor() as cursor:
                 cursor.execute(query, [normalized_gender])
                 columns = [col[0] for col in cursor.description]
