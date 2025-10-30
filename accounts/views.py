@@ -1498,7 +1498,7 @@ class AdminUserDetailView(APIView):
             }, status=400)
 
         try:
-            user = AdminUser.objects.get(email=username)
+            user = AdminUser.objects.get(email=username,deleted=False)
 
             
             if user.password == password:
