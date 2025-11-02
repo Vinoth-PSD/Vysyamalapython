@@ -3566,6 +3566,9 @@ class My_profile_visit(APIView):
                         str(visitor.profile_id): visitor.datetime
                         for visitor in fetch_data
                     }
+                    n_profile_ids = list(fetch_data.values_list('profile_id', flat=True))
+
+                    profile_datetimes = get_profile_visitor_datetimes(profile_id, n_profile_ids)
 
                     restricted_profile_details = [
                         {
@@ -3582,7 +3585,8 @@ class My_profile_visit(APIView):
                             "viwed_degree":degree(detail.get("degree") if isinstance(detail, dict) else None,detail.get("other_degree") if isinstance(detail, dict) else None),
                             "viwed_match_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
                             "viwed_views":count_records(models.Profile_visitors, {'status': 1,'viewed_profile':detail.get("ProfileId")}),
-                            "viwed_lastvisit": visitor_map.get(str(detail.get("ProfileId"))).strftime("%b %d, %Y"),
+                            # "viwed_lastvisit": visitor_map.get(str(detail.get("ProfileId"))).strftime("%b %d, %Y"),
+                            "viwed_lastvisit": profile_datetimes.get(detail.get("ProfileId")).strftime("%b %d, %Y"),
                             "viwed_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "viwed_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "viwed_profile_wishlist":Get_wishlist(profile_id,detail.get("ProfileId")),
@@ -3904,6 +3908,20 @@ def get_profile_view_datetimes(profile_id, profile_ids):
     ).values('viewed_profile', 'datetime')
 
     return {v['viewed_profile']: v['datetime'] for v in visitors}
+
+
+
+def get_profile_visitor_datetimes(profile_id, profile_ids):
+    """
+    Returns a dict mapping visitor_profile -> datetime for the given profile_id
+    Example: {"VF1234": datetime(...), "VF5678": datetime(...)}
+    """
+    visitors = models.Profile_visitors.objects.filter(
+        profile_id__in=profile_ids,
+        viewed_profile=profile_id
+    ).values('profile_id', 'datetime')
+
+    return {v['profile_id']: v['datetime'] for v in visitors}
 
 
 
@@ -5462,7 +5480,8 @@ class Get_profile_det_match(APIView):
             "horoscope_link": f"{settings.MEDIA_URL}{user_profile['horoscope_file_admin']}" if user_profile.get('horoscope_file_admin') and permissions['eng_print'] else '',
             "user_status": self._get_user_status(user_profile['Last_login_date']),
             "verified": user_profile['Profile_verified'],
-            "last_visit": self._format_last_visit(user_profile['Last_login_date']),
+            # "last_visit": self._format_last_visit(user_profile['Last_login_date']),
+            "last_visit":'('+ self._get_det_prof_viewed_datetime(my_profile,user_profile['ProfileId']).strftime("%b %d, %Y") +')',
             "user_profile_views": count_records(models.Profile_visitors, {'status': 1, 'viewed_profile': user_profile['ProfileId']}),
             "wish_list": Get_wishlist(my_profile['ProfileId'], user_profile['ProfileId']),
             "express_int": Get_expressstatus(my_profile['ProfileId'], user_profile['ProfileId']),
@@ -5771,6 +5790,19 @@ class Get_profile_det_match(APIView):
             return formatted
         except Exception:
             return ''
+    
+    def _get_det_prof_viewed_datetime(self,profile_id,opposite_id):
+        """
+        Returns the datetime when the given profile_id viewed the opposite_id.
+        If not found, returns the current datetime.
+        """
+        visitor = models.Profile_visitors.objects.filter(
+            profile_id=profile_id,
+            viewed_profile=opposite_id
+        ).values_list('datetime', flat=True).first()
+
+        # Return the found datetime or current datetime if not exists
+        return visitor or timezone.now()
 
     def dosham_value_formatter(self,value):
             if isinstance(value, str):
@@ -6403,7 +6435,7 @@ class Get_notification_list(APIView):
                 last_60_days = now - timedelta(days=60)
 
                 all_profiles = models.Profile_notification.objects.filter(profile_id=profile_id, created_at__gte=last_60_days)
-                all_profile_ids = {str(index + 1): profile_id for index, profile_id in enumerate(all_profiles.values_list('profile_id', flat=True))}
+                all_profile_ids = {str(index + 1): profile_id for index, profile_id in enumerate(all_profiles.values_list('from_profile_id', flat=True))}
 
                 total_records = all_profiles.count()
 
@@ -6414,11 +6446,36 @@ class Get_notification_list(APIView):
 
                 notification_list=models.Profile_notification.objects.filter(profile_id=profile_id, created_at__gte=last_60_days).order_by('-id')[start:end]
 
+
+                profile_data = models.Registration1.objects.get(ProfileId=profile_id)
+                photo_viewing = get_permission_limits(profile_id, 'photo_viewing')
+                my_gender = profile_data.Gender
+                my_status = profile_data.Status
+
+                print('all_profile_ids',all_profile_ids)
+                
+                from_profiles = [n.from_profile_id for n in notification_list]
+
+                print('from_profiles',from_profiles)
+                photo_protection_map = dict(models.Registration1.objects.filter(ProfileId__in=from_profiles).values_list("ProfileId", "Photo_protection"))
+
+                print(photo_protection_map,'photo_protection_map')
+
+                if photo_viewing == 1 and my_status != 0:
+                        image_function = lambda notification: get_profile_image_azure_optimized(
+                            notification.from_profile_id, my_gender, 1, photo_protection_map.get(notification.from_profile_id, 1)
+                        )
+                else:
+                        image_function = lambda notification: get_profile_image_azure_optimized(
+                            notification.from_profile_id, my_gender, 1, 1
+                        )
+
                 notifications_data = [
                     {
                         "id": notification.id,
                         "notify_img": 'https://vysyamala.com/images/heading_icon.png',
-                        "profile_image": Get_image_profile(notification.from_profile_id),
+                        #"profile_image": Get_image_profile(notification.from_profile_id),
+                        "profile_image": image_function(notification),
                         "from_profile_id": notification.from_profile_id,
                         "notify_profile_name": notification.from_profile_id,
                         "message_titile":notification.message_titile,

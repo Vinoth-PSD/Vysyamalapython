@@ -1087,7 +1087,7 @@ class Get_profiledata(models.Model):
                         a.Profile_height, e.birthstar_name, e.birth_rasi_name, f.degree,f.other_degree,
                         f.profession, f.highest_education, g.EducationLevel, d.star, h.income,
                         v.viewed_profile, f1.suya_gothram_admin,f1.suya_gothram,
-                        pi.first_image_id AS has_image
+                        pi.first_image_id AS has_image , f.anual_income
                     FROM logindetails a
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
                     JOIN profile_horoscope e ON a.ProfileId = e.profile_id
@@ -1494,7 +1494,7 @@ class Get_profiledata(models.Model):
             # Base query to get matching profiles
             query = """
                  SELECT DISTINCT a.ProfileId,a.Plan_id ,a.DateOfJoin,a.Photo_protection,a.Profile_city,a.Profile_verified,a.Profile_name,a.Profile_dob,a.Profile_height,e.birthstar_name,e.birth_rasi_name,f.ug_degeree,f.profession, 
-                    f.highest_education, g.EducationLevel, d.star, h.income ,f1.suya_gothram_admin,f1.suya_gothram FROM logindetails a 
+                    f.highest_education, g.EducationLevel, d.star, h.income ,f1.suya_gothram_admin,f1.suya_gothram , f.anual_income FROM logindetails a 
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
                     JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
                     JOIN masterbirthstar d ON d.id = e.birthstar_name 
@@ -1608,7 +1608,7 @@ class Get_profiledata(models.Model):
             pref_annual_income_max = None if pref_annual_income_max in ("null", "", None) else pref_annual_income_max          
 
             if pref_annual_income and pref_annual_income_max:
-                    query += "AND f.anual_income BETWEEN %s AND %s "
+                    query += "AND ((f.anual_income BETWEEN %s AND %s ) OR (f.anual_income IS NULL) OR (f.anual_income = ''))"
                     query_params.extend([int(pref_annual_income),int(pref_annual_income_max)])
 
             if partner_pref_education:
