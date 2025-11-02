@@ -1447,8 +1447,6 @@ class Get_profiledata_Matching(models.Model):
                     -- If opposite profile is not Platinum → skip pv.* checks
                     (a.Plan_id NOT IN (3,16,17))
                 )
-
-                    AND a.Plan_id NOT IN (0,3, 16, 17)
                     AND a.ProfileId != %s
                     AND a.Profile_dob BETWEEN %s AND %s """
 
@@ -1516,10 +1514,10 @@ class Get_profiledata_Matching(models.Model):
 
         
                 if inc_min and inc_max:
-                    base_query += "AND f.anual_income BETWEEN %s AND %s"
+                    base_query += "AND ((f.anual_income BETWEEN %s AND %s ) OR (f.income_amount IS NULL) OR (f.income_amount = ''))"
                     query_params.extend([int(inc_min), int(inc_max)])
                 elif annual_income_min and annual_income_max:
-                    base_query += "AND f.anual_income BETWEEN %s AND %s "
+                    base_query += "AND ((f.anual_income BETWEEN %s AND %s ) OR (f.income_amount IS NULL) OR (f.income_amount = ''))"
                     query_params.extend([int(annual_income_min),int(annual_income_max)])
 
                 if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
@@ -1678,7 +1676,7 @@ class Get_profiledata_Matching(models.Model):
 
                 if except_visitor == 1:
                     base_query += """
-                        AND NOT EXISTS (
+                        AND EXISTS (
                             SELECT 1 
                             FROM profile_visit_logs v2 
                             WHERE v2.profile_id = a.ProfileId 
@@ -1812,19 +1810,19 @@ class Get_profiledata_Matching(models.Model):
             total = len(all_ids)
             profile_with_indices = {str(i + 1): pid for i, pid in enumerate(all_ids)}
             
-            def format_sql_for_debug(query, params):
-                def escape(value):
-                    if isinstance(value, str):
-                        return f"'{value}'"
-                    elif value is None:
-                        return 'NULL'
-                    else:
-                        return str(value)
-                try:
-                    return query % tuple(map(escape, params))
-                except Exception as e:
-                    print("Error formatting query:", e)
-                    return query
+            # def format_sql_for_debug(query, params):
+            #     def escape(value):
+            #         if isinstance(value, str):
+            #             return f"'{value}'"
+            #         elif value is None:
+            #             return 'NULL'
+            #         else:
+            #             return str(value)
+            #     try:
+            #         return query % tuple(map(escape, params))
+            #     except Exception as e:
+            #         print("Error formatting query:", e)
+            #         return query
 
             # # Usage:
             # print("MySQL Executable Query:")
@@ -2838,12 +2836,16 @@ class Get_profiledata_Matching(models.Model):
             partner_pref_height_to = height_to or partner_pref.visibility_height_to
             partner_pref_profession = profession or partner_pref.visibility_profession
             partner_pref_foreign_interest = partner_pref.visibility_foreign_interest
-            partner_pref_ragukethu = partner_pref.visibility_ragukethu
-            partner_pref_chevvai = partner_pref.visibility_chevvai
-            partner_pref_familysts = partner_pref.visibility_family_status
+            partner_pref_ragukethu = ragu or partner_pref.visibility_ragukethu
+            partner_pref_chevvai = chev or partner_pref.visibility_chevvai
+            partner_pref_familysts = family_status or partner_pref.visibility_family_status
             field_of_study = field_of_study or partner_pref.visibility_field_of_study
             degree = degree or partner_pref.degree
+            
+            my_family= get_object_or_404(ProfileFamilyDetails, profile_id=profile_id)
 
+            my_suya_gothram=my_family.suya_gothram
+            my_suya_gothram_admin=my_family.suya_gothram_admin
             # DOB range calculation
             try:
                 if partner_pref_age_from and partner_pref_age_to:
@@ -2880,11 +2882,10 @@ class Get_profiledata_Matching(models.Model):
                        f.nature_of_business,
                        g.EducationLevel, d.star, h.income
                 FROM logindetails a
-                JOIN profile_visibility s ON a.ProfileId = s.profile_id 
                 JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
                 JOIN profile_familydetails c ON a.ProfileId = c.profile_id
                 JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
-                JOIN masterbirthstar d ON d.id = e.birthstar_name 
+                LEFT JOIN masterbirthstar d ON d.id = e.birthstar_name 
                 JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
                 LEFT JOIN mastereducation g ON f.highest_education = g.RowId 
                 LEFT JOIN masterannualincome h ON h.id = f.anual_income
@@ -2894,10 +2895,22 @@ class Get_profiledata_Matching(models.Model):
                   AND a.Plan_id NOT IN (0,16)
                   AND a.gender != %s 
                   AND a.ProfileId != %s
-                  AND a.Profile_dob BETWEEN %s AND %s
+                AND (
+            (%s = 'male' 
+                AND (%s IS NULL OR %s = '' OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= %s)
+                AND (%s IS NULL OR %s = '' OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= %s)
+                AND a.Profile_dob > %s  -- viewer (male) older than candidate
+            )
+            OR
+            (%s = 'female' 
+                AND (%s IS NULL OR %s = '' OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= %s)
+                AND (%s IS NULL OR %s = '' OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= %s)
+                AND a.Profile_dob < %s  -- viewer (female) younger than candidate
+            )
+        )
             """
 
-            query_params = [gender, profile_id, min_dob, max_dob]
+            query_params = [gender, profile_id,gender,partner_pref_age_from, partner_pref_age_from, partner_pref_age_from,partner_pref_age_to, partner_pref_age_to, partner_pref_age_to,profile_dob,gender,partner_pref_age_from, partner_pref_age_from, partner_pref_age_from, partner_pref_age_to, partner_pref_age_to, partner_pref_age_to,profile_dob ]
 
             # Income filter
             if min_anual_income and max_anual_income:
@@ -2926,18 +2939,36 @@ class Get_profiledata_Matching(models.Model):
                     base_query += " AND f.work_country = '1'"
 
             # Dosham filters
-            if not chev and not ragu:
-                if partner_pref_ragukethu:
-                    if partner_pref_ragukethu.lower() == 'yes':
-                        base_query += " AND (LOWER(e.calc_raguketu_dhosham) IN ('yes','true') OR e.calc_raguketu_dhosham IN ('1',1,'','NULL'))"
-                    elif partner_pref_ragukethu.lower() == 'no':
-                        base_query += " AND (LOWER(e.calc_raguketu_dhosham) IN ('no','false') OR e.calc_raguketu_dhosham IN ('2',2,'','NULL'))"
+            # if not chev and not ragu:
+            # print('partner_pref_ragukethu',partner_pref_ragukethu)
+            # print('partner_pref_chevvai',partner_pref_chevvai)
+            
+            # print('chev',chev)
+            # print('ragu',ragu)
 
-                if partner_pref_chevvai:
-                    if partner_pref_chevvai.lower() == 'yes':
-                        base_query += " AND (LOWER(e.calc_chevvai_dhosham) IN ('yes','true') OR e.calc_chevvai_dhosham IN ('1',1,'','NULL'))"
-                    elif partner_pref_chevvai.lower() == 'no':
-                        base_query += " AND (LOWER(e.calc_chevvai_dhosham) IN ('no','false') OR e.calc_chevvai_dhosham IN ('2',2,'','NULL'))"
+            
+            # Check suya_gothram_admin first (ID stored as string in DB)
+            if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
+
+                    base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"
+                    query_params.append(str(my_suya_gothram_admin))
+            if my_suya_gothram and str(my_suya_gothram).strip() != "":
+
+                    base_query += " AND (c.suya_gothram IS NULL OR c.suya_gothram = '' OR c.suya_gothram != %s )"
+                    query_params.append(my_suya_gothram)
+            
+            
+            if partner_pref_ragukethu:
+                if partner_pref_ragukethu.lower() == 'yes':
+                    base_query += " AND (LOWER(e.calc_raguketu_dhosham) IN ('yes','true') OR e.calc_raguketu_dhosham IN ('1',1,'','NULL'))"
+                elif partner_pref_ragukethu.lower() == 'no':
+                    base_query += " AND (LOWER(e.calc_raguketu_dhosham) IN ('no','false') OR e.calc_raguketu_dhosham IN ('2',2,'','NULL'))"
+
+            if partner_pref_chevvai:
+                if partner_pref_chevvai.lower() == 'yes':
+                    base_query += " AND (LOWER(e.calc_chevvai_dhosham) IN ('yes','true') OR e.calc_chevvai_dhosham IN ('1',1,'','NULL'))"
+                elif partner_pref_chevvai.lower() == 'no':
+                    base_query += " AND (LOWER(e.calc_chevvai_dhosham) IN ('no','false') OR e.calc_chevvai_dhosham IN ('2',2,'','NULL'))"
 
             # Height filters
             if partner_pref_height_from and partner_pref_height_to:
@@ -2951,15 +2982,19 @@ class Get_profiledata_Matching(models.Model):
                 query_params.append(partner_pref_height_to)
 
             # Family status filter
-            if family_status:
-                statuses = [s.strip() for s in str(family_status).split(',') if s.strip()]
-                if statuses:
-                    family_status_filters = ["FIND_IN_SET(%s, c.family_status) > 0" for _ in statuses]
-                    base_query += " AND (" + " OR ".join(family_status_filters) + ")"
-                    query_params.extend(statuses)
-            elif partner_pref_familysts:
-                base_query += " AND (FIND_IN_SET(c.family_status, %s) > 0 OR c.family_status IS NULL OR c.family_status='')"
-                query_params.append(partner_pref_familysts)
+            # if family_status:
+            #     statuses = [s.strip() for s in str(family_status).split(',') if s.strip()]
+            #     if statuses:
+            #         # Use IN clause for family_status values
+            #         placeholders = ','.join(['%s'] * len(statuses))
+            #         base_query += " AND (c.family_status IN (" + placeholders + ") OR c.family_status IS NULL OR c.family_status = '')"
+            #         query_params.extend(statuses)
+            if partner_pref_familysts:
+                pref_statuses = [s.strip() for s in str(partner_pref_familysts).split(',') if s.strip()]
+                if pref_statuses:
+                    placeholders = ','.join(['%s'] * len(pref_statuses))
+                    base_query += " AND (c.family_status IN (" + placeholders + ") OR c.family_status IS NULL OR c.family_status = '')"
+                    query_params.extend(pref_statuses)
 
             # Field of study filter
             if field_of_study:
@@ -2998,8 +3033,28 @@ class Get_profiledata_Matching(models.Model):
                 profile_with_indices = {str(i + 1): pid for i, pid in enumerate(all_profile_ids)}
 
             # Add pagination
-            query += " LIMIT %s OFFSET %s"
-            query_params.extend([per_page, start])
+            # query += " LIMIT %s OFFSET %s"
+            # query_params.extend([per_page, start])
+
+
+            def format_sql_for_debug(query, params):
+                def escape(value):
+                    if isinstance(value, str):
+                        return f"'{value}'"
+                    elif value is None:
+                        return 'NULL'
+                    else:
+                        return str(value)
+                try:
+                    return query % tuple(map(escape, params))
+                except Exception as e:
+                    print("Error formatting query:", e)
+                    return query
+
+            # Usage:
+            # print("MySQL Executable Query:")
+            # print(format_sql_for_debug(query, query_params))
+
 
             with connection.cursor() as cursor:
                 cursor.execute(query, query_params)
@@ -3045,6 +3100,11 @@ class Get_profiledata_Matching(models.Model):
             field_of_study = partner_pref.visibility_field_of_study
             degree = partner_pref.degree
 
+            my_family= get_object_or_404(ProfileFamilyDetails, profile_id=profile_id)
+
+            my_suya_gothram=my_family.suya_gothram
+            my_suya_gothram_admin=my_family.suya_gothram_admin
+
             # DOB range calculation
             try:
                 if partner_pref_age_from and partner_pref_age_to:
@@ -3074,7 +3134,6 @@ class Get_profiledata_Matching(models.Model):
             base_query = """
                 SELECT COUNT(DISTINCT a.ProfileId) AS match_count
                 FROM logindetails a
-                JOIN profile_visibility s ON a.ProfileId = s.profile_id 
                 JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
                 JOIN profile_familydetails c ON a.ProfileId = c.profile_id
                 JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
@@ -3088,11 +3147,33 @@ class Get_profiledata_Matching(models.Model):
                   AND a.Plan_id NOT IN (0,16)
                   AND a.gender != %s 
                   AND a.ProfileId != %s
-                  AND a.Profile_dob BETWEEN %s AND %s
+                  AND (
+            (%s = 'male' 
+                AND (%s IS NULL OR %s = '' OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= %s)
+                AND (%s IS NULL OR %s = '' OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= %s)
+                AND a.Profile_dob > %s  -- viewer (male) older than candidate
+            )
+            OR
+            (%s = 'female' 
+                AND (%s IS NULL OR %s = '' OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= %s)
+                AND (%s IS NULL OR %s = '' OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= %s)
+                AND a.Profile_dob < %s  -- viewer (female) younger than candidate
+            )
+        )
             """
 
-            query_params = [gender, profile_id, min_dob, max_dob]
+            query_params = [gender, profile_id,gender,partner_pref_age_from, partner_pref_age_from, partner_pref_age_from,partner_pref_age_to, partner_pref_age_to, partner_pref_age_to,profile_dob,gender,partner_pref_age_from, partner_pref_age_from, partner_pref_age_from, partner_pref_age_to, partner_pref_age_to, partner_pref_age_to,profile_dob ]
 
+
+            if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
+
+                    base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"
+                    query_params.append(str(my_suya_gothram_admin))
+            if my_suya_gothram and str(my_suya_gothram).strip() != "":
+
+                    base_query += " AND (c.suya_gothram IS NULL OR c.suya_gothram = '' OR c.suya_gothram != %s )"
+                    query_params.append(my_suya_gothram)
+            
             # Income filter
             if pref_annual_income and pref_annual_income_max:
                 base_query += " AND h.id BETWEEN %s AND %s"
@@ -3116,12 +3197,19 @@ class Get_profiledata_Matching(models.Model):
                 else:
                     base_query += " AND f.work_country = '1'"
 
+            if partner_pref_ragukethu:
+                if partner_pref_ragukethu.lower() == 'yes':
+                    base_query += " AND (LOWER(e.calc_raguketu_dhosham) IN ('yes','true') OR e.calc_raguketu_dhosham IN ('1',1,'','NULL'))"
+                elif partner_pref_ragukethu.lower() == 'no':
+                    base_query += " AND (LOWER(e.calc_raguketu_dhosham) IN ('no','false') OR e.calc_raguketu_dhosham IN ('2',2,'','NULL'))"
 
-                if partner_pref_chevvai:
-                    if partner_pref_chevvai.lower() == 'yes':
-                        base_query += " AND (LOWER(e.calc_chevvai_dhosham) IN ('yes','true') OR e.calc_chevvai_dhosham IN ('1',1,'','NULL'))"
-                    elif partner_pref_chevvai.lower() == 'no':
-                        base_query += " AND (LOWER(e.calc_chevvai_dhosham) IN ('no','false') OR e.calc_chevvai_dhosham IN ('2',2,'','NULL'))"
+            if partner_pref_chevvai:
+                if partner_pref_chevvai.lower() == 'yes':
+                    base_query += " AND (LOWER(e.calc_chevvai_dhosham) IN ('yes','true') OR e.calc_chevvai_dhosham IN ('1',1,'','NULL'))"
+                elif partner_pref_chevvai.lower() == 'no':
+                    base_query += " AND (LOWER(e.calc_chevvai_dhosham) IN ('no','false') OR e.calc_chevvai_dhosham IN ('2',2,'','NULL'))"
+
+
 
             # Height filters
             if partner_pref_height_from and partner_pref_height_to:
@@ -3136,8 +3224,11 @@ class Get_profiledata_Matching(models.Model):
 
 
             if partner_pref_familysts:
-                base_query += " AND (FIND_IN_SET(c.family_status, %s) > 0 OR c.family_status IS NULL OR c.family_status='')"
-                query_params.append(partner_pref_familysts)
+                pref_statuses = [s.strip() for s in str(partner_pref_familysts).split(',') if s.strip()]
+                if pref_statuses:
+                    placeholders = ','.join(['%s'] * len(pref_statuses))
+                    base_query += " AND (c.family_status IN (" + placeholders + ") OR c.family_status IS NULL OR c.family_status = '')"
+                    query_params.extend(pref_statuses)
 
             # Field of study filter
             if field_of_study:
@@ -3154,6 +3245,27 @@ class Get_profiledata_Matching(models.Model):
                     placeholders = ','.join(['%s'] * len(degrees))
                     base_query += f" AND f.degree IN ({placeholders})"
                     query_params.extend(degrees)
+
+
+
+            
+            # def format_sql_for_debug(query, params):
+            #     def escape(value):
+            #         if isinstance(value, str):
+            #             return f"'{value}'"
+            #         elif value is None:
+            #             return 'NULL'
+            #         else:
+            #             return str(value)
+            #     try:
+            #         return query % tuple(map(escape, params))
+            #     except Exception as e:
+            #         print("Error formatting query:", e)
+            #         return query
+
+            # # Usage:
+            # print("MySQL Executable Query:")
+            # print(format_sql_for_debug(base_query, query_params))
 
             with connection.cursor() as cursor:
                 cursor.execute(base_query,query_params)

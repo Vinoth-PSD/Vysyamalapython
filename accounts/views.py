@@ -1028,7 +1028,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
     serializer_class = Getnewprofiledata
 
     def retrieve(self, request, *args, **kwargs):
-        print("Retrieving profile with ID:", kwargs.get('pk'))
+        # print("Retrieving profile with ID:", kwargs.get('pk'))
         return super().retrieve(request, *args, **kwargs)
     
     
@@ -2426,7 +2426,7 @@ class EditProfileAPIView(APIView):
             profileplan_detail = Profile_PlanFeatureLimit.objects.get(profile_id=profile_id,status=1)
             profileplan_serializer = ProfileplanSerializer(instance=profileplan_detail, data=profileplan_common_data, partial=True)
             if profileplan_serializer.is_valid():
-                print('profile plan serializer is valid', profileplan_serializer.validated_data)
+                # print('profile plan serializer is valid', profileplan_serializer.validated_data)
                 profileplan_serializer.save()
             else:
                 return Response({'error': profileplan_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -2526,7 +2526,7 @@ def calculate_idle_days(last_login_date):
 
 def get_profile_status(status_id, primary_status,sub_status):
     status_list=[]
-    print(status_id,primary_status,sub_status,'status details')
+    # print(status_id,primary_status,sub_status,'status details')
     if status_id or status_id==0:
         try:
             status = ProfileStatus.objects.get(status_code=status_id)
@@ -2629,7 +2629,7 @@ class GetProfEditDetailsAPIView(APIView):
 
         try:
             profile_plan_features = Profile_PlanFeatureLimit.objects.get(profile_id=profile_id)
-            print(profile_plan_features.plan_id,'profile_plan_features')
+            # print(profile_plan_features.plan_id,'profile_plan_features')
             if isinstance(profile_plan_features.membership_fromdate, str):
                 profile_plan_features.membership_fromdate = datetime.strptime(
                     profile_plan_features.membership_fromdate, "%Y-%m-%d %H:%M:%S"
@@ -2772,10 +2772,15 @@ class GetProfEditDetailsAPIView(APIView):
             or 0
         ) 
 
-        visibility_count = (
-            Get_profiledata_Matching.get_visibility_match_count(gender, profile_id)
-            or 0
-        ) 
+        pstatus = login_detail.plan_status
+
+        if pstatus in (3,17,'3', '17'):
+            visibility_count = (
+                Get_profiledata_Matching.get_visibility_match_count(gender, profile_id) or 0
+            )
+        else:
+            visibility_count = 0
+
 
         suggest_profile_count = suggest_profile_details  # This will not cause an error
         # print('suggest_profile_count:', suggest_profile_count)
@@ -3982,6 +3987,8 @@ dhosham_map = {
     "2": "No",
     True: "Yes",
     False: "No",
+    "True": "Yes",
+    "False": "No",
     None: "N/A"
 }
 
