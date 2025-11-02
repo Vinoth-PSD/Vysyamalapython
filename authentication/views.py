@@ -20614,7 +20614,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 
                 # Create a Django response object and specify content_type as pdf
                 response = HttpResponse(content_type='application/pdf')
-                response['Content-Disposition'] = f' inline; filename="{filename}"'
+                response['Content-Disposition'] = f'inline; filename="{filename}"'
 
 
                 # Create the PDF using xhtml2pdf
