@@ -1207,7 +1207,7 @@ class Get_profiledata(models.Model):
                 
                 
                 if pref_annual_income and pref_annual_income_max:
-                    base_query += "AND f.anual_income BETWEEN %s AND %s "
+                    base_query += "AND ((f.anual_income BETWEEN %s AND %s ) OR (f.anual_income IS NULL) OR (f.anual_income = ''))"
                     query_params.extend([int(pref_annual_income),int(pref_annual_income_max)])
 
 

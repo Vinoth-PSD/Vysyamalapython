@@ -9859,7 +9859,6 @@ class GetSearchResults(APIView):
         people_withphoto = request.data.get('people_withphoto')
         chevvai_dhosam = request.data.get('chevvai_dhosam')
         ragukethu_dhosam = request.data.get('ragukethu_dhosam')
-        
         received_per_page = request.data.get('per_page')
         received_page_number = request.data.get('page_number')
 
@@ -12180,11 +12179,11 @@ class Search_byprofile_id(APIView):
         # Need to get gender from logindetails table
         try:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT Gender FROM logindetails WHERE ProfileId = %s", [profile_id])
-                gender = cursor.fetchone()
-                if not gender:
+                cursor.execute("SELECT Gender,Profile_dob FROM logindetails WHERE ProfileId = %s", [profile_id])
+                result = cursor.fetchone()
+                if not result:
                     return JsonResponse({'status': 'failure', 'message': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
-                gender = gender[0]
+                gender, profile_dob = result
 
         except Exception as e:
             return JsonResponse({'status': 'failure', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -12223,19 +12222,116 @@ class Search_byprofile_id(APIView):
         base_query = """
         SELECT a.ProfileId, a.Profile_name, a.Profile_marital_status, a.Profile_dob, a.Profile_height, a.Profile_city, f.degree,f.other_degree,
                f.profession, f.highest_education, g.EducationLevel, d.star, h.income , e.birthstar_name , e.birth_rasi_name
-                       ,a.Photo_protection,a.Gender        FROM logindetails a 
+                       ,a.Photo_protection,a.Gender        FROM logindetails a  
         LEFT JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
+        LEFT JOIN profile_visibility pv ON pv.profile_id = a.ProfileId
         LEFT JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
         LEFT JOIN masterbirthstar d ON d.id = e.birthstar_name 
         LEFT JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
         LEFT JOIN mastereducation g ON f.highest_education = g.RowId 
         LEFT JOIN masterannualincome h ON h.id = f.anual_income
-        WHERE a.gender != %s AND a.ProfileId != %s AND a.plan_id NOT IN (0,16, 17, 3) AND (a.ProfileId = %s
+
+
+        JOIN profile_edudetails f_from ON f_from.profile_id = %s
+        JOIN profile_familydetails f1_from ON f1_from.profile_id = %s
+        JOIN profile_horoscope h1_from ON h1_from.profile_id = %s
+        JOIN logindetails l1_from ON l1_from.ProfileId = %s
+        LEFT JOIN masterannualincome h_from ON h_from.id = f_from.anual_income
+
+
+        WHERE a.gender != %s AND a.ProfileId != %s  AND (
+                        -- If the opposite profile is Platinum, apply pv only when set
+                        (
+                            a.Plan_id IN (3,17)
+                        AND (
+                            (%s = 'male' 
+                                AND (pv.visibility_age_from IS NULL OR pv.visibility_age_from = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= pv.visibility_age_from)
+                                AND (pv.visibility_age_to IS NULL OR pv.visibility_age_to = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= pv.visibility_age_to)
+                                AND a.Profile_dob > %s -- viewer must be older than candidate
+                            )
+                            OR
+                            (%s = 'female' 
+                                AND (pv.visibility_age_from IS NULL OR pv.visibility_age_from = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= pv.visibility_age_from)
+                                AND (pv.visibility_age_to IS NULL OR pv.visibility_age_to = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= pv.visibility_age_to)
+                                AND a.Profile_dob < %s -- viewer must be younger than candidate
+                            )
+                        )
+                        AND (pv.visibility_height_from IS NULL OR pv.visibility_height_from = '' OR l1_from.Profile_height >= pv.visibility_height_from)
+                        AND (pv.visibility_height_to IS NULL OR pv.visibility_height_to = '' OR l1_from.Profile_height <= pv.visibility_height_to)
+                        AND (pv.visibility_profession IS NULL OR pv.visibility_profession = '' OR FIND_IN_SET(f_from.profession, pv.visibility_profession) > 0)
+                        AND (pv.visibility_education IS NULL OR pv.visibility_education = '' OR FIND_IN_SET(f_from.highest_education, pv.visibility_education) > 0)
+                        AND (pv.visibility_anual_income IS NULL OR pv.visibility_anual_income = '' 
+                        OR h_from.id >= pv.visibility_anual_income)
+                        AND (pv.visibility_anual_income_max IS NULL OR pv.visibility_anual_income_max = '' 
+                        OR h_from.id <= pv.visibility_anual_income_max)
+
+                        AND (pv.degree IS NULL OR pv.degree = '' OR FIND_IN_SET(f_from.degree, pv.degree) > 0)
+                        AND (pv.visibility_field_of_study IS NULL OR pv.visibility_field_of_study = '' OR FIND_IN_SET(f_from.field_ofstudy, pv.visibility_field_of_study) > 0)
+                        AND (pv.visibility_family_status IS NULL OR pv.visibility_family_status = '' OR FIND_IN_SET(f1_from.family_status, pv.visibility_family_status) > 0)
+                        -- Chevvai visibility
+                        AND (
+                            pv.visibility_chevvai IS NULL OR pv.visibility_chevvai = '' 
+                            OR (
+                                (LOWER(pv.visibility_chevvai) IN ('yes','true','1') 
+                                    AND (LOWER(h1_from.calc_chevvai_dhosham) = 'yes' OR LOWER(h1_from.calc_chevvai_dhosham) = 'true' 
+                                        OR h1_from.calc_chevvai_dhosham = '1' OR h1_from.calc_chevvai_dhosham = 1 
+                                        OR h1_from.calc_chevvai_dhosham IS NULL OR h1_from.calc_chevvai_dhosham =''))
+                                OR
+                                (LOWER(pv.visibility_chevvai) IN ('no','false','2') 
+                                    AND (LOWER(h1_from.calc_chevvai_dhosham) = 'no' OR LOWER(h1_from.calc_chevvai_dhosham) = 'false' 
+                                        OR h1_from.calc_chevvai_dhosham = '2' OR h1_from.calc_chevvai_dhosham = 2 
+                                        OR h1_from.calc_chevvai_dhosham IS NULL OR h1_from.calc_chevvai_dhosham =''))
+                            )
+                        )
+                        -- Ragukethu visibility
+                        AND (
+                            pv.visibility_ragukethu IS NULL OR pv.visibility_ragukethu = '' 
+                            OR (
+                                (LOWER(pv.visibility_ragukethu) IN ('yes','true','1') 
+                                    AND (LOWER(h1_from.calc_raguketu_dhosham) = 'yes' OR LOWER(h1_from.calc_raguketu_dhosham) = 'true' 
+                                        OR h1_from.calc_raguketu_dhosham = '1' OR h1_from.calc_raguketu_dhosham = 1 
+                                        OR h1_from.calc_raguketu_dhosham IS NULL OR h1_from.calc_raguketu_dhosham =''))
+                                OR
+                                (LOWER(pv.visibility_ragukethu) IN ('no','false','2') 
+                                    AND (LOWER(h1_from.calc_raguketu_dhosham) = 'no' OR LOWER(h1_from.calc_raguketu_dhosham) = 'false' 
+                                        OR h1_from.calc_raguketu_dhosham = '2' OR h1_from.calc_raguketu_dhosham = 2 
+                                        OR h1_from.calc_raguketu_dhosham IS NULL OR h1_from.calc_raguketu_dhosham =''))
+                            )
+                        )
+                    )
+                    OR 
+                    -- If opposite profile is not Platinum → skip pv.* checks
+                    (a.Plan_id NOT IN (3,16,17))
+                ) AND (a.ProfileId = %s
        OR a.Profile_name LIKE CONCAT('%%', %s, '%%'));
         """
         
         # Prepare the query parameters
-        query_params = [gender, profile_id , search_profile_id , search_profile_id]
+        query_params = [profile_id,profile_id,profile_id,profile_id,gender, profile_id ,gender,profile_dob,gender,profile_dob, search_profile_id , search_profile_id]
+
+
+        def format_sql_for_debug(query, params):
+            def escape(value):
+                if isinstance(value, str):
+                        return f"'{value}'"
+                elif value is None:
+                        return 'NULL'
+                else:
+                        return str(value)
+            try:
+                    return query % tuple(map(escape, params))
+            except Exception as e:
+                    #print("Error formatting query:", e)
+                    return query
+
+            # Usage:
+        final_query = format_sql_for_debug(base_query, query_params)
+
+        print(final_query)
 
         try:
             with connection.cursor() as cursor:
