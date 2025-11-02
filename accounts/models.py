@@ -1358,8 +1358,7 @@ class Get_profiledata_Matching(models.Model):
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
                     JOIN profile_horoscope e ON a.ProfileId = e.profile_id
                     JOIN masterbirthstar d ON d.id = e.birthstar_name
-                    JOIN profile_edudetails f
-                        ON a.ProfileId = f.profile_id
+                    JOIN profile_edudetails f ON a.ProfileId = f.profile_id
                     LEFT JOIN mastereducation g ON f.highest_education = g.RowId
                     LEFT JOIN masterannualincome h ON h.id = f.anual_income
                     JOIN profile_familydetails c ON a.ProfileId = c.profile_id
@@ -1514,10 +1513,10 @@ class Get_profiledata_Matching(models.Model):
 
         
                 if inc_min and inc_max:
-                    base_query += "AND ((f.anual_income BETWEEN %s AND %s ) OR (f.income_amount IS NULL) OR (f.income_amount = ''))"
+                    base_query += "AND ((f.anual_income BETWEEN %s AND %s ) OR (f.anual_income IS NULL) OR (f.anual_income = ''))"
                     query_params.extend([int(inc_min), int(inc_max)])
                 elif annual_income_min and annual_income_max:
-                    base_query += "AND ((f.anual_income BETWEEN %s AND %s ) OR (f.income_amount IS NULL) OR (f.income_amount = ''))"
+                    base_query += "AND ((f.anual_income BETWEEN %s AND %s ) OR (f.anual_income IS NULL) OR (f.anual_income = ''))"
                     query_params.extend([int(annual_income_min),int(annual_income_max)])
 
                 if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
