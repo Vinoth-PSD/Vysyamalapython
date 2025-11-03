@@ -9976,7 +9976,7 @@ class GetSearchResults(APIView):
 
 
 
-        WHERE a.gender != %s AND a.ProfileId != %s  AND a.plan_id NOT IN (0,16, 17) AND a.status=1
+        WHERE a.gender != %s AND a.ProfileId != %s  AND a.plan_id NOT IN (0,16) AND a.status=1
 
                             AND (
                         -- If the opposite profile is Platinum, apply pv only when set
@@ -12972,7 +12972,7 @@ class Searchbeforelogin(APIView):
         # Initialize the query with the base structure
         base_query = """
         SELECT a.ProfileId, a.Profile_name, a.Profile_marital_status, a.Profile_dob, a.Profile_height, a.Profile_city, 
-               f.profession, f.highest_education,f.degree,f.other_degree g.EducationLevel, d.star, h.income , e.birthstar_name , e.birth_rasi_name ,a.Photo_protection,a.Gender 
+               f.profession, f.highest_education,f.degree,f.other_degree , g.EducationLevel, d.star, h.income , e.birthstar_name , e.birth_rasi_name ,a.Photo_protection,a.Gender 
         FROM logindetails a 
         JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
         JOIN profile_horoscope e ON a.ProfileId = e.profile_id 
@@ -12980,12 +12980,17 @@ class Searchbeforelogin(APIView):
         JOIN profile_edudetails f ON a.ProfileId = f.profile_id 
         JOIN mastereducation g ON f.highest_education = g.RowId 
         JOIN masterannualincome h ON h.id = f.anual_income
-        WHERE a.gender = %s
+        WHERE a.Status=1 AND a.plan_id NOT IN (0,3,16,17) 
         """
 
         # Prepare the query parameters
-        query_params = [gender]
+        # query_params = [gender]
+        query_params = []
+        if gender:
 
+            base_query += " AND a.gender = %s "
+            query_params.append(gender)
+        
         # Add age filter
         if from_age or to_age:
             age_condition_operator = "BETWEEN %s AND %s" if from_age and to_age else ">=%s" if from_age else "<=%s"
@@ -13002,9 +13007,9 @@ class Searchbeforelogin(APIView):
 
                 # Add profession filter
         if native_state:
-            base_query += " AND a.Profile_state = %s"
+            base_query += " AND (a.Profile_state = %s)"
             query_params.append(native_state)
-        
+
 
         # print('search before login 173', city)
         if city:
@@ -13015,6 +13020,9 @@ class Searchbeforelogin(APIView):
             else:
                 base_query += " AND a.Profile_district NOT IN (3, 28, 62, 96, 97, 15)"
 
+        
+        
+        base_query += " ORDER BY a.DateOfJoin DESC "
         # print('base_query',base_query)
         try:
             with connection.cursor() as cursor:
@@ -13079,11 +13087,8 @@ class GetPageDetails(APIView):
                 "status": 0,
                 "message": "page id not found"
             }, status=status.HTTP_200_OK)
-            
-            
-            
-            
-            
+
+
 class ActiveProfilesAndHappyCustomersAPIView(APIView):
     def post(self, request):
         active_profiles_count = models.Registration1.objects.filter(status=1).count()
