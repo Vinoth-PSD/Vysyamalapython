@@ -591,15 +591,16 @@ class Registrationstep2(APIView):
 
                 # send_mail(subject,settings.DEFAULT_FROM_EMAIL,recipient_list,fail_silently=False,html_message=html_content)
                 from_email = settings.DEFAULT_FROM_EMAIL
-                
-                send_mail(
-                        subject,
-                        '',  # No plain text version
-                        from_email,
-                        recipient_list,  # Recipient list should be a list
-                        fail_silently=False,
-                        html_message=html_content
-                    )
+
+                #Due to yuva network ssl issue commented this email sending part 03-11-2025
+                # send_mail(
+                #         subject,
+                #         '',  # No plain text version
+                #         from_email,
+                #         recipient_list,  # Recipient list should be a list
+                #         fail_silently=False,
+                #         html_message=html_content
+                #     )
 
                     
                     
