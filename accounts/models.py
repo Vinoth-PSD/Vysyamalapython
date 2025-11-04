@@ -1809,21 +1809,21 @@ class Get_profiledata_Matching(models.Model):
             total = len(all_ids)
             profile_with_indices = {str(i + 1): pid for i, pid in enumerate(all_ids)}
             
-            # def format_sql_for_debug(query, params):
-            #     def escape(value):
-            #         if isinstance(value, str):
-            #             return f"'{value}'"
-            #         elif value is None:
-            #             return 'NULL'
-            #         else:
-            #             return str(value)
-            #     try:
-            #         return query % tuple(map(escape, params))
-            #     except Exception as e:
-            #         print("Error formatting query:", e)
-            #         return query
+            def format_sql_for_debug(query, params):
+                def escape(value):
+                    if isinstance(value, str):
+                        return f"'{value}'"
+                    elif value is None:
+                        return 'NULL'
+                    else:
+                        return str(value)
+                try:
+                    return query % tuple(map(escape, params))
+                except Exception as e:
+                    print("Error formatting query:", e)
+                    return query
 
-            # # Usage:
+            # Usage:
             # print("MySQL Executable Query:")
             # print(format_sql_for_debug(base_query, query_params))
 
@@ -2301,7 +2301,7 @@ class Get_profiledata_Matching(models.Model):
                 LEFT JOIN vw_profile_images pi ON a.ProfileId = pi.profile_id
                 LEFT JOIN profile_visit_logs v ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
 
-                
+                LEFT JOIN masterprofession prof ON f.profession = prof.RowId
                 JOIN profile_edudetails f_from ON f_from.profile_id = %s
                 JOIN profile_familydetails f1_from ON f1_from.profile_id = %s
                 JOIN profile_horoscope h1_from ON h1_from.profile_id = %s
@@ -2388,7 +2388,7 @@ class Get_profiledata_Matching(models.Model):
             pref_annual_income_max = None if pref_annual_income_max in ("null", "", None) else pref_annual_income_max
             
             if pref_annual_income and pref_annual_income_max:
-                base_query += "AND f.anual_income BETWEEN %s AND %s "
+                base_query += "AND ((f.anual_income BETWEEN %s AND %s ) OR (f.anual_income IS NULL) OR (f.anual_income = '')) "
                 params.extend([int(pref_annual_income),int(pref_annual_income_max)])
             # Gothram filter
             if my_suya_gothram_admin and my_suya_gothram_admin != '0':
