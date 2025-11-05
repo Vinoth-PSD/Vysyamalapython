@@ -748,11 +748,11 @@ class PartnerprefSerializer(serializers.ModelSerializer):
     pref_height_from = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     pref_height_to = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     pref_anual_income_max  = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-
+    pref_fieldof_study = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = models.Partnerpref
-        fields = ('profile_id','pref_age_differences','pref_height_from', 'pref_height_to', 'pref_marital_status','pref_profession','pref_education','pref_anual_income','pref_chevvai','pref_ragukethu','pref_foreign_intrest','pref_porutham_star','pref_porutham_star_rasi','pref_anual_income_max','status')
+        fields = ('profile_id','pref_age_differences','pref_height_from', 'pref_height_to', 'pref_marital_status','pref_profession','pref_education','pref_anual_income','pref_chevvai','pref_ragukethu','pref_foreign_intrest','pref_porutham_star','pref_porutham_star_rasi','pref_anual_income_max','status','pref_fieldof_study')
 
 
 class PlanSerializer(serializers.Serializer):    
@@ -1388,7 +1388,7 @@ class Registration1ContactSerializer(serializers.ModelSerializer):
 class ParPrefSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Partnerpref
-        fields = ['pref_age_differences', 'pref_height_from', 'pref_height_to', 'pref_profession', 'pref_education', 'pref_anual_income', 'pref_chevvai', 'pref_ragukethu', 'pref_foreign_intrest','pref_porutham_star_rasi','pref_porutham_star','pref_marital_status','pref_anual_income_max']
+        fields = ['pref_age_differences', 'pref_height_from', 'pref_height_to', 'pref_profession', 'pref_education', 'pref_anual_income', 'pref_chevvai', 'pref_ragukethu', 'pref_foreign_intrest','pref_porutham_star_rasi','pref_porutham_star','pref_marital_status','pref_anual_income_max','pref_fieldof_study']
 
 
 

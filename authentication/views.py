@@ -14593,7 +14593,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     #return ', '.join([item['matching_starname'] for item in poruthams])
                     return ', '.join([f"{item['matching_starname']} - {item['matching_rasiname'].split('/')[0]}" for item in poruthams])
 
-                profile_url = f"https://polite-pond-0783ff91e.1.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
+                profile_url = f"https://www.vysyamala.com/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
 
                 dasa_day = dasa_month = dasa_year = 0
                 # Try to split if format is correct
@@ -14632,7 +14632,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     
 
                         <div class="upload-horo-bg" >
-                            <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
+                            <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/Horo-header-for-horoattached-format.png" >
                         </div>
 
                
@@ -14678,7 +14678,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 </table>
                             </td>
                             <td class="spacer">
-                                <table class="table-div dasa-table">
+                                <table class="table-div-horo dasa-table">
                                     <tr>
                                         <td>
                                             <p><strong>Dasa Name</strong></p>
@@ -14688,9 +14688,9 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                     <tr>
                                         <td>
                                             <p><strong>Dasa Balance</strong></p>
-                                            <p>{dasa_year} Years</p>
-                                            <p>{dasa_month} Months</p>
-                                            <p>{dasa_day} Days</p>
+                                            <p>Years:{dasa_year}</p>
+                                            <p>Months:{dasa_month}</p>
+                                            <p>Days:{dasa_day}</p>
                                         </td>
                                     </tr>
                                 </table>
@@ -14726,15 +14726,19 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     </table>
                     
                 <div>
-                <table class="add-info"> 
-                    <tr>
-                        <td>
-                            <p><b>Horoscope Hints: </b>{horo_hint}</p>
-                        </td>
-                    </tr>
-                    <tr>
+                <table class="outer2">
+                <tr>
                     <td>
-                    <table>
+                        <table class="add-info2"> 
+                                    <tr>
+                                        <td>
+                                            <p><b>Horoscope Hints: </b>{horo_hint}</p>
+                                        </td>
+                                    </tr>
+                        </table>
+                    </tr>
+                    </td>
+                    </table>
                     """
 
                 html_content = rf"""
@@ -14765,7 +14769,10 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                             .header-left {{
                                 width: 100%;
                             }}
-                            
+                            td.inner-tabledata {{
+                                max-width: 80px;
+                                overflow-wrap: break-word;
+                            }}
                             .header-left p{{
                                 font-size: 18px;
                                 font-weight: 400;
@@ -14823,7 +14830,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 text-align: center;
                                 font-family: Arial, sans-serif;
                                 margin:0;
-                                padding:0;
+                                padding: 0 20px;
                                 margin-bottom:10px;
 
                             }}
@@ -14838,7 +14845,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 margin: 10px;
                                 display: inline-block;
                                 vertical-align: top;
-                                background-color: #fff9c7;
+                                background-color: #ffffff;
                             }}
                             .inner-tabledata{{
                                  width:25%;
@@ -14846,14 +14853,15 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 
                             }}
                             .inner td {{
-                                width:25%;
-                                height:80px;
-                                border:2px solid #d6d6d6;
+                                width: 25%;
+                                height: 80px;
+                                border: 1px solid #008000;
                                 padding: 10px;
                                 color: #008000;
-                                font-weight: bold;
+                                font-weight: 500;
                                 font-size: 12px;
-                                white-space: pre-line; /* Ensures new lines are respected */
+                                white-space: pre-line;
+                                /* Ensures new lines are respected */
                             }}
 
                             .inner-table tr td p{{
@@ -14887,11 +14895,32 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 display: inline-block;
                                 background-color: transparent;
                             }}
-
-                            .table-div{{
+                            .table-div-horo{{
                                 border-collapse: collapse;
-                                padding:5px 20px;
-                                margin-bottom:1rem;
+                                padding: 5px 20px;
+                                margin-bottom: 1rem;
+                                width: 100%;
+                                text-align: center;
+                            }}
+                            .table-div-horo tr {{
+                                padding: 10px 10px;
+                            }}
+                            .table-div-horo tr .border-right{{
+                                border-right:1px solid #008000;
+                            }}
+                            .table-div-horo td{{
+                                background-color: #ffffff;
+                                width: 50%;
+                                padding: 10px 10px;
+                                text-align: left;
+                            }}
+                            .table-div{{
+                                border: 1px solid #008000;
+                                border-collapse: collapse;
+                                padding: 5px 20px;
+                                margin-bottom: 1rem;
+                                width: 100%;
+                                text-align: center;
                             }}
                             .table-div tr {{
                                 padding: 10px 10px;
@@ -14900,10 +14929,10 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 border-right:1px solid #008000;
                             }}
                             .table-div td{{
-                                background-color: #fff9c7;
-                                width:50%;
+                                background-color: #ffffff;
+                                width: 50%;
                                 padding: 10px 10px;
-                                text-align:left;
+                                text-align: left;
                             }}
                             .table-div p {{
                                    font-size:14px;
@@ -14914,15 +14943,16 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 padding:0px;
                                 margin-bottom:0px;
                             }}
-                            .dasa-table td{{
-                                width:100%;
-                                background-color:#fff;
-                                 padding:0px;
+                            .dasa-table td {{
+                                width: 100%;
+                                background-color: #fff;
+                                padding: 0px;
                             }}
-                            .dasa-table td p{{
-                                font-size:14px;
-                                font-weight:400;
-                                text-align:center;
+
+                            .dasa-table td p {{
+                                font-size: 12px;
+                                font-weight: 400;
+                                text-align: center;
                             }}
                             .note-text {{
                                 color: red;
@@ -14940,23 +14970,26 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                             }}
  
                             .add-info tr {{
-                           padding:5px 20px ;
+                                border: 1px solid #008000;
+                                padding: 5px 20px;
                             }}
-                        
+
                             .add-info td {{
-                                background-color: #fff9c7;
+                                background-color: #fff;
                                 padding: 5px 5px;
                             }}
-                          .add-info td p{{
-                            font-size: 14px;
-                            font-weight: 400;
-                            color: #008000;
-                            padding:0 10px;
-                           }}
-                           .click-here{{
-                            color:#318f9a;
-                           text-decoration: none;
 
+                            .add-info td p {{
+                                font-size: 14px;
+                                font-weight: 400;
+                                color: #008000;
+                                padding: 0 10px;
+                            }}
+                           .click-here{{
+                                color: #008000;
+                                font-size:16px;
+                                font-weight:600;
+                                text-decoration: none;
                            }}
 
                             .porutham-page{{
@@ -14967,10 +15000,12 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                             }}
 
                             .porutham-header img{{
+                                justify-content:left !important;
                                 width: 130px;
                                 height: auto;
                             }}
                             .porutham-header p {{
+                                text-align:right !important;
                                 font-size:22px;
                                 font-weight: 700;
                                 color:#000000;
@@ -14987,7 +15022,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 margin-bottom: 24px;
                             }}
                             .porutham-table td {{
-                                border:1px solid #bcbcbc;
+                                border: 1px solid #008000;
                             }}
                             .porutham-table td p{{
                                 color: #000;
@@ -15015,14 +15050,14 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                             .upload-horo-image{{
                                 margin: 10px 0px;
                                 text-align: center;
-                                height: 800px;
+                                height: 700px;
                            
                             }}
                             .upload-horo-image tr{{
-                                height: 800px;
+                                height: 700px;
                             }}
                             .upload-horo-image tr td{{
-                                height: 800px;
+                                height: 700px;
                             }}
                             .upload-horo-image img{{
                                 width:400px;
@@ -15030,8 +15065,44 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 object-fit: cover;
                              
                             }}
-                            
+                            table.outer2 {{
+                                width: 100%;
+                                margin: 0;
+                                padding: 0;
+                                margin-bottom: 10px;
+                                padding: 0 20px;
 
+                            }}
+
+                            .outer2 > tr > td {{
+                                padding: 0 20px;
+                            }}
+                            .table-div-horo p {{
+                                font-size: 12px;
+                                font-weight: 400;
+                                color: #008000;
+                            }}
+                             .text-wrap {{
+                                word-break: break-word;
+                                white-space: normal;
+                                font-size: 12px;
+                                line-height: 1.4;
+                            }}
+                            .add-info2 tr {{
+                                padding: 5px 20px;
+                            }}
+
+                            .add-info2 td {{
+                                background-color: #fff;
+                                padding: 5px 5px;
+                            }}
+
+                            .add-info2 td p {{
+                                font-size: 14px;
+                                font-weight: 400;
+                                color: #008000;
+                                padding: 0 10px;
+                            }}
                         </style>
                     </head>
 
@@ -15048,7 +15119,9 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                         </table>
                         
                     <div class="details-section">
-                    
+                <table class="outer2">
+                <tr>
+                <td>
                 <table class="table-div">
                             <tr>
                                 <td class="border-right">
@@ -15186,30 +15259,44 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 </td>
                             </tr>
                         </table>
+                        </td>
+                        </tr>
+                        </table>
                     
                     </div>
                     {charts_html}
 
-
+                    <table class="outer2">
                         <tr>
                             <td>
-                                {address_content}
-                            </td>
-                            <td>
-                                {mobile_email_content}
+                                <table class="add-info"> 
+                                    <tr>
+                                        <td>
+                                            {address_content}
+                                        </td>
+                                        <td>
+                                            {mobile_email_content}
+                                        </td>
+                                    </tr>
+                                </table>
                             </td>
                         </tr>
+                        </table>
+                        <table class="outer2">
+                            <tr>
+                                <td>
+                                    <table class="add-info2"> 
+                                        <tr>
+                                            <td>
+                                                <p>Note: Please verify this profile yourself. No hidden charges or commissions if marriage is fixed through Vysyamala. For more details of this profile: <a href="{profile_url}" target="_blank" class="click-here">click here</a></p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                        </div>
                     </table>
-                    </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <p>Note: Please verify this profile yourself. No hidden charges or commissions if marriage is fixed through Vysyamala. For more details of this profile: <a href="{profile_url}" target="_blank" class="click-here">click here</a></p>
-                        </td>
-                    </tr>
-                </table>
-                </div>
-
                 <table class="porutham-page">
                 <tr>
                 <td>
@@ -15780,7 +15867,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 def format_star_names(poruthams):
                     return ', '.join([f"{item['matching_starname']} - {item['matching_rasiname'].split('/')[0]}" for item in poruthams])
                 
-                profile_url = f"https://polite-pond-0783ff91e.1.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
+                profile_url = f"https://www.vysyamala.com/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
                 
                 def is_grid_data_empty(grid_data):
                     return all(cell == default_placeholder for cell in grid_data)
@@ -15826,7 +15913,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                 </table>
                             </td>
                             <td class="spacer">
-                                <table class="table-div dasa-table">
+                                <table class="table-div-horo dasa-table">
                                     <tr>
                                         <td>
                                             <p><strong>Dasa Name</strong></p>
@@ -15836,9 +15923,9 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                     <tr>
                                         <td>
                                             <p><strong>Dasa Balance</strong></p>
-                                            <p>{dasa_year} Years</p>
-                                            <p>{dasa_month} Months</p>
-                                            <p>{dasa_day} Days</p>
+                                            <p>Years:{dasa_year}</p>
+                                            <p>Months:{dasa_month}</p>
+                                            <p>Days:{dasa_day}</p>
                                         </td>
                                     </tr>
                                 </table>
@@ -15873,17 +15960,19 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                         </tr>
                     </table>
                     <div>
-                <table class="add-info"> 
+                <table class="outer2">
                     <tr>
                         <td>
-                            <p><b>Horoscope Hints: </b>{horo_hint}</p>
-                       <hr class="divider">
-
+                            <table class="add-info2"> 
+                                <tr>
+                                    <td>
+                                        <p><b>Horoscope Hints: </b>{horo_hint}</p>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
-                    <tr>
-                    <td>
-                    <table>
+                </table>
                     """
 
                 html_content = rf"""
@@ -15998,7 +16087,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                             .inner td {{
                                 width:25%;
                                 height:70px;
-                                border:2px solid #d6d6d6;
+                                border:1px solid #008000;
                                 padding: 10px;
                                 color: #000000;
                                 font-weight: bold;
@@ -16031,27 +16120,38 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                             }}
 
                            
-                            .table-div{{
-                                padding: 5px 10px;
+                            .table-div {{
+                                border: 1px solid #6207ac;
                                 border-collapse: collapse;
-                                padding:5px 20px;
-                                margin-bottom:15px;
+                                padding: 5px 20px;
+                                margin-bottom: 1rem;
+                                width: 100%;
+                                text-align: center;
                             }}
+
                             .table-div tr {{
-                                padding: 0px 10px;
+                                padding: 10px 10px;
                             }}
-                            .table-div tr .border-right{{
-                                border-right:1px solid #000000;
+
+                            .table-div tr .border-right {{
+                                border-right: 1px solid #6207ac;
                             }}
-                            .table-div td{{
+
+                            .table-div td {{
+                                
                                 background-color: #ffffff;
-                                width:50%;
-                                padding: 10x  20px;
-                                text-align:left;
+                                width: 50%;
+                                padding: 10px 10px;
+                                text-align: left;
                             }}
                             .table-div p {{
                                    font-size:14px;
                                 font-weight:400;
+                                color: #000;
+                            }}
+                            .table-div-horo p {{
+                                font-size: 12px;
+                                font-weight: 400;
                                 color: #000;
                             }}
                             .divider{{
@@ -16099,7 +16199,8 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                 text-align: right;
                             }}
 
-                             .add-info tr {{
+                            .add-info tr {{
+                                border: 1px solid #6207ac;
                             padding:5px 20px ;
                             }}
                         
@@ -16113,6 +16214,28 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                             color: #000000;
                             padding:0 10px;
                            }}
+                          .add-info2 tr {{
+                                padding: 5px 20px;
+                            }}
+
+                            .add-info2 td {{
+                                background-color: #fff;
+                                padding: 5px 5px;
+                            }}
+
+                            .add-info2 td p {{
+                                font-size: 14px;
+                                font-weight: 400;
+                                color: #000;
+                                padding: 0 10px;
+                            }}
+                            .click-here2 {{
+                                color: #000;
+                                font-size:16px;
+                                font-weight:600;
+                                text-decoration: none;
+
+                            }}
                           
                            .click-here{{
                             color:#000;
@@ -16178,14 +16301,14 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                             .upload-horo-image{{
                                 margin: 10px 0px;
                                 text-align: center;
-                                height: 800px;
+                                height: 700px;
                            
                             }}
                             .upload-horo-image tr{{
-                                height: 800px;
+                                height: 700px;
                             }}
                             .upload-horo-image tr td{{
-                                height: 800px;
+                                height: 700px;
                             }}
                             .upload-horo-image img{{
                                 width:400px;
@@ -16193,7 +16316,14 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                 object-fit: cover;
                              
                             }}
-                            
+                            table.outer2 {{
+                                width: 100%;
+                                margin: 0;
+                                padding: 0;
+                                margin-bottom: 10px;
+                                padding: 0 20px;
+
+                            }}
 
                         </style>
                     </head>
@@ -16211,8 +16341,10 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                         </table>
                         
                     <div class="details-section">
-                    
-                <table class="table-div">
+                <table class="outer2">
+                    <tr>
+                        <td>
+                            <table class="table-div">
                             <tr>
                                 <td class="border-right">
                                 <table class="inner-table">
@@ -16262,10 +16394,6 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                 </td>
                             </tr>
                         </table>
-
-                       <hr class="divider">
-
-
                         <table class="table-div">
                             <tr>
                                 <td  class="border-right">
@@ -16310,10 +16438,6 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                 </td>
                             </tr>
                         </table>
-
-                       <hr class="divider">
-
-
                         <table class="table-div">
                             <tr>
                                 <td  class="border-right">
@@ -16353,28 +16477,42 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                 </td>
                             </tr>
                         </table>
+                        </td>
+                            </tr>
+                        </table>
                     
                     </div>
                     
                     {charts_html}
-                
+                    <table class="outer2">
                         <tr>
                             <td>
-                               {address_content}
-                            </td>
-                            <td>
-                               {mobile_email_content}
+                                <table class="add-info">
+                                    <tr>
+                                        <td>
+                                        {address_content}
+                                        </td>
+                                        <td>
+                                        {mobile_email_content}
+                                        </td>
+                                    </tr>
+                                </table>
                             </td>
                         </tr>
                     </table>
-                    </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <p>Note: Please verify this profile yourself. No hidden charges or commissions if marriage is fixed through Vysyamala. For more details of this profile: <a href="{profile_url}" target="_blank" class="click-here">click here</a></p>
-                        </td>
-                    </tr>
-                </table>
+                    <table class="outer2">
+                        <tr>
+                            <td>
+                                <table class="add-info2">
+                                    <tr>
+                                        <td>
+                                            <p>Note: Please verify this profile yourself. No hidden charges or commissions if marriage is fixed through Vysyamala. For more details of this profile: <a href="{profile_url}" target="_blank" class="click-here">click here</a></p>
+                                        </td>
+                                    </tr>
+                                </table>
+                             </td>
+                        </tr>
+                    </table>
                 </div>
 
                 <table class="porutham-page">
@@ -16456,7 +16594,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
 
 
                 <div class="upload-horo-bg" >
-                    <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
+                    <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/Horo-header-for-horoattached-format.png" >
                 </div>
 
                <table class="upload-horo-image">
@@ -18663,7 +18801,7 @@ def generate_pdf_without_address(request, user_profile_id, filename="Horoscope_w
             </tr>
             </table>
             <div class="upload-horo-bg" >
-                <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
+                <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/Horo-header-for-horoattached-format.png" >
             </div>
             <div class="upload-horo-image">
                      {horoscope_content} 
@@ -19901,7 +20039,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 def format_star_names(poruthams):
                     return ', '.join([f"{item['matching_starname']} - {item['matching_rasiname'].split('/')[0]}" for item in poruthams])
 
-                profile_url = f"https://polite-pond-0783ff91e.1.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
+                profile_url = f"https://www.vysyamala.com/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
 
                 dasa_day = dasa_month = dasa_year = 0
                 # Try to split if format is correct
@@ -19928,8 +20066,8 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                         extra_td = (
                             f"<td rowspan='{len(porutham_data['porutham_results'])}'>"
                             f"<p class='matching-score'>{porutham_data['matching_score']}</p>"
-                            f"<p style='font-weight:500; font-size:13px;'>Please check with your astrologer for detailed compatibility.</p>"
-                            f"<p style='margin-top:10px;'>Jai Vasavi</p>"
+                            f"<p style='font-weight:500; font-size:13px;color:#008000;'>Please check with your astrologer for detailed compatibility.</p>"
+                            f"<p style='margin-top:10px;color:#008000;'>Jai Vasavi</p>"
                             f"</td>"
                         )
                     porutham_rows += (
@@ -19947,15 +20085,77 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 porutham_details=""
                 if porutham_show==True:
                     porutham_details=f"""
-                    <table class="compatibility-page-wrapper" >
-            <tr>
-            <td style="text-align:center;margin:0 auto; padding:0px 20px;">
-                        
-            <h2 class="report-title">Marriage Compatibility Report</h2>
-        
-            <table class="report-table" border="0">
+                    <style>
+  .compatibility-page-wrapper {{
+    margin: 0px auto;
+    text-align: center;
+    width: 100%;
+  }}
+  .compatibility-page-wrapper tr {{
+    margin: auto;
+    text-align: center;
+    width: 100%;
+  }}
+
+  .compatibility-page-wrapper tr td {{
+    background-color: #ffd966;
+    width: 100%;
+    text-align: center;
+    margin: auto;
+  }}
+  .compatability-table {{
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 24px;
+    background-color: #fff9c7;
+    font-size: 14px;
+  }}
+
+  .compatability-table th {{
+    background-color: #008000;
+    color: #ffd966;
+    font-size: 16px;
+    padding: 10px 10px;
+    text-align: center;
+    border: 1px solid #008000;
+  }}
+
+  .compatability-table td {{
+    padding: 10px;
+    text-align: center;
+    font-weight: 500;
+    border: 1px solid #008000;
+    color: #008000;
+    padding: 5px 10px;
+  }}
+
+  .compatability-table tr:nth-child(even) {{
+    background-color: #fef5b3;
+  }}
+
+  .matching-score {{
+    font-size: 36px;
+    font-weight: bold;
+    color: #008000;
+    margin-bottom: 10px;
+  }}
+
+  .compatability-table td span {{
+    font-size: 14px;
+    font-weight: 600;
+  }}
+</style>
+    <table class="compatibility-page-wrapper">
+        <tr>
+            <td style="text-align: center; margin: 0 auto; padding: 0px 100px">
+            <br />
+            <h2 style="text-align: center; color: #008000; font-size: 20px">
+                Marriage Compatibility Report
+            </h2>
+
+            <table class="table-div">
                 <tr>
-                <td class="header-cell">
+                <td>
                     <p class="profile-name">{login_my.Profile_name} - {login_my.ProfileId}</p>
                 </td>
                 <td class="header-cell">
@@ -19973,7 +20173,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
             </table>
             <br>
         
-            <table class="profile-addtional-info" >
+            <table class="table-div" >
                 <tr>
                 <td class="data-row">
                      <p> Place of Birth : {horoscope_my.place_of_birth}</p>
@@ -20001,7 +20201,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
             </table>
             <br>
         
-              <table class="profile-addtional-info">
+              <table class="table-div">
                 <tr>
                 <td class="data-row">
                     <p> Height : {cm_to_feet_inches(login_my.Profile_height)}</p>
@@ -20020,29 +20220,54 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 </td>
                 </tr>
             </table>
-                
-            <h2 class="report-title" >Nakshatra Porutham & Rasi Porutham</h2>
-           <table class="porutham-table">
+            <table class="porutham-page">
                 <tr>
-                    <th>Porutham Name</th>
-                    <th>Status</th>
-                    <th>Matching Score</th>
-                </tr>
+                <td>
+                    <br />
+                    <div class="compatability-page">
+                    <h2
+                        class="compatability-table-title"
+                        style="text-align: center; color: #008000; font-size: 20px"
+                    >
+                        Nakshatra Porutham & Rasi Porutham
+                    </h2>
+                    <table class="compatability-table">
+                        <tr>
+                        <th>Porutham Name</th>
+                        <th>Status</th>
+                        <th>Matching Score</th>
+                        </tr>
                  {porutham_rows}
-                 </table>        
-              <table class="profile-addtional-info">
-                <tr >
-                <td class="data-row"  style="width:100%;">
-                <p>
-                Our best wishes for finding your soulmate in Vyasyamala soon. Please inform Vyasyamala if your marriage is fixed. Share your engagement photo and receive a surprise gift. No commissions / hidden charges. Jai Vasavi!
-                </p>
+                 </table>
+            </div>
+          </td>
+        </tr>
+      </table>
+      <table class="porutham-page" style="margin-top: 10px">
+        <tr>
+          <td>
+            <table class="compatability-table">
+              <tr>
+                <td>
+                  Our best wishes for finding your soulmate in Vysamala soon.
+                  Please inform Vysamala if your marriage is fixed. Share your
+                  engagement photo and receive a surprise gift. No commissions /
+                  hidden charges. Jai Vasavi!
+                 
                 </td>
-                </tr>
-                </table>
-                <br>
-            </td>
-            </tr>
-            </table>"""
+              </tr>
+            </table>
+             <br/>
+                  <br/>
+                  <br/>
+                  <br/>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+"""
 
 
                 if not hide_charts:
@@ -20079,19 +20304,19 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 </table>
                             </td>
                             <td class="spacer">
-                                <table class="table-div dasa-table">
+                                <table class="table-div-horo dasa-table">
                                     <tr>
                                         <td>
-                                            <p><strong>Dasa Name</strong></p>
+                                            <p style="text-wrap-mode:nowrap !important;"><strong>Dasa Name</strong></p>
                                             <p>{dasa_name}</p>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td>
                                             <p><strong>Dasa Balance</strong></p>
-                                            <p>{dasa_year} Years</p>
-                                            <p>{dasa_month} Months</p>
-                                            <p>{dasa_day} Days</p>
+                                            <p>Years:{dasa_year}</p>
+                                            <p>Months:{dasa_month}</p>
+                                            <p>Days:{dasa_day}</p>
                                         </td>
                                     </tr>
                                 </table>
@@ -20126,15 +20351,19 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                         </tr>
                     </table>
                      <div>
-                <table class="add-info"> 
-                    <tr>
-                        <td>
-                            <p><b>Horoscope Hints: </b>{horo_hint}</p>
-                        </td>
-                    </tr>
-                    <tr>
-                    <td>
-                    <table>
+                     <table class="outer2">
+                        <tr>
+                            <td>
+                                <table class="add-info2"> 
+                                    <tr>
+                                        <td>
+                                            <p><b>Horoscope Hints: </b>{horo_hint}</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
                     """  
                 html_content = rf"""
                 <html>
@@ -20164,7 +20393,10 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                             .header-left {{
                                 width: 100%;
                             }}
-                            
+                            td.inner-tabledata {{
+                                max-width: 80px;
+                                overflow-wrap: break-word;
+                            }}
                             .header-left p{{
                                 font-size: 18px;
                                 font-weight: 400;
@@ -20222,7 +20454,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 text-align: center;
                                 font-family: Arial, sans-serif;
                                 margin:0;
-                                padding:0;
+                                padding: 0 20px;
                                 margin-bottom:10px;
 
                             }}
@@ -20237,7 +20469,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 margin: 10px;
                                 display: inline-block;
                                 vertical-align: top;
-                                background-color: #fff9c7;
+                                background-color: #ffffff;
                             }}
                             .inner-tabledata{{
                                  width:25%;
@@ -20245,14 +20477,15 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 
                             }}
                             .inner td {{
-                                width:25%;
-                                height:80px;
-                                border:2px solid #d6d6d6;
+                                width: 25%;
+                                height: 80px;
+                                border: 1px solid #008000;
                                 padding: 10px;
                                 color: #008000;
-                                font-weight: bold;
+                                font-weight: 500;
                                 font-size: 12px;
-                                white-space: pre-line; /* Ensures new lines are respected */
+                                white-space: pre-line;
+                                /* Ensures new lines are respected */
                             }}
 
                             .inner-table tr td p{{
@@ -20286,11 +20519,32 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 display: inline-block;
                                 background-color: transparent;
                             }}
-
-                            .table-div{{
+                            .table-div-horo{{
                                 border-collapse: collapse;
-                                padding:5px 20px;
-                                margin-bottom:1rem;
+                                padding: 5px 20px;
+                                margin-bottom: 1rem;
+                                width: 100%;
+                                text-align: center;
+                            }}
+                            .table-div-horo tr {{
+                                padding: 10px 10px;
+                            }}
+                            .table-div-horo tr .border-right{{
+                                border-right:1px solid #008000;
+                            }}
+                            .table-div-horo td{{
+                                background-color: #ffffff;
+                                width: 50%;
+                                padding: 10px 10px;
+                                text-align: left;
+                            }}
+                            .table-div{{
+                                border: 1px solid #008000;
+                                border-collapse: collapse;
+                                padding: 5px 20px;
+                                margin-bottom: 1rem;
+                                width: 100%;
+                                text-align: center;
                             }}
                             .table-div tr {{
                                 padding: 10px 10px;
@@ -20299,10 +20553,10 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 border-right:1px solid #008000;
                             }}
                             .table-div td{{
-                                background-color: #fff9c7;
-                                width:50%;
+                                background-color: #ffffff;
+                                width: 50%;
                                 padding: 10px 10px;
-                                text-align:left;
+                                text-align: left;
                             }}
                             .table-div p {{
                                    font-size:14px;
@@ -20313,15 +20567,16 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 padding:0px;
                                 margin-bottom:0px;
                             }}
-                            .dasa-table td{{
-                                width:100%;
-                                background-color:#fff;
-                                 padding:0px;
+                            .dasa-table td {{
+                                width: 100%;
+                                background-color: #fff;
+                                padding: 0px;
                             }}
-                            .dasa-table td p{{
-                                font-size:14px;
-                                font-weight:400;
-                                text-align:center;
+
+                            .dasa-table td p {{
+                                font-size: 12px;
+                                font-weight: 400;
+                                text-align: center;
                             }}
                             .note-text {{
                                 color: red;
@@ -20339,42 +20594,87 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                             }}
  
                             .add-info tr {{
-                           padding:5px 20px ;
+                                border: 1px solid #008000;
+                                padding: 5px 20px;
                             }}
-                        
+
                             .add-info td {{
-                                background-color: #fff9c7;
+                                background-color: #fff;
                                 padding: 5px 5px;
                             }}
-                          .add-info td p{{
-                            font-size: 14px;
-                            font-weight: 400;
-                            color: #008000;
-                            padding:0 10px;
-                           }}
+
+                            .add-info td p {{
+                                font-size: 14px;
+                                font-weight: 400;
+                                color: #008000;
+                                padding: 0 10px;
+                            }}
                            .click-here{{
-                            color:#318f9a;
-                           text-decoration: none;
-
+                                color: #008000;
+                                font-size:16px;
+                                font-weight:600;
+                                text-decoration: none;
                            }}
 
-                            .porutham-page{{
+                             .porutham-page {{
                                 padding: 0px 20px;
                             }}
+
                             .porutham-header {{
                                 margin: 20px 0px;
                             }}
 
-                            .porutham-header img{{
+                            .porutham-header img {{
+                                justify-content:left !important;
                                 width: 130px;
                                 height: auto;
                             }}
+
                             .porutham-header p {{
-                                font-size:22px;
+                                text-align:right !important;
+                                font-size: 22px;
                                 font-weight: 700;
-                                color:#000000;
+                                color: #000000;
                             }}
-                           
+
+                            h2.porutham-table-title {{
+                                font-size: 24px;
+                                font-weight: 700;
+                                margin-bottom: 20px;
+                                padding: 0px 0px;
+                            }}
+
+                            .porutham-table {{
+                                border: 1px solid #bcbcbc;
+                                border-collapse: collapse;
+                                margin-bottom: 24px;
+                                margin-top: 24px;
+                            }}
+
+                            .porutham-table td {{
+                                border: 1px solid #008000;
+                            }}
+
+                            .porutham-table td p {{
+                                color: #000;
+                                font-size: 16px;
+                                font-weight: 700;
+                                text-align: left;
+                                padding: 10px 10px;
+                            }}
+
+                            .porutham-stars tr td p {{
+                                text-align: left;
+                                padding: 20px 20px;
+                            }}
+
+                            .porutham-note {{
+                                font-size: 17px;
+                                font-weight: 400;
+                                color: #000000;
+                                padding: 20px 0px;
+                            }}
+
                             .upload-horo-bg img{{
                                width:100%;
                                height:auto;
@@ -20382,14 +20682,14 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                             .upload-horo-image{{
                                 margin: 10px 0px;
                                 text-align: center;
-                                height: 800px;
+                                height: 700px;
                            
                             }}
                             .upload-horo-image tr{{
-                                height: 800px;
+                                height: 700px;
                             }}
                             .upload-horo-image tr td{{
-                                height: 800px;
+                                height: 700px;
                             }}
                             .upload-horo-image img{{
                                 width:400px;
@@ -20397,159 +20697,44 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 object-fit: cover;
                              
                             }}
-                            
-
-                            .compatibility-page-wrapper {{
-                                 margin:0px auto;
-                                text-align:center;
-                                width:100%;
-                            }}
-                            .compatibility-page-wrapper tr {{
-                                margin: auto;
-                                text-align:center;
-                                width:100%;
-                            }}
-                            
-                            .compatibility-page-wrapper tr td{{
-                                background-color: #ffd966;
-                                width:100%;
-                                text-align:center;
-                                margin: auto;
-                               
-                            }}
-
-                            .report-title {{
-                                background-color: #ffd966;
-                                color: #538135;
-                                font-weight: bold;
-                                text-align: center;
-                                padding: 10px 0px 0px;
-                                font-size: 16px;
-                            }}
-                             .report-table {{
+                            table.outer2 {{
                                 width: 100%;
-                                border-collapse: collapse;
-                                background-color: #538135;
-                                
-                            }}
-                             .report-table  tr {{
-                                background-color: #538135;
-
-                             }}
-                             .report-table  tr  td{{
-                                background-color: #538135;
-                                color:#ffd966;
-                                border:1px solid #ffd966;
-
-                             }}
-                             .report-table  tr  td p{{
-                                background-color: #538135;
-                                color:#ffd966;
-                                font-size:14px;
-                                width:100%;
-
-                             }}
-                             .profile-name{{
-                                color:#ffd966;
-                             }}
-                            .header-cell {{
-                                background-color: #538135;
-                                color: #fff;
-                                font-weight: bold;
-                                text-align: center;
-                                padding: 6px;
-                            }}
-                            .sub-header {{
-                                background-color:#538135;
-                                color: #000;
-                                text-align: center;
-                                padding: 4px;
-                            }}
-                            .profile-addtional-info{{
-                                width: 100%;
-                                background-color: #ffd966;
-                                border:1px solid #538135;
-
-                            }}
-                              .profile-addtional-info  tr {{
-                                background-color: #ffd966;
-                                border:none;
-
-                             }}
-                            
-                             .profile-addtional-info  tr  td p{{
-                                background-color: #ffd966;
-                                color:#538135;
-                                font-size:14px;
-                                width:100%;
-
-                             }}
-   .data-row {{
-                                padding: 2px 0px;
-                            }}
-                            .data-label {{
-                                font-weight: bold;
-                                width: 40%;
-                                padding: 4px;
-                            }}
-                            .data-value {{
-                                padding: 4px;
-                            }}
-
-
-                             .porutham-header p {{
-                                font-size:22px;
-                                font-weight: 700;
-                                color:#000000;
-                            }}
-
-                            h2.porutham-table-title{{
-                                font-size: 24px;
-                                font-weight: 700;
-                                margin-bottom: 20px;
-                                padding:0px 0px;
-                            }}
-                            .porutham-table{{
-                                border:1px solid #538135;
-                                border-collapse: collapse;
+                                margin: 0;
+                                padding: 0;
                                 margin-bottom: 10px;
-                            }}
-                            .porutham-table th {{
-                                padding: 5px 0;
-                                  background-color: #538135;
-                                  color:#f4c542;
-                                font-size:16px;
-                                font-weight:700;
-                                text-align:center;
-                                padding: 5px 0 0 0;
-                            }}
-                            .porutham-table td {{
-                                border:1px solid #538135;
-                                color: #538135;
-                                font-size:15px;
-                                font-weight:400;
-                                text-align:center;
-                                padding: 8px 5px;
-                            }}
-                            .porutham-table tr td p{{
-                                color: #538135;
-                                font-size:15px;
-                                font-weight:700;
-                                text-align:center;
-                                padding: 5px 0;
-                            }}
-                          
-                            .porutham-stars tr td p{{
-                                text-align:left;
-                                padding: 20px 20px;
-                            }}
-                            .porutham-note{{
-                                font-size: 17px;
-                                font-weight:400;
-                                color: #000000;
-                                padding:20px 0px;
+                                padding: 0 20px;
+
                             }}
 
+                            .outer2 > tr > td {{
+                                padding: 0 20px;
+                            }}
+                            .table-div-horo p {{
+                                font-size: 12px;
+                                font-weight: 400;
+                                color: #008000;
+                            }}
+                             .text-wrap {{
+                                word-break: break-word;
+                                white-space: normal;
+                                font-size: 12px;
+                                line-height: 1.4;
+                            }}
+                            .add-info2 tr {{
+                                padding: 5px 20px;
+                            }}
+
+                            .add-info2 td {{
+                                background-color: #fff;
+                                padding: 5px 5px;
+                            }}
+
+                            .add-info2 td p {{
+                                font-size: 14px;
+                                font-weight: 400;
+                                color: #008000;
+                                padding: 0 10px;
+                            }}
 
                             .matching-score{{
                                 font-size:30px ;
@@ -20573,7 +20758,9 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                         </table>
                         
                     <div class="details-section">
-                    
+                    <table class="outer2">
+                    <tr>
+                    <td>
                 <table class="table-div">
                             <tr>
                                 <td class="border-right">
@@ -20711,30 +20898,42 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 </td>
                             </tr>
                         </table>
+                        </td>
+                            </tr>
+                        </table>
                     
                     </div>
                     
                     {charts_html}   
-
-
-               
-                        <tr>
+                    <table class="outer2">
+                       <tr>
                             <td>
-                               {address_content}
-                            </td>
-                            <td>
-                                {mobile_email_content}
+                                <table class="add-info">
+                                    <tr>
+                                        <td>
+                                        {address_content}
+                                        </td>
+                                        <td>
+                                            {mobile_email_content}
+                                        </td>
+                                    </tr>
+                                </table>
                             </td>
                         </tr>
                     </table>
-                    </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <p>Note: Please verify this profile yourself. No hidden charges or commissions if marriage is fixed through Vysyamala. For more details of this profile: <a href="{profile_url}" target="_blank" class="click-here">click here</a></p>
-                        </td>
-                    </tr>
-                </table>
+                    <table class="outer2">
+                        <tr>
+                            <td>
+                                <table class="add-info2">
+                                    <tr>
+                                        <td>
+                                            <p>Note: Please verify this profile yourself. No hidden charges or commissions if marriage is fixed through Vysyamala. For more details of this profile: <a href="{profile_url}" target="_blank" class="click-here">click here</a></p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
 
 
@@ -20742,16 +20941,8 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
 
               
                 {porutham_details}
-
-                <table class="porutham-page">
-                <tr>
-                <td>
-                <br>
-               
-
-
                 <div class="upload-horo-bg" >
-                    <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
+                    <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/Horo-header-for-horoattached-format.png" >
                 </div>
 
                 <table class="upload-horo-image">
@@ -21145,7 +21336,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 def format_star_names(poruthams):
                     return ', '.join([f"{item['matching_starname']} - {item['matching_rasiname'].split('/')[0]}" for item in poruthams])
                 
-                profile_url = f"https://polite-pond-0783ff91e.1.azurestaticapps.net/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
+                profile_url = f"https://www.vysyamala.com/ProfileDetails?id={user_profile_id}&rasi={horoscope.birth_rasi_name}"
 
                 def is_grid_data_empty(grid_data):
                     return all(cell == default_placeholder for cell in grid_data)
@@ -21181,15 +21372,103 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 porutham_details=""
                 if porutham_show==True:
                     porutham_details=f"""
-                    <table class="compatibility-page-wrapper" >
-            <tr>
-            <td style="text-align:center;margin:0 auto; padding:0px 20px;">
-                        
-            <h2 class="report-title">Marriage Compatibility Report</h2>
-        
-            <table class="report-table" border="0">
-                <tr>
-                <td class="header-cell">
+                    <style>
+   .compatibility-page-wrapper {{
+    margin: 0px auto;
+    text-align: center;
+    width: 100%;
+  }}
+  .compatibility-page-wrapper tr {{
+    margin: auto;
+    text-align: center;
+    width: 100%;
+  }}
+
+  .compatibility-page-wrapper tr td {{
+    background-color: #ffffff;
+    width: 100%;
+    text-align: center;
+    margin: auto;
+  }}
+  .compatability-table {{
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 24px;
+    background-color: #ffffff;
+    font-size: 14px;
+  }}
+
+  .compatability-table th {{
+    background-color: #ffffffff;
+    color: #000000;
+    font-size: 16px;
+    padding: 10px 10px;
+    text-align: center;
+    border: 1px solid #000000;
+  }}
+
+  .compatability-table td {{
+    padding: 10px;
+    text-align: center;
+    font-weight: 500;
+    border: 1px solid #000000;
+    color: #000000;
+    padding: 5px 10px;
+
+  }}
+
+  .compatability-table tr:nth-child(even) {{
+    background-color: #ffffffff;
+  }}
+
+  .matching-score {{
+    font-size: 36px;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 10px;
+  }}
+
+  .compatability-table td span {{
+    font-size: 14px;
+    font-weight: 600;
+  }}
+  .compatability-table td span {{
+    color: #000000 !important;
+  }}
+  .report-table {{
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #ffffff;
+    border:1px solid #000000;
+
+}}
+.report-table  tr {{
+    background-color: #ffffff;
+    border:1px solid #000000;
+
+}}
+.report-table  tr  td{{
+    background-color: #ffffff;
+    color:#000000;
+    border:1px solid #000000;
+    padding: 5px 0px;
+}}
+.report-table  tr  td p{{
+    background-color: #ffffff;
+    color: #000000;
+
+}}
+</style>
+<table class="compatibility-page-wrapper">
+  <tr>
+    <td style="text-align: center; margin: 0 auto; padding: 0px 100px">
+      <br>
+
+      <h2 style="text-align: center; font-size:20px;">Marriage Compatibility Report</h2>
+
+      <table class="table-div report-table" >
+        <tr>
+          <td class="border-right">
                     <p class="profile-name">{login_my.Profile_name} - {login_my.ProfileId}</p>
                 </td>
                 <td class="header-cell">
@@ -21207,7 +21486,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
             </table>
             <br>
         
-            <table class="profile-addtional-info" >
+            <table class="table-div report-table" >
                 <tr>
                 <td class="data-row">
                      <p> Place of Birth : {horoscope_my.place_of_birth}</p>
@@ -21235,14 +21514,13 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
             </table>
             <br>
         
-              <table class="profile-addtional-info">
+              <table class="table-div report-table">
                 <tr>
                 <td class="data-row">
                     <p> Height : {cm_to_feet_inches(login_my.Profile_height)}</p>
                 </td>
                 <td class="data-row">
                         <p> Height : {cm_to_feet_inches(login_details.Profile_height)}</p>
-        
                 </td>
                 </tr>
                 <tr>
@@ -21255,26 +21533,30 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 </tr>
             </table>
                 
-            <h2 class="report-title" >Nakshatra Porutham & Rasi Porutham</h2>
-           <table class="porutham-table">
+            <div class="compatability-page">
+              <h2 class="compatability-table-title" style="text-align: center;font-size:20px">
+                Nakshatra Porutham & Rasi Porutham
+              </h2>
+              <table class="compatability-table">
                 <tr>
-                    <th>Porutham Name</th>
-                    <th>Status</th>
-                    <th>Matching Score</th>
+                <th>Porutham Name</th>
+                  <th>Status</th>
+                  <th>Matching Score</th>
                 </tr>
                  {porutham_rows}
                  </table>        
-              <table class="profile-addtional-info">
-                <tr >
-                <td class="data-row"  style="width:100%;">
-                <p>
-                Our best wishes for finding your soulmate in Vyasyamala soon. Please inform Vyasyamala if your marriage is fixed. Share your engagement photo and receive a surprise gift. No commissions / hidden charges. Jai Vasavi!
-                </p>
+
+                    <table class="compatability-table">
+                    <tr>
+                        <td>
+                        Our best wishes for finding your soulmate in Vysamala soon.
+                        Please inform Vysamala if your marriage is fixed. Share your
+                        engagement photo and receive a surprise gift. No commissions /
+                        hidden charges. Jai Vasavi!
+                        </td>
+                    </tr>
+                    </table>
                 </td>
-                </tr>
-                </table>
-                <br>
-            </td>
             </tr>
             </table>
                     """
@@ -21314,7 +21596,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                 </table>
                             </td>
                             <td class="spacer">
-                                <table class="table-div dasa-table">
+                                <table class="table-div-horo dasa-table">
                                     <tr>
                                         <td>
                                             <p><strong>Dasa Name</strong></p>
@@ -21324,9 +21606,9 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                     <tr>
                                         <td>
                                             <p><strong>Dasa Balance</strong></p>
-                                            <p>{dasa_year} Years</p>
-                                            <p>{dasa_month} Months</p>
-                                            <p>{dasa_day} Days</p>
+                                            <p>Years:{dasa_year}</p>
+                                            <p>Months:{dasa_month}</p>
+                                            <p>Days:{dasa_day}</p>
                                         </td>
                                     </tr>
                                 </table>
@@ -21362,17 +21644,19 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                     </table>
                     
                 <div>
-                <table class="add-info"> 
+                <table class="outer2">
                     <tr>
                         <td>
-                            <p><b>Horoscope Hints: </b>{horo_hint}</p>
-                       <hr class="divider">
-
+                            <table class="add-info2"> 
+                                <tr>
+                                    <td>
+                                        <p><b>Horoscope Hints: </b>{horo_hint}</p>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
-                    <tr>
-                    <td>
-                    <table>
+                <table>
                     """
                 html_content = rf"""
                 <html>
@@ -21485,8 +21769,8 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                             }}
                             .inner td {{
                                 width:25%;
-                                height:60px;
-                                border:2px solid #d6d6d6;
+                                height:70px;
+                                border:1px solid #008000;
                                 padding: 10px;
                                 color: #000000;
                                 font-weight: bold;
@@ -21513,33 +21797,44 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                 
                             }}
                             .inner .highlight p{{
-                                font-size: 14px;
+                                font-size: 16px;
                                 font-weight: 400;
                                 color: #000;
                             }}
 
                            
-                            .table-div{{
-                                padding: 5px 10px;
+                            .table-div {{
+                                border: 1px solid #6207ac;
                                 border-collapse: collapse;
-                                padding:5px 20px;
-                                margin-bottom:15px;
+                                padding: 5px 20px;
+                                margin-bottom: 1rem;
+                                width: 100%;
+                                text-align: center;
                             }}
+
                             .table-div tr {{
-                                padding: 0px 10px;
+                                padding: 10px 10px;
                             }}
-                            .table-div tr .border-right{{
-                                border-right:1px solid #000000;
+
+                            .table-div tr .border-right {{
+                                border-right: 1px solid #6207ac;
                             }}
-                            .table-div td{{
+
+                            .table-div td {{
+                                
                                 background-color: #ffffff;
-                                width:50%;
-                                padding: 10x  20px;
-                                text-align:left;
+                                width: 50%;
+                                padding: 10px 10px;
+                                text-align: left;
                             }}
                             .table-div p {{
                                    font-size:14px;
                                 font-weight:400;
+                                color: #000;
+                            }}
+                            .table-div-horo p {{
+                                font-size: 12px;
+                                font-weight: 400;
                                 color: #000;
                             }}
                             .divider{{
@@ -21587,7 +21882,8 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                 text-align: right;
                             }}
 
-                             .add-info tr {{
+                            .add-info tr {{
+                                border: 1px solid #6207ac;
                             padding:5px 20px ;
                             }}
                         
@@ -21601,6 +21897,28 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                             color: #000000;
                             padding:0 10px;
                            }}
+                          .add-info2 tr {{
+                                padding: 5px 20px;
+                            }}
+
+                            .add-info2 td {{
+                                background-color: #fff;
+                                padding: 5px 5px;
+                            }}
+
+                            .add-info2 td p {{
+                                font-size: 14px;
+                                font-weight: 400;
+                                color: #000;
+                                padding: 0 10px;
+                            }}
+                            .click-here2 {{
+                                color: #000;
+                                font-size:16px;
+                                font-weight:600;
+                                text-decoration: none;
+
+                            }}
                           
                            .click-here{{
                             color:#000;
@@ -21666,167 +21984,34 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                             .upload-horo-image{{
                                 margin: 10px 0px;
                                 text-align: center;
-                                height: 800px;
+                                height: 700px;
                            
                             }}
                             .upload-horo-image tr{{
-                                height: 800px;
+                                height: 700px;
                             }}
                             .upload-horo-image tr td{{
-                                height: 800px;
+                                height: 700px;
                             }}
                             .upload-horo-image img{{
                                 width:400px;
-                                height:800px;
+                                height:700px;
                                 object-fit: cover;
                              
                             }}
-                            
-.compatibility-page-wrapper {{
-    margin:0px auto;
-    text-align:center;
-    width:100%;
-}}
-.compatibility-page-wrapper tr {{
-    margin: auto;
-    text-align:center;
-    width:100%;
-}}
+                            table.outer2 {{
+                                width: 100%;
+                                margin: 0;
+                                padding: 0;
+                                margin-bottom: 10px;
+                                padding: 0 20px;
 
-.compatibility-page-wrapper tr td{{
-    background-color: #ffffff;
-    width:100%;
-    text-align:center;
-    margin: auto;
-}}
+                            }}
 
-.report-title {{
-    background-color: #ffffff;
-    color: #000000;
-    font-weight: bold;
-    text-align: center;
-    padding: 10px 0px 0px;
-    font-size: 16px;
-}}
-.report-table {{
-    width: 100%;
-    border-collapse: collapse;
-    background-color: #ffffff;
-}}
-.report-table  tr {{
-    background-color: #ffffff;
-}}
-.report-table  tr  td{{
-    background-color: #ffffff;
-    color:#000000;
-    border:1px solid #000000;
-}}
-.report-table  tr  td p{{
-    background-color: #ffffff;
-    color:#000000;
-    font-size:14px;
-    width:100%;
-}}
-.profile-name{{
-    color:#000000;
-}}
-.header-cell {{
-    background-color: #ffffff;
-    color: #000000;
-    font-weight: bold;
-    text-align: center;
-    padding: 6px;
-}}
-.sub-header {{
-    background-color:#000000;
-    color: #ffffff;
-    text-align: center;
-    padding: 4px;
-}}
-.profile-addtional-info{{
-    width: 100%;
-    background-color: #ffffff;
-    border:1px solid #000000;
-}}
-.profile-addtional-info  tr {{
-    background-color: #ffffff;
-    border:none;
-}}
-.profile-addtional-info  tr  td p{{
-    background-color: #ffffff;
-    color:#000000;
-    font-size:14px;
-    width:100%;
-}}
-.data-row {{
-    padding: 2px 0px;
-}}
-.data-label {{
-    font-weight: bold;
-    width: 40%;
-    padding: 4px;
-}}
-.data-value {{
-    padding: 4px;
-}}
-
-.porutham-header p {{
-    font-size:22px;
-    font-weight: 700;
-    color:#000000;
-}}
-
-h2.porutham-table-title{{
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 20px;
-    padding:0px 0px;
-}}
-.porutham-table{{
-    border:1px solid #000000;
-    border-collapse: collapse;
-    margin-bottom: 10px;
-}}
-.porutham-table th {{
-    padding: 5px 0;
-    background-color: #ffffff;
-    color:#000000;
-    font-size:16px;
-    font-weight:700;
-    text-align:center;
-    padding: 5px 0 0 0;
-}}
-.porutham-table td {{
-    border:1px solid #000000;
-    color: #000000;
-    font-size:15px;
-    font-weight:400;
-    text-align:center;
-    padding: 8px 5px;
-}}
-.porutham-table tr td p{{
-    color: #000000;
-    font-size:15px;
-    font-weight:700;
-    text-align:center;
-    padding: 5px 0;
-}}
-
-.porutham-stars tr td p{{
-    text-align:left;
-    padding: 20px 20px;
-}}
-.porutham-note{{
-    font-size: 17px;
-    font-weight:400;
-    color: #000000;
-    padding:20px 0px;
-}}
-
-.matching-score{{
-    font-size:30px ;
-    font-weight:700;
-}}
+                        .matching-score{{
+                            font-size:30px ;
+                            font-weight:700;
+                        }}
 
                         </style>
                     </head>
@@ -21844,7 +22029,9 @@ h2.porutham-table-title{{
                         </table>
                         
                     <div class="details-section">
-                    
+                <table class="outer2">
+                <tr>
+                <td>
                 <table class="table-div">
                             <tr>
                                 <td class="border-right">
@@ -21895,10 +22082,12 @@ h2.porutham-table-title{{
                                 </td>
                             </tr>
                         </table>
-
-                       <hr class="divider">
-
-
+                        </td>
+                        </tr>
+                        </table>
+                    <table class="outer2">
+                        <tr>
+                        <td>
                         <table class="table-div">
                             <tr>
                                 <td  class="border-right">
@@ -21943,10 +22132,12 @@ h2.porutham-table-title{{
                                 </td>
                             </tr>
                         </table>
-
-                       <hr class="divider">
-
-
+                        </td>
+                            </tr>
+                        </table>
+                         <table class="outer2">
+                        <tr>
+                        <td>
                         <table class="table-div">
                             <tr>
                                 <td  class="border-right">
@@ -21986,39 +22177,46 @@ h2.porutham-table-title{{
                                 </td>
                             </tr>
                         </table>
-                    
+                        </td>
+                            </tr>
+                        </table>
                     </div>
                     
                  {charts_html}
-
-                        <tr>
+                    <table class="outer2">
+                       <tr>
                             <td>
-                               {address_content}
-                            </td>
-                            <td>
-                               {mobile_email_content}
+                                <table class="table-div">
+                                    <tr>
+                                        <td>
+                                        {address_content}
+                                        </td>
+                                        <td>
+                                        {mobile_email_content}
+                                        </td>
+                                    </tr>
+                                </table>
                             </td>
                         </tr>
                     </table>
-                    </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <p>Note: Please verify this profile yourself. No hidden charges or commissions if marriage is fixed through Vysyamala. For more details of this profile: <a href="{profile_url}" target="_blank" class="click-here">click here</a></p>
-                        </td>
-                    </tr>
-                </table>
-                </div>
-
+                    <table class="outer2">
+                       <tr>
+                            <td>
+                                <table class="add-info2">
+                                    <tr>
+                                        <td>
+                                            <p>Note: Please verify this profile yourself. No hidden charges or commissions if marriage is fixed through Vysyamala. For more details of this profile: <a href="{profile_url}" target="_blank" class="click-here">click here</a></p>
+                                        </td>
+                                    </tr>
+                                </table>
+                             </td>
+                        </tr>
+                    </table>
                 {porutham_details}
-                <table class="porutham-page">
-                <tr>
-                <td>
-                <br>
                
 
                 <div class="upload-horo-bg" >
-                    <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" >
+                    <img  src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/Horo-header-for-horoattached-format.png" >
                 </div>
 
                <table class="upload-horo-image">

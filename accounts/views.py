@@ -9660,7 +9660,7 @@ class TransactionHistoryView(generics.ListAPIView):
             date_field="created_at", amount_field="amount", discount_field="discount_amont",
             payment_type_field="payment_type", admin_field="admin_status", ref_field="payment_refno",
             start_date_field="ld.membership_startdate", end_date_field="ld.membership_enddate"
-        ) + f" WHERE pt.status IN ({placeholders}) AND (pt.plan_id != 0 OR pt.plan_id IS NULL)"
+        ) + f" WHERE pt.status IN ({placeholders}) "
 
         sql_ps = build_transaction_sql(
             source="plan_subscription", table_alias="ps",
@@ -9669,7 +9669,7 @@ class TransactionHistoryView(generics.ListAPIView):
             start_date_field="ps.validity_startdate", end_date_field="ps.validity_enddate"
         ) + f"""
             WHERE ps.profile_id NOT IN (SELECT profile_id FROM payment_transaction)
-            AND ps.status IN ({placeholders}) AND (ps.plan_id != 0 OR ps.plan_id IS NULL)
+            AND ps.status IN ({placeholders}) 
         """
 
         sql = f"""
