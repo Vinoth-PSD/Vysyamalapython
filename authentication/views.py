@@ -9818,7 +9818,8 @@ class GetMyProfilePartner(APIView):
             "partner_porutham_star_rasi": partner_serializer.data.get("pref_porutham_star_rasi"),
             "partner_marital_status": partner_serializer.data.get("pref_marital_status"),
             "partner_forign_int": partner_serializer.data.get("pref_foreign_intrest"),
-            "partner_ann_inc_max": partner_serializer.data.get("pref_anual_income_max")
+            "partner_ann_inc_max": partner_serializer.data.get("pref_anual_income_max"),
+            "partner_field_of_study": partner_serializer.data.get("pref_fieldof_study")
         }
 
         return JsonResponse({
