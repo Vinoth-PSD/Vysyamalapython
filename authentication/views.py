@@ -3237,31 +3237,39 @@ class Get_mutual_intrests(APIView):
                     # mutual_condition = Q(status=2) & (Q(profile_from=profile_id) | Q(profile_to=profile_id))
                     # mutual_int_count = count_records_forQ(models.Express_interests, mutual_condition)
                     interest_map = {
-                        str(interest.profile_to): interest.response_datetime
-                        for interest in fetch_data
-                    }
-                    restricted_profile_details = [
-                        {
+                            str(interest.profile_from if interest.profile_from != profile_id else interest.profile_to): interest.response_datetime
+                            for interest in fetch_data
+                        }
+                    restricted_profile_details=[]
+                    for detail in profile_details:
+                        last_visit = interest_map.get(str(detail.get("ProfileId")))
+                        restricted_profile_details.append({
                             "mutint_profileid": detail.get("ProfileId"),
                             "mutint_profile_name": detail.get("Profile_name"),
-                            # "mutint_Profile_img":  Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),                           
+                            # "mutint_Profile_img":  Get_profile_image(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection")),
                             "mutint_Profile_img": image_function(detail),
                             "mutint_profile_age": calculate_age(detail.get("Profile_dob")),
-                            "mutint_verified":detail.get("Profile_verified"),
-                            "mutint_height":detail.get("Profile_height"),
-                            "mutint_star":detail.get("star_name"),
-                            "mutint_profession":getprofession(detail.get("profession")),
-                            "mutint_city":detail.get("Profile_city"),
-                            "mutint_degree":get_degree(detail.get("ug_degeree")),
-                            "mutint_match_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
-                            "mutint_views":count_records(models.Profile_visitors, {'status': 1,'viewed_profile':detail.get("ProfileId")}),
-                            "mutint_lastvisit": interest_map.get(str(detail.get("ProfileId"))).strftime("%b %d, %Y"),
+                            "mutint_verified": detail.get("Profile_verified"),
+                            "mutint_height": detail.get("Profile_height"),
+                            "mutint_star": detail.get("star_name"),
+                            "mutint_profession": getprofession(detail.get("profession")),
+                            "mutint_city": detail.get("Profile_city"),
+                            "mutint_degree": get_degree(detail.get("ug_degeree")),
+                            "mutint_match_score": Get_matching_score(
+                                my_star_id, my_rasi_id,
+                                detail.get("birthstar_name"),
+                                detail.get("birth_rasi_name"),
+                                my_gender
+                            ),
+                            "mutint_views": count_records(models.Profile_visitors, {
+                                'status': 1,
+                                'viewed_profile': detail.get("ProfileId")
+                            }),
+                            "mutint_lastvisit": last_visit.strftime("%b %d, %Y") if last_visit else None,
                             "mutint_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "mutint_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
-                            "mutint_profile_wishlist":Get_wishlist(profile_id,detail.get("ProfileId")),
-                        }
-                        for detail in profile_details
-                    ]
+                            "mutint_profile_wishlist": Get_wishlist(profile_id, detail.get("ProfileId")),
+                        })
                     if sort_by == "profile_id":
                         restricted_profile_details.sort(
                             key=lambda x: x["mutint_profileid"],

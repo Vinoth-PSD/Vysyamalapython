@@ -2826,7 +2826,7 @@ class GetProfEditDetailsAPIView(APIView):
                 "exp_int_reccount": received_int_count,
                 "mutual_int_count":mutual_int_count,
                 "shortlisted_count":0,
-                "prsent_count":0,
+                "prsent_count":photo_int_count,
                 "varequest_count":vys_prof_count,
                 "visibility_count": visibility_count 
         }
