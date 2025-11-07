@@ -1534,13 +1534,14 @@ class Get_profiledata_Matching(models.Model):
                 #     )
                 #     query_params.append(partner_pref_familysts)
 
-                fstatuses = [s.strip() for s in str(partner_pref_familysts).split(',') if s.strip()]
+                if partner_pref_familysts:
+                    fstatuses = [s.strip() for s in str(partner_pref_familysts).split(',') if s.strip()]
 
-                if fstatuses:
-                    # Generate placeholders for the IN query (e.g., %s, %s, %s)
-                    placeholders = ','.join(['%s'] * len(fstatuses))
-                    family_status_conditions.append(f"(c.family_status IN ({placeholders}))")
-                    query_params.extend(fstatuses)
+                    if fstatuses:
+                        # Generate placeholders for the IN query (e.g., %s, %s, %s)
+                        placeholders = ','.join(['%s'] * len(fstatuses))
+                        family_status_conditions.append(f"(c.family_status IN ({placeholders}))")
+                        query_params.extend(fstatuses)
 
                 # if family_status:
                 #     statuses = [s.strip() for s in str(family_status).split(',') if s.strip()]
@@ -2253,6 +2254,7 @@ class Get_profiledata_Matching(models.Model):
             partner_pref_state = partner_pref.pref_state
             partner_pref_familysts = partner_pref.pref_family_status
             field_of_study = partner_pref.pref_fieldof_study
+            partner_pref_profess = partner_pref.pref_profession
             degree = partner_pref.degree
             # Get min and max income
             # min_income, max_income = 0, 0
@@ -2380,7 +2382,7 @@ class Get_profiledata_Matching(models.Model):
                 )
                 AND a.gender != %s
                 AND a.ProfileId != %s
-                AND a.Profile_dob BETWEEN %s AND %s"""
+                AND a.Profile_dob BETWEEN %s AND %s """
 
             params = [profile_id,profile_id,profile_id,profile_id,profile_id,gender,profile.Profile_dob,gender,profile.Profile_dob, gender, profile_id, min_dob, max_dob]
 
@@ -2455,6 +2457,12 @@ class Get_profiledata_Matching(models.Model):
                     # base_query += f" AND f.degree IN ({placeholders})"
                     base_query += f" AND f.degree IN ({placeholders}) OR f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"
                     params.extend(degrees)
+
+            if partner_pref_profess:
+                    professions = [p.strip() for p in partner_pref_profess.split(",") if p.strip()]
+                    placeholders = ", ".join(["%s"] * len(professions))
+                    base_query += f" AND f.profession IN ({placeholders})"
+                    params.extend(professions)
             # else:
             #     base_query += """ AND
             #     ( f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"""
