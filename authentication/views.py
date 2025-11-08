@@ -11234,162 +11234,221 @@ class CreateOrderView(APIView):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
 
+def safe_value(val):
+    return val if val not in [None, '', 'null', 'None'] else "N/A"
+
 def profile_preview(request: HttpRequest, profile_id):
     profile = get_object_or_404(models.Registration1, ProfileId=profile_id)
-    profile_images = models.Image_Upload.objects.filter(profile_id=profile,image_approved=1,is_deleted=0).first()
-    profile_horo = get_object_or_404(models.Horoscope, profile_id=profile_id)
-    profile_edu = get_object_or_404(models.Edudetails, profile_id=profile_id)
-    
-    profile_image_url = request.build_absolute_uri(profile_images.image.url) if profile_images else ""
-    
-    profileId=[profile_id]
 
+    # Safely fetch profile image
+    profile_images = models.Image_Upload.objects.filter(
+        profile_id=profile, image_approved=1, is_deleted=0
+    ).first()
+    profile_image_url = request.build_absolute_uri(profile_images.image.url) if profile_images else "N/A"
+
+    # Safely fetch related models
+    try:
+        profile_horo = models.Horoscope.objects.get(profile_id=profile_id)
+    except models.Horoscope.DoesNotExist:
+        profile_horo = "N/A"
+
+    try:
+        profile_edu = models.Edudetails.objects.get(profile_id=profile_id)
+    except models.Edudetails.DoesNotExist:
+        profile_edu = "N/A"
+
+    # Get profile details from helper
+    profileId = [profile_id]
     profile_details = get_profile_details(profileId)
+    details = profile_details[0] if profile_details else {}
 
+    # Safely resolve highest education
+    highest_edu_id = details.get('highest_education')
+    if highest_edu_id and str(highest_edu_id).isdigit():
+        try:
+            Profile_high_edu = models.Edupref.objects.get(RowId=int(highest_edu_id)).EducationLevel
+        except models.Edupref.DoesNotExist:
+            Profile_high_edu = "N/A"
+    else:
+        Profile_high_edu = "N/A"
 
-    try:
-            Profile_high_edu = models.Edupref.objects.get(RowId=profile_details[0]['highest_education']).EducationLevel
-    except models.Edupref.DoesNotExist:
-            Profile_high_edu = None
+    # Profession
+    Profile_profession = safe_value(details.get('designation'))
 
-    try:
-            Profile_profession = profile_details[0]['designation']
-    except models.Profespref.DoesNotExist:
-            Profile_profession = None
+    # Profile owner
+    profile_for_id = details.get('Profile_for')
+    if profile_for_id and str(profile_for_id).isdigit():
+        try:
+            Profile_owner = models.Profileholder.objects.get(Mode=int(profile_for_id)).ModeName
+        except models.Profileholder.DoesNotExist:
+            Profile_owner = "N/A"
+    else:
+        Profile_owner = "N/A"
 
-    try:
-            Profile_owner = models.Profileholder.objects.get(Mode=profile_details[0]['Profile_for']).ModeName
-    except models.Profileholder.DoesNotExist:
-            Profile_owner = None
+    # Marital status
+    marital_status_id = details.get('Profile_marital_status')
+    if marital_status_id and str(marital_status_id).isdigit():
+        try:
+            Profile_marital_status = models.ProfileMaritalstatus.objects.get(StatusId=int(marital_status_id)).MaritalStatus
+        except models.ProfileMaritalstatus.DoesNotExist:
+            Profile_marital_status = "N/A"
+    else:
+        Profile_marital_status = "N/A"
 
-    try:
-            Profile_marital_status = models.ProfileMaritalstatus.objects.get(StatusId=profile_details[0]['Profile_marital_status']).MaritalStatus
-    except models.ProfileMaritalstatus.DoesNotExist:
-            Profile_marital_status = None
+    # Gender logic
+    my_gender = details.get('Gender', '').lower()
+    if my_gender == "male":
+        my_gender = "female"
+        looking_for = "Bride"
+        my_status = "Groom"
+    else:
+        my_gender = "male"
+        looking_for = "Groom"
+        my_status = "Bride"
 
-    # print(f"Profile details: {profile_details}")
-    my_gender=profile_details[0]['Gender']
-    if my_gender.lower()=="male":
-        my_gender="female"
-        looking_for="Bride"
-        my_status="Groom"
-    else :
-        my_gender="male"
-        looking_for="Groom"
-        my_status="Bride"
+    final_image_url = Get_profile_image(details.get('ProfileId'), my_gender, 1, 0) or "N/A"
 
-    Get_profile_image(profile_details[0]['ProfileId'],my_gender,1,0)
-
+    # Build context with safe fallbacks
     context = {
-        "profile_id": profile.ProfileId,
-        "profile_name": profile.Profile_name,
-        "profile_age":calculate_age(profile.Profile_dob),
-        "profile_dob":profile.Profile_dob,
-        "profile_height":profile.Profile_height,
-        "profile_education":Profile_high_edu,
-        "profile_profession":Profile_profession,
-        "profile_image_url":Get_profile_image(profile_details[0]['ProfileId'],my_gender,1,0),
-        "looking_for":looking_for,
-        "star":  profile_details[0]['star_name'],
-        "rasi":profile_details[0]['rasi_name'],
-        "suya_gothram":profile_details[0]['suya_gothram'],
-        "profile_owner":Profile_owner,
-        "anual_incom":profile_details[0]['actual_income'],
-        "height":profile_details[0]['Profile_height'],
-        "working_location":profile_details[0]['Profile_height'],
-        "company_name":profile_details[0]['company_name'],
-        "marital_status":Profile_marital_status,
-        "state":get_state_name(profile_details[0]['Profile_state']),
-        "city":get_city_name(profile_details[0]['Profile_city']),
-        "address":get_city_name(profile_details[0]['Profile_address']),
-        "mobile": profile_details[0]['Mobile_no'],
-        "whatsapp": profile_details[0]['Profile_whatsapp'],
-        "my_status":my_status
+        "profile_id": safe_value(profile.ProfileId),
+        "profile_name": safe_value(profile.Profile_name),
+        "profile_age": calculate_age(profile.Profile_dob) if profile.Profile_dob else "N/A",
+        "profile_dob": safe_value(profile.Profile_dob),
+        "profile_height": safe_value(profile.Profile_height),
+        "profile_education": safe_value(Profile_high_edu),
+        "profile_profession": safe_value(Profile_profession),
+        "profile_image_url": final_image_url,
+        "looking_for": looking_for,
+        "star": safe_value(details.get('star_name')),
+        "rasi": safe_value(details.get('rasi_name')),
+        "suya_gothram": safe_value(details.get('suya_gothram')),
+        "profile_owner": safe_value(Profile_owner),
+        "anual_incom": safe_value(details.get('actual_income')),
+        "height": safe_value(details.get('Profile_height')),
+        "working_location": safe_value(details.get('Profile_work_location')),
+        "company_name": safe_value(details.get('company_name')),
+        "marital_status": safe_value(Profile_marital_status),
+        "state": safe_value(get_state_name(details.get('Profile_state'))),
+        "city": safe_value(get_city_name(details.get('Profile_city'))),
+        "address": safe_value(get_city_name(details.get('Profile_address'))),
+        "mobile": safe_value(details.get('Mobile_no')),
+        "whatsapp": safe_value(details.get('Profile_whatsapp')),
+        "my_status": my_status
     }
-    return render(request, "profile_preview.html", context)
 
+    return render(request, "profile_preview.html", context)
 
 
 def profile_preview_withouphoto(request: HttpRequest, profile_id):
     profile = get_object_or_404(models.Registration1, ProfileId=profile_id)
-    profile_images = models.Image_Upload.objects.filter(profile_id=profile,image_approved=1,is_deleted=0).first()
-    profile_horo = get_object_or_404(models.Horoscope, profile_id=profile_id)
-    profile_edu = get_object_or_404(models.Edudetails, profile_id=profile_id)
-    
-    profile_image_url = request.build_absolute_uri(profile_images.image.url) if profile_images else ""
-    
-    profileId=[profile_id]
 
+    # Optional image (not used here, but still fetched)
+    profile_images = models.Image_Upload.objects.filter(
+        profile_id=profile, image_approved=1, is_deleted=0
+    ).first()
+
+    # Optional related models
+    try:
+        profile_horo = models.Horoscope.objects.get(profile_id=profile_id)
+    except models.Horoscope.DoesNotExist:
+        profile_horo = "N/A"
+
+    try:
+        profile_edu = models.Edudetails.objects.get(profile_id=profile_id)
+    except models.Edudetails.DoesNotExist:
+        profile_edu = "N/A"
+
+    # Profile details
+    profileId = [profile_id]
     profile_details = get_profile_details(profileId)
+    details = profile_details[0] if profile_details else {}
 
+    # Highest education
+    highest_edu_id = details.get('highest_education')
+    if highest_edu_id and str(highest_edu_id).isdigit():
+        try:
+            Profile_high_edu = models.Edupref.objects.get(RowId=int(highest_edu_id)).EducationLevel
+        except models.Edupref.DoesNotExist:
+            Profile_high_edu = "N/A"
+    else:
+        Profile_high_edu = "N/A"
 
-    try:
-            Profile_high_edu = models.Edupref.objects.get(RowId=profile_details[0]['highest_education']).EducationLevel
-    except models.Edupref.DoesNotExist:
-            Profile_high_edu = None
+    # Profession
+    profession_id = details.get('profession')
+    if profession_id and str(profession_id).isdigit():
+        try:
+            Profile_profession = models.Profespref.objects.get(RowId=int(profession_id)).profession
+        except models.Profespref.DoesNotExist:
+            Profile_profession = "N/A"
+    else:
+        Profile_profession = "N/A"
 
-    try:
-            Profile_profession = models.Profespref.objects.get(RowId=profile_details[0]['profession']).profession
-    except models.Profespref.DoesNotExist:
-            Profile_profession = None
+    # Profile owner
+    profile_for_id = details.get('Profile_for')
+    if profile_for_id and str(profile_for_id).isdigit():
+        try:
+            Profile_owner = models.Profileholder.objects.get(Mode=int(profile_for_id)).ModeName
+        except models.Profileholder.DoesNotExist:
+            Profile_owner = "N/A"
+    else:
+        Profile_owner = "N/A"
 
-    try:
-            Profile_owner = models.Profileholder.objects.get(Mode=profile_details[0]['Profile_for']).ModeName
-    except models.Profileholder.DoesNotExist:
-            Profile_owner = None
+    # Marital status
+    marital_status_id = details.get('Profile_marital_status')
+    if marital_status_id and str(marital_status_id).isdigit():
+        try:
+            Profile_marital_status = models.ProfileMaritalstatus.objects.get(StatusId=int(marital_status_id)).MaritalStatus
+        except models.ProfileMaritalstatus.DoesNotExist:
+            Profile_marital_status = "N/A"
+    else:
+        Profile_marital_status = "N/A"
 
-    try:
-            Profile_marital_status = models.ProfileMaritalstatus.objects.get(StatusId=profile_details[0]['Profile_marital_status']).MaritalStatus
-    except models.ProfileMaritalstatus.DoesNotExist:
-            Profile_marital_status = None
-
-    # print(f"Profile details: {profile_details}")
-    my_gender=profile_details[0]['Gender']
+    # Gender logic and default image
+    my_gender = details.get('Gender', '').lower()
     base_url = settings.MEDIA_URL
-    default_img_bride='default_bride.png'
-    default_img_groom='default_groom.png'
-    if my_gender.lower()=="male":
-        my_gender="female"
-        looking_for="Bride"
-        my_status="Groom"
-        image_url=base_url+default_img_groom
-    else :
-        my_gender="male"
-        looking_for="Groom"
-        my_status="Bride"
-        image_url= base_url+default_img_bride
+    default_img_bride = 'default_bride.png'
+    default_img_groom = 'default_groom.png'
 
-    # Get_profile_image(profile_details[0]['ProfileId'],my_gender,1,1)
-    
+    if my_gender == "male":
+        my_gender = "female"
+        looking_for = "Bride"
+        my_status = "Groom"
+        image_url = base_url + default_img_groom
+    else:
+        my_gender = "male"
+        looking_for = "Groom"
+        my_status = "Bride"
+        image_url = base_url + default_img_bride
+
+    # Final context
     context = {
-        "profile_id": profile.ProfileId,
-        "profile_name": profile.Profile_name,
-        "profile_age":calculate_age(profile.Profile_dob),
-        "profile_dob":profile.Profile_dob,
-        "profile_height":profile.Profile_height,
-        "profile_education":Profile_high_edu,
-        "profile_profession":Profile_profession,
-        "profile_image_url":image_url,
-        "looking_for":looking_for,
-        "star":  profile_details[0]['star_name'],
-        "rasi":profile_details[0]['rasi_name'],
-        "suya_gothram":profile_details[0]['suya_gothram'],
-        "profile_owner":Profile_owner,
-        "anual_incom":profile_details[0]['actual_income'],
-        "height":profile_details[0]['Profile_height'],
-        "working_location":profile_details[0]['Profile_height'],
-        "company_name":profile_details[0]['company_name'],
-        "marital_status":Profile_marital_status,
-        "state":get_state_name(profile_details[0]['Profile_state']),
-        "city":get_city_name(profile_details[0]['Profile_city']),
-        "address":get_city_name(profile_details[0]['Profile_address']),
-        "mobile": profile_details[0]['Mobile_no'],
-        "whatsapp": profile_details[0]['Profile_whatsapp'],
-        "my_status":my_status
+        "profile_id": safe_value(profile.ProfileId),
+        "profile_name": safe_value(profile.Profile_name),
+        "profile_age": calculate_age(profile.Profile_dob) if profile.Profile_dob else "N/A",
+        "profile_dob": safe_value(profile.Profile_dob),
+        "profile_height": safe_value(profile.Profile_height),
+        "profile_education": safe_value(Profile_high_edu),
+        "profile_profession": safe_value(Profile_profession),
+        "profile_image_url": image_url,
+        "looking_for": looking_for,
+        "star": safe_value(details.get('star_name')),
+        "rasi": safe_value(details.get('rasi_name')),
+        "suya_gothram": safe_value(details.get('suya_gothram')),
+        "profile_owner": safe_value(Profile_owner),
+        "anual_incom": safe_value(details.get('actual_income')),
+        "height": safe_value(details.get('Profile_height')),
+        "working_location": safe_value(details.get('Profile_work_location')),
+        "company_name": safe_value(details.get('company_name')),
+        "marital_status": safe_value(Profile_marital_status),
+        "state": safe_value(get_state_name(details.get('Profile_state'))),
+        "city": safe_value(get_city_name(details.get('Profile_city'))),
+        "address": safe_value(get_city_name(details.get('Profile_address'))),
+        "mobile": safe_value(details.get('Mobile_no')),
+        "whatsapp": safe_value(details.get('Profile_whatsapp')),
+        "my_status": my_status
     }
+
     return render(request, "profile_preview.html", context)
-
-
 
 
 
