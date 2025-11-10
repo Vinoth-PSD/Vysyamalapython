@@ -1471,3 +1471,10 @@ class RoleSerializers(serializers.ModelSerializer):
     class Meta:
         model = Roles
         fields = ['id', 'name', 'permissions']
+
+
+# serializers.py
+class RoleDropdownSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Roles
+        fields = ['id', 'name']
