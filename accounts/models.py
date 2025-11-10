@@ -12,6 +12,7 @@ from datetime import date, timedelta
 from collections import defaultdict
 from authentication.models import Get_profiledata as gpt
 from dateutil.relativedelta import relativedelta
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 
 
 
@@ -4221,3 +4222,78 @@ class DataHistory(models.Model):
         managed = False  
         db_table = 'datahistory'
     
+
+
+
+class UserManager(BaseUserManager):
+    def create_user(self, username, password=None, **extra_fields):
+        if not username:
+            raise ValueError("Username is required")
+        user = self.model(username=username, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+
+class User(AbstractBaseUser):
+    id = models.AutoField(primary_key=True)
+    username = models.CharField(max_length=100, unique=True)
+    email= models.CharField(max_length=100, unique=True)
+    password = models.CharField(max_length=255)
+    role = models.ForeignKey('Roles', on_delete=models.SET_NULL,null=True, blank=True)
+    # state = models.CharField(max_length=255,null=True, blank=True)
+    state = models.ForeignKey('State', on_delete=models.SET_NULL, null=True)
+    status = models.IntegerField(default=1)
+    is_deleted = models.IntegerField(default=0)
+    
+    USERNAME_FIELD = 'username'
+    objects = UserManager()
+
+    class Meta:
+        db_table = 'users'
+        managed = False  # Since you already have the table in MySQL
+
+    def __str__(self):
+        return self.username
+
+
+# =========================
+#  ROLE MODEL
+# =========================
+# models.py
+
+class Roles(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=255)
+    description = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'roles'
+        managed = False  # ✅ Since table already exists
+
+
+class Action(models.Model):
+    id = models.AutoField(primary_key=True)
+    code = models.CharField(max_length=100, unique=True)
+    display_name = models.CharField(max_length=255)
+    category = models.CharField(max_length=100)
+    # created_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'actions'
+        managed = False
+
+
+class RolePermission(models.Model):
+    id = models.AutoField(primary_key=True)
+    role = models.ForeignKey(Roles, related_name='permissions', on_delete=models.CASCADE, db_column='role_id')
+    action = models.ForeignKey(Action, on_delete=models.CASCADE, db_column='action_id')
+    value = models.PositiveSmallIntegerField(default=0)
+    # updated_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'rolepermissions'
+        managed = False
+        unique_together = ('role', 'action')
+

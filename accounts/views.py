@@ -7,7 +7,7 @@ from .serializers import ChangePasswordSerializer, ProfileEduDetailsSerializer, 
 from rest_framework import viewsets
 from .models import Country, ProfileEduDetails, ProfileFamilyDetails, ProfilePartnerPref, State, District, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, BirthStar, Rasi, Lagnam, DasaBalance, FamilyType, FamilyStatus, FamilyValue, LoginDetailsTemp ,Get_profiledata , Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , City , Express_interests , Profile_visitors, Profile_wishlists , Photo_request , PlanDetails , Image_Upload  ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1 , Get_profiledata_Matching , Profespref , Profile_vysassist , Homepage,ProfileLoginLogs,ProfileSendFromAdmin , ProfileSubStatus , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref , Profile_callogs , ProfileHoroscope , MasterhighestEducation ,PlanSubscription , ProfileVisibility ,Addonpackages
 from collections import defaultdict
-from .serializers import CountrySerializer, StateSerializer, DistrictSerializer,ProfileHolderSerializer, MaritalStatusSerializer, HeightSerializer, ComplexionSerializer, ParentsOccupationSerializer, HighestEducationSerializer, UgDegreeSerializer, AnnualIncomeSerializer,BirthStarSerializer, RasiSerializer, LagnamSerializer, DasaBalanceSerializer, FamilyTypeSerializer, FamilyStatusSerializer, FamilyValueSerializer, LoginDetailsTempSerializer,Getnewprofiledata , ModeSerializer, PropertySerializer , GothramSerializer , EducationLevelSerializer ,ProfessionSerializer , MatchSerializer ,MasterStatePrefSerializer , CitySerializer , Getnewprofiledata_new , QuickUploadSerializer , ProfileStatusSerializer , LoginEditSerializer , GetproflistSerializer , ImageGetSerializer , MatchingscoreSerializer , HomepageSerializer, Profile_idValidationSerializer , UpdateAdminComments_Serializer , ProfileSubStatusSerializer , PlandetailsSerializer ,ProfileplanSerializer , ProfileVysAssistFollowupSerializer , VysassistSerializer , ProfileSuggestedPrefSerializer  , AdminUserDropdownSerializer , ProfileVisibilitySerializer
+from .serializers import CountrySerializer, StateSerializer, DistrictSerializer,ProfileHolderSerializer, MaritalStatusSerializer, HeightSerializer, ComplexionSerializer, ParentsOccupationSerializer, HighestEducationSerializer, UgDegreeSerializer, AnnualIncomeSerializer,BirthStarSerializer, RasiSerializer, LagnamSerializer, DasaBalanceSerializer, FamilyTypeSerializer, FamilyStatusSerializer, FamilyValueSerializer, LoginDetailsTempSerializer,Getnewprofiledata , ModeSerializer, PropertySerializer , GothramSerializer , EducationLevelSerializer ,ProfessionSerializer , MatchSerializer ,MasterStatePrefSerializer , CitySerializer , Getnewprofiledata_new , QuickUploadSerializer , ProfileStatusSerializer , LoginEditSerializer , GetproflistSerializer , ImageGetSerializer , MatchingscoreSerializer , HomepageSerializer, Profile_idValidationSerializer , UpdateAdminComments_Serializer , ProfileSubStatusSerializer , PlandetailsSerializer ,ProfileplanSerializer , ProfileVysAssistFollowupSerializer , VysassistSerializer , ProfileSuggestedPrefSerializer  , AdminUserDropdownSerializer , ProfileVisibilitySerializer ,LoginSerializer ,RoleSerializers
 from rest_framework.decorators import action
 from rest_framework import generics, filters
 from rest_framework.pagination import PageNumberPagination
@@ -95,6 +95,25 @@ from authentication.views import get_profile_image_azure_optimized
 from .models import DataHistory
 from django.db.models import QuerySet
 from django.shortcuts import render
+
+from rest_framework import viewsets, permissions
+
+
+
+
+
+
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate
+from rest_framework.authtoken.models import Token
+
+from .models import Role, RolePermission , User
+from .serializers import UserSerializer
+
+# User = get_user_model()
+
+
 # from authentication.models import ProfileVisibility
 # from authentication.serializers import ProfileVisibilityListSerializer
 
@@ -10119,3 +10138,70 @@ www.vysyamala.com
                 return Response({"error": f"Failed to send email: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             return Response({"error": "Recipient email not found"}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+
+
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    CRUD for users:
+    - list()    → GET /api/users/
+    - retrieve()→ GET /api/users/{id}/
+    - create()  → POST /api/users/
+    - update()  → PUT /api/users/{id}/
+    - partial_update() → PATCH /api/users/{id}/
+    - destroy() → DELETE /api/users/{id}/
+    """
+    queryset = User.objects.filter(is_deleted=0).order_by('id')
+    serializer_class = UserSerializer
+    #permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
+
+    # Optional: current user profile
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
+    
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.status = 0
+        instance.is_deleted = 1
+        instance.save(update_fields=['status', 'is_deleted'])
+        return Response(
+            {"message": "User soft deleted successfully"},
+            status=status.HTTP_200_OK
+        )
+
+
+class LoginView(APIView):
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        username = serializer.validated_data['username']
+        password = serializer.validated_data['password']
+
+        try:
+            user = User.objects.select_related('role').prefetch_related('role__permissions__action').get(
+                username=username, is_deleted=False
+            )
+
+            if not user.check_password(password):
+                return Response({"error": "Invalid password"}, status=status.HTTP_401_UNAUTHORIZED)
+
+            user_data = UserSerializer(user).data
+            role_data = RoleSerializers(user.role).data if user.role else None
+
+            return Response({
+                "message": "Login successful",
+                "user": user_data,
+                "role": role_data
+            }, status=status.HTTP_200_OK)
+
+        except User.DoesNotExist:
+            return Response({"error": "Invalid username"}, status=status.HTTP_404_NOT_FOUND)
+

@@ -1,6 +1,7 @@
 # serializers.py
 from rest_framework import serializers
-from .models import BirthStar, ProfileHoroscope, ProfilePartnerPref, Rasi, Lagnam, DasaBalance, LoginDetailsTemp, FamilyType, FamilyStatus, FamilyValue, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, Country, State, District ,City, Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , Homepage ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1, Get_profiledata , Express_interests , Get_profiledata_Matching , ProfileSubStatus , PlanDetails , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref ,ProfileVisibility
+from .models import BirthStar, ProfileHoroscope, ProfilePartnerPref, Rasi, Lagnam, DasaBalance, LoginDetailsTemp, FamilyType, FamilyStatus, FamilyValue, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, Country, State, District ,City, Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , Homepage ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1, Get_profiledata , Express_interests , Get_profiledata_Matching , ProfileSubStatus , PlanDetails , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref ,ProfileVisibility , Action
+
 
 from datetime import datetime, date
 
@@ -19,6 +20,13 @@ from .models import PaymentTransaction
 from .models import Invoice
 from .models import MasterhighestEducation
 from .models import PlanSubscription,Addonpackages
+from django.contrib.auth.hashers import make_password
+
+# from django.contrib.auth import get_user_model
+from .models import Roles , User ,RolePermission
+
+
+# User = get_user_model()
 
 class ProfileStatusSerializer(serializers.ModelSerializer):
     class Meta:
@@ -1379,5 +1387,87 @@ class PaymentTransactionListSerializer(serializers.Serializer):
         
     def get_DateOfJoin(self, obj):
         return obj['DateOfJoin'].date() if obj.get('DateOfJoin') else None
-    
-    
+
+
+
+class RoleSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = Roles
+        fields = ['id', 'name']
+
+
+
+class UserSerializer(serializers.ModelSerializer):
+    role_name = serializers.CharField(source='role.name', read_only=True)  # get role name
+    status_display = serializers.SerializerMethodField()
+    state_name = serializers.CharField(source='state.name', read_only=True)
+
+    # state_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'email',
+            'username',
+            'password',  
+            'role',          # keep if you want to send ID for create/edit
+            'role_name',     # read-only role name
+            'state',
+            'state_name', # readable state value
+            'status',
+            'status_display' # readable status
+        ]
+        extra_kwargs = {
+            'password': {'write_only': True}  # don't show password in GET responses
+        }
+
+    def get_status_display(self, obj):
+        status_map = {
+            0: "Inactive",
+            1: "Active",
+            2: "Suspended",
+            3: "Deleted"
+        }
+        return status_map.get(obj.status, "Unknown")
+
+
+    def create(self, validated_data):
+        if 'password' in validated_data:
+            validated_data['password'] = make_password(validated_data['password'])
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        if password:
+            instance.password = make_password(password)
+        return super().update(instance, validated_data)
+
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+
+
+# serializers.py
+class ActionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Action
+        fields = ['id', 'code', 'display_name', 'category']
+
+
+class PermissionSerializer(serializers.ModelSerializer):
+    action = ActionSerializer(read_only=True)
+
+    class Meta:
+        model = RolePermission
+        fields = ['id', 'value', 'action']
+
+
+class RoleSerializers(serializers.ModelSerializer):
+    permissions = PermissionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Roles
+        fields = ['id', 'name', 'permissions']
