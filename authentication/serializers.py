@@ -1575,11 +1575,12 @@ class ProfileImagesSerializer(serializers.Serializer):
     images = serializers.SerializerMethodField()
     Video_url = serializers.SerializerMethodField()
     Photo_protection = serializers.SerializerMethodField()
+    Photo_password = serializers.SerializerMethodField()
     
     base_url =settings.MEDIA_URL
 
     class Meta:
-        fields = ['horoscope_file', 'Profile_idproof', 'Profile_divorceproof','images','Video_url','Photo_protection']
+        fields = ['horoscope_file', 'Profile_idproof', 'Profile_divorceproof','images','Video_url','Photo_protection','Photo_password']
 
     def get_horoscope_file(self, obj):
         try:
@@ -1615,6 +1616,13 @@ class ProfileImagesSerializer(serializers.Serializer):
             profile_details = models.Registration1.objects.get(ProfileId=obj)
             return f"{profile_details.Photo_protection}"
         except models.Registration1.DoesNotExist:
+            return None
+        
+    def get_Photo_password(self, obj):
+        try:
+            profile_details = models.Registration1.objects.get(ProfileId=obj)
+            return f"{profile_details.Photo_password}"
+        except Exception:
             return None
     
     def get_Video_url(self, obj):
