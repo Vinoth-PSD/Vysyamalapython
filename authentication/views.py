@@ -11034,13 +11034,12 @@ class Photo_Id_Settings(APIView):
 
                 registration_instance.Profile_divorceproof.save(divorcepf_file.name, ContentFile(divorcepf_file.read()), save=True)
                 registration_instance.save()
-
-            if photo_password or photo_protection is not None:
-                if photo_protection == 1 and photo_password:
-                    registration_instance.Photo_password = photo_password
-                registration_instance.Photo_protection = photo_protection
-                registration_instance.save()
-            
+                
+            if (photo_protection == 1 or photo_protection=='1') and photo_password:
+                registration_instance.Photo_password = photo_password
+            registration_instance.Photo_protection = photo_protection
+            registration_instance.save()
+        
             if Video_url or Video_url is not None:
                 registration_instance.Video_url = Video_url
                 registration_instance.save()

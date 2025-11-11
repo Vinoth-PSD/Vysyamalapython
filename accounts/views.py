@@ -7959,6 +7959,8 @@ def GetPhotoProofDetails(request):
                     'horoscope_file_admin': horoscope.horoscope_file_admin.url if horoscope.horoscope_file_admin else None,
                     'profile_images': image_list,
                     'profile_martial_status': login.Profile_marital_status,
+                    'Profile_name':login.Profile_name,
+                    'photo_protection':login.Photo_protection
                 }
             })
 
@@ -7973,6 +7975,7 @@ def GetPhotoProofDetails(request):
         is_deleted_csv = request.POST.get('is_deleted')
         image_approved_csv = request.POST.get('image_approved')
         photo_password = request.POST.get('photo_password')
+        photo_protection = request.POST.get('photo_protection')
     
         if not profile_id:
             return JsonResponse({'status': 'error', 'message': 'profile_id is required'}, status=400)
@@ -8049,6 +8052,13 @@ def GetPhotoProofDetails(request):
                     update_summary['photo_password'] = "updated"
                 except LoginDetails.DoesNotExist:
                     update_summary['photo_password'] = "login details not found"
+
+            try:
+                login = LoginDetails.objects.get(ProfileId=profile_id)
+                login.Photo_protection = photo_protection
+                login.save()
+            except Exception:
+                pass
     
             if not update_summary:
                 return JsonResponse({'status': 'error', 'message': 'No update data provided'}, status=400)
