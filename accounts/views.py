@@ -9001,7 +9001,7 @@ class AdminMatchProfilePDFView(APIView):
                 # print("porutham",porutham_data)
                 
                 if format_type == "whatsapp_link_profile_img":
-                    profile_link = f"https://vsysmalamat-ejh3ftcdbnezhhfv.westus2-01.azurewebsites.net/auth/profile/{profile_id}/"
+                    profile_link = f"https://app.vysyamala.com/auth/profile/{profile_id}/"
                     profile_data = {
                         "profile_link": profile_link,
                         "profile_id": login.ProfileId,
@@ -9017,7 +9017,7 @@ class AdminMatchProfilePDFView(APIView):
                     whatsapp_profiles.append(profile_data)
 
                 if format_type == "whatsapp_link_profile":
-                    profile_link = f"https://vsysmalamat-ejh3ftcdbnezhhfv.westus2-01.azurewebsites.net/auth/profile_view/{profile_id}/"
+                    profile_link = f"https://app.vysyamala.com/auth/profile_view/{profile_id}/"
                     profile_data = {
                         "profile_link": profile_link,
                         "profile_id": login.ProfileId,
