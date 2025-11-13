@@ -580,6 +580,7 @@ class LoginDetails(models.Model):
     Profile_height = models.CharField(max_length=250,blank=True, null=True)
     Photo_password = models.CharField(max_length=255,blank=True, null=True)
     Photo_protection = models.BooleanField(default=False)
+    Owner_id = models.CharField(max_length=50, blank=True, null=True)
 
 
     class Meta:
@@ -4242,7 +4243,7 @@ class User(AbstractBaseUser):
     password = models.CharField(max_length=255)
     role = models.ForeignKey('Roles', on_delete=models.SET_NULL,null=True, blank=True)
     # state = models.CharField(max_length=255,null=True, blank=True)
-    state = models.ForeignKey('State', on_delete=models.SET_NULL, null=True)
+    state = models.TextField(null=True,blank=True)
     status = models.IntegerField(default=1)
     is_deleted = models.IntegerField(default=0)
     

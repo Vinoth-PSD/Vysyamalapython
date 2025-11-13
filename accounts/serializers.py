@@ -1,7 +1,7 @@
 # serializers.py
 from rest_framework import serializers
 from .models import BirthStar, ProfileHoroscope, ProfilePartnerPref, Rasi, Lagnam, DasaBalance, LoginDetailsTemp, FamilyType, FamilyStatus, FamilyValue, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, Country, State, District ,City, Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , Homepage ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1, Get_profiledata , Express_interests , Get_profiledata_Matching , ProfileSubStatus , PlanDetails , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref ,ProfileVisibility , Action
-
+from django.db.models import Q
 
 from datetime import datetime, date
 
@@ -1400,8 +1400,12 @@ class RoleSerializers(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     role_name = serializers.CharField(source='role.name', read_only=True)  # get role name
     status_display = serializers.SerializerMethodField()
-    state_name = serializers.CharField(source='state.name', read_only=True)
-
+    state_name = serializers.SerializerMethodField()
+    allocated_profiles_count = serializers.SerializerMethodField()
+    prospect_profile_count = serializers.SerializerMethodField()
+    paid_profile_count = serializers.SerializerMethodField()
+    delete_profile_count = serializers.SerializerMethodField()
+    others_profile_count = serializers.SerializerMethodField()
     # state_display = serializers.SerializerMethodField()
 
     class Meta:
@@ -1416,12 +1420,56 @@ class UserSerializer(serializers.ModelSerializer):
             'state',
             'state_name', # readable state value
             'status',
-            'status_display' # readable status
+            'status_display', # readable status
+            'allocated_profiles_count',
+            'prospect_profile_count',
+            'paid_profile_count',
+            'delete_profile_count',
+            'others_profile_count'
         ]
         extra_kwargs = {
             'password': {'write_only': True}  # don't show password in GET responses
         }
 
+    def get_allocated_profiles_count(self, obj):
+        try:
+            return LoginDetails.objects.filter(Owner_id=obj.id).count()
+        except Exception as e:
+            return None
+        
+    def get_prospect_profile_count(self, obj):
+        try:
+            return LoginDetails.objects.filter(Owner_id=obj.id,status=1,plan_status=8).count()
+        except Exception as e:
+            print(f"Error:{str(e)}")
+            return None 
+    
+    def get_paid_profile_count(self, obj):
+        try:
+            return LoginDetails.objects.filter(Owner_id=obj.id,status=1,plan_status__in=[1, 2, 3, 14, 15, 16, 17]).count()
+        except Exception as e:
+            print(f"Error:{str(e)}")
+            return None 
+        
+    def get_delete_profile_count(self, obj):
+        try:
+            return LoginDetails.objects.filter(Owner_id=obj.id,status=4).count()
+        except Exception as e:
+            print(f"Error:{str(e)}")
+            return None 
+        
+    def get_others_profile_count(self, obj):
+        try:
+            return LoginDetails.objects.filter(
+                    Owner_id=obj.id
+                ).exclude(
+                    Q(status=4) |
+                    Q(status=1, plan_status__in=[1, 2, 3, 8, 14, 15, 16, 17])
+                ).count()
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return None
+    
     def get_status_display(self, obj):
         status_map = {
             0: "Inactive",
@@ -1442,6 +1490,20 @@ class UserSerializer(serializers.ModelSerializer):
         if password:
             instance.password = make_password(password)
         return super().update(instance, validated_data)
+    
+    def get_state_name(self, obj):
+        if not obj.state:
+            return []
+        try:
+            if isinstance(obj.state, (list, tuple)):
+                ids = obj.state
+            else:
+                ids = [int(x) for x in str(obj.state).split(',') if x.strip().isdigit()]
+
+            states = State.objects.filter(id__in=ids).values_list('name', flat=True)
+            return list(states)
+        except Exception as e:
+            return []
 
 
 class LoginSerializer(serializers.Serializer):
@@ -1471,6 +1533,19 @@ class RoleSerializers(serializers.ModelSerializer):
     class Meta:
         model = Roles
         fields = ['id', 'name', 'permissions']
+        
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        permissions = data.pop('permissions', [])
+        formatted_permissions = []
+
+        for perm in permissions:
+            action_data = perm.get('action', {})
+            action_data['value'] = perm.get('value')
+            formatted_permissions.append(action_data)
+
+        data['permissions'] = formatted_permissions
+        return data
 
 
 # serializers.py
