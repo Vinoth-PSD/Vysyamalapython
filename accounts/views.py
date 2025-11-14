@@ -10226,3 +10226,23 @@ class RoleDropdownView(APIView):
             "message": "Roles fetched successfully",
             "roles": serializer.data
         }, status=status.HTTP_200_OK)
+        
+        
+class OwnerUpdateView(APIView):
+    def post(self,request):
+        try:
+            profile_id = request.POST.get('profile_id')
+            owner_id = request.POST.get('owner_id')
+            assign_by = request.POST.get('assign_by')
+            if not profile_id or not owner_id or not assign_by:
+                return Response({"status":"error","message":"profile_id,owner_id and assign_by are required"},status=status.HTTP_400_BAD_REQUEST)
+            
+            profile = LoginDetails.objects.filter(ProfileId=profile_id).first()
+            if not profile:
+                return Response({"status":"error","message":"Profile not found"},status=status.HTTP_404)
+            
+            profile.Owner_id = owner_id
+            profile.save()
+            return Response({"status":"success","message":"Owner updated successfully"},status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"status":"error","message":"server error:"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)

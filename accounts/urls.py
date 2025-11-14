@@ -206,4 +206,5 @@ urlpatterns = [
     path('send-invoice/',views.SendInvoicePDF.as_view(),name='Renewalplan'),
     path('login/', LoginView.as_view(), name='login'),
     path('roles/dropdown/', RoleDropdownView.as_view(), name='role-dropdown'),
+    path('owner-update/',views.OwnerUpdateView.as_view(),name='owner-update')
 ]
