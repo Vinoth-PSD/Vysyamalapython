@@ -30,7 +30,7 @@ DEBUG = True
 # ALLOWED_HOSTS = ['103.214.132.20','127.0.0.1','matrimonyapp.rainyseasun.com','tamizhimart.com', 'www.tamizhimart.com','192.168.1.8','192.168.1.11','192.168.1.5','192.168.1.19','vysyaadmin.rainyseasun.com','apiupg.rainyseasun.com','matrimonyapi.rainyseasun.com']
 # ALLOWED_HOSTS = ['*']
 
-ALLOWED_HOSTS = ['vsysmalamat-ejh3ftcdbnezhhfv.westus2-01.azurewebsites.net','polite-pond-0783ff91e.1.azurestaticapps.net','vysyamala.com','admin.vysyamala.com','calm-moss-0d969331e.2.azurestaticapps.net','localhost', '127.0.0.1','app.vysyamala.com']
+ALLOWED_HOSTS = ['vsysmalamat-ejh3ftcdbnezhhfv.westus2-01.azurewebsites.net','polite-pond-0783ff91e.1.azurestaticapps.net','vysyamala.com','admin.vysyamala.com','calm-moss-0d969331e.2.azurestaticapps.net','localhost', '127.0.0.1','app.vysyamala.com','103.214.132.20']
 
 
 
@@ -275,6 +275,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://www.vysyamala.com",
     "https://vsysmalamat-ejh3ftcdbnezhhfv.westus2-01.azurewebsites.net",
     "https://app.vysyamala.com",
+    "http://103.214.132.20:5173",
 ]
 
 
