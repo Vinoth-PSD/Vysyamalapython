@@ -1585,6 +1585,32 @@ class SuccessStoryViewSet(viewsets.ModelViewSet):
     queryset = SuccessStory.objects.all()
     serializer_class = SuccessStorySerializer
 
+    def create(self, request, *args, **kwargs):
+        owner_id = request.data.get('admin_user_id')
+
+        try:
+            owner_id = int(owner_id)
+            user = User.objects.get(id=owner_id)
+        except Exception:
+            user = None
+        
+        if user:
+            role = user.role
+            permissions = RolePermission.objects.filter(role=role).select_related('action')
+            data = permissions.values('action__code', 'value')
+            edit_permission = data.filter(action__code='marriage_photo_upload').first()
+            edit = edit_permission['value'] if edit_permission else None
+        else:
+            edit = None
+
+        if user and edit != 1:
+            return Response({
+                "status": "error",
+                "message": "Permission Error"
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        return super().create(request, *args, **kwargs)
+
 
 class SuccessStoryListViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = SuccessStory.objects.filter(deleted=False)
@@ -1592,6 +1618,30 @@ class SuccessStoryListViewSet(viewsets.ReadOnlyModelViewSet):
 
 class SuccessStoryEditView(APIView):
     def put(self, request, pk):
+        owner_id = request.data.get('admin_user_id')
+        try:
+            owner_id = int(owner_id)
+            user = User.objects.get(id=owner_id)
+        except Exception:
+            user = None
+             
+        if user:
+            role = user.role
+            permissions = RolePermission.objects.filter(role=role).select_related('action')
+            data = permissions.values('action__code', 'value')
+            edit_permission = data.filter(action__code='marriage_photo_upload').first()
+            edit=edit_permission['value'] if edit_permission else None
+        else:
+            edit =None
+          
+        if user:  
+            if edit ==1:
+                pass
+            else:
+                return Response({
+                    "status": "error",
+                    "message": "Permission Error"
+                }, status=status.HTTP_403_FORBIDDEN)
         try:
             success_story = SuccessStory.objects.get(pk=pk, deleted=False)
         except SuccessStory.DoesNotExist:
@@ -1905,7 +1955,31 @@ class SubmitProfileAPIView(APIView):
     def post(self, request):
         # Extract the respective data from the request payload
 
-
+        owner_id = request.data.get('admin_user_id')
+        try:
+            owner_id = int(owner_id)
+            user = User.objects.get(id=owner_id)
+        except Exception:
+            user = None
+             
+        if user:
+            role = user.role
+            permissions = RolePermission.objects.filter(role=role).select_related('action')
+            data = permissions.values('action__code', 'value')
+            edit_permission = data.filter(action__code='add_profile').first()
+            edit=edit_permission['value'] if edit_permission else None
+        else:
+            edit =None
+           
+        if user: 
+            if edit ==1:
+                pass
+            else:
+                return Response({
+                    "status": "error",
+                    "message": "Permission Error"
+                }, status=status.HTTP_403_FORBIDDEN)
+                
         def parse_json_field(field):
           if isinstance(field, str):
               try:
@@ -7976,7 +8050,30 @@ def GetPhotoProofDetails(request):
         image_approved_csv = request.POST.get('image_approved')
         photo_password = request.POST.get('photo_password')
         photo_protection = request.POST.get('photo_protection')
-    
+        owner_id = request.data.get('admin_user_id')
+        try:
+            owner_id = int(owner_id)
+            user = User.objects.get(id=owner_id)
+        except Exception:
+            user = None
+             
+        if user:
+            role = user.role
+            permissions = RolePermission.objects.filter(role=role).select_related('action')
+            data = permissions.values('action__code', 'value')
+            edit_permission = data.filter(action__code='new_photo_update').first()
+            edit=edit_permission['value'] if edit_permission else None
+        else:
+            edit =None
+           
+        if user:  
+            if edit ==1:
+                pass
+            else:
+                return Response({
+                    "status": "error",
+                    "message": "Permission Error"
+                }, status=status.HTTP_403_FORBIDDEN)
         if not profile_id:
             return JsonResponse({'status': 'error', 'message': 'profile_id is required'}, status=400)
     
@@ -8185,6 +8282,30 @@ def get_star_lookup():
 class CommonProfileSearchAPIView(APIView):
 
     def post(self, request):
+        owner_id = request.data.get('admin_user_id')
+        try:
+            owner_id = int(owner_id)
+            user = User.objects.get(id=owner_id)
+        except Exception:
+            user = None
+             
+        if user:
+            role = user.role
+            permissions = RolePermission.objects.filter(role=role).select_related('action')
+            data = permissions.values('action__code', 'value')
+            edit_permission = data.filter(action__code='search_profile').first()
+            edit=edit_permission['value'] if edit_permission else None
+        else:
+            edit =None
+          
+        if user:   
+            if edit ==1:
+                pass
+            else:
+                return Response({
+                    "status": "error",
+                    "message": "Permission Error"
+                }, status=status.HTTP_403_FORBIDDEN)
         serializer = CommonProfileSearchSerializer(data=request.data)
         if not serializer.is_valid():
             return JsonResponse(serializer.errors, status=400)
@@ -9948,7 +10069,31 @@ class FeaturedProfileAddView(APIView):
         profile_id = request.data.get('profile_id')
         boosted_date = request.data.get('boosted_startdate')
         boosted_enddate = request.data.get('boosted_enddate')
+        owner_id = request.data.get('admin_user_id')
 
+        try:
+            owner_id = int(owner_id)
+            user = User.objects.get(id=owner_id)
+        except Exception:
+            user = None
+             
+        if user:
+            role = user.role
+            permissions = RolePermission.objects.filter(role=role).select_related('action')
+            data = permissions.values('action__code', 'value')
+            edit_permission = data.filter(action__code='featured_profile_add').first()
+            edit=edit_permission['value'] if edit_permission else None
+        else:
+            edit =None
+        
+        if user:
+            if edit ==1:
+                pass
+            else:
+                return Response({
+                    "status": "error",
+                    "message": "Permission Error"
+                }, status=status.HTTP_403_FORBIDDEN)
         if not profile_id or not boosted_date or not boosted_enddate:
             return Response({
                 "status": "error",
@@ -10227,7 +10372,6 @@ class RoleDropdownView(APIView):
             "roles": serializer.data
         }, status=status.HTTP_200_OK)
         
-        
 class OwnerUpdateView(APIView):
     def post(self,request):
         try:
@@ -10246,3 +10390,372 @@ class OwnerUpdateView(APIView):
             return Response({"status":"success","message":"Owner updated successfully"},status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"status":"error","message":"server error:"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class EditProfileWithPermissionAPIView(APIView):
+    """
+    This API view will allow users to edit and update their profile details based on ProfileId.
+    """
+
+    @transaction.atomic
+    def put(self, request, profile_id, *args, **kwargs):
+        # Extract the data from the request payload
+        login_data = request.data.get('login_details', {})
+        family_data = request.data.get('family_details', {})
+        edu_data = request.data.get('education_details', {})
+        horoscope_data = request.data.get('horoscope_details', {})
+        partner_pref_data = request.data.get('partner_pref_details', {})
+        suggested_pref_data = request.data.get('suggested_pref_details', {})
+        profile_common_data = request.data.get('profile_common_details', {})
+        profile_visibility_data=request.data.get('profile_visibility_details', {})
+        owner_id = request.data.get('admin_user_id')
+        
+
+        # print(profile_visibility_data,'123456')
+
+        # Initialize error tracking
+        errors = {}
+
+        # Step 1: Retrieve and update LoginDetails based on ProfileId
+        try:
+            owner_id = int(owner_id)
+            user = User.objects.get(id=owner_id)
+        except Exception:
+            user = None
+             
+        if user:
+            role = user.role
+            permissions = RolePermission.objects.filter(role=role).select_related('action')
+            data = permissions.values('action__code', 'value')
+            edit_permission = data.filter(action__code='edit_profile_all').first()
+            edit=edit_permission['value'] if edit_permission else None
+        else:
+            edit =None
+        try:
+            login_detail = LoginDetails.objects.get(ProfileId=profile_id)
+        except LoginDetails.DoesNotExist:
+            return Response({'error': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if login_data:
+            login_serializer = LoginEditSerializer(instance=login_detail, data=login_data, partial=True)
+            if login_serializer.is_valid():
+                login_serializer.save()
+            else:
+                errors['login_details'] = login_serializer.errors 
+
+        if family_data:
+            try:
+                family_detail = ProfileFamilyDetails.objects.get(profile_id=profile_id)
+            except ProfileFamilyDetails.DoesNotExist:
+                return Response({'error': 'Family details not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+            family_serializer = ProfileFamilyDetailsSerializer(instance=family_detail, data=family_data, partial=True)
+            if family_serializer.is_valid():
+                updated_instance = family_serializer.save()
+                uncle_gothram = family_data.get('uncle_gothram')
+                if uncle_gothram:
+                    updated_instance.madulamn = uncle_gothram
+                    updated_instance.save()
+            else:
+                errors['family_details'] = family_serializer.errors
+
+        # Step 3: Retrieve and update ProfileEduDetails
+        if edu_data:
+            try:
+                edu_detail = ProfileEduDetails.objects.get(profile_id=profile_id)
+            except ProfileEduDetails.DoesNotExist:
+                return Response({'error': 'Education details not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+            edu_serializer = ProfileEduDetailsSerializer(instance=edu_detail, data=edu_data, partial=True)
+            if edu_serializer.is_valid():
+                edu_serializer.save()
+            else:
+                errors['education_details'] = edu_serializer.errors
+
+        # Step 4: Retrieve and update ProfileHoroscope
+        if horoscope_data:
+            # print('1234567890')
+            try:
+                horoscope_detail = ProfileHoroscope.objects.get(profile_id=profile_id)
+            except ProfileHoroscope.DoesNotExist:
+                return Response({'error': 'Horoscope details not found.'}, status=status.HTTP_404_NOT_FOUND)
+            
+            # Get input text
+            rasi_input_text = horoscope_data.get("rasi_kattam")
+            # print(rasi_input_text,'123456')
+            if rasi_input_text:
+                # Update input field
+                horoscope_detail.rasi_kattam = rasi_input_text
+        
+                # Run dosham logic
+                mars_dosham, rahu_kethu_dosham = GetMarsRahuKethuDoshamDetails(rasi_input_text)
+                # print(mars_dosham)
+                # print(rahu_kethu_dosham)
+                # Save dosham results directly to model fields
+                horoscope_detail.calc_chevvai_dhosham = "True" if mars_dosham else "False"
+                horoscope_detail.calc_raguketu_dhosham = "True" if rahu_kethu_dosham else "False"
+        
+            # Update other fields in horoscope_data using serializer (excluding the calculated fields)
+            # horoscope_data.pop("calc_chevvai_dhosham", None)
+            # horoscope_data.pop("calc_raguketu_dhosham", None)
+        
+            horoscope_serializer = ProfileHoroscopeSerializer(
+                instance=horoscope_detail,
+                data=horoscope_data,
+                partial=True
+            )
+
+            horoscope_serializer = ProfileHoroscopeSerializer(instance=horoscope_detail, data=horoscope_data, partial=True)
+            if horoscope_serializer.is_valid():
+                horoscope_serializer.save()
+            else:
+                errors['horoscope_details'] = horoscope_serializer.errors
+
+        # Step 5: Retrieve and update ProfilePartnerPref
+        if partner_pref_data:
+            try:
+                partner_pref_detail = ProfilePartnerPref.objects.get(profile_id=profile_id)
+            except ProfilePartnerPref.DoesNotExist:
+                return Response({'error': 'Partner preference details not found.'}, status=status.HTTP_404_NOT_FOUND)
+            
+        #prefered porutham rasi-stat value storing in the database mythili code 25-06-25
+
+                    # Make a proper mutable copy of the input dict
+            if isinstance(partner_pref_data, dict):
+                partner_pref_payload = partner_pref_data.copy()
+            else:
+                # If it's a QueryDict (e.g., from request.data), convert to normal dict
+                partner_pref_payload = dict(partner_pref_data.lists())
+                # flatten single-item lists: {'key': ['value']} -> {'key': 'value'}
+                for key in partner_pref_payload:
+                    if isinstance(partner_pref_payload[key], list) and len(partner_pref_payload[key]) == 1:
+                        partner_pref_payload[key] = partner_pref_payload[key][0]
+       
+            # Extract and process 'pref_porutham_star'
+            pref_star_ids = partner_pref_payload.get('pref_porutham_star')
+            if pref_star_ids:
+                try:
+                    id_list = [int(i.strip()) for i in str(pref_star_ids).split(',') if i.strip().isdigit()]
+                    matches = MatchingStarPartner.objects.filter(id__in=id_list)
+       
+                    star_rasi_pairs = [f"{m.dest_star_id}-{m.dest_rasi_id}" for m in matches]
+       
+                    # Save both cleaned values
+                    partner_pref_payload['pref_porutham_star'] = ",".join(map(str, id_list))
+                    partner_pref_payload['pref_porutham_star_rasi'] = ",".join(star_rasi_pairs)
+       
+                except Exception as e:
+                    errors['partner_pref_details'] = {
+                        'pref_porutham_star': [f"Invalid input or failed to process star IDs: {str(e)}"]
+                    }
+
+            partner_pref_serializer = ProfilePartnerPrefSerializer(instance=partner_pref_detail, data=partner_pref_data, partial=True)
+            if partner_pref_serializer.is_valid():
+                partner_pref_serializer.save()
+            else:
+                errors['partner_pref_details'] = partner_pref_serializer.errors
+        
+
+        # Step 6: RetriSuggestedeve and update ProfilePartnerPref
+        if suggested_pref_data:
+            try:
+                suggested_pref_detail = ProfileSuggestedPref.objects.get(profile_id=profile_id)
+            except ProfileSuggestedPref.DoesNotExist:
+                #return Response({'error': 'suggested pref not found.'}, status=status.HTTP_404_NOT_FOUND)
+                suggested_pref_detail = ProfileSuggestedPref.objects.create(
+                    profile_id=profile_id
+                )
+
+            suggested_pref_serializer = ProfileSuggestedPrefSerializer(instance=suggested_pref_detail, data=suggested_pref_data, partial=True)
+            if suggested_pref_serializer.is_valid():
+                suggested_pref_serializer.save()
+            else:
+                errors['suggested_pref_details'] = suggested_pref_serializer.errors
+         
+         
+
+        # Step 7: Retrieve and update ProfileEduDetails
+        if profile_visibility_data:
+            # print('inside profile visibility')
+            try:
+                print('update the existing record')
+                profvis_detail = ProfileVisibility.objects.get(profile_id=profile_id)
+                provis_serializer = ProfileVisibilitySerializer(instance=profvis_detail, data=profile_visibility_data, partial=True)
+
+            except ProfileVisibility.DoesNotExist:
+                print('insert the new record')
+                # return Response({'error': 'Profile Visibility details not found.'}, status=status.HTTP_404_NOT_FOUND)
+                profile_visibility_data['profile_id'] = profile_id
+                provis_serializer = ProfileVisibilitySerializer(data=profile_visibility_data)
+                
+                #Insert if data not exists
+        
+            if provis_serializer.is_valid():
+                provis_serializer.save()
+            else:
+                errors['profile_visibility_details'] = provis_serializer.errors
+
+
+        #common data to be update code is below
+
+        
+        if profile_common_data:
+            if edit == 1:
+                owner = profile_common_data.get("owner_id")
+                # print('inside profile common data update',profile_common_data.get("primary_status"))
+                # Only include the common data keys that are available in the request
+                login_common_data = clean_none_fields({
+                    "Addon_package": profile_common_data.get("Addon_package"),
+                    "Notifcation_enabled": profile_common_data.get("Notifcation_enabled"),
+                    "PaymentExpire": profile_common_data.get("PaymentExpire"),
+                    "Package_name": profile_common_data.get("Package_name"),
+                    "status": profile_common_data.get("status"),
+                    "DateOfJoin": profile_common_data.get("DateOfJoin"),
+                    "Profile_name": profile_common_data.get("Profile_name"),
+                    "Gender": profile_common_data.get("Gender"),
+                    "Mobile_no": profile_common_data.get("Mobile_no"),
+                    "membership_startdate": parse_membership_date(profile_common_data.get("membership_fromdate")),
+                    "membership_enddate": parse_membership_date(profile_common_data.get("membership_todate")),
+                    "Profile_for": profile_common_data.get("Profile_for"),
+                    "primary_status":profile_common_data.get("status"),
+                    "secondary_status":profile_common_data.get("primary_status"),
+                    "plan_status":profile_common_data.get("secondary_status"),
+                    "Plan_id": str(profile_common_data.get("secondary_status")),
+                    "Otp_verify":profile_common_data.get("mobile_otp_verify"),
+                })
+                family_common_data=clean_none_fields({
+                    "family_status":profile_common_data.get("family_status")
+                })
+                horos_common_data=clean_none_fields({
+                    "calc_chevvai_dhosham":profile_common_data.get("calc_chevvai_dhosham"),
+                    "calc_raguketu_dhosham":profile_common_data.get("calc_raguketu_dhosham"),
+                    "horoscope_hints":profile_common_data.get("horoscope_hints")
+                })
+                profileplan_common_data=clean_none_fields({
+                    "exp_int_lock":profile_common_data.get("exp_int_lock"),
+                    "express_int_count":profile_common_data.get("exp_int_count"),
+                    "profile_permision_toview":profile_common_data.get("visit_count"),
+                    "plan_id":profile_common_data.get("secondary_status"),
+                    # "membership_fromdate":profile_common_data.get("membership_fromdate"),
+                    # "membership_todate":profile_common_data.get("membership_todate")
+                    "membership_fromdate": parse_membership_date(profile_common_data.get("membership_fromdate")),
+                    "membership_todate": parse_membership_date(profile_common_data.get("membership_todate")),
+
+                })
+            else:
+                return Response({'error': 'You do not have permission to edit this profile.'}, status=status.HTTP_403_FORBIDDEN)
+            
+            try:
+                if owner:
+                    owner_id =int(owner)
+                else:
+                    owner_id = None
+                old_status = getattr(login_detail, 'status', None)
+                new_status = profile_common_data.get("status") or old_status
+
+                old_plan_id = getattr(login_detail, 'Plan_id', None)
+                new_plan_id = profile_common_data.get("secondary_status") or old_plan_id
+                if old_status is not None and int(old_status) != int(new_status) and int(old_plan_id) != int(new_plan_id):
+                    try:
+                        DataHistory.objects.create(
+                            profile_id=profile_id,
+                            profile_status=new_status,
+                            plan_id=new_plan_id,
+                            owner_id = owner_id
+                        )
+                    except Exception as e:
+                        pass
+                elif old_status is not None and int(old_status) != int(new_status):
+                    try:
+                        DataHistory.objects.create(
+                            profile_id=profile_id,
+                            profile_status=new_status,
+                            owner_id = owner_id
+                        )
+                    except Exception as e:
+                        pass
+                    
+                elif int(old_plan_id) != int(new_plan_id):
+                    try:
+                        DataHistory.objects.create(
+                            profile_id=profile_id,
+                            profile_status=new_status, 
+                            plan_id=new_plan_id,
+                            owner_id = owner_id
+                        )
+                    except Exception as e:
+                        pass
+            except Exception as e:
+                pass
+            # print('login_common_data', login_common_data)
+            # Update Login Details
+            login_detail = LoginDetails.objects.get(ProfileId=profile_id)
+            login_serializer = LoginEditSerializer(instance=login_detail, data=login_common_data, partial=True)
+            if login_serializer.is_valid():
+                login_serializer.save()
+            else:
+                return Response({'error': login_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Update Family Details
+            family_detail = ProfileFamilyDetails.objects.get(profile_id=profile_id)
+            family_serializer = ProfileFamilyDetailsSerializer(instance=family_detail, data=family_common_data, partial=True)
+            if family_serializer.is_valid():
+                family_serializer.save()
+            else:
+                return Response({'error': family_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Update Horoscope Details
+            horoscope_detail = ProfileHoroscope.objects.get(profile_id=profile_id)
+            horoscope_serializer = ProfileHoroscopeSerializer(instance=horoscope_detail, data=horos_common_data, partial=True)
+            if horoscope_serializer.is_valid():
+                horoscope_serializer.save()
+            else:
+                return Response({'error': horoscope_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+            plan_id = profile_common_data.get("secondary_status")
+            plan_features = models.PlanFeatureLimit.objects.filter(plan_id=plan_id).values().first()
+            
+
+            if plan_features:
+                # Remove the 'id' field if present
+                plan_features.pop('id', None)
+                plan_features.pop('plan_id', None)  # optional, if you don't want to override plan_id
+
+                # Add membership dates
+                plan_features.update({
+                    'plan_id': plan_id,
+                    'membership_fromdate': parse_membership_date(profile_common_data.get("membership_fromdate")),
+                    'membership_todate': parse_membership_date(profile_common_data.get("membership_todate")),
+                    'status':1
+                })
+                # print(plan_features,'plan features updated')
+                # Update the profile_plan_features row for profile_id
+                models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(**plan_features)
+                # print(pro_plan,'profile plan feature updated')
+                
+            # # Update profileplan Details
+            profileplan_detail = Profile_PlanFeatureLimit.objects.get(profile_id=profile_id,status=1)
+            profileplan_serializer = ProfileplanSerializer(instance=profileplan_detail, data=profileplan_common_data, partial=True)
+            if profileplan_serializer.is_valid():
+                # print('profile plan serializer is valid', profileplan_serializer.validated_data)
+                profileplan_serializer.save()
+            else:
+                return Response({'error': profileplan_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+            addon_package_ids = profile_common_data.get("Addon_package", "")
+
+            if addon_package_ids:
+                # Split comma-separated string into list of ints
+                addon_package_id_list = [int(pk.strip()) for pk in addon_package_ids.split(",") if pk.strip().isdigit()]
+
+                # Check if ID 1 is in the list
+                if 1 in addon_package_id_list:
+                    # print("Addon Package ID 1 found. Updating Profile_plan_feature...")
+
+                    # Example: update all rows (or filter if needed)
+                    Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(vys_assist=1,vys_assist_count=5)
+     
+        # If there are any validation errors, return them
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Success response
+        return Response({"status": "success", "message": "Profile updated successfully."}, status=status.HTTP_200_OK)

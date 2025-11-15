@@ -206,5 +206,6 @@ urlpatterns = [
     path('send-invoice/',views.SendInvoicePDF.as_view(),name='Renewalplan'),
     path('login/', LoginView.as_view(), name='login'),
     path('roles/dropdown/', RoleDropdownView.as_view(), name='role-dropdown'),
-    path('owner-update/',views.OwnerUpdateView.as_view(),name='owner-update')
+    path('owner-update/',views.OwnerUpdateView.as_view(),name='owner-update'),
+    path('edit-profile-with-permission/<str:profile_id>/', views.EditProfileWithPermissionAPIView.as_view(), name='edit-profile'),
 ]
