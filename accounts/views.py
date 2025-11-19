@@ -9536,6 +9536,34 @@ class PlanSubscriptionUpdateView(generics.UpdateAPIView):
     queryset = PlanSubscription.objects.all()
     serializer_class = PlanSubscriptionSerializer
     lookup_field = "id"
+    
+    def update(self, request, *args, **kwargs):
+        owner_id = request.data.get('admin_user_id')
+        try:
+            owner_id = int(owner_id)
+            user = User.objects.get(id=owner_id)
+        except Exception:
+            user = None
+
+        if user:
+            role = user.role
+            permissions = RolePermission.objects.filter(role=role).select_related('action')
+            data = permissions.values('action__code', 'value')
+            edit_permission = data.filter(action__code='membership_activation').first()
+            edit = edit_permission['value'] if edit_permission else None
+        else:
+            edit = None
+
+        if user:
+            if edit == 3:
+                return super().update(request, *args, **kwargs)
+            else:
+                return Response({
+                    "status": "error",
+                    "message": "Permission Error"
+                }, status=status.HTTP_403_FORBIDDEN)
+        else:
+            return super().update(request, *args, **kwargs)
 
 
 @api_view(["POST"])
@@ -10161,6 +10189,31 @@ class Renewalplans(generics.GenericAPIView):
 class SendInvoicePDF(APIView):
     def get(self, request):
         subscription_id = request.query_params.get('subscription_id')
+        owner_id = request.query_params.get('admin_user_id')
+        try:
+            owner_id = int(owner_id)
+            user = User.objects.get(id=owner_id)
+        except Exception:
+            user = None
+
+        if user:
+            role = user.role
+            permissions = RolePermission.objects.filter(role=role).select_related('action')
+            data = permissions.values('action__code', 'value')
+            edit_permission = data.filter(action__code='membership_activation').first()
+            edit = edit_permission['value'] if edit_permission else None
+        else:
+            edit = None
+
+        if user:
+            if edit == 3:
+                pass
+            else:
+                return Response({
+                    "status": "error",
+                    "message": "Permission Error"
+                }, status=status.HTTP_403_FORBIDDEN)
+            
         if not subscription_id:
             return Response({"error": "subscription_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
