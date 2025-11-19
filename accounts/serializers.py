@@ -1553,3 +1553,55 @@ class RoleDropdownSerializer(serializers.ModelSerializer):
     class Meta:
         model = Roles
         fields = ['id', 'name']
+
+
+class DashboardSerializer(serializers.Serializer):
+    owner_id = serializers.IntegerField(write_only=True)
+    allocated_profiles_count = serializers.SerializerMethodField()
+    prospect_profile_count = serializers.SerializerMethodField()
+    paid_profile_count = serializers.SerializerMethodField()
+    delete_profile_count = serializers.SerializerMethodField()
+    others_profile_count = serializers.SerializerMethodField()
+    
+    def get_allocated_profiles_count(self, obj):
+        try:
+            return LoginDetails.objects.filter(Owner_id=obj['owner_id']).count()
+        except Exception:
+            return None
+
+    def get_prospect_profile_count(self, obj):
+        try:
+            return LoginDetails.objects.filter(
+                Owner_id=obj['owner_id'], status=1, plan_status=8
+            ).count()
+        except Exception:
+            return None
+
+    def get_paid_profile_count(self, obj):
+        try:
+            return LoginDetails.objects.filter(
+                Owner_id=obj['owner_id'],
+                status=1,
+                plan_status__in=[1, 2, 3, 14, 15, 16, 17]
+            ).count()
+        except Exception:
+            return None
+
+    def get_delete_profile_count(self, obj):
+        try:
+            return LoginDetails.objects.filter(
+                Owner_id=obj['owner_id'], status=4
+            ).count()
+        except Exception:
+            return None
+
+    def get_others_profile_count(self, obj):
+        try:
+            return LoginDetails.objects.filter(
+                Owner_id=obj['owner_id']
+            ).exclude(
+                Q(status=4) |
+                Q(status=1, plan_status__in=[1, 2, 3, 8, 14, 15, 16, 17])
+            ).count()
+        except Exception:
+            return None

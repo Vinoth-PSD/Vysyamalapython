@@ -109,7 +109,7 @@ from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 
 from .models import Role, RolePermission , User
-from .serializers import UserSerializer
+from .serializers import UserSerializer,DashboardSerializer
 
 # User = get_user_model()
 
@@ -4240,11 +4240,13 @@ class Get_prof_list_match(APIView):
             )
             for v in visitors:
                 if v.profile_id == profile_from:
-                    scores[v.viewed_profile]["score"] += 1
-                    scores[v.viewed_profile]["actions"].append({"action": "Visited", "datetime": v.datetime})
+                    if v.viewed_profile in scores:
+                        scores[v.viewed_profile]["score"] += 1
+                        scores[v.viewed_profile]["actions"].append({"action": "Visited", "datetime": v.datetime})
                 else:
-                    scores[v.profile_id]["score"] += 1
-                    scores[v.profile_id]["actions"].append({"action": "Viewed", "datetime": v.datetime})
+                    if v.profile_id in scores:
+                        scores[v.profile_id]["score"] += 1
+                        scores[v.profile_id]["actions"].append({"action": "Viewed", "datetime": v.datetime})
 
             return scores
 
@@ -4317,7 +4319,11 @@ class Get_prof_list_match(APIView):
         my_rasi_id = str(my_profile_details['birth_rasi_name'])
 
         profile_ids = [detail.get("ProfileId") for detail in profile_details]
-        action_scores = self.get_action_scores_bulk(profile_id, profile_ids)
+        action_scores =0
+        try:
+            action_scores = self.get_action_scores_bulk(profile_id, profile_ids)
+        except Exception:
+            action_scores = 0
 
         preload_matching_scores()
         score_map = cache.get("matching_score_map", {})
@@ -8050,7 +8056,7 @@ def GetPhotoProofDetails(request):
         image_approved_csv = request.POST.get('image_approved')
         photo_password = request.POST.get('photo_password')
         photo_protection = request.POST.get('photo_protection')
-        owner_id = request.data.get('admin_user_id')
+        owner_id = request.POST.get('admin_user_id')
         try:
             owner_id = int(owner_id)
             user = User.objects.get(id=owner_id)
@@ -10428,86 +10434,91 @@ class EditProfileWithPermissionAPIView(APIView):
             data = permissions.values('action__code', 'value')
             edit_permission = data.filter(action__code='edit_profile_all').first()
             edit=edit_permission['value'] if edit_permission else None
+            membership_permission = data.filter(action__code='membership_activation').first()
+            edit_mem=membership_permission['value'] if membership_permission else None
+            print("edit",edit_mem)
         else:
             edit =None
-        try:
-            login_detail = LoginDetails.objects.get(ProfileId=profile_id)
-        except LoginDetails.DoesNotExist:
-            return Response({'error': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
-        if login_data:
-            login_serializer = LoginEditSerializer(instance=login_detail, data=login_data, partial=True)
-            if login_serializer.is_valid():
-                login_serializer.save()
-            else:
-                errors['login_details'] = login_serializer.errors 
-
-        if family_data:
-            try:
-                family_detail = ProfileFamilyDetails.objects.get(profile_id=profile_id)
-            except ProfileFamilyDetails.DoesNotExist:
-                return Response({'error': 'Family details not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-            family_serializer = ProfileFamilyDetailsSerializer(instance=family_detail, data=family_data, partial=True)
-            if family_serializer.is_valid():
-                updated_instance = family_serializer.save()
-                uncle_gothram = family_data.get('uncle_gothram')
-                if uncle_gothram:
-                    updated_instance.madulamn = uncle_gothram
-                    updated_instance.save()
-            else:
-                errors['family_details'] = family_serializer.errors
-
-        # Step 3: Retrieve and update ProfileEduDetails
-        if edu_data:
-            try:
-                edu_detail = ProfileEduDetails.objects.get(profile_id=profile_id)
-            except ProfileEduDetails.DoesNotExist:
-                return Response({'error': 'Education details not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-            edu_serializer = ProfileEduDetailsSerializer(instance=edu_detail, data=edu_data, partial=True)
-            if edu_serializer.is_valid():
-                edu_serializer.save()
-            else:
-                errors['education_details'] = edu_serializer.errors
-
-        # Step 4: Retrieve and update ProfileHoroscope
-        if horoscope_data:
-            # print('1234567890')
-            try:
-                horoscope_detail = ProfileHoroscope.objects.get(profile_id=profile_id)
-            except ProfileHoroscope.DoesNotExist:
-                return Response({'error': 'Horoscope details not found.'}, status=status.HTTP_404_NOT_FOUND)
             
-            # Get input text
-            rasi_input_text = horoscope_data.get("rasi_kattam")
-            # print(rasi_input_text,'123456')
-            if rasi_input_text:
-                # Update input field
-                horoscope_detail.rasi_kattam = rasi_input_text
-        
-                # Run dosham logic
-                mars_dosham, rahu_kethu_dosham = GetMarsRahuKethuDoshamDetails(rasi_input_text)
-                # print(mars_dosham)
-                # print(rahu_kethu_dosham)
-                # Save dosham results directly to model fields
-                horoscope_detail.calc_chevvai_dhosham = "True" if mars_dosham else "False"
-                horoscope_detail.calc_raguketu_dhosham = "True" if rahu_kethu_dosham else "False"
-        
-            # Update other fields in horoscope_data using serializer (excluding the calculated fields)
-            # horoscope_data.pop("calc_chevvai_dhosham", None)
-            # horoscope_data.pop("calc_raguketu_dhosham", None)
-        
-            horoscope_serializer = ProfileHoroscopeSerializer(
-                instance=horoscope_detail,
-                data=horoscope_data,
-                partial=True
-            )
+        if edit == 1:
+            try:
+                login_detail = LoginDetails.objects.get(ProfileId=profile_id)
+            except LoginDetails.DoesNotExist:
+                return Response({'error': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+            if login_data:
+                login_serializer = LoginEditSerializer(instance=login_detail, data=login_data, partial=True)
+                if login_serializer.is_valid():
+                    login_serializer.save()
+                else:
+                    errors['login_details'] = login_serializer.errors 
 
-            horoscope_serializer = ProfileHoroscopeSerializer(instance=horoscope_detail, data=horoscope_data, partial=True)
-            if horoscope_serializer.is_valid():
-                horoscope_serializer.save()
-            else:
-                errors['horoscope_details'] = horoscope_serializer.errors
+            if family_data:
+                try:
+                    family_detail = ProfileFamilyDetails.objects.get(profile_id=profile_id)
+                except ProfileFamilyDetails.DoesNotExist:
+                    return Response({'error': 'Family details not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+                family_serializer = ProfileFamilyDetailsSerializer(instance=family_detail, data=family_data, partial=True)
+                if family_serializer.is_valid():
+                    updated_instance = family_serializer.save()
+                    uncle_gothram = family_data.get('uncle_gothram')
+                    if uncle_gothram:
+                        updated_instance.madulamn = uncle_gothram
+                        updated_instance.save()
+                else:
+                    errors['family_details'] = family_serializer.errors
+
+            # Step 3: Retrieve and update ProfileEduDetails
+            if edu_data:
+                try:
+                    edu_detail = ProfileEduDetails.objects.get(profile_id=profile_id)
+                except ProfileEduDetails.DoesNotExist:
+                    return Response({'error': 'Education details not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+                edu_serializer = ProfileEduDetailsSerializer(instance=edu_detail, data=edu_data, partial=True)
+                if edu_serializer.is_valid():
+                    edu_serializer.save()
+                else:
+                    errors['education_details'] = edu_serializer.errors
+
+            # Step 4: Retrieve and update ProfileHoroscope
+            if horoscope_data:
+                # print('1234567890')
+                try:
+                    horoscope_detail = ProfileHoroscope.objects.get(profile_id=profile_id)
+                except ProfileHoroscope.DoesNotExist:
+                    return Response({'error': 'Horoscope details not found.'}, status=status.HTTP_404_NOT_FOUND)
+                
+                # Get input text
+                rasi_input_text = horoscope_data.get("rasi_kattam")
+                # print(rasi_input_text,'123456')
+                if rasi_input_text:
+                    # Update input field
+                    horoscope_detail.rasi_kattam = rasi_input_text
+            
+                    # Run dosham logic
+                    mars_dosham, rahu_kethu_dosham = GetMarsRahuKethuDoshamDetails(rasi_input_text)
+                    # print(mars_dosham)
+                    # print(rahu_kethu_dosham)
+                    # Save dosham results directly to model fields
+                    horoscope_detail.calc_chevvai_dhosham = "True" if mars_dosham else "False"
+                    horoscope_detail.calc_raguketu_dhosham = "True" if rahu_kethu_dosham else "False"
+            
+                # Update other fields in horoscope_data using serializer (excluding the calculated fields)
+                # horoscope_data.pop("calc_chevvai_dhosham", None)
+                # horoscope_data.pop("calc_raguketu_dhosham", None)
+            
+                horoscope_serializer = ProfileHoroscopeSerializer(
+                    instance=horoscope_detail,
+                    data=horoscope_data,
+                    partial=True
+                )
+
+                horoscope_serializer = ProfileHoroscopeSerializer(instance=horoscope_detail, data=horoscope_data, partial=True)
+                if horoscope_serializer.is_valid():
+                    horoscope_serializer.save()
+                else:
+                    errors['horoscope_details'] = horoscope_serializer.errors
 
         # Step 5: Retrieve and update ProfilePartnerPref
         if partner_pref_data:
@@ -10598,10 +10609,27 @@ class EditProfileWithPermissionAPIView(APIView):
 
         
         if profile_common_data:
-            if edit == 1:
+            if edit_mem ==3 or edit_mem ==1 or edit_mem ==2:
                 owner = profile_common_data.get("owner_id")
                 # print('inside profile common data update',profile_common_data.get("primary_status"))
                 # Only include the common data keys that are available in the request
+                if edit_mem ==1:
+                    login_detail = LoginDetails.objects.get(ProfileId=profile_id)
+                    get_plan_status = profile_common_data.get("secondary_status")
+                    get_profile_status = profile_common_data.get("status")
+                    old_profile_status = getattr(login_detail, 'status', None)
+                    if old_profile_status==1 and get_plan_status not in [6,7,8,9]:
+                        return Response({'error': 'You do not have permission to edit this profile.'}, status=status.HTTP_403_FORBIDDEN)
+                    if old_profile_status == 1 and get_profile_status !=1 :
+                        return Response({'error': 'You do not have permission to edit this profile.'}, status=status.HTTP_403_FORBIDDEN)
+                if edit_mem ==2:
+                    login_detail = LoginDetails.objects.get(ProfileId=profile_id)
+                    get_plan_status = profile_common_data.get("secondary_status")
+                    get_profile_status = profile_common_data.get("status")
+                    old_profile_status = getattr(login_detail, 'status', None)
+                    if old_profile_status==1 and get_plan_status not in [6,7,8,9]:
+                        return Response({'error': 'You do not have permission to edit this profile.'}, status=status.HTTP_403_FORBIDDEN)
+
                 login_common_data = clean_none_fields({
                     "Addon_package": profile_common_data.get("Addon_package"),
                     "Notifcation_enabled": profile_common_data.get("Notifcation_enabled"),
@@ -10759,3 +10787,110 @@ class EditProfileWithPermissionAPIView(APIView):
 
         # Success response
         return Response({"status": "success", "message": "Profile updated successfully."}, status=status.HTTP_200_OK)
+
+class DashboardAPIView(APIView):
+    def get(self, request, *args, **kwargs):
+        owner_id = request.query_params.get('owner_id')
+        if not owner_id:
+            return Response({"error": "owner_id is required"}, status=400)
+
+        serializer = DashboardSerializer(instance={"owner_id": int(owner_id)})
+        return Response(serializer.data)
+
+class Files_upload(APIView):
+
+    def post(self, request):
+        profile_id = request.data.get('profile_id')
+        owner_id = request.data.get('admin_user_id')
+        try:
+            owner_id = int(owner_id)
+            user = User.objects.get(id=owner_id)
+        except Exception:
+            user = None
+             
+        if user:
+            role = user.role
+            permissions = RolePermission.objects.filter(role=role).select_related('action')
+            data = permissions.values('action__code', 'value')
+            edit_permission = data.filter(action__code='edit_horo_photo').first()
+            edit=edit_permission['value'] if edit_permission else None
+        else:
+            edit =None
+          
+        if user:   
+            if edit ==1:
+                pass
+            else:
+                return Response({
+                    "status": "error",
+                    "message": "Permission Error"
+                }, status=status.HTTP_403_FORBIDDEN)
+        if not profile_id:
+            return JsonResponse({"error": "profile_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+          
+        horoscope_file = request.FILES.get('horoscope_file') 
+        horoscope_file_admin = request.FILES.get('horoscope_file_admin')
+        idproof_file = request.FILES.get('idproof_file')
+        divorcepf_file = request.FILES.get('divorcepf_file')
+
+        if not any([horoscope_file, idproof_file, divorcepf_file, horoscope_file_admin]):
+            return JsonResponse({"error": "At least one of 'horoscope_file', 'idproof_file', 'divorcepf_file', or 'horoscope_file_admin' is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            horoscope_instance, _ = models.ProfileHoroscope.objects.get_or_create(profile_id=profile_id)
+            registration_instance = models.LoginDetails.objects.get(ProfileId=profile_id)
+
+            max_file_size = 10 * 1024 * 1024
+            valid_extensions = ['doc', 'docx', 'pdf', 'png', 'jpeg', 'jpg']
+
+            if horoscope_file:
+                if horoscope_file.size > max_file_size:
+                    return JsonResponse({"error": "Horoscope file size should be less than 10MB"}, status=status.HTTP_400_BAD_REQUEST)
+
+                file_extension = os.path.splitext(horoscope_file.name)[1][1:].lower()
+                if file_extension not in valid_extensions:
+                    return JsonResponse({"error": "Invalid horoscope file type. Accepted formats are: doc, docx, pdf, png, jpeg, jpg"}, status=status.HTTP_400_BAD_REQUEST)
+
+                horoscope_instance.horoscope_file.save(horoscope_file.name, ContentFile(horoscope_file.read()), save=True)
+                horoscope_instance.horo_file_updated = timezone.now()
+                horoscope_instance.save()
+
+            if horoscope_file_admin:
+                if horoscope_file_admin.size > max_file_size:
+                    return JsonResponse({"error": "Horoscope file size should be less than 10MB"}, status=status.HTTP_400_BAD_REQUEST)
+
+                file_extension = os.path.splitext(horoscope_file_admin.name)[1][1:].lower()
+                if file_extension not in valid_extensions:
+                    return JsonResponse({"error": "Invalid horoscope file type. Accepted formats are: doc, docx, pdf, png, jpeg, jpg"}, status=status.HTTP_400_BAD_REQUEST)
+
+                horoscope_instance.horoscope_file_admin.save(horoscope_file_admin.name, ContentFile(horoscope_file_admin.read()), save=True)
+                horoscope_instance.horo_file_updated = timezone.now()
+                horoscope_instance.save()
+
+            if idproof_file:
+                if idproof_file.size > max_file_size:
+                    return JsonResponse({"error": "ID proof file size should be less than 10MB"}, status=status.HTTP_400_BAD_REQUEST)
+
+                file_extension = os.path.splitext(idproof_file.name)[1][1:].lower()
+                if file_extension not in valid_extensions:
+                    return JsonResponse({"error": "Invalid ID proof file type. Accepted formats are: doc, docx, pdf, png, jpeg, jpg"}, status=status.HTTP_400_BAD_REQUEST)
+
+                registration_instance.Profile_idproof.save(idproof_file.name, ContentFile(idproof_file.read()), save=True)
+                registration_instance.save()
+
+            if divorcepf_file:
+                if divorcepf_file.size > max_file_size:
+                    return JsonResponse({"error": "Divorce proof file size should be less than 10MB"}, status=status.HTTP_400_BAD_REQUEST)
+
+                file_extension = os.path.splitext(divorcepf_file.name)[1][1:].lower()
+                if file_extension not in valid_extensions:
+                    return JsonResponse({"error": "Invalid divorce proof file type. Accepted formats are: doc, docx, pdf, png, jpeg, jpg"}, status=status.HTTP_400_BAD_REQUEST)
+
+                registration_instance.Profile_divorceproof.save(divorcepf_file.name, ContentFile(divorcepf_file.read()), save=True)
+                registration_instance.save()
+
+            return JsonResponse({"status":"success"}, safe=False, status=status.HTTP_200_OK)
+
+        except models.Registration1.DoesNotExist:
+            return JsonResponse({"error": "Profile with the provided ID does not exist"}, status=status.HTTP_404_NOT_FOUND)
+

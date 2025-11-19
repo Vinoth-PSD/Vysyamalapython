@@ -208,4 +208,6 @@ urlpatterns = [
     path('roles/dropdown/', RoleDropdownView.as_view(), name='role-dropdown'),
     path('owner-update/',views.OwnerUpdateView.as_view(),name='owner-update'),
     path('edit-profile-with-permission/<str:profile_id>/', views.EditProfileWithPermissionAPIView.as_view(), name='edit-profile'),
+    path('owner-dashboard/',views.DashboardAPIView.as_view(),name='owner-dashboard'),
+    path('files_upload/',views.Files_upload.as_view(),name='files_upload')
 ]
