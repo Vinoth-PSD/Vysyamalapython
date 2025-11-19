@@ -2849,6 +2849,7 @@ class GetProfEditDetailsAPIView(APIView):
     ).values_list("name", flat=True)
 ),
                 "mobile_otp_verify":login_detail.Otp_verify,
+                "profile_owner_id":login_detail.Owner_id,
                 #"myself":myself
                 }
     
@@ -10467,6 +10468,8 @@ class EditProfileWithPermissionAPIView(APIView):
         profile_common_data = request.data.get('profile_common_details', {})
         profile_visibility_data=request.data.get('profile_visibility_details', {})
         owner_id = request.data.get('admin_user_id')
+
+        profile_owner_id = request.data.get('profile_owner_id')
         
 
         # print(profile_visibility_data,'123456')
@@ -10701,6 +10704,7 @@ class EditProfileWithPermissionAPIView(APIView):
                     "plan_status":profile_common_data.get("secondary_status"),
                     "Plan_id": str(profile_common_data.get("secondary_status")),
                     "Otp_verify":profile_common_data.get("mobile_otp_verify"),
+                    "Owner_id":profile_common_data.get("profile_owner_id"),
                 })
                 family_common_data=clean_none_fields({
                     "family_status":profile_common_data.get("family_status")
