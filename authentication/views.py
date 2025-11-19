@@ -10023,7 +10023,7 @@ class GetSearchResults(APIView):
                         AND (pv.visibility_family_status IS NULL OR pv.visibility_family_status = '' OR FIND_IN_SET(f1_from.family_status, pv.visibility_family_status) > 0)
                         -- Chevvai visibility
                         AND (
-                            pv.visibility_chevvai IS NULL OR pv.visibility_chevvai = '' 
+                            pv.visibility_chevvai IS NULL OR pv.visibility_chevvai = '' OR LOWER(pv.visibility_chevvai) = 'both'
                             OR (
                                 (LOWER(pv.visibility_chevvai) IN ('yes','true','1') 
                                     AND (LOWER(h1_from.calc_chevvai_dhosham) = 'yes' OR LOWER(h1_from.calc_chevvai_dhosham) = 'true' 
@@ -10038,7 +10038,7 @@ class GetSearchResults(APIView):
                         )
                         -- Ragukethu visibility
                         AND (
-                            pv.visibility_ragukethu IS NULL OR pv.visibility_ragukethu = '' 
+                            pv.visibility_ragukethu IS NULL OR pv.visibility_ragukethu = '' OR LOWER(pv.visibility_ragukethu) = 'both'
                             OR (
                                 (LOWER(pv.visibility_ragukethu) IN ('yes','true','1') 
                                     AND (LOWER(h1_from.calc_raguketu_dhosham) = 'yes' OR LOWER(h1_from.calc_raguketu_dhosham) = 'true' 
@@ -12399,7 +12399,7 @@ class Search_byprofile_id(APIView):
                         AND (pv.visibility_family_status IS NULL OR pv.visibility_family_status = '' OR FIND_IN_SET(f1_from.family_status, pv.visibility_family_status) > 0)
                         -- Chevvai visibility
                         AND (
-                            pv.visibility_chevvai IS NULL OR pv.visibility_chevvai = '' 
+                            pv.visibility_chevvai IS NULL OR pv.visibility_chevvai = '' OR LOWER(pv.visibility_chevvai) = 'both'
                             OR (
                                 (LOWER(pv.visibility_chevvai) IN ('yes','true','1') 
                                     AND (LOWER(h1_from.calc_chevvai_dhosham) = 'yes' OR LOWER(h1_from.calc_chevvai_dhosham) = 'true' 
@@ -12414,7 +12414,7 @@ class Search_byprofile_id(APIView):
                         )
                         -- Ragukethu visibility
                         AND (
-                            pv.visibility_ragukethu IS NULL OR pv.visibility_ragukethu = '' 
+                            pv.visibility_ragukethu IS NULL OR pv.visibility_ragukethu = '' OR LOWER(pv.visibility_ragukethu) = 'both'
                             OR (
                                 (LOWER(pv.visibility_ragukethu) IN ('yes','true','1') 
                                     AND (LOWER(h1_from.calc_raguketu_dhosham) = 'yes' OR LOWER(h1_from.calc_raguketu_dhosham) = 'true' 
