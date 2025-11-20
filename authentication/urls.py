@@ -191,6 +191,10 @@ urlpatterns = [
     path('Searchbeforelogin/', views.Searchbeforelogin.as_view(), name='Searchbeforelogin'),
 
     path('Get_page_details/', views.GetPageDetails.as_view(), name='get_page_details'),
+    
+    path('Read_notifications_induvidual/',views.Read_notifications_induvidual.as_view(),name='read_notifications_induvidual'),
+    
+    path('Clear_notifications/', views.Clear_notifications.as_view(),name='clear_notifications'),
 
 
     path('Get_expresint_status/', views.Get_expresint_status.as_view(), name='Get_expresint_status'),
