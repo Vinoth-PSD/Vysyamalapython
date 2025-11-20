@@ -1355,7 +1355,11 @@ class Get_profiledata_Matching(models.Model):
                         f.profession, f.highest_education,f.actual_income,f.anual_income,f.work_city,
                         f.work_state,f.work_country,f.designation,f.company_name,f.business_name,f.nature_of_business,g.EducationLevel, d.star, h.income,
                         v.viewed_profile,
-                        pi.first_image_id AS has_image ,pi.image as profile_image ,TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) AS profile_age 
+                        pi.first_image_id AS has_image ,pi.image as profile_image ,TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) AS profile_age ,
+                        (SELECT sp.sent_date 
+                        FROM admin_sentprofiles sp 
+                        WHERE sp.profile_id = %s AND sp.sentprofile_id = a.ProfileId 
+                        LIMIT 1) AS sent_date
                     FROM logindetails a
                     JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
                     JOIN profile_horoscope e ON a.ProfileId = e.profile_id
@@ -1451,7 +1455,7 @@ class Get_profiledata_Matching(models.Model):
                     AND a.ProfileId != %s
                     AND a.Profile_dob BETWEEN %s AND %s """
 
-            query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,gender,gender,profile.Profile_dob,gender,profile.Profile_dob, profile_id,min_dob, max_dob]
+            query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,profile_id,gender,gender,profile.Profile_dob,gender,profile.Profile_dob, profile_id,min_dob, max_dob]
             
             
             if status == "sent":
@@ -1481,6 +1485,10 @@ class Get_profiledata_Matching(models.Model):
                                         OR prof.profession LIKE %s )"""
                         search_param = f"%{search.strip()}%"
                         query_params.extend([search_param] * 3)
+
+
+                    
+                    base_query += " ORDER BY CASE WHEN sent_date IS NULL THEN 1 ELSE 0 END, sent_date DESC"
             
             
             
