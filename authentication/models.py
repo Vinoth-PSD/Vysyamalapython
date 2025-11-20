@@ -2086,6 +2086,7 @@ class Profile_notification(models.Model):
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+    is_clear = models.IntegerField(default=0, null=True, blank=True)
 
     class Meta:
         managed = False  # This tells Django not to handle database table creation/migration for this model

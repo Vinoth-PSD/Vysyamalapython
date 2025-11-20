@@ -6536,7 +6536,7 @@ class Read_notifications(APIView):
            
             try:
                 # Perform a bulk update on all notifications for the given profile_id
-                updated_count = models.Profile_notification.objects.filter(profile_id=profile_id, is_read=0).update(is_read=1)
+                updated_count = models.Profile_notification.objects.filter(profile_id=profile_id, is_read=0,is_clear=0).update(is_read=1)
 
                 if updated_count > 0:
                     return JsonResponse({"Status": 1, "message": f"{updated_count} notifications updated successfully"}, status=status.HTTP_200_OK)
@@ -6548,7 +6548,63 @@ class Read_notifications(APIView):
 
         else:
             return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class Read_notifications_induvidual(APIView):
+    def post(self, request):
+        profile_id = request.data.get('profile_id')
+        notification_id = request.data.get('notification_id')
+
+        # Initialize serializer with the incoming data
+        serializer = serializers.ReadNotificationSerializer(data=request.data)
         
+        if serializer.is_valid():
+            profile_id = serializer.validated_data.get('profile_id')
+           
+            try:
+                # Perform a bulk update on all notifications for the given profile_id
+                updated_count = models.Profile_notification.objects.filter(profile_id=profile_id,id=notification_id).update(is_read=1)
+
+                if updated_count > 0:
+                    return JsonResponse({"Status": 1, "message": f"{updated_count} notifications updated successfully"}, status=status.HTTP_200_OK)
+                else:
+                    return JsonResponse({"Status": 0, "message": "No unread notifications found"}, status=status.HTTP_200_OK)
+
+            except Exception as e:
+                return JsonResponse({"Status": 0, "message": "An error occurred", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        else:
+            return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class Clear_notifications(APIView):
+    def post(self, request):
+        profile_id = request.data.get('profile_id')
+
+        # Initialize serializer with the incoming data
+        serializer = serializers.ReadNotificationSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            profile_id = serializer.validated_data.get('profile_id')
+
+            try:
+                # Perform a bulk update on all notifications for the given profile_id
+                updated_count = models.Profile_notification.objects.filter(profile_id=profile_id,is_clear=0).update(is_read=1,is_clear=1)
+
+                if updated_count > 0:
+                    return JsonResponse({"Status": 1, "message": f"{updated_count} notifications updated successfully"}, status=status.HTTP_200_OK)
+                else:
+                    return JsonResponse({"Status": 0, "message": "No unread notifications found"}, status=status.HTTP_200_OK)
+
+            except Exception as e:
+                return JsonResponse({"Status": 0, "message": "An error occurred", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        else:
+            return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
 
 class User_change_password(APIView):
     
