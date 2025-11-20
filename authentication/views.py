@@ -6451,9 +6451,9 @@ class Get_notification_list(APIView):
                 start = (page - 1) * per_page
                 end = start + per_page
 
-                notify_count=models.Profile_notification.objects.filter(profile_id=profile_id, is_read=0).count()
+                notify_count=models.Profile_notification.objects.filter(profile_id=profile_id, is_read=0 ,is_clear=0).count()
 
-                notification_list=models.Profile_notification.objects.filter(profile_id=profile_id, created_at__gte=last_60_days).order_by('-id')[start:end]
+                notification_list=models.Profile_notification.objects.filter(profile_id=profile_id, created_at__gte=last_60_days,is_clear=0).order_by('-id')[start:end]
 
 
                 profile_data = models.Registration1.objects.get(ProfileId=profile_id)
