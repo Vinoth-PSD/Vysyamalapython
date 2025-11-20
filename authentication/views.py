@@ -6443,7 +6443,7 @@ class Get_notification_list(APIView):
                 # Calculate the date 30 days ago
                 last_60_days = now - timedelta(days=60)
 
-                all_profiles = models.Profile_notification.objects.filter(profile_id=profile_id, created_at__gte=last_60_days)
+                all_profiles = models.Profile_notification.objects.filter(profile_id=profile_id, created_at__gte=last_60_days,is_clear=0)
                 all_profile_ids = {str(index + 1): profile_id for index, profile_id in enumerate(all_profiles.values_list('from_profile_id', flat=True))}
 
                 total_records = all_profiles.count()
@@ -6563,7 +6563,7 @@ class Read_notifications_induvidual(APIView):
            
             try:
                 # Perform a bulk update on all notifications for the given profile_id
-                updated_count = models.Profile_notification.objects.filter(profile_id=profile_id,id=notification_id).update(is_read=1)
+                updated_count = models.Profile_notification.objects.filter(profile_id=profile_id,id=notification_id).update(is_read=1,is_clear=1)
 
                 if updated_count > 0:
                     return JsonResponse({"Status": 1, "message": f"{updated_count} notifications updated successfully"}, status=status.HTTP_200_OK)
