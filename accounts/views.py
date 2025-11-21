@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .serializers import ChangePasswordSerializer, ProfileEduDetailsSerializer, ProfileFamilyDetailsSerializer, ProfileHoroscopeSerializer, ProfilePartnerPrefSerializer 
 from rest_framework import viewsets
-from .models import Country, ProfileEduDetails, ProfileFamilyDetails, ProfilePartnerPref, State, District, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, BirthStar, Rasi, Lagnam, DasaBalance, FamilyType, FamilyStatus, FamilyValue, LoginDetailsTemp ,Get_profiledata , Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , City , Express_interests , Profile_visitors, Profile_wishlists , Photo_request , PlanDetails , Image_Upload  ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1 , Get_profiledata_Matching , Profespref , Profile_vysassist , Homepage,ProfileLoginLogs,ProfileSendFromAdmin , ProfileSubStatus , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref , Profile_callogs , ProfileHoroscope , MasterhighestEducation ,PlanSubscription , ProfileVisibility ,Addonpackages ,Roles
+from .models import Country, ProfileEduDetails, ProfileFamilyDetails, ProfilePartnerPref, State, District, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, BirthStar, Rasi, Lagnam, DasaBalance, FamilyType, FamilyStatus, FamilyValue, LoginDetailsTemp ,Get_profiledata , Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , City , Express_interests , Profile_visitors, Profile_wishlists , Photo_request , PlanDetails , Image_Upload  ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1 , Get_profiledata_Matching , Profespref , Profile_vysassist , Homepage,ProfileLoginLogs,ProfileSendFromAdmin , ProfileSubStatus , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref , Profile_callogs , ProfileHoroscope , MasterhighestEducation ,PlanSubscription , ProfileVisibility ,Addonpackages ,Roles ,CallManagement,CallLog,ActionLog,AssignLog ,CallTypeMaster,ParticularsMaster,CallStatusMaster,ActionPointMaster
 from collections import defaultdict
 from .serializers import CountrySerializer, StateSerializer, DistrictSerializer,ProfileHolderSerializer, MaritalStatusSerializer, HeightSerializer, ComplexionSerializer, ParentsOccupationSerializer, HighestEducationSerializer, UgDegreeSerializer, AnnualIncomeSerializer,BirthStarSerializer, RasiSerializer, LagnamSerializer, DasaBalanceSerializer, FamilyTypeSerializer, FamilyStatusSerializer, FamilyValueSerializer, LoginDetailsTempSerializer,Getnewprofiledata , ModeSerializer, PropertySerializer , GothramSerializer , EducationLevelSerializer ,ProfessionSerializer , MatchSerializer ,MasterStatePrefSerializer , CitySerializer , Getnewprofiledata_new , QuickUploadSerializer , ProfileStatusSerializer , LoginEditSerializer , GetproflistSerializer , ImageGetSerializer , MatchingscoreSerializer , HomepageSerializer, Profile_idValidationSerializer , UpdateAdminComments_Serializer , ProfileSubStatusSerializer , PlandetailsSerializer ,ProfileplanSerializer , ProfileVysAssistFollowupSerializer , VysassistSerializer , ProfileSuggestedPrefSerializer  , AdminUserDropdownSerializer , ProfileVisibilitySerializer ,LoginSerializer ,RoleSerializers ,RoleDropdownSerializer
 from rest_framework.decorators import action
@@ -110,6 +110,10 @@ from rest_framework.authtoken.models import Token
 
 from .models import Role, RolePermission , User
 from .serializers import UserSerializer,DashboardSerializer
+
+from django.db.models import F, Value
+from django.db.models.functions import Concat
+
 
 # User = get_user_model()
 
@@ -10951,3 +10955,296 @@ class Files_upload(APIView):
         except models.Registration1.DoesNotExist:
             return JsonResponse({"error": "Profile with the provided ID does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
+
+
+#Call management New Api
+
+
+
+class GetDropdownMasters(APIView):
+    def get(self, request):
+        try:
+            call_types = list(CallTypeMaster.objects.values("id", "call_type"))
+            particulars = list(ParticularsMaster.objects.values("id", "particulars"))
+            call_status = list(CallStatusMaster.objects.values("id", "status"))
+            action_points = list(ActionPointMaster.objects.values("id", "action_point"))
+
+            return Response({
+                "call_types": call_types,
+                "particulars": particulars,
+                "call_status": call_status,
+                "action_points": action_points
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+@api_view(['POST'])
+def save_call_management(request):
+
+    data = request.data
+    call_management_id = data.get("call_management_id", None)
+    profile_id = data["profile_id"]
+
+    # ------------------------------
+    # 1. Create or get call_management entry
+    # ------------------------------
+    if call_management_id:
+        cm = CallManagement.objects.get(id=call_management_id)
+    else:
+        cm = CallManagement.objects.create(profile_id=profile_id)
+
+    # ------------------------------
+    # 2. Save Call Logs (Insert + Update)
+    # ------------------------------
+    submitted_call_ids = []
+
+    for item in data.get("call_logs", []):
+        log_id = item.get("id", None)
+
+        if log_id:
+            log = CallLog.objects.get(id=log_id)
+        else:
+            log = CallLog(call_management=cm)
+
+        log.call_date = item["call_date"]
+        log.call_type_id = item.get("call_type_id")
+        log.particulars_id = item.get("particulars_id")
+        log.call_status_id = item.get("call_status_id")
+        log.comments = item.get("comments")
+
+        log.save()
+        submitted_call_ids.append(log.id)
+
+    # Delete removed call logs
+    CallLog.objects.filter(call_management=cm).exclude(id__in=submitted_call_ids).delete()
+
+    # ------------------------------
+    # 3. Save Action Logs
+    # ------------------------------
+    submitted_action_ids = []
+
+    for item in data.get("action_logs", []):
+        log_id = item.get("id", None)
+
+        if log_id:
+            log = ActionLog.objects.get(id=log_id)
+        else:
+            log = ActionLog(call_management=cm)
+
+        log.action_date = item["action_date"]
+        log.action_point_id = item.get("action_point_id")
+        log.next_action_id = item.get("next_action_id")
+        log.comments = item.get("comments")
+
+        log.save()
+        submitted_action_ids.append(log.id)
+
+    ActionLog.objects.filter(call_management=cm).exclude(id__in=submitted_action_ids).delete()
+
+    # ------------------------------
+    # 4. Save Assign Logs
+    # ------------------------------
+    submitted_assign_ids = []
+
+    for item in data.get("assign_logs", []):
+        log_id = item.get("id", None)
+
+        if log_id:
+            log = AssignLog.objects.get(id=log_id)
+        else:
+            log = AssignLog(call_management=cm)
+
+        log.assigned_date = item["assigned_date"]
+        log.assigned_to = item.get("assigned_to")
+        log.assigned_by = item.get("assigned_by")
+        log.notes = item.get("notes")
+
+        log.save()
+        submitted_assign_ids.append(log.id)
+
+    AssignLog.objects.filter(call_management=cm).exclude(id__in=submitted_assign_ids).delete()
+
+    return Response({
+        "status": "success",
+        "call_management_id": cm.id
+    })
+
+
+
+@api_view(['GET'])
+def get_all_call_logs_by_profile(request, profile_id):
+
+    call_ids = CallManagement.objects.filter(profile_id=profile_id).values_list('id', flat=True)
+
+    call_logs = (
+        CallLog.objects
+        .filter(call_management_id__in=call_ids)
+        .select_related('call_type', 'particulars', 'call_status')
+        .annotate(
+            call_type_name=F('call_type__call_type'),
+            particulars_name=F('particulars__particulars'),
+            call_status_name=F('call_status__status'),
+        )
+        .values(
+            'id',
+            'call_management_id',
+            'call_date',
+            'comments',
+            'created_at',
+
+            'call_type_id',
+            'call_type_name',
+
+            'particulars_id',
+            'particulars_name',
+
+            'call_status_id',
+            'call_status_name',
+        )
+    )
+
+    return Response({
+        "profile_id": profile_id,
+        "call_logs": list(call_logs)
+    })
+
+from django.db.models import F
+
+@api_view(['GET'])
+def get_all_action_logs_by_profile(request, profile_id):
+
+    call_ids = CallManagement.objects.filter(profile_id=profile_id).values_list('id', flat=True)
+
+    action_logs = (
+        ActionLog.objects
+        .filter(call_management_id__in=call_ids)
+        .select_related('action_point', 'next_action')
+        .annotate(
+            action_point_name=F('action_point__action_point'),
+            next_action_name=F('next_action__action_point'),
+        )
+        .values(
+            'id',
+            'call_management_id',
+            'action_date',
+            'comments',
+            'created_at',
+
+            'action_point_id',
+            'action_point_name',
+
+            'next_action_id',
+            'next_action_name'
+        )
+    )
+
+    return Response({
+        "profile_id": profile_id,
+        "action_logs": list(action_logs)
+    })
+
+
+
+
+
+
+
+@api_view(['GET'])
+def get_all_assign_logs_by_profile(request, profile_id):
+
+    # get all call management ids for the profile
+    call_ids = CallManagement.objects.filter(profile_id=profile_id).values_list('id', flat=True)
+
+    # get all assign logs for these call ids
+    assign_logs = AssignLog.objects.filter(call_management_id__in=call_ids).values()
+
+    return Response({
+        "profile_id": profile_id,
+        "assign_logs": list(assign_logs)
+    })
+
+
+
+@api_view(['GET'])
+def get_logs_by_profile(request, profile_id):
+
+    call_ids = CallManagement.objects.filter(profile_id=profile_id).values_list('id', flat=True)
+
+    # -----------------------
+    # CALL LOGS
+    # -----------------------
+    call_logs = CallLog.objects.filter(
+        call_management_id__in=call_ids
+    ).select_related("call_type", "particulars", "call_status")
+
+    call_log_list = []
+    for c in call_logs:
+        call_log_list.append({
+            "id": c.id,
+            "call_date": c.call_date,
+            "call_type_id": c.call_type_id,
+            "call_type_name": c.call_type.call_type if c.call_type else None,
+            "particulars_id": c.particulars_id,
+            "particulars_name": c.particulars.particulars if c.particulars else None,
+            "call_status_id": c.call_status_id,
+            "call_status_name": c.call_status.status if c.call_status else None,
+            "comments": c.comments,
+            "call_management_id": c.call_management_id,
+            "created_at": c.created_at
+        })
+
+    # -----------------------
+    # ACTION LOGS
+    # -----------------------
+    action_logs = ActionLog.objects.filter(
+        call_management_id__in=call_ids
+    ).select_related("action_point", "next_action")
+
+    action_log_list = []
+    for a in action_logs:
+        action_log_list.append({
+            "id": a.id,
+            "action_date": a.action_date,
+            "action_point_id": a.action_point_id,
+            "action_point_name": a.action_point.action_point if a.action_point else None,
+            "next_action_id": a.next_action_id,
+            "next_action_name": a.next_action.action_point if a.next_action else None,
+            "comments": a.comments,
+            "call_management_id": a.call_management_id,
+            "created_at": a.created_at
+        })
+
+    # -----------------------
+    # ASSIGN LOGS (simple)
+    # -----------------------
+    assign_logs = list(
+        AssignLog.objects.filter(call_management_id__in=call_ids).values(
+            "id", "assigned_date", "assigned_to", "assigned_by",
+            "notes", "call_management_id", "created_at"
+        )
+    )
+
+    return Response({
+        "profile_id": profile_id,
+        "call_logs": call_log_list,
+        "action_logs": action_log_list,
+        "assign_logs": assign_logs
+    })
+
+
+
+
+
+@api_view(['GET'])
+def get_all_logs_by_call_id(request, call_id):
+
+    return Response({
+        "call_management_id": call_id,
+
+        "call_logs": list(CallLog.objects.filter(call_management_id=call_id).values()),
+        "action_logs": list(ActionLog.objects.filter(call_management_id=call_id).values()),
+        "assign_logs": list(AssignLog.objects.filter(call_management_id=call_id).values())
+    })

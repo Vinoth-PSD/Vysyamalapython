@@ -4306,3 +4306,137 @@ class RolePermission(models.Model):
         managed = False
         unique_together = ('role', 'action')
 
+
+
+
+
+#Call management New Code starts here
+# -----------------------------
+# MASTER TABLES
+# -----------------------------
+
+class CallTypeMaster(models.Model):
+    id = models.AutoField(primary_key=True)
+    call_type = models.CharField(max_length=100)
+
+    class Meta:
+        managed = False
+        db_table = 'master_call_type'
+
+
+class ParticularsMaster(models.Model):
+    id = models.AutoField(primary_key=True)
+    particulars = models.CharField(max_length=200)
+
+    class Meta:
+        managed = False
+        db_table = 'master_particulars'
+
+
+class CallStatusMaster(models.Model):
+    id = models.AutoField(primary_key=True)
+    status = models.CharField(max_length=100)
+
+    class Meta:
+        managed = False
+        db_table = 'master_call_status'
+
+
+class ActionPointMaster(models.Model):
+    id = models.AutoField(primary_key=True)
+    action_point = models.CharField(max_length=150)
+
+    class Meta:
+        managed = False
+        db_table = 'master_action_point'
+
+
+# -----------------------------
+# PARENT TABLE
+# -----------------------------
+
+class CallManagement(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = 'call_management'
+
+
+# -----------------------------
+# LOG TABLES
+# -----------------------------
+
+class CallLog(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    call_management = models.ForeignKey(CallManagement, on_delete=models.CASCADE)
+
+    call_date = models.DateField()
+    call_type = models.ForeignKey(CallTypeMaster, on_delete=models.SET_NULL, null=True)
+    particulars = models.ForeignKey(ParticularsMaster, on_delete=models.SET_NULL, null=True)
+    call_status = models.ForeignKey(CallStatusMaster, on_delete=models.SET_NULL, null=True)
+    comments = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = 'call_logs'
+
+
+class ActionLog(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    call_management = models.ForeignKey(
+        CallManagement,
+        on_delete=models.CASCADE,
+        db_column='call_management_id'
+    )
+
+    action_date = models.DateTimeField()
+
+    action_point = models.ForeignKey(
+        ActionPointMaster,
+        null=True,
+        on_delete=models.SET_NULL,
+        db_column='action_point_id',
+        related_name='action_point_logs'
+    )
+
+    next_action = models.ForeignKey(
+        ActionPointMaster,
+        null=True,
+        on_delete=models.SET_NULL,
+        db_column='next_action_id',
+        related_name='next_action_logs'
+    )
+
+    comments = models.TextField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = 'action_logs'
+
+
+class AssignLog(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    call_management = models.ForeignKey(
+        CallManagement,
+        on_delete=models.CASCADE,
+        db_column='call_management_id'
+    )
+
+    assigned_date = models.DateTimeField()
+    assigned_to = models.IntegerField(null=True)
+    assigned_by = models.IntegerField(null=True)
+    notes = models.TextField(null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = 'assign_logs'
