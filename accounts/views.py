@@ -9948,7 +9948,7 @@ class TransactionHistoryView(generics.ListAPIView):
         other_txn_sql = f"""
             SELECT pt.profile_id AS ProfileId,
                 pt.status,
-                pt.sent_date,
+                pt.created_at,
                 pt.id AS transaction_id,
                 pl.plan_name,
                 (
@@ -9960,7 +9960,7 @@ class TransactionHistoryView(generics.ListAPIView):
             LEFT JOIN plan_master pl ON pt.Plan_id = pl.id
             WHERE pt.profile_id IN ({placeholders_profiles})
             AND pt.id NOT IN ({placeholders_txns})
-            ORDER BY pt.sent_date DESC
+            ORDER BY pt.created_at DESC
         """
 
         with connection.cursor() as cursor:
@@ -9973,7 +9973,7 @@ class TransactionHistoryView(generics.ListAPIView):
                 "status": self.map_status_code(log["status"]),
                 "plan_name": log.get("plan_name"),
                 "addon_packages": log.get("addon_packages"),
-                "created_at": log["sent_date"].date() if isinstance(log["sent_date"], datetime) else log["sent_date"],
+                "created_at": log["created_at"].date() if isinstance(log["created_at"], datetime) else log["created_at"],
             })
         for row in main_rows:
             row["action_log"] = logs_by_profile.get(row["ProfileId"], [])
