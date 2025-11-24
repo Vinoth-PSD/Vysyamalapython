@@ -4418,6 +4418,7 @@ class ActionLog(models.Model):
     )
 
     comments = models.TextField(null=True)
+    next_action_date = models.DateTimeField()
     action_owner=models.CharField(max_length=25)
     created_at = models.DateTimeField(auto_now_add=True)
     is_deleted = models.IntegerField(default=0)
@@ -4438,7 +4439,6 @@ class AssignLog(models.Model):
     )
 
     assigned_date = models.DateTimeField()
-    next_action_date = models.DateTimeField()
     assigned_to = models.IntegerField(null=True)
     assigned_by = models.IntegerField(null=True)
     notes = models.TextField(null=True)
