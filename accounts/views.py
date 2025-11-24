@@ -10404,11 +10404,22 @@ class LoginView(APIView):
         username = serializer.validated_data['username']
         password = serializer.validated_data['password']
 
-        try:
-            user = User.objects.select_related('role').prefetch_related('role__permissions__action').get(
-                username=username, is_deleted=False
-            )
+        # try:
+        #     user = User.objects.select_related('role').prefetch_related('role__permissions__action').get(
+        #         username=username, is_deleted=False
+        #     )
 
+        try:
+            
+            user = (
+                    User.objects
+                    .select_related('role')
+                    .prefetch_related('role__permissions__action')
+                    .get(
+                        Q(username=username) | Q(email=username),
+                        is_deleted=False
+                    )
+                )
             if not user.check_password(password):
                 return Response({"error": "Invalid password"}, status=status.HTTP_401_UNAUTHORIZED)
 
