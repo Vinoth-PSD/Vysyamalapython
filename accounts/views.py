@@ -11285,7 +11285,33 @@ def get_all_assign_logs_by_profile(request, profile_id):
 @api_view(['GET'])
 def get_logs_by_profile(request, profile_id):
 
-    call_ids = CallManagement.objects.filter(profile_id=profile_id).values_list('id', flat=True)
+    call_ids = CallManagement.objects.filter(profile_id=profile_id).order_by('-created_at').values_list('id', flat=True)
+
+
+    try:
+        login_detail = LoginDetails.objects.get(ProfileId=profile_id)
+
+        # Get Owner details from Users table
+        owner_user = None
+        owner_name = None
+        if login_detail.Owner_id:
+            try:
+                owner_user = User.objects.get(id=login_detail.Owner_id)
+                owner_name = owner_user.username   # or first_name / full_name
+            except User.DoesNotExist:
+                owner_name = None
+
+        # Get Status name from ProfileStatus table
+        status_name = None
+        if login_detail.status:
+            try:
+                status = ProfileStatus.objects.get(status_code=login_detail.status)
+                status_name = status.status_name
+            except ProfileStatus.DoesNotExist:
+                status_name = None
+
+    except LoginDetails.DoesNotExist:
+            return Response({'error': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
 
     # -----------------------
     # CALL LOGS
@@ -11293,6 +11319,7 @@ def get_logs_by_profile(request, profile_id):
     call_logs = CallLog.objects.filter(
         call_management_id__in=call_ids
     ).select_related("call_type", "particulars", "call_status")
+    
 
     call_log_list = []
     for c in call_logs:
@@ -11343,6 +11370,8 @@ def get_logs_by_profile(request, profile_id):
 
     return Response({
         "profile_id": profile_id,
+        "owner_name": owner_name,
+        "status_name": status_name,
         "call_logs": call_log_list,
         "action_logs": action_log_list,
         "assign_logs": assign_logs
