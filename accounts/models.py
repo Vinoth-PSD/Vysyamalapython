@@ -4378,8 +4378,12 @@ class CallLog(models.Model):
     call_type = models.ForeignKey(CallTypeMaster, on_delete=models.SET_NULL, null=True)
     particulars = models.ForeignKey(ParticularsMaster, on_delete=models.SET_NULL, null=True)
     call_status = models.ForeignKey(CallStatusMaster, on_delete=models.SET_NULL, null=True)
+    next_call_date= models.DateField(null=True, blank=True)
+    call_owner=models.CharField(max_length=25)
     comments = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.IntegerField(default=0)
+    deleted_by = models.IntegerField(null=True)
 
     class Meta:
         managed = False
@@ -4414,7 +4418,10 @@ class ActionLog(models.Model):
     )
 
     comments = models.TextField(null=True)
+    action_owner=models.CharField(max_length=25)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.IntegerField(default=0)
+    deleted_by = models.IntegerField(null=True)
 
     class Meta:
         managed = False
@@ -4436,6 +4443,8 @@ class AssignLog(models.Model):
     notes = models.TextField(null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.IntegerField(default=0)
+    deleted_by = models.IntegerField(null=True)
 
     class Meta:
         managed = False

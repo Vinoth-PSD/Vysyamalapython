@@ -10992,7 +10992,22 @@ def save_call_management(request):
     # 1. Create or get call_management entry
     # ------------------------------
     if call_management_id:
-        cm = CallManagement.objects.get(id=call_management_id)
+        #cm = CallManagement.objects.get(id=call_management_id)
+
+        try:
+            cm = CallManagement.objects.get(id=call_management_id)
+
+            # Check if created more than 24 hours ago
+            time_diff = timezone.now() - cm.created_at
+
+            if time_diff > timedelta(hours=24):
+                return Response({
+                    "status": "failed",
+                    "message": "You cannot update this record. Edit time limit (24 hours) has expired."
+                }, status=403)
+
+        except CallManagement.DoesNotExist:
+            return Response({"status": "failed", "message": "Invalid call_management_id"}, status=400)
     else:
         cm = CallManagement.objects.create(profile_id=profile_id)
 
@@ -11010,6 +11025,7 @@ def save_call_management(request):
             log = CallLog(call_management=cm)
 
         log.call_date = item["call_date"]
+        log.call_owner = item.get("call_owner")
         log.call_type_id = item.get("call_type_id")
         log.particulars_id = item.get("particulars_id")
         log.call_status_id = item.get("call_status_id")
@@ -11035,6 +11051,7 @@ def save_call_management(request):
             log = ActionLog(call_management=cm)
 
         log.action_date = item["action_date"]
+        log.action_owner = item.get("action_owner")
         log.action_point_id = item.get("action_point_id")
         log.next_action_id = item.get("next_action_id")
         log.comments = item.get("comments")
@@ -11081,18 +11098,21 @@ def get_all_call_logs_by_profile(request, profile_id):
 
     call_logs = (
         CallLog.objects
-        .filter(call_management_id__in=call_ids)
+        .filter(call_management_id__in=call_ids,is_deleted=0)
         .select_related('call_type', 'particulars', 'call_status')
         .annotate(
             call_type_name=F('call_type__call_type'),
             particulars_name=F('particulars__particulars'),
             call_status_name=F('call_status__status'),
         )
+        .order_by('-created_at')
         .values(
             'id',
             'call_management_id',
             'call_date',
             'comments',
+            'next_call_date',
+            'call_owner',
             'created_at',
 
             'call_type_id',
@@ -11106,6 +11126,31 @@ def get_all_call_logs_by_profile(request, profile_id):
         )
     )
 
+
+    # Collect all call_owner user IDs
+    user_ids = set()
+    for log in call_logs:
+        if log["call_owner"]:
+            try:
+                user_ids.add(int(log["call_owner"]))   # convert charfield to int
+            except:
+                pass
+
+    # Fetch all users in ONE query
+    users = User.objects.in_bulk(user_ids)
+
+    # Add action_owner_name to each log
+    for log in call_logs:
+        owner_id = log["call_owner"]
+        try:
+            owner_id = int(owner_id)
+        except:
+            owner_id = None
+
+        log["call_owner_name"] = (
+            users[owner_id].username if owner_id in users else None
+        )
+
     return Response({
         "profile_id": profile_id,
         "call_logs": list(call_logs)
@@ -11118,32 +11163,60 @@ def get_all_action_logs_by_profile(request, profile_id):
 
     call_ids = CallManagement.objects.filter(profile_id=profile_id).values_list('id', flat=True)
 
-    action_logs = (
+    # Fetch main action logs
+    action_logs = list(
         ActionLog.objects
-        .filter(call_management_id__in=call_ids)
+        .filter(call_management_id__in=call_ids,is_deleted=0)
         .select_related('action_point', 'next_action')
         .annotate(
             action_point_name=F('action_point__action_point'),
             next_action_name=F('next_action__action_point'),
         )
+        .order_by('-created_at')
         .values(
             'id',
             'call_management_id',
             'action_date',
             'comments',
             'created_at',
-
+            
             'action_point_id',
             'action_point_name',
 
             'next_action_id',
-            'next_action_name'
+            'next_action_name',
+
+            'action_owner'
         )
     )
 
+    # Collect all action_owner user IDs
+    user_ids = set()
+    for log in action_logs:
+        if log["action_owner"]:
+            try:
+                user_ids.add(int(log["action_owner"]))   # convert charfield to int
+            except:
+                pass
+
+    # Fetch all users in ONE query
+    users = User.objects.in_bulk(user_ids)
+
+    # Add action_owner_name to each log
+    for log in action_logs:
+        owner_id = log["action_owner"]
+        try:
+            owner_id = int(owner_id)
+        except:
+            owner_id = None
+
+        log["action_owner_name"] = (
+            users[owner_id].username if owner_id in users else None
+        )
+
     return Response({
         "profile_id": profile_id,
-        "action_logs": list(action_logs)
+        "action_logs": action_logs
     })
 
 
@@ -11151,21 +11224,51 @@ def get_all_action_logs_by_profile(request, profile_id):
 
 
 
+
+# @api_view(['GET'])
+# def get_all_assign_logs_by_profile(request, profile_id):
+
+#     # get all call management ids for the profile
+#     call_ids = CallManagement.objects.filter(profile_id=profile_id).values_list('id', flat=True)
+
+#     # get all assign logs for these call ids
+#     assign_logs = AssignLog.objects.filter(call_management_id__in=call_ids).values()
+
+#     return Response({
+#         "profile_id": profile_id,
+#         "assign_logs": list(assign_logs)
+#     })
 
 @api_view(['GET'])
 def get_all_assign_logs_by_profile(request, profile_id):
 
-    # get all call management ids for the profile
     call_ids = CallManagement.objects.filter(profile_id=profile_id).values_list('id', flat=True)
+    assign_logs = list(AssignLog.objects.filter(call_management_id__in=call_ids,is_deleted=0).order_by('-created_at').values())
 
-    # get all assign logs for these call ids
-    assign_logs = AssignLog.objects.filter(call_management_id__in=call_ids).values()
+    # Collect all unique user IDs
+    user_ids = set()
+    for log in assign_logs:
+        if log["assigned_by"]:
+            user_ids.add(log["assigned_by"])
+        if log["assigned_to"]:
+            user_ids.add(log["assigned_to"])
+
+    # Fetch user objects in a single query
+    users = User.objects.in_bulk(user_ids)
+
+    # Append only the user names
+    for log in assign_logs:
+        log["assigned_by_name"] = (
+            users[log["assigned_by"]].username if log["assigned_by"] in users else None
+        )
+        log["assigned_to_name"] = (
+            users[log["assigned_to"]].username if log["assigned_to"] in users else None
+        )
 
     return Response({
         "profile_id": profile_id,
-        "assign_logs": list(assign_logs)
+        "assign_logs": assign_logs
     })
-
 
 
 @api_view(['GET'])
@@ -11248,3 +11351,58 @@ def get_all_logs_by_call_id(request, call_id):
         "action_logs": list(ActionLog.objects.filter(call_management_id=call_id).values()),
         "assign_logs": list(AssignLog.objects.filter(call_management_id=call_id).values())
     })
+
+
+
+
+
+
+
+class CallManageDeleteView(APIView):
+
+    # Map table names → model classes
+    TABLE_MODEL_MAP = {
+        "call_logs": CallLog,
+        "action_logs": ActionLog,
+        "assign_logs": AssignLog,
+    }
+
+    def post(self, request):
+
+        table_name = request.data.get("delete_module")
+        record_id = request.data.get("call_id")   # corrected key
+        deleted_by = request.data.get("deleted_by")
+
+        # Validate table
+        if table_name not in self.TABLE_MODEL_MAP:
+            return Response({
+                "status": "failed",
+                "message": "Invalid table name. Allowed: call_logs, action_logs, assign_logs"
+            }, status=400)
+
+        model = self.TABLE_MODEL_MAP[table_name]
+
+        # Fetch the record
+        try:
+            record = model.objects.get(id=record_id)
+        except model.DoesNotExist:
+            return Response({
+                "status": "failed",
+                "message": "Record not found"
+            }, status=404)
+
+        # Soft delete logic
+        record.is_deleted = 1
+        record.deleted_at = timezone.now()
+
+        if hasattr(record, "deleted_by"):
+            record.deleted_by = deleted_by
+
+        record.save()
+
+        return Response({
+            "status": "success",
+            "message": "Call Record deleted successfully",
+            "table": table_name,
+            "record_id": record_id
+        })
