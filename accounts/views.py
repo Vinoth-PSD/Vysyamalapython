@@ -11354,10 +11354,6 @@ def get_all_logs_by_call_id(request, call_id):
 
 
 
-
-
-
-
 class CallManageDeleteView(APIView):
 
     # Map table names → model classes
@@ -11373,6 +11369,7 @@ class CallManageDeleteView(APIView):
         record_id = request.data.get("call_id")   # corrected key
         deleted_by = request.data.get("deleted_by")
 
+        
         # Validate table
         if table_name not in self.TABLE_MODEL_MAP:
             return Response({
@@ -11390,6 +11387,18 @@ class CallManageDeleteView(APIView):
                 "status": "failed",
                 "message": "Record not found"
             }, status=404)
+
+        # ------------------------------------------------
+        # 24-HOUR VALIDATION (Do NOT allow delete)
+        # ------------------------------------------------
+        created_time = record.created_at
+        time_diff = timezone.now() - created_time
+
+        if time_diff > timedelta(hours=24):
+            return Response({
+                "status": "failed",
+                "message": "You cannot delete this record. Delete time limit (24 hours) has expired."
+            }, status=403)
 
         # Soft delete logic
         record.is_deleted = 1
