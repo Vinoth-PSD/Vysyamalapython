@@ -4374,7 +4374,7 @@ class CallLog(models.Model):
 
     call_management = models.ForeignKey(CallManagement, on_delete=models.CASCADE)
 
-    call_date = models.DateField()
+    call_date = models.DateField(null=True)
     call_type = models.ForeignKey(CallTypeMaster, on_delete=models.SET_NULL, null=True)
     particulars = models.ForeignKey(ParticularsMaster, on_delete=models.SET_NULL, null=True)
     call_status = models.ForeignKey(CallStatusMaster, on_delete=models.SET_NULL, null=True)
