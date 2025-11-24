@@ -4260,7 +4260,7 @@ class User(AbstractBaseUser):
 
     class Meta:
         db_table = 'users'
-        managed = False  # Since you already have the table in MySQL
+        managed = False
 
     def __str__(self):
         return self.username
@@ -4305,9 +4305,6 @@ class RolePermission(models.Model):
         db_table = 'rolepermissions'
         managed = False
         unique_together = ('role', 'action')
-
-
-
 
 
 #Call management New Code starts here
@@ -4374,7 +4371,7 @@ class CallLog(models.Model):
 
     call_management = models.ForeignKey(CallManagement, on_delete=models.CASCADE)
 
-    call_date = models.DateField(null=True)
+    call_date = models.DateField(null=True, blank=True)
     call_type = models.ForeignKey(CallTypeMaster, on_delete=models.SET_NULL, null=True)
     particulars = models.ForeignKey(ParticularsMaster, on_delete=models.SET_NULL, null=True)
     call_status = models.ForeignKey(CallStatusMaster, on_delete=models.SET_NULL, null=True)
@@ -4389,6 +4386,14 @@ class CallLog(models.Model):
         managed = False
         db_table = 'call_logs'
 
+    def save(self, *args, **kwargs):
+        # Clean empty strings before saving
+        for field in ["call_date", "next_call_date"]:
+            if getattr(self, field) == "":
+                setattr(self, field, None)
+
+        super().save(*args, **kwargs)
+
 
 class ActionLog(models.Model):
     id = models.AutoField(primary_key=True)
@@ -4399,7 +4404,7 @@ class ActionLog(models.Model):
         db_column='call_management_id'
     )
 
-    action_date = models.DateTimeField()
+    action_date = models.DateTimeField(null=True, blank=True)
 
     action_point = models.ForeignKey(
         ActionPointMaster,
@@ -4427,7 +4432,14 @@ class ActionLog(models.Model):
     class Meta:
         managed = False
         db_table = 'action_logs'
+    
+    def save(self, *args, **kwargs):
+        # Clean empty strings before saving
+        for field in ["action_date", "next_action_date"]:
+            if getattr(self, field) == "":
+                setattr(self, field, None)
 
+        super().save(*args, **kwargs)
 
 class AssignLog(models.Model):
     id = models.AutoField(primary_key=True)
@@ -4450,3 +4462,11 @@ class AssignLog(models.Model):
     class Meta:
         managed = False
         db_table = 'assign_logs'
+
+    def save(self, *args, **kwargs):
+        # Clean empty strings before saving
+        for field in ["assigned_date"]:
+            if getattr(self, field) == "":
+                setattr(self, field, None)
+
+        super().save(*args, **kwargs)

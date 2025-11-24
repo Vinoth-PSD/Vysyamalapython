@@ -114,6 +114,8 @@ from .serializers import UserSerializer,DashboardSerializer
 from django.db.models import F, Value
 from django.db.models.functions import Concat
 
+import pandas as pd
+import numpy as np
 
 # User = get_user_model()
 
@@ -10394,7 +10396,279 @@ class UserViewSet(viewsets.ModelViewSet):
             {"message": "User soft deleted successfully"},
             status=status.HTTP_200_OK
         )
+    
 
+
+        # Override create to handle Excel file with user creation
+    def create(self, request, *args, **kwargs):
+
+        # print('76565vghvchg')
+        excel_file = request.FILES.get('excel_file')
+        
+        # First, create the user
+        response = super().create(request, *args, **kwargs)
+        
+        # If user creation successful and Excel file provided, update profiles
+        if response.status_code == status.HTTP_201_CREATED and excel_file:
+            user_id = response.data.get('id')
+        
+            # print('user_id',user_id)
+            
+            # Use the utility function
+            update_results = ProfileUpdater.update_profiles_from_excel(
+                excel_file=excel_file, 
+                owner_id=user_id
+            )
+            
+            # Include results in response
+            response.data['profile_update_results'] = update_results
+        
+        return response
+
+    
+    # Override partial_update for PATCH requests
+    def partial_update(self, request, *args, **kwargs):
+        # print('PATCH method - updating user with Excel')
+        excel_file = request.FILES.get('excel_file')
+        
+        # First, update the user using partial_update
+        response = super().partial_update(request, *args, **kwargs)
+        
+        # If user update successful and Excel file provided, update profiles
+        if response.status_code == status.HTTP_200_OK and excel_file:
+            user_id = kwargs.get('pk')  # Get user ID from URL parameters
+            # print('user_id', user_id)
+            
+            # Use the utility function
+            update_results = ProfileUpdater.update_profiles_from_excel(
+                excel_file=excel_file, 
+                owner_id=user_id
+            )
+            
+            # Include results in response
+            response.data['profile_update_results'] = update_results
+        
+        return response
+
+    # # Override update for PUT requests (if you want Excel support for PUT as well)
+    # def update(self, request, *args, **kwargs):
+    #     print('PUT method - updating user with Excel')
+    #     excel_file = request.FILES.get('excel_file')
+        
+    #     # First, update the user
+    #     response = super().update(request, *args, **kwargs)
+        
+    #     # If user update successful and Excel file provided, update profiles
+    #     if response.status_code == status.HTTP_200_OK and excel_file:
+    #         user_id = kwargs.get('pk')
+    #         print('user_id', user_id)
+            
+    #         # Use the utility function
+    #         update_results = ProfileUpdater.update_profiles_from_excel(
+    #             excel_file=excel_file, 
+    #             owner_id=user_id
+    #         )
+            
+    #         # Include results in response
+    #         response.data['profile_update_results'] = update_results
+        
+    #     return response
+
+    # Assign profiles to existing user
+    @action(detail=True, methods=['post'], url_path='assign-profiles')
+    def assign_profiles(self, request, pk=None):
+        """
+        Assign profiles to an existing user using Excel file
+        """
+        excel_file = request.FILES.get('excel_file')
+        
+        if not excel_file:
+            return Response(
+                {"error": "No Excel file provided"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        user = self.get_object()
+        
+        # Use the utility function
+        update_results = ProfileUpdater.update_profiles_from_excel(
+            excel_file=excel_file, 
+            owner_id=user.id
+        )
+        
+        response_data = {
+            "message": "Profile assignment completed",
+            "user_id": user.id,
+            "profile_update_results": update_results
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    # Bulk update with Excel (multiple owners)
+    @action(detail=False, methods=['post'], url_path='bulk-assign-profiles')
+    def bulk_assign_profiles(self, request):
+        """
+        Bulk assign profiles to multiple owners using Excel file
+        Excel should contain both profile_id and owner_id columns
+        """
+        excel_file = request.FILES.get('excel_file')
+        
+        if not excel_file:
+            return Response(
+                {"error": "No Excel file provided"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Use the utility function without owner_id (will read from Excel)
+        update_results = ProfileUpdater.update_profiles_from_excel(excel_file=excel_file)
+        
+        response_data = {
+            "message": "Bulk profile assignment completed",
+            "results": update_results
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    # Download Excel template
+    @action(detail=False, methods=['get'], url_path='download-template')
+    def download_template(self, request):
+        """
+        Download Excel template for profile assignment
+        """
+        return ProfileUpdater.get_excel_template()
+
+
+class ProfileUpdater:
+    """
+    Utility class to handle Excel file operations for profile updates
+    """
+
+    @staticmethod
+    def update_profiles_from_excel(excel_file, owner_id=None):
+        
+        # print('owner_id',owner_id)
+        """
+        Read Excel file and update profiles in LoginDetails table
+        
+        Args:
+            excel_file: The uploaded Excel file
+            owner_id: The owner ID to assign to profiles (if None, uses owner_id from Excel)
+        
+        Returns:
+            dict: Results with success/failure counts and errors
+        """
+        # Validate file
+        if not excel_file:
+            return {
+                "success": False,
+                "error": "No Excel file provided",
+                "successful_updates": 0,
+                "failed_updates": 0,
+                "errors": []
+            }
+        
+        if not excel_file.name.endswith(('.xlsx', '.xls')):
+            return {
+                "success": False,
+                "error": "File must be an Excel file (.xlsx or .xls)",
+                "successful_updates": 0,
+                "failed_updates": 0,
+                "errors": []
+            }
+        
+        try:
+            # Read Excel file
+            df = pd.read_excel(excel_file)
+            
+            # Determine the mode (with or without owner_id in Excel)
+            if owner_id:
+                # Mode 1: Single owner_id for all profiles (Excel has only profile_id column)
+                return ProfileUpdater._update_with_single_owner(df, owner_id)
+
+                
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Error processing Excel file: {str(e)}",
+                "successful_updates": 0,
+                "failed_updates": 0,
+                "errors": []
+            }
+
+
+    @staticmethod
+    def _update_with_single_owner(df, owner_id):
+        """
+        Update profiles with a single owner ID (Excel has only profile_id column)
+        """
+        # Validate required columns
+        if 'profile_id' not in df.columns:
+            return {
+                "success": False,
+                "error": "Missing required column: profile_id",
+                "successful_updates": 0,
+                "failed_updates": 0,
+                "errors": []
+            }
+        
+        # Remove rows with empty profile_id
+        df = df.dropna(subset=['profile_id'])
+        
+        # Validate owner exists
+        try:
+            owner = User.objects.get(id=owner_id, is_deleted=0)
+        except User.DoesNotExist:
+            return {
+                "success": False,
+                "error": f"Owner with ID {owner_id} not found or is deleted",
+                "successful_updates": 0,
+                "failed_updates": 0,
+                "errors": []
+            }
+        
+        results = {
+            "success": True,
+            "successful_updates": 0,
+            "failed_updates": 0,
+            "errors": []
+        }
+        
+        # Process each profile
+        for index, row in df.iterrows():
+            try:
+                # Handle different data types safely
+                raw_value = row['profile_id']
+                
+                # Convert to string and clean
+                if pd.isna(raw_value):
+                    results['errors'].append(f"Row {index+2}: Empty profile_id")
+                    results['failed_updates'] += 1
+                    continue
+                    
+                profile_id = str(raw_value).strip()
+                
+                if not profile_id:
+                    results['errors'].append(f"Row {index+2}: Empty profile_id after cleaning")
+                    results['failed_updates'] += 1
+                    continue
+                
+                # Update LoginDetails - using exact string match
+                updated_count = LoginDetails.objects.filter(ProfileId=profile_id).update(Owner_id=owner_id)
+                
+                if updated_count > 0:
+                    results['successful_updates'] += 1
+                else:
+                    results['errors'].append(f"Row {index+2}: Profile with ID '{profile_id}' not found")
+                    results['failed_updates'] += 1
+
+                # print('Updated sucessfully')
+                    
+            except Exception as e:
+                error_msg = f"Row {index+2}: {str(e)}"
+                results['errors'].append(error_msg)
+                results['failed_updates'] += 1
+        
+        return results
 
 class LoginView(APIView):
     def post(self, request):
@@ -11118,7 +11392,7 @@ def get_all_call_logs_by_profile(request, profile_id):
             particulars_name=F('particulars__particulars'),
             call_status_name=F('call_status__status'),
         )
-        .order_by('-created_at')
+        .order_by('-call_date')
         .values(
             'id',
             'call_management_id',
@@ -11185,7 +11459,7 @@ def get_all_action_logs_by_profile(request, profile_id):
             action_point_name=F('action_point__action_point'),
             next_action_name=F('next_action__action_point'),
         )
-        .order_by('-created_at')
+        .order_by('-action_date')
         .values(
             'id',
             'call_management_id',
@@ -11256,7 +11530,7 @@ def get_all_action_logs_by_profile(request, profile_id):
 def get_all_assign_logs_by_profile(request, profile_id):
 
     call_ids = CallManagement.objects.filter(profile_id=profile_id).values_list('id', flat=True)
-    assign_logs = list(AssignLog.objects.filter(call_management_id__in=call_ids,is_deleted=0).order_by('-created_at').values())
+    assign_logs = list(AssignLog.objects.filter(call_management_id__in=call_ids,is_deleted=0).order_by('-assigned_date').values())
 
     # Collect all unique user IDs
     user_ids = set()
@@ -11320,7 +11594,7 @@ def get_logs_by_profile(request, profile_id):
     # -----------------------
     call_logs = CallLog.objects.filter(
         call_management_id__in=call_ids
-    ).select_related("call_type", "particulars", "call_status")
+    ).order_by('-call_date').select_related("call_type", "particulars", "call_status")
     
 
     call_log_list = []
@@ -11344,7 +11618,7 @@ def get_logs_by_profile(request, profile_id):
     # -----------------------
     action_logs = ActionLog.objects.filter(
         call_management_id__in=call_ids
-    ).select_related("action_point", "next_action")
+    ).order_by('-action_date').select_related("action_point", "next_action")
 
     action_log_list = []
     for a in action_logs:
@@ -11368,7 +11642,7 @@ def get_logs_by_profile(request, profile_id):
         AssignLog.objects.filter(call_management_id__in=call_ids).values(
             "id", "assigned_date", "assigned_to", "assigned_by",
             "notes", "call_management_id", "created_at"
-        )
+        ).order_by('-assigned_date')
     )
 
     return Response({
