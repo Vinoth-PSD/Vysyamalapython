@@ -11037,6 +11037,7 @@ def save_call_management(request):
 
         log.call_date = item["call_date"]
         log.call_owner = item.get("call_owner")
+        log.next_call_date= item.get("next_call_date")
         log.call_type_id = item.get("call_type_id")
         log.particulars_id = item.get("particulars_id")
         log.call_status_id = item.get("call_status_id")
@@ -11062,6 +11063,7 @@ def save_call_management(request):
             log = ActionLog(call_management=cm)
 
         log.action_date = item["action_date"]
+        log.next_action_date=item["next_action_date"]
         log.action_owner = item.get("action_owner")
         log.action_point_id = item.get("action_point_id")
         log.next_action_id = item.get("next_action_id")
@@ -11193,7 +11195,7 @@ def get_all_action_logs_by_profile(request, profile_id):
             
             'action_point_id',
             'action_point_name',
-
+            'next_action_date',
             'next_action_id',
             'next_action_name',
 
@@ -11349,6 +11351,7 @@ def get_logs_by_profile(request, profile_id):
         action_log_list.append({
             "id": a.id,
             "action_date": a.action_date,
+            "next_action_date":a.next_action_date,
             "action_point_id": a.action_point_id,
             "action_point_name": a.action_point.action_point if a.action_point else None,
             "next_action_id": a.next_action_id,

@@ -4438,6 +4438,7 @@ class AssignLog(models.Model):
     )
 
     assigned_date = models.DateTimeField()
+    next_action_date = models.DateTimeField()
     assigned_to = models.IntegerField(null=True)
     assigned_by = models.IntegerField(null=True)
     notes = models.TextField(null=True)
