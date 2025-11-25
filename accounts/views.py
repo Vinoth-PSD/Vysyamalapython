@@ -9494,12 +9494,40 @@ class LoginLogView(generics.ListAPIView):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-    
+
+
 class PlanSubscriptionCreateView(generics.CreateAPIView):
     queryset = PlanSubscription.objects.all()
     serializer_class = PlanSubscriptionSerializer
 
     def perform_create(self, serializer):
+        request = self.request
+
+        # Step A: Admin user permission check
+        owner_id = request.data.get('admin_user_id')
+
+        try:
+            owner_id = int(owner_id)
+            user = User.objects.get(id=owner_id)
+        except Exception:
+            user = None
+
+        if user:
+            role = user.role
+            permissions = RolePermission.objects.filter(role=role).select_related('action')
+            data = permissions.values('action__code', 'value')
+            add_permission = data.filter(action__code='membership_activation').first()
+            can_add = add_permission['value'] if add_permission else None
+        else:
+            can_add = None
+
+        # Restrict creation if no permission
+        if not user or can_add != 1:
+            return Response(
+                {"status": "error", "message": "Permissiondenied"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # Step 1: Save subscription first
         subscription = serializer.save()
 
@@ -9518,7 +9546,7 @@ class PlanSubscriptionCreateView(generics.CreateAPIView):
             addon_package=subscription.addon_package
         )
 
-        # Step 3: Update trans_id in subscription
+        # Step 3: Update subscription with trans_id
         subscription.trans_id = transaction.id
         subscription.save(update_fields=["trans_id"])
 
@@ -9562,7 +9590,7 @@ class PlanSubscriptionUpdateView(generics.UpdateAPIView):
             edit = None
 
         if user:
-            if edit == 3:
+            if edit == 1:
                 return super().update(request, *args, **kwargs)
             else:
                 return Response({
@@ -9611,8 +9639,14 @@ def process_transaction(request):
  
     if transaction.addon_package:
         try:
-            addon_obj = Addonpackages.objects.get(package_id=transaction.addon_package)
-            addon_name = addon_obj.name
+            addon_ids = str(transaction.addon_package).split(",")  # list of IDs: ['5','4','2','1']
+            addon_ids = [id.strip() for id in addon_ids if id.strip().isdigit()]
+
+            addon_objects = Addonpackages.objects.filter(package_id__in=addon_ids)
+
+            if addon_objects.exists():
+                addon_name = ", ".join([a.name for a in addon_objects])
+            # addon_name = addon_obj.name
         except Addonpackages.DoesNotExist:
             pass
  
@@ -10213,7 +10247,7 @@ class SendInvoicePDF(APIView):
             edit = None
 
         if user:
-            if edit == 3:
+            if edit == 1:
                 pass
             else:
                 return Response({
@@ -10777,7 +10811,7 @@ class EditProfileWithPermissionAPIView(APIView):
             role = user.role
             permissions = RolePermission.objects.filter(role=role).select_related('action')
             data = permissions.values('action__code', 'value')
-            edit_permission = data.filter(action__code='edit_profile_all').first()
+            edit_permission = data.filter(action__code='edit_profile_admin').first()
             edit=edit_permission['value'] if edit_permission else None
             membership_permission = data.filter(action__code='membership_activation').first()
             edit_mem=membership_permission['value'] if membership_permission else None
@@ -10865,14 +10899,14 @@ class EditProfileWithPermissionAPIView(APIView):
                 else:
                     errors['horoscope_details'] = horoscope_serializer.errors
 
-        # Step 5: Retrieve and update ProfilePartnerPref
-        if partner_pref_data:
-            try:
-                partner_pref_detail = ProfilePartnerPref.objects.get(profile_id=profile_id)
-            except ProfilePartnerPref.DoesNotExist:
-                return Response({'error': 'Partner preference details not found.'}, status=status.HTTP_404_NOT_FOUND)
+                # Step 5: Retrieve and update ProfilePartnerPref
+            if partner_pref_data:
+                    try:
+                        partner_pref_detail = ProfilePartnerPref.objects.get(profile_id=profile_id)
+                    except ProfilePartnerPref.DoesNotExist:
+                        return Response({'error': 'Partner preference details not found.'}, status=status.HTTP_404_NOT_FOUND)
             
-        #prefered porutham rasi-stat value storing in the database mythili code 25-06-25
+            #prefered porutham rasi-stat value storing in the database mythili code 25-06-25
 
                     # Make a proper mutable copy of the input dict
             if isinstance(partner_pref_data, dict):
@@ -10910,44 +10944,44 @@ class EditProfileWithPermissionAPIView(APIView):
                 errors['partner_pref_details'] = partner_pref_serializer.errors
         
 
-        # Step 6: RetriSuggestedeve and update ProfilePartnerPref
-        if suggested_pref_data:
-            try:
-                suggested_pref_detail = ProfileSuggestedPref.objects.get(profile_id=profile_id)
-            except ProfileSuggestedPref.DoesNotExist:
-                #return Response({'error': 'suggested pref not found.'}, status=status.HTTP_404_NOT_FOUND)
-                suggested_pref_detail = ProfileSuggestedPref.objects.create(
-                    profile_id=profile_id
-                )
+            # Step 6: RetriSuggestedeve and update ProfilePartnerPref
+            if suggested_pref_data:
+                try:
+                    suggested_pref_detail = ProfileSuggestedPref.objects.get(profile_id=profile_id)
+                except ProfileSuggestedPref.DoesNotExist:
+                    #return Response({'error': 'suggested pref not found.'}, status=status.HTTP_404_NOT_FOUND)
+                    suggested_pref_detail = ProfileSuggestedPref.objects.create(
+                        profile_id=profile_id
+                    )
 
-            suggested_pref_serializer = ProfileSuggestedPrefSerializer(instance=suggested_pref_detail, data=suggested_pref_data, partial=True)
-            if suggested_pref_serializer.is_valid():
-                suggested_pref_serializer.save()
-            else:
-                errors['suggested_pref_details'] = suggested_pref_serializer.errors
+                suggested_pref_serializer = ProfileSuggestedPrefSerializer(instance=suggested_pref_detail, data=suggested_pref_data, partial=True)
+                if suggested_pref_serializer.is_valid():
+                    suggested_pref_serializer.save()
+                else:
+                    errors['suggested_pref_details'] = suggested_pref_serializer.errors
          
          
 
-        # Step 7: Retrieve and update ProfileEduDetails
-        if profile_visibility_data:
-            # print('inside profile visibility')
-            try:
-                print('update the existing record')
-                profvis_detail = ProfileVisibility.objects.get(profile_id=profile_id)
-                provis_serializer = ProfileVisibilitySerializer(instance=profvis_detail, data=profile_visibility_data, partial=True)
+            # Step 7: Retrieve and update ProfileEduDetails
+            if profile_visibility_data:
+                # print('inside profile visibility')
+                try:
+                    print('update the existing record')
+                    profvis_detail = ProfileVisibility.objects.get(profile_id=profile_id)
+                    provis_serializer = ProfileVisibilitySerializer(instance=profvis_detail, data=profile_visibility_data, partial=True)
 
-            except ProfileVisibility.DoesNotExist:
-                print('insert the new record')
-                # return Response({'error': 'Profile Visibility details not found.'}, status=status.HTTP_404_NOT_FOUND)
-                profile_visibility_data['profile_id'] = profile_id
-                provis_serializer = ProfileVisibilitySerializer(data=profile_visibility_data)
-                
-                #Insert if data not exists
-        
-            if provis_serializer.is_valid():
-                provis_serializer.save()
-            else:
-                errors['profile_visibility_details'] = provis_serializer.errors
+                except ProfileVisibility.DoesNotExist:
+                    print('insert the new record')
+                    # return Response({'error': 'Profile Visibility details not found.'}, status=status.HTTP_404_NOT_FOUND)
+                    profile_visibility_data['profile_id'] = profile_id
+                    provis_serializer = ProfileVisibilitySerializer(data=profile_visibility_data)
+                    
+                    #Insert if data not exists
+            
+                if provis_serializer.is_valid():
+                    provis_serializer.save()
+                else:
+                    errors['profile_visibility_details'] = provis_serializer.errors
 
 
         #common data to be update code is below
@@ -10958,7 +10992,7 @@ class EditProfileWithPermissionAPIView(APIView):
                 owner = profile_common_data.get("owner_id")
                 # print('inside profile common data update',profile_common_data.get("primary_status"))
                 # Only include the common data keys that are available in the request
-                if edit_mem ==1:
+                if edit_mem ==3:
                     login_detail = LoginDetails.objects.get(ProfileId=profile_id)
                     get_plan_status = profile_common_data.get("secondary_status")
                     get_profile_status = profile_common_data.get("status")
@@ -10967,6 +11001,7 @@ class EditProfileWithPermissionAPIView(APIView):
                         return Response({'error': 'You do not have permission to edit this profile.'}, status=status.HTTP_403_FORBIDDEN)
                     if old_profile_status == 1 and get_profile_status !=1 :
                         return Response({'error': 'You do not have permission to edit this profile.'}, status=status.HTTP_403_FORBIDDEN)
+                    
                 if edit_mem ==2:
                     login_detail = LoginDetails.objects.get(ProfileId=profile_id)
                     get_plan_status = profile_common_data.get("secondary_status")
