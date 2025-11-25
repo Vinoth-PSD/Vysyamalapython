@@ -9610,13 +9610,38 @@ def process_transaction(request):
     action = request.data.get("action")  # accept / reject
     payment_for = request.data.get("payment_for")
     admin_user = request.data.get("admin_user")
- 
+    admin_user_id = request.data.get("admin_user_id")
+
     if not transaction_id or not action:
         return Response(
             {"status": "error", "message": "transaction_id and action are required"},
             status=status.HTTP_400_BAD_REQUEST
         )
- 
+    
+    try:
+        admin_user_id = int(admin_user_id)
+        user = User.objects.get(id=admin_user_id)
+    except Exception:
+        user = None
+
+    if user:
+        role = user.role
+        permissions = RolePermission.objects.filter(role=role).select_related('action')
+        data = permissions.values('action__code', 'value')
+        edit_permission = data.filter(action__code='membership_activation').first()
+        edit = edit_permission['value'] if edit_permission else None
+    else:
+        edit = None
+
+    if user:
+        if edit == 1:
+            pass
+        else:
+            return Response({
+                "status": "error",
+                "message": "Permission Error"
+            }, status=status.HTTP_403_FORBIDDEN)
+
     try:
         transaction = PaymentTransaction.objects.get(id=transaction_id)
     except PaymentTransaction.DoesNotExist:
@@ -11182,40 +11207,30 @@ class Files_upload(APIView):
 
     def post(self, request):
         profile_id = request.data.get('profile_id')
-        owner_id = request.data.get('admin_user_id')
-        try:
-            owner_id = int(owner_id)
-            user = User.objects.get(id=owner_id)
-        except Exception:
-            user = None
-             
-        if user:
-            role = user.role
-            permissions = RolePermission.objects.filter(role=role).select_related('action')
-            data = permissions.values('action__code', 'value')
-            edit_permission = data.filter(action__code='edit_horo_photo').first()
-            edit=edit_permission['value'] if edit_permission else None
-        else:
-            edit =None
-          
-        if user:   
-            if edit ==1:
-                pass
-            else:
-                return Response({
-                    "status": "error",
-                    "message": "Permission Error"
-                }, status=status.HTTP_403_FORBIDDEN)
+        admin_user_id = request.data.get('admin_user_id')
+
         if not profile_id:
             return JsonResponse({"error": "profile_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-          
-        horoscope_file = request.FILES.get('horoscope_file') 
+
+        # Get user & permission
+        try:
+            user = User.objects.get(id=admin_user_id)
+            role = user.role
+
+            perm = RolePermission.objects.filter(role=role, action__code='edit_horo_photo').first()
+            can_edit = perm.value if perm else 0
+
+        except Exception:
+            user = None
+            can_edit = 0   # no permission
+
+        horoscope_file = request.FILES.get('horoscope_file')
         horoscope_file_admin = request.FILES.get('horoscope_file_admin')
         idproof_file = request.FILES.get('idproof_file')
         divorcepf_file = request.FILES.get('divorcepf_file')
 
-        if not any([horoscope_file, idproof_file, divorcepf_file, horoscope_file_admin]):
-            return JsonResponse({"error": "At least one of 'horoscope_file', 'idproof_file', 'divorcepf_file', or 'horoscope_file_admin' is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not any([horoscope_file, horoscope_file_admin, idproof_file, divorcepf_file]):
+            return JsonResponse({"error": "Upload at least one file."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             horoscope_instance, _ = models.ProfileHoroscope.objects.get_or_create(profile_id=profile_id)
@@ -11224,61 +11239,87 @@ class Files_upload(APIView):
             max_file_size = 10 * 1024 * 1024
             valid_extensions = ['doc', 'docx', 'pdf', 'png', 'jpeg', 'jpg']
 
+            # --------------------------
+            # 1️ Horoscope File (User Upload)
+            # --------------------------
             if horoscope_file:
-                if horoscope_file.size > max_file_size:
-                    return JsonResponse({"error": "Horoscope file size should be less than 10MB"}, status=status.HTTP_400_BAD_REQUEST)
 
-                file_extension = os.path.splitext(horoscope_file.name)[1][1:].lower()
-                if file_extension not in valid_extensions:
-                    return JsonResponse({"error": "Invalid horoscope file type. Accepted formats are: doc, docx, pdf, png, jpeg, jpg"}, status=status.HTTP_400_BAD_REQUEST)
+                # Editing existing? → check permission
+                if horoscope_instance.horoscope_file and can_edit != 1:
+                    return JsonResponse({"error": "Permission denied for editing horoscope file."},
+                                        status=status.HTTP_403_FORBIDDEN)
+
+                # Validate file
+                if horoscope_file.size > max_file_size:
+                    return JsonResponse({"error": "Horoscope file too large"}, status=status.HTTP_400_BAD_REQUEST)
+
+                ext = horoscope_file.name.split(".")[-1].lower()
+                if ext not in valid_extensions:
+                    return JsonResponse({"error": "Invalid horoscope file format"}, status=status.HTTP_400_BAD_REQUEST)
 
                 horoscope_instance.horoscope_file.save(horoscope_file.name, ContentFile(horoscope_file.read()), save=True)
                 horoscope_instance.horo_file_updated = timezone.now()
                 horoscope_instance.save()
 
+            # --------------------------
+            # 2️ Horoscope File (Admin Upload)
+            # --------------------------
             if horoscope_file_admin:
-                if horoscope_file_admin.size > max_file_size:
-                    return JsonResponse({"error": "Horoscope file size should be less than 10MB"}, status=status.HTTP_400_BAD_REQUEST)
 
-                file_extension = os.path.splitext(horoscope_file_admin.name)[1][1:].lower()
-                if file_extension not in valid_extensions:
-                    return JsonResponse({"error": "Invalid horoscope file type. Accepted formats are: doc, docx, pdf, png, jpeg, jpg"}, status=status.HTTP_400_BAD_REQUEST)
+                if horoscope_instance.horoscope_file_admin and can_edit != 1:
+                    return JsonResponse({"error": "Permission denied for editing admin horoscope file."},
+                                        status=status.HTTP_403_FORBIDDEN)
+
+                if horoscope_file_admin.size > max_file_size:
+                    return JsonResponse({"error": "Admin horoscope file too large"}, status=status.HTTP_400_BAD_REQUEST)
+
+                ext = horoscope_file_admin.name.split(".")[-1].lower()
+                if ext not in valid_extensions:
+                    return JsonResponse({"error": "Invalid horoscope admin file format"}, status=status.HTTP_400_BAD_REQUEST)
 
                 horoscope_instance.horoscope_file_admin.save(horoscope_file_admin.name, ContentFile(horoscope_file_admin.read()), save=True)
                 horoscope_instance.horo_file_updated = timezone.now()
                 horoscope_instance.save()
 
+            # --------------------------
+            # 3️ ID Proof
+            # --------------------------
             if idproof_file:
-                if idproof_file.size > max_file_size:
-                    return JsonResponse({"error": "ID proof file size should be less than 10MB"}, status=status.HTTP_400_BAD_REQUEST)
 
-                file_extension = os.path.splitext(idproof_file.name)[1][1:].lower()
-                if file_extension not in valid_extensions:
-                    return JsonResponse({"error": "Invalid ID proof file type. Accepted formats are: doc, docx, pdf, png, jpeg, jpg"}, status=status.HTTP_400_BAD_REQUEST)
+                if registration_instance.Profile_idproof and can_edit != 1:
+                    return JsonResponse({"error": "Permission denied for editing ID proof."},
+                                        status=status.HTTP_403_FORBIDDEN)
+
+                ext = idproof_file.name.split(".")[-1].lower()
+                if ext not in valid_extensions:
+                    return JsonResponse({"error": "Invalid ID proof file format"}, status=status.HTTP_400_BAD_REQUEST)
 
                 registration_instance.Profile_idproof.save(idproof_file.name, ContentFile(idproof_file.read()), save=True)
                 registration_instance.save()
 
+            # --------------------------
+            # 4️ Divorce Proof
+            # --------------------------
             if divorcepf_file:
-                if divorcepf_file.size > max_file_size:
-                    return JsonResponse({"error": "Divorce proof file size should be less than 10MB"}, status=status.HTTP_400_BAD_REQUEST)
 
-                file_extension = os.path.splitext(divorcepf_file.name)[1][1:].lower()
-                if file_extension not in valid_extensions:
-                    return JsonResponse({"error": "Invalid divorce proof file type. Accepted formats are: doc, docx, pdf, png, jpeg, jpg"}, status=status.HTTP_400_BAD_REQUEST)
+                if registration_instance.Profile_divorceproof and can_edit != 1:
+                    return JsonResponse({"error": "Permission denied for editing divorce proof."},
+                                        status=status.HTTP_403_FORBIDDEN)
+
+                ext = divorcepf_file.name.split(".")[-1].lower()
+                if ext not in valid_extensions:
+                    return JsonResponse({"error": "Invalid divorce proof file format"}, status=status.HTTP_400_BAD_REQUEST)
 
                 registration_instance.Profile_divorceproof.save(divorcepf_file.name, ContentFile(divorcepf_file.read()), save=True)
                 registration_instance.save()
 
-            return JsonResponse({"status":"success"}, safe=False, status=status.HTTP_200_OK)
+            return JsonResponse({"status": "success"}, status=status.HTTP_200_OK)
 
         except models.Registration1.DoesNotExist:
-            return JsonResponse({"error": "Profile with the provided ID does not exist"}, status=status.HTTP_404_NOT_FOUND)
-
+            return JsonResponse({"error": "Profile does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
 
 #Call management New Api
-
 
 
 class GetDropdownMasters(APIView):
