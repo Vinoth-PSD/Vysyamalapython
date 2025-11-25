@@ -10931,7 +10931,7 @@ class EditProfileWithPermissionAPIView(APIView):
                     except ProfilePartnerPref.DoesNotExist:
                         return Response({'error': 'Partner preference details not found.'}, status=status.HTTP_404_NOT_FOUND)
             
-            #prefered porutham rasi-stat value storing in the database mythili code 25-06-25
+                    #prefered porutham rasi-stat value storing in the database mythili code 25-06-25
 
                     # Make a proper mutable copy of the input dict
                     if isinstance(partner_pref_data, dict):
@@ -11022,17 +11022,22 @@ class EditProfileWithPermissionAPIView(APIView):
                     get_plan_status = profile_common_data.get("secondary_status")
                     get_profile_status = profile_common_data.get("status")
                     old_profile_status = getattr(login_detail, 'status', None)
-                    if old_profile_status==1 and get_plan_status not in [6,7,8,9]:
+                    if (old_profile_status==0 or old_profile_status==1) and get_plan_status not in [6,7,8,9]:
                         return Response({'error': 'You do not have permission to edit this profile.'}, status=status.HTTP_403_FORBIDDEN)
                     if old_profile_status == 1 and get_profile_status !=1 :
                         return Response({'error': 'You do not have permission to edit this profile.'}, status=status.HTTP_403_FORBIDDEN)
-                    
+
+                    if old_profile_status != 0 and old_profile_status !=1 :
+                        return Response({'error': 'You do not have permission to edit this profile.'}, status=status.HTTP_403_FORBIDDEN)
+                
                 if edit_mem ==2:
                     login_detail = LoginDetails.objects.get(ProfileId=profile_id)
                     get_plan_status = profile_common_data.get("secondary_status")
                     get_profile_status = profile_common_data.get("status")
                     old_profile_status = getattr(login_detail, 'status', None)
                     if old_profile_status==1 and get_plan_status not in [6,7,8,9]:
+                        return Response({'error': 'You do not have permission to edit this profile.'}, status=status.HTTP_403_FORBIDDEN)
+                    if old_profile_status != 0 and old_profile_status !=1 :
                         return Response({'error': 'You do not have permission to edit this profile.'}, status=status.HTTP_403_FORBIDDEN)
 
                 login_common_data = clean_none_fields({
