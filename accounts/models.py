@@ -4404,7 +4404,7 @@ class ActionLog(models.Model):
         db_column='call_management_id'
     )
 
-    action_date = models.DateTimeField(null=True, blank=True)
+    action_date = models.DateField(null=True, blank=True)
 
     action_point = models.ForeignKey(
         ActionPointMaster,
@@ -4423,7 +4423,7 @@ class ActionLog(models.Model):
     )
 
     comments = models.TextField(null=True)
-    next_action_date = models.DateTimeField(null=True, blank=True)
+    next_action_date = models.DateField(null=True, blank=True)
     action_owner=models.CharField(max_length=25)
     created_at = models.DateTimeField(auto_now_add=True)
     is_deleted = models.IntegerField(default=0)
@@ -4450,7 +4450,7 @@ class AssignLog(models.Model):
         db_column='call_management_id'
     )
 
-    assigned_date = models.DateTimeField(null=True, blank=True)
+    assigned_date = models.DateField(null=True, blank=True)
     assigned_to = models.IntegerField(null=True)
     assigned_by = models.IntegerField(null=True)
     notes = models.TextField(null=True)

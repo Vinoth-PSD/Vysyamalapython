@@ -11561,7 +11561,7 @@ def get_all_assign_logs_by_profile(request, profile_id):
 @api_view(['GET'])
 def get_logs_by_profile(request, profile_id):
 
-    call_ids = CallManagement.objects.filter(profile_id=profile_id).order_by('-created_at').values_list('id', flat=True)
+    call_ids = CallManagement.objects.filter(profile_id=profile_id).values_list('id', flat=True)
 
 
     try:
