@@ -8083,7 +8083,7 @@ def GetPhotoProofDetails(request):
             if edit ==1:
                 pass
             else:
-                return Response({
+                return JsonResponse({
                     "status": "error",
                     "message": "Permission Error"
                 }, status=status.HTTP_403_FORBIDDEN)
