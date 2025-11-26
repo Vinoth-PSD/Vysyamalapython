@@ -8074,7 +8074,7 @@ def GetPhotoProofDetails(request):
             role = user.role
             permissions = RolePermission.objects.filter(role=role).select_related('action')
             data = permissions.values('action__code', 'value')
-            edit_permission = data.filter(action__code='new_photo_update').first()
+            edit_permission = data.filter(action__code='edit_horo_photo').first()
             edit=edit_permission['value'] if edit_permission else None
         else:
             edit =None
