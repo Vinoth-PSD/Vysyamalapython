@@ -2660,6 +2660,17 @@ def get_profile_status(status_id, primary_status,sub_status):
             pass
     return " / ".join(status_list) if status_list else "N/A"
 
+def get_owner_name(user_id):
+    try:
+        if user_id:
+            user = User.objects.get(id=user_id)
+            return user.username
+        else:
+            return None
+    except Exception as e:
+        print(f"Profile_owner:{str(e)}")
+        return None
+
 class GetProfEditDetailsAPIView(APIView):
     """
     This API view will fetch all profile-related details to populate the edit page based on ProfileId.
@@ -2856,6 +2867,7 @@ class GetProfEditDetailsAPIView(APIView):
 ),
                 "mobile_otp_verify":login_detail.Otp_verify,
                 "profile_owner_id":login_detail.Owner_id,
+                "profile_owner":get_owner_name(login_detail.Owner_id)
                 #"myself":myself
                 }
     

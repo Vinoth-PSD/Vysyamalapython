@@ -10121,13 +10121,15 @@ class GetSearchResults(APIView):
         # Check if additional filters are provided, and add them to the query
         if from_age or to_age or from_height or to_height or marital_status or profession or education or income or star or chevvai_dhosam or ragukethu_dhosam:
             # Add age filter
-            age_condition_operator = "BETWEEN %s AND %s" if from_age and to_age else ">=" if from_age else "<=" if to_age else None
-            if age_condition_operator:
-                base_query += f" AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) {age_condition_operator}"
-                if from_age and to_age:
-                    query_params.extend([from_age, to_age])
-                else:
-                    query_params.append(from_age or to_age)
+            if from_age is not None and to_age is not None:
+                base_query += " AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s"
+                query_params.extend([from_age, to_age])
+            elif from_age is not None:
+                base_query += " AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= %s"
+                query_params.append(from_age)
+            elif to_age is not None:
+                base_query += " AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= %s"
+                query_params.append(to_age)
             
             # Add marital status filter
             if marital_status:
@@ -10303,7 +10305,8 @@ class GetSearchResults(APIView):
                 print('iam  print')
                 with connection.cursor() as cursor:
                     cursor.execute(base_query, query_params)
-                    print("Executing SQL:", cursor.mogrify(base_query, query_params))
+                    print("Executing SQL:", base_query)
+                    print("With parameters:", query_params)
                     rows = cursor.fetchall()
 
                     if rows:
