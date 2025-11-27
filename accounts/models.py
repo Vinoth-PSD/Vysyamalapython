@@ -581,8 +581,9 @@ class LoginDetails(models.Model):
     Photo_password = models.CharField(max_length=255,blank=True, null=True)
     Photo_protection = models.BooleanField(default=False)
     Owner_id = models.CharField(max_length=50, blank=True, null=True)
-
-
+    Profile_emailid= models.CharField(max_length=50, blank=True, null=True)
+    facebook = models.CharField(max_length=255, blank=True, null=True)
+    linkedin = models.CharField(max_length=255, blank=True, null=True)
     class Meta:
         db_table = 'logindetails'
 

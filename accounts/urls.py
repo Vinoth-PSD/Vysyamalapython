@@ -226,7 +226,7 @@ urlpatterns = [
     path("callmanage-masters/", GetDropdownMasters.as_view()),
 
     path('call_manage-delete/', CallManageDeleteView.as_view(), name='call_manage-delete'),
-
+    path('delete-file/',views.DeleteAttachFile.as_view(),name='delete_file')
 
     
 

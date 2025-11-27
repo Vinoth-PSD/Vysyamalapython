@@ -253,6 +253,10 @@ class LoginDetailsSerializer(serializers.ModelSerializer):
     Plan_id = serializers.CharField(required=False)
     Profile_idproof = serializers.FileField(required=False)  
     Profile_divorceproof = serializers.FileField(required=False)
+    Profile_mobile_no = serializers.CharField(required=False , allow_blank=True, allow_null=True)
+    Profile_emailid = serializers.CharField(required=False , allow_blank=True, allow_null=True)
+    facebook = serializers.CharField(required=False , allow_blank=True, allow_null=True)
+    linkedin = serializers.CharField(required=False , allow_blank=True, allow_null=True)
     
 
     class Meta:
@@ -307,6 +311,10 @@ class LoginEditSerializer(serializers.ModelSerializer):
     Profile_idproof = serializers.FileField(required=False)  
     Profile_divorceproof = serializers.FileField(required=False)  
     Otp_verify = serializers.IntegerField(required=False ,allow_null=True)  
+    Profile_mobile_no = serializers.CharField(required=False , allow_blank=True, allow_null=True)
+    Profile_emailid = serializers.CharField(required=False , allow_blank=True, allow_null=True)
+    facebook = serializers.CharField(required=False , allow_blank=True, allow_null=True)
+    linkedin = serializers.CharField(required=False , allow_blank=True, allow_null=True)
 
     class Meta:
         model = LoginDetails

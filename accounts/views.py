@@ -2671,6 +2671,23 @@ def get_owner_name(user_id):
         print(f"Profile_owner:{str(e)}")
         return None
 
+def get_mem_status(profile_id):
+    try:
+        try:
+            login_detail = LoginDetails.objects.get(ProfileId=profile_id)
+        except Exception:
+            return None
+        
+        if not login_detail.membership_enddate:
+            return None
+        print(login_detail.membership_enddate,login_detail.Plan_id)
+        if login_detail.membership_enddate.date() < timezone.now().date() and int(login_detail.Plan_id) in [1,2,3]:
+            return "Renew"
+        return None
+    except Exception as e:
+        print(f"error:{str(e)}")
+        return None
+
 class GetProfEditDetailsAPIView(APIView):
     """
     This API view will fetch all profile-related details to populate the edit page based on ProfileId.
@@ -2867,7 +2884,8 @@ class GetProfEditDetailsAPIView(APIView):
 ),
                 "mobile_otp_verify":login_detail.Otp_verify,
                 "profile_owner_id":login_detail.Owner_id,
-                "profile_owner":get_owner_name(login_detail.Owner_id)
+                "profile_owner":get_owner_name(login_detail.Owner_id),
+                "membership_status":get_mem_status(login_detail.ProfileId)
                 #"myself":myself
                 }
     
@@ -11836,3 +11854,65 @@ class CallManageDeleteView(APIView):
             "table": table_name,
             "record_id": record_id
         })
+        
+class DeleteAttachFile(APIView):
+
+    def post(self, request, *args, **kwargs):
+        try:
+            model_type = request.data.get('model_type')
+            profile_id = request.data.get('profile_id')
+            field_name = request.data.get('field_name')
+            print("model_type:",model_type,profile_id,field_name)
+            if not model_type or not profile_id or not field_name:
+                return JsonResponse({
+                    'success': 0,
+                    'message': 'model_type, profile_id and field_name are required.'
+                }, status=400)
+
+            if model_type == 'registration':
+                instance = get_object_or_404(LoginDetails, ProfileId=profile_id)
+                allowed_fields = ['Profile_idproof', 'Profile_divorceproof']
+            elif model_type == 'horoscope':
+                instance = get_object_or_404(Horoscope, profile_id=profile_id)
+                allowed_fields = ['horoscope_file', 'horoscope_file_admin']
+            else:
+                return JsonResponse({
+                    'success': 0,
+                    'message': 'Invalid model_type. Must be "registration" or "horoscope".'
+                }, status=400)
+
+            if field_name not in allowed_fields:
+                return JsonResponse({
+                    'success': 0,
+                    'message': f'Invalid field_name for {model_type}. Allowed: {allowed_fields}'
+                }, status=400)
+
+            file_field = getattr(instance, field_name, None)
+            if file_field:
+                try:
+                    file_field.delete(save=False) 
+                except Exception as e:
+                    return JsonResponse({
+                        'success': 0,
+                        'message': f'Failed to delete file from Azure: {str(e)}'
+                    }, status=500)
+
+                setattr(instance, field_name, None)
+                instance.save()
+
+                return JsonResponse({
+                    'success': 1,
+                    'message': f'{field_name} deleted successfully.'
+                }, status=200)
+            else:
+                return JsonResponse({
+                    'success': 0,
+                    'message': f'{field_name} is already empty or does not exist.'
+                }, status=404)
+
+        except Exception as e:
+            return JsonResponse({
+                'success': 0,
+                'message': str(e)
+            }, status=500)
+        
