@@ -1254,6 +1254,7 @@ class CommonProfileSearchSerializer(serializers.Serializer):
     dob_date = serializers.CharField(required=False,allow_blank=True)
     dob_month = serializers.CharField(required=False,allow_blank=True)
     dob_year = serializers.CharField(required=False,allow_blank=True)
+    family_status = serializers.CharField(required=False,allow_blank=True)
     per_page = serializers.IntegerField(default=10)
     page_number = serializers.IntegerField(default=1)
 

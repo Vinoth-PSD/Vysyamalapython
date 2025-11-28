@@ -3333,7 +3333,7 @@ class Get_profiledata_Matching(models.Model):
                                 foreign_intrest=None, has_photos=None, height_from=None, height_to=None,
                                 matching_stars=None, min_anual_income=None, max_anual_income=None,
                                 membership=None,profile_name=None,father_alive=None,mother_alive=None,martial_status=None,
-                                mobile_no=None, profile_dob=None,status=None,dob_date=None,dob_month=None,dob_year=None
+                                mobile_no=None, profile_dob=None,status=None,dob_date=None,dob_month=None,dob_year=None,family_status=None
                                 ):
 
         try:
@@ -3355,6 +3355,12 @@ class Get_profiledata_Matching(models.Model):
             """
 
             query_params = []
+
+            if family_status and family_status != "0":
+                family_status_list = [c.strip() for c in family_status.split(',') if c.strip()]
+                placeholders = ', '.join(['%s'] * len(family_status_list))
+                base_query += f" AND c.family_status IN ({placeholders})"
+                query_params.extend(family_status_list)
 
             if dob_year:
                 try:
@@ -3481,18 +3487,20 @@ class Get_profiledata_Matching(models.Model):
                         pass
 
             # Foreign interest
-            if foreign_intrest and foreign_intrest != "0":
-                base_query += " AND (a.Profile_city != 0 OR f.work_country != 0)"
-                query_params.append(foreign_intrest)
-
+            if foreign_intrest.lower() == "yes":
+                base_query += " AND (a.Profile_country != 1 OR (f.work_country != 1 AND f.work_country IS NOT NULL AND f.work_country !=0))"
+            elif foreign_intrest.lower() == "no":
+                base_query += " AND (a.Profile_country = 1 AND f.work_country != 1) "
             # Has photos
             if has_photos and has_photos.lower() == "yes":
                 base_query += " AND i.image IS NOT NULL"
 
             # Membership plan filter
             if membership:
-                base_query += " AND a.Plan_id = %s"
-                query_params.append(membership)
+                memberships = [m.strip() for m in membership.split(",") if m.strip()]
+                placeholders = ", ".join(["%s"] * len(memberships))
+                base_query += f" AND a.Plan_id IN ({placeholders})"
+                query_params.extend(memberships)
 
             # if chevvai_dosham:
             #     base_query += " AND e.chevvai_dosaham = %s"
