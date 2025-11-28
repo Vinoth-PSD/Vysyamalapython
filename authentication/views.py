@@ -10121,15 +10121,16 @@ class GetSearchResults(APIView):
         # Check if additional filters are provided, and add them to the query
         if from_age or to_age or from_height or to_height or marital_status or profession or education or income or star or chevvai_dhosam or ragukethu_dhosam:
             # Add age filter
-            if from_age is not None and to_age is not None:
-                base_query += " AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s"
-                query_params.extend([from_age, to_age])
-            elif from_age is not None:
-                base_query += " AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= %s"
-                query_params.append(from_age)
-            elif to_age is not None:
-                base_query += " AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= %s"
-                query_params.append(to_age)
+            if (from_age not in (None, 0)) or (to_age not in (None, 0)):
+                if from_age is not None and to_age is not None and not (from_age == 0 and to_age == 0):
+                    base_query += " AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) BETWEEN %s AND %s"
+                    query_params.extend([from_age, to_age])
+                elif from_age is not None and from_age != 0:
+                    base_query += " AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= %s"
+                    query_params.append(from_age)
+                elif to_age is not None and to_age != 0:
+                    base_query += " AND TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= %s"
+                    query_params.append(to_age)
             
             # Add marital status filter
             if marital_status:
@@ -10172,7 +10173,7 @@ class GetSearchResults(APIView):
 
             # Add star filter
             if star:
-                base_query += " AND d.star = %s"
+                base_query += " AND e.birthstar_name = %s"
                 query_params.append(star)
 
             # if chevvai_dhosam:
@@ -10233,8 +10234,26 @@ class GetSearchResults(APIView):
 
 
             if native_state:
-                base_query += " AND a.Profile_state = %s"
-                query_params.append(native_state)
+                states = [s.strip() for s in native_state.split(',') if s.strip()]
+                if states:
+                    if len(states) == 1 and states[0] == '6':
+                        base_query += " AND a.Profile_state NOT IN (%s, %s, %s, %s, %s)"
+                        query_params.extend(['1', '2', '3', '4', '5'])
+                    elif '6' in states:
+                        explicit_states = [s for s in states if s != '6']
+                        if explicit_states:
+                            placeholders = ','.join(['%s'] * len(explicit_states))
+                            base_query += f" AND (a.Profile_state IN ({placeholders}) OR (a.Profile_state NOT IN (%s, %s, %s, %s, %s, {placeholders})))"
+                            query_params.extend(explicit_states)
+                            query_params.extend(['1', '2', '3', '4', '5'])
+                            query_params.extend(explicit_states)
+                        else:
+                            base_query += " AND a.Profile_state NOT IN (%s, %s, %s, %s, %s)"
+                            query_params.extend(['1', '2', '3', '4', '5'])
+                    else:
+                        placeholders = ','.join(['%s'] * len(states))
+                        base_query += f" AND a.Profile_state IN ({placeholders})"
+                        query_params.extend(states)
 
             if search_worklocation:
                 base_query += " AND f.work_state = %s"
@@ -10251,7 +10270,7 @@ class GetSearchResults(APIView):
                         if len(amounts) == 2:
                             lower_income = min(amounts)
                             upper_income = max(amounts)
-                            base_query += " AND ((h.income_amount BETWEEN %s AND %s) OR (f.anual_income IS NULL OR f.anual_income = '')) "
+                            base_query += " AND (h.income_amount BETWEEN %s AND %s)"
                             query_params.extend([lower_income, upper_income])
                 except Exception as e:
                     pass
