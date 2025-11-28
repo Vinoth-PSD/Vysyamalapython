@@ -9530,8 +9530,7 @@ class PlanSubscriptionCreateView(generics.CreateAPIView):
     queryset = PlanSubscription.objects.all()
     serializer_class = PlanSubscriptionSerializer
 
-    def perform_create(self, serializer):
-        request = self.request
+    def create(self, request, *args, **kwargs):
 
         # Step A: Admin user permission check
         owner_id = request.data.get('admin_user_id')
@@ -9544,24 +9543,30 @@ class PlanSubscriptionCreateView(generics.CreateAPIView):
 
         if user:
             role = user.role
-            permissions = RolePermission.objects.filter(role=role).select_related('action')
-            data = permissions.values('action__code', 'value')
-            add_permission = data.filter(action__code='membership_activation').first()
-            can_add = add_permission['value'] if add_permission else None
+            perm = RolePermission.objects.filter(
+                role=role,
+                action__code="membership_activation"
+            ).first()
+            can_add = perm.value if perm else 0
         else:
-            can_add = None
+            can_add = 0
 
-        # Restrict creation if no permission
+        print("USER =", user)
+        print("CAN_ADD =", can_add)
+
+        # Stop API here (this works in CREATE, unlike perform_create)
         if not user or can_add != 1:
             return Response(
-                {"status": "error", "message": "Permissiondenied"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"status": "error", "message": "Permission denied"},
+                status=status.HTTP_403_FORBIDDEN
             )
 
-        # Step 1: Save subscription first
+        # If allowed → continue normal DRF flow
+        return super().create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
         subscription = serializer.save()
 
-        # Step 2: Create related PaymentTransaction
         transaction = PaymentTransaction.objects.create(
             profile_id=subscription.profile_id,
             plan_id=subscription.plan_id,
@@ -9576,7 +9581,6 @@ class PlanSubscriptionCreateView(generics.CreateAPIView):
             addon_package=subscription.addon_package
         )
 
-        # Step 3: Update subscription with trans_id
         subscription.trans_id = transaction.id
         subscription.save(update_fields=["trans_id"])
 
