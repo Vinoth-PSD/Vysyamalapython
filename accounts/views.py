@@ -11094,13 +11094,11 @@ class EditProfileWithPermissionAPIView(APIView):
                     get_plan_status = profile_common_data.get("secondary_status")
                     get_profile_status = profile_common_data.get("status")
                     old_profile_status = getattr(login_detail, 'status', None)
+                    old_plan_status = getattr(login_detail, 'plan_status', None)
                     # print('old_profile_status',old_profile_status)
                     # print('get_plan_status',get_plan_status)
                     # print('get_profile_status',get_profile_status)
                     
-                    if old_profile_status == 1:
-
-                        return Response({'error': 'You do not have permission to edit this profile.'}, status=status.HTTP_403_FORBIDDEN)
                 
                     if (old_profile_status == 0 or old_profile_status == 1) and (get_plan_status is not None) and (get_plan_status not in [6, 7, 8, 9]):
                         return Response({'error': 'You do not have permission to edit this profile.'}, status=status.HTTP_403_FORBIDDEN)
@@ -11113,7 +11111,7 @@ class EditProfileWithPermissionAPIView(APIView):
                             status=status.HTTP_403_FORBIDDEN
                         )
 
-                    if ((old_profile_status ==1) and (get_profile_status in [2,3,4])):
+                    if ((old_profile_status ==1) and (old_plan_status not in [6, 7, 8, 9])):
                         return Response(
                             {'error': 'You do not have permission to edit this profile.'}, 
                             status=status.HTTP_403_FORBIDDEN
