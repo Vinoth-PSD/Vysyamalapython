@@ -12328,9 +12328,23 @@ class CallManageDeleteView_New(APIView):
 @api_view(['GET'])
 def new_get_all_logs_by_call_id(request, call_id):
 
+
+
+    try:
+        cm = CallManagement_New.objects.get(id=call_id)
+    except CallManagement_New.DoesNotExist:
+        return Response({
+            "status": "failed",
+            "message": "Invalid call_id"
+        }, status=400)
+
+    profile_id = cm.profile_id
+    mobile_no = cm.mobile_no
+
     return Response({
         "call_management_id": call_id,
-
+        "profile_id":profile_id,
+        "mobile_no":mobile_no,
         "call_logs": list(CallLog_New.objects.filter(call_management_id=call_id).values()),
         "action_logs": list(ActionLog_New.objects.filter(call_management_id=call_id).values()),
         "assign_logs": list(AssignLog_New.objects.filter(call_management_id=call_id).values())
