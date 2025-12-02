@@ -5385,7 +5385,8 @@ class Get_profile_det_match(APIView):
         from_profile = get_object_or_404(models.Registration1, ProfileId=request.data['profile_id'])
         to_profile = get_object_or_404(models.Registration1, ProfileId=request.data['user_profile_id'])
  
-        if from_profile.Gender == to_profile.Gender:
+        # if from_profile.Gender == to_profile.Gender:
+        if from_profile.Gender.lower() == to_profile.Gender.lower():
             return JsonResponse(
             {'status': 'failure', 'message': 'Cant view the same Gender Profile'},
             status=status.HTTP_201_CREATED
