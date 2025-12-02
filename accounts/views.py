@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .serializers import ChangePasswordSerializer, ProfileEduDetailsSerializer, ProfileFamilyDetailsSerializer, ProfileHoroscopeSerializer, ProfilePartnerPrefSerializer 
 from rest_framework import viewsets
-from .models import Country, ProfileEduDetails, ProfileFamilyDetails, ProfilePartnerPref, State, District, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, BirthStar, Rasi, Lagnam, DasaBalance, FamilyType, FamilyStatus, FamilyValue, LoginDetailsTemp ,Get_profiledata , Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , City , Express_interests , Profile_visitors, Profile_wishlists , Photo_request , PlanDetails , Image_Upload  ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1 , Get_profiledata_Matching , Profespref , Profile_vysassist , Homepage,ProfileLoginLogs,ProfileSendFromAdmin , ProfileSubStatus , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref , Profile_callogs , ProfileHoroscope , MasterhighestEducation ,PlanSubscription , ProfileVisibility ,Addonpackages ,Roles ,CallManagement,CallLog,ActionLog,AssignLog ,CallTypeMaster,ParticularsMaster,CallStatusMaster,ActionPointMaster
+from .models import Country, ProfileEduDetails, ProfileFamilyDetails, ProfilePartnerPref, State, District, ProfileHolder, MaritalStatus, Height, Complexion, ParentsOccupation, HighestEducation, UgDegree, AnnualIncome, BirthStar, Rasi, Lagnam, DasaBalance, FamilyType, FamilyStatus, FamilyValue, LoginDetailsTemp ,Get_profiledata , Mode , Property , Gothram , EducationLevel , Profession , Match , MasterStatePref , AdminUser , Role , City , Express_interests , Profile_visitors, Profile_wishlists , Photo_request , PlanDetails , Image_Upload  ,ProfileStatus , MatchingStarPartner, Image_Upload, Profile_personal_notes, Registration1 , Get_profiledata_Matching , Profespref , Profile_vysassist , Homepage,ProfileLoginLogs,ProfileSendFromAdmin , ProfileSubStatus , Profile_PlanFeatureLimit , ProfileVysAssistFollowup , VysAssistcomment ,ProfileSuggestedPref , Profile_callogs , ProfileHoroscope , MasterhighestEducation ,PlanSubscription , ProfileVisibility ,Addonpackages ,Roles ,CallManagement,CallLog,ActionLog,AssignLog ,CallTypeMaster,ParticularsMaster,CallStatusMaster,ActionPointMaster , AssignLog_New , ActionLog_New , CallLog_New , CallManagement_New
 from collections import defaultdict
 from .serializers import CountrySerializer, StateSerializer, DistrictSerializer,ProfileHolderSerializer, MaritalStatusSerializer, HeightSerializer, ComplexionSerializer, ParentsOccupationSerializer, HighestEducationSerializer, UgDegreeSerializer, AnnualIncomeSerializer,BirthStarSerializer, RasiSerializer, LagnamSerializer, DasaBalanceSerializer, FamilyTypeSerializer, FamilyStatusSerializer, FamilyValueSerializer, LoginDetailsTempSerializer,Getnewprofiledata , ModeSerializer, PropertySerializer , GothramSerializer , EducationLevelSerializer ,ProfessionSerializer , MatchSerializer ,MasterStatePrefSerializer , CitySerializer , Getnewprofiledata_new , QuickUploadSerializer , ProfileStatusSerializer , LoginEditSerializer , GetproflistSerializer , ImageGetSerializer , MatchingscoreSerializer , HomepageSerializer, Profile_idValidationSerializer , UpdateAdminComments_Serializer , ProfileSubStatusSerializer , PlandetailsSerializer ,ProfileplanSerializer , ProfileVysAssistFollowupSerializer , VysassistSerializer , ProfileSuggestedPrefSerializer  , AdminUserDropdownSerializer , ProfileVisibilitySerializer ,LoginSerializer ,RoleSerializers ,RoleDropdownSerializer
 from rest_framework.decorators import action
@@ -11952,3 +11952,373 @@ class DeleteAttachFile(APIView):
                 'message': str(e)
             }, status=500)
         
+
+
+
+
+
+@api_view(['POST'])
+def new_save_call_management(request):
+
+    data = request.data
+    call_management_id = data.get("call_management_id", None)
+    profile_id = data.get("profile_id")
+    mobile_no = data.get("mobile_no")
+
+
+    # ------------------------------
+    # 1. Create or get call_management entry
+    # ------------------------------
+    if call_management_id:
+        #cm = CallManagement.objects.get(id=call_management_id)
+
+        try:
+            cm = CallManagement_New.objects.get(id=call_management_id)
+
+            # Check if created more than 24 hours ago
+            time_diff = timezone.now() - cm.created_at
+
+            if time_diff > timedelta(hours=24):
+                return Response({
+                    "status": "failed",
+                    "message": "You cannot update this record. Edit time limit (24 hours) has expired."
+                }, status=403)
+
+        except CallManagement_New.DoesNotExist:
+            return Response({"status": "failed", "message": "Invalid call_management_id"}, status=400)
+    else:
+        cm = CallManagement_New.objects.create()
+
+
+    cm.profile_id = profile_id
+    cm.mobile_no = mobile_no
+    cm.save()
+    # ------------------------------
+    # 2. Save Call Logs (Insert + Update)
+    # ------------------------------
+    submitted_call_ids = []
+
+    for item in data.get("call_logs", []):
+        log_id = item.get("id", None)
+
+        if log_id:
+            log = CallLog_New.objects.get(id=log_id)
+        else:
+            log = CallLog_New(call_management=cm)
+
+        log.call_date = item["call_date"]
+        log.call_owner = item.get("call_owner")
+        log.next_call_date= item.get("next_call_date")
+        log.call_type_id = item.get("call_type_id")
+        log.particulars_id = item.get("particulars_id")
+        log.call_status_id = item.get("call_status_id")
+        log.comments = item.get("comments")
+
+        log.save()
+        submitted_call_ids.append(log.id)
+
+    # Delete removed call logs
+    CallLog_New.objects.filter(call_management=cm).exclude(id__in=submitted_call_ids).delete()
+
+    # ------------------------------
+    # 3. Save Action Logs
+    # ------------------------------
+    submitted_action_ids = []
+
+    for item in data.get("action_logs", []):
+        log_id = item.get("id", None)
+
+        if log_id:
+            log = ActionLog_New.objects.get(id=log_id)
+        else:
+            log = ActionLog_New(call_management=cm)
+
+        log.action_date = item["action_date"]
+        log.next_action_date=item["next_action_date"]
+        log.action_owner = item.get("action_owner")
+        log.action_point_id = item.get("action_point_id")
+        log.next_action_id = item.get("next_action_id")
+        log.comments = item.get("comments")
+
+        log.save()
+        submitted_action_ids.append(log.id)
+
+    ActionLog_New.objects.filter(call_management=cm).exclude(id__in=submitted_action_ids).delete()
+
+    # ------------------------------
+    # 4. Save Assign Logs
+    # ------------------------------
+    submitted_assign_ids = []
+
+    for item in data.get("assign_logs", []):
+        log_id = item.get("id", None)
+
+        if log_id:
+            log = AssignLog_New.objects.get(id=log_id)
+        else:
+            log = AssignLog_New(call_management=cm)
+
+        log.assigned_date = item["assigned_date"]
+        log.assigned_to = item.get("assigned_to")
+        log.assigned_by = item.get("assigned_by")
+        log.notes = item.get("notes")
+
+        log.save()
+        submitted_assign_ids.append(log.id)
+
+    AssignLog_New.objects.filter(call_management=cm).exclude(id__in=submitted_assign_ids).delete()
+
+    return Response({
+        "status": "success",
+        "call_management_id": cm.id
+    })
+
+
+
+@api_view(['GET'])
+def new_get_all_call_logs(request):
+
+    call_ids = CallManagement_New.objects.filter().values_list('id', flat=True)
+
+    call_logs = (
+        CallLog_New.objects
+        .filter(call_management_id__in=call_ids,is_deleted=0)
+        .select_related('call_type', 'particulars', 'call_status')
+        .annotate(
+            call_type_name=F('call_type__call_type'),
+            particulars_name=F('particulars__particulars'),
+            call_status_name=F('call_status__status'),
+        )
+        .order_by('-call_date')
+        .values(
+            'id',
+            'call_management_id',
+            'call_date',
+            'comments',
+            'next_call_date',
+            'call_owner',
+            'created_at',
+
+            'call_type_id',
+            'call_type_name',
+
+            'particulars_id',
+            'particulars_name',
+
+            'call_status_id',
+            'call_status_name',
+            'call_management__profile_id',
+            'call_management__mobile_no',
+
+        )
+    )
+
+
+    # Collect all call_owner user IDs
+    user_ids = set()
+    for log in call_logs:
+        if log["call_owner"]:
+            try:
+                user_ids.add(int(log["call_owner"]))   # convert charfield to int
+            except:
+                pass
+
+    # Fetch all users in ONE query
+    users = User.objects.in_bulk(user_ids)
+
+    # Add action_owner_name to each log
+    for log in call_logs:
+        owner_id = log["call_owner"]
+        try:
+            owner_id = int(owner_id)
+        except:
+            owner_id = None
+
+        log["call_owner_name"] = (
+            users[owner_id].username if owner_id in users else None
+        )
+
+    return Response({
+        "call_logs": list(call_logs)
+    })
+
+@api_view(['GET'])
+def new_get_all_action_logs(request):
+
+    call_ids = CallManagement_New.objects.filter().values_list('id', flat=True)
+
+    # Fetch main action logs
+    action_logs = list(
+        ActionLog_New.objects
+        .filter(call_management_id__in=call_ids,is_deleted=0)
+        .select_related('action_point', 'next_action')
+        .annotate(
+            action_point_name=F('action_point__action_point'),
+            next_action_name=F('next_action__action_point'),
+        )
+        .order_by('-action_date')
+        .values(
+            'id',
+            'call_management_id',
+            'action_date',
+            'comments',
+            'created_at',
+            'action_point_id',
+            'action_point_name',
+            'next_action_date',
+            'next_action_id',
+            'next_action_name',
+
+            'action_owner',
+            'call_management__profile_id',
+            'call_management__mobile_no',
+        )
+    )
+
+    # Collect all action_owner user IDs
+    user_ids = set()
+    for log in action_logs:
+        if log["action_owner"]:
+            try:
+                user_ids.add(int(log["action_owner"]))   # convert charfield to int
+            except:
+                pass
+
+    # Fetch all users in ONE query
+    users = User.objects.in_bulk(user_ids)
+
+    # Add action_owner_name to each log
+    for log in action_logs:
+        owner_id = log["action_owner"]
+        try:
+            owner_id = int(owner_id)
+        except:
+            owner_id = None
+
+        log["action_owner_name"] = (
+            users[owner_id].username if owner_id in users else None
+        )
+
+    return Response({
+        "action_logs": action_logs
+    })
+
+@api_view(['GET'])
+def new_get_all_assign_logs(request):
+
+    call_ids = CallManagement_New.objects.filter().values_list('id', flat=True)
+
+    # Fetch assign logs WITH profile + mobile using JOIN
+    assign_logs = list(
+        AssignLog_New.objects
+        .filter(call_management_id__in=call_ids, is_deleted=0)
+        .select_related("call_management")  # JOIN
+        .order_by('-assigned_date')
+        .values(
+            'id',
+            'call_management_id',
+            'assigned_date',
+            'assigned_to',
+            'assigned_by',
+            'notes',
+            'created_at',
+            'is_deleted',
+            'deleted_by',
+
+            #Add profile & mobile from CallManagement_New
+            'call_management__profile_id',
+            'call_management__mobile_no',
+        )
+    )
+
+    # Collect unique user IDs
+    user_ids = set()
+    for log in assign_logs:
+        if log["assigned_by"]:
+            user_ids.add(log["assigned_by"])
+        if log["assigned_to"]:
+            user_ids.add(log["assigned_to"])
+
+    # Fetch user objects in a single query
+    users = User.objects.in_bulk(user_ids)
+
+    # Add assigned_by_name & assigned_to_name
+    for log in assign_logs:
+        log["assigned_by_name"] = (
+            users[log["assigned_by"]].username if log["assigned_by"] in users else None
+        )
+        log["assigned_to_name"] = (
+            users[log["assigned_to"]].username if log["assigned_to"] in users else None
+        )
+
+        #Rename keys for clean response:
+        log["profile_id"] = log.pop('call_management__profile_id')
+        log["mobile_no"] = log.pop('call_management__mobile_no')
+
+    return Response({
+        "assign_logs": assign_logs
+    })
+
+
+
+class CallManageDeleteView_New(APIView):
+
+    # Map table names → model classes
+    TABLE_MODEL_MAP = {
+        "call_logs": CallLog_New,
+        "action_logs": ActionLog_New,
+        "assign_logs": AssignLog_New,
+    }
+
+    def post(self, request):
+
+        table_name = request.data.get("delete_module")
+        record_id = request.data.get("call_id")   # corrected key
+        deleted_by = request.data.get("deleted_by")
+
+        
+        # Validate table
+        if table_name not in self.TABLE_MODEL_MAP:
+            return Response({
+                "status": "failed",
+                "message": "Invalid table name. Allowed: call_logs, action_logs, assign_logs"
+            }, status=400)
+
+        model = self.TABLE_MODEL_MAP[table_name]
+
+        # Fetch the record
+        try:
+            record = model.objects.get(id=record_id)
+        except model.DoesNotExist:
+            return Response({
+                "status": "failed",
+                "message": "Record not found"
+            }, status=404)
+
+        # ------------------------------------------------
+        # 24-HOUR VALIDATION (Do NOT allow delete)
+        # ------------------------------------------------
+        created_time = record.created_at
+        time_diff = timezone.now() - created_time
+
+        if time_diff > timedelta(hours=24):
+            return Response({
+                "status": "failed",
+                "message": "You cannot delete this record. Delete time limit (24 hours) has expired."
+            }, status=403)
+
+        # Soft delete logic
+        record.is_deleted = 1
+        record.deleted_at = timezone.now()
+
+        if hasattr(record, "deleted_by"):
+            record.deleted_by = deleted_by
+
+        record.save()
+
+        return Response({
+            "status": "success",
+            "message": "Call Record deleted successfully",
+            "table": table_name,
+            "record_id": record_id
+        })

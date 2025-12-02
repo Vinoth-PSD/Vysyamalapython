@@ -4479,3 +4479,254 @@ class AssignLog(models.Model):
                 setattr(self, field, None)
 
         super().save(*args, **kwargs)
+
+
+
+
+
+class CallManagement_New(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = 'call_management'
+
+
+# -----------------------------
+# LOG TABLES
+# -----------------------------
+
+class CallLog_New(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    call_management = models.ForeignKey(CallManagement, on_delete=models.CASCADE)
+
+    call_date = models.DateField(null=True, blank=True)
+    call_type = models.ForeignKey(CallTypeMaster, on_delete=models.SET_NULL, null=True)
+    particulars = models.ForeignKey(ParticularsMaster, on_delete=models.SET_NULL, null=True)
+    call_status = models.ForeignKey(CallStatusMaster, on_delete=models.SET_NULL, null=True)
+    next_call_date= models.DateField(null=True, blank=True)
+    call_owner=models.CharField(max_length=25)
+    comments = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.IntegerField(default=0)
+    deleted_by = models.IntegerField(null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'call_logs'
+
+    def save(self, *args, **kwargs):
+        # Clean empty strings before saving
+        for field in ["call_date", "next_call_date"]:
+            if getattr(self, field) == "":
+                setattr(self, field, None)
+
+        super().save(*args, **kwargs)
+
+
+class ActionLog_New(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    call_management = models.ForeignKey(
+        CallManagement,
+        on_delete=models.CASCADE,
+        db_column='call_management_id'
+    )
+
+    action_date = models.DateField(null=True, blank=True)
+
+    action_point = models.ForeignKey(
+        ActionPointMaster,
+        null=True,
+        on_delete=models.SET_NULL,
+        db_column='action_point_id',
+        related_name='action_point_logs'
+    )
+
+    next_action = models.ForeignKey(
+        ActionPointMaster,
+        null=True,
+        on_delete=models.SET_NULL,
+        db_column='next_action_id',
+        related_name='next_action_logs'
+    )
+
+    comments = models.TextField(null=True)
+    next_action_date = models.DateField(null=True, blank=True)
+    action_owner=models.CharField(max_length=25)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.IntegerField(default=0)
+    deleted_by = models.IntegerField(null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'action_logs'
+    
+    def save(self, *args, **kwargs):
+        # Clean empty strings before saving
+        for field in ["action_date", "next_action_date"]:
+            if getattr(self, field) == "":
+                setattr(self, field, None)
+
+        super().save(*args, **kwargs)
+
+class AssignLog_New(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    call_management = models.ForeignKey(
+        CallManagement,
+        on_delete=models.CASCADE,
+        db_column='call_management_id'
+    )
+
+    assigned_date = models.DateField(null=True, blank=True)
+    assigned_to = models.IntegerField(null=True)
+    assigned_by = models.IntegerField(null=True)
+    notes = models.TextField(null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.IntegerField(default=0)
+    deleted_by = models.IntegerField(null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'assign_logs'
+
+    def save(self, *args, **kwargs):
+        # Clean empty strings before saving
+        for field in ["assigned_date"]:
+            if getattr(self, field) == "":
+                setattr(self, field, None)
+
+        super().save(*args, **kwargs)
+
+
+
+
+# -----------------------------
+# New Call Management TABLES
+# -----------------------------
+
+
+class CallManagement_New(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=50,null=True, blank=True)
+    mobile_no = models.CharField(max_length=50,null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = 'call_management_new'
+
+
+# -----------------------------
+# LOG TABLES
+# -----------------------------
+
+class CallLog_New(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    call_management = models.ForeignKey(CallManagement_New, on_delete=models.CASCADE)
+
+    call_date = models.DateField(null=True, blank=True)
+    call_type = models.ForeignKey(CallTypeMaster, on_delete=models.SET_NULL, null=True)
+    particulars = models.ForeignKey(ParticularsMaster, on_delete=models.SET_NULL, null=True)
+    call_status = models.ForeignKey(CallStatusMaster, on_delete=models.SET_NULL, null=True)
+    next_call_date= models.DateField(null=True, blank=True)
+    call_owner=models.CharField(max_length=25)
+    comments = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.IntegerField(default=0)
+    deleted_by = models.IntegerField(null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'call_logs_new'
+
+    def save(self, *args, **kwargs):
+        # Clean empty strings before saving
+        for field in ["call_date", "next_call_date"]:
+            if getattr(self, field) == "":
+                setattr(self, field, None)
+
+        super().save(*args, **kwargs)
+
+
+class ActionLog_New(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    call_management = models.ForeignKey(
+        CallManagement_New,
+        on_delete=models.CASCADE,
+        db_column='call_management_id'
+    )
+
+    action_date = models.DateField(null=True, blank=True)
+
+    action_point = models.ForeignKey(
+        ActionPointMaster,
+        null=True,
+        on_delete=models.SET_NULL,
+        db_column='action_point_id',
+        related_name='action_point_logs_new'
+    )
+
+    next_action = models.ForeignKey(
+        ActionPointMaster,
+        null=True,
+        on_delete=models.SET_NULL,
+        db_column='next_action_id',
+        related_name='next_action_logs_new'
+    )
+
+    comments = models.TextField(null=True)
+    next_action_date = models.DateField(null=True, blank=True)
+    action_owner=models.CharField(max_length=25)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.IntegerField(default=0)
+    deleted_by = models.IntegerField(null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'action_logs_new'
+    
+    def save(self, *args, **kwargs):
+        # Clean empty strings before saving
+        for field in ["action_date", "next_action_date"]:
+            if getattr(self, field) == "":
+                setattr(self, field, None)
+
+        super().save(*args, **kwargs)
+
+class AssignLog_New(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    call_management = models.ForeignKey(
+        CallManagement_New,
+        on_delete=models.CASCADE,
+        db_column='call_management_id'
+    )
+
+    assigned_date = models.DateField(null=True, blank=True)
+    assigned_to = models.IntegerField(null=True)
+    assigned_by = models.IntegerField(null=True)
+    notes = models.TextField(null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.IntegerField(default=0)
+    deleted_by = models.IntegerField(null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'assign_logs_new'
+
+    def save(self, *args, **kwargs):
+        # Clean empty strings before saving
+        for field in ["assigned_date"]:
+            if getattr(self, field) == "":
+                setattr(self, field, None)
+
+        super().save(*args, **kwargs)
