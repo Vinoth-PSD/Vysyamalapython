@@ -13840,14 +13840,14 @@ def can_get_viewd_profile_count(profile_id,req_profile_id):
                         # Check how many visitor counts does user have in their plan
             #print('894563')
                        
-            if plan_id in [6, 7, 8, 9]:   #those plan count was not for per day those all for pverall plan count
-                
+            if plan_id in [6, 7, 8, 9] or plan_id in ['6', '7', '8', '9']: #those plan count was not for per day those all for pverall plan count
+              
                 visit_int_count = models.Profile_visitors.objects.filter(
                         profile_id=profile_id
                     ).exclude(viewed_profile=req_profile_id).count()
 
-                print('visit_int_count',visit_int_count)
-                print('profile_permision_toview',plan.profile_permision_toview)
+                # print('visit_int_count',visit_int_count)
+                # print('profile_permision_toview',plan.profile_permision_toview)
 
                 if visit_int_count < plan.profile_permision_toview:
                         return True  # Within the express interest limit
@@ -13865,8 +13865,8 @@ def can_get_viewd_profile_count(profile_id,req_profile_id):
                         datetime__gte=start_of_day, 
                         datetime__lt=end_of_day
                     ).exclude(viewed_profile=req_profile_id).count()
-                print('visit_int_count',visit_int_count)
-                print('profile_permision_toview',plan.profile_permision_toview)
+                # print('visit_int_count',visit_int_count)
+                # print('profile_permision_toview',plan.profile_permision_toview)
 
                     # print('visit_int_count',visit_int_count)
                     # print('profile_permision_toview',plan.profile_permision_toview)
