@@ -12322,3 +12322,16 @@ class CallManageDeleteView_New(APIView):
             "table": table_name,
             "record_id": record_id
         })
+
+
+
+@api_view(['GET'])
+def new_get_all_logs_by_call_id(request, call_id):
+
+    return Response({
+        "call_management_id": call_id,
+
+        "call_logs": list(CallLog_New.objects.filter(call_management_id=call_id).values()),
+        "action_logs": list(ActionLog_New.objects.filter(call_management_id=call_id).values()),
+        "assign_logs": list(AssignLog_New.objects.filter(call_management_id=call_id).values())
+    })
