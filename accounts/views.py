@@ -2687,6 +2687,28 @@ def get_mem_status(profile_id):
     except Exception as e:
         print(f"error:{str(e)}")
         return None
+    
+def get_profile_relation(user_id):
+    try:
+        if user_id:
+            user = Mode.objects.get(mode=user_id)
+            return user.mode_name
+        else:
+            return None
+    except Exception as e:
+        print(f"Profile_owner:{str(e)}")
+        return None
+
+def get_preferred_gothram(primary_id, fallback_value):
+    try:
+        if primary_id and str(primary_id).isdigit():
+            gothram = Gothram.objects.filter(id=primary_id, is_deleted=False).first()
+            if gothram:
+                return gothram.gothram_name
+            
+        return fallback_value if fallback_value not in [None, "", "0", "N/A", "~"] else "N/A"
+    except Exception:
+        return None
 
 class GetProfEditDetailsAPIView(APIView):
     """
@@ -2855,7 +2877,7 @@ class GetProfEditDetailsAPIView(APIView):
                 "horoscope_hints": horoscope_detail.horoscope_hints,
                 "family_status":family_detail.family_status,
                 "Admin_comments":login_detail.Admin_comments,
-                "suya_gothram": family_detail.suya_gothram_admin if family_detail.suya_gothram_admin is not None else family_detail.suya_gothram,
+                "suya_gothram": get_preferred_gothram(family_detail.suya_gothram_admin,family_detail.suya_gothram),
                 "profile_completion":int(result_percen['completion_percentage']),
                 "exp_int_lock": getattr(profile_plan_features, "exp_int_lock", None),
                 "exp_int_count": getattr(profile_plan_features, "express_int_count", None),
@@ -2885,7 +2907,8 @@ class GetProfEditDetailsAPIView(APIView):
                 "mobile_otp_verify":login_detail.Otp_verify,
                 "profile_owner_id":login_detail.Owner_id,
                 "profile_owner":get_owner_name(login_detail.Owner_id),
-                "membership_status":get_mem_status(login_detail.ProfileId)
+                "membership_status":get_mem_status(login_detail.ProfileId),
+                "profile_relation":get_profile_relation(login_detail.Profile_for)
                 #"myself":myself
                 }
     
@@ -4451,194 +4474,224 @@ class Get_prof_list_match(APIView):
 
 class Get_suggest_list_match(APIView):
 
+    def get_action_scores_bulk(self, profile_from, profile_ids):
+        scores = {pid: {"score": 0, "actions": []} for pid in profile_ids}
+
+        interests = Express_interests.objects.filter(
+            Q(profile_from=profile_from, profile_to__in=profile_ids) |
+            Q(profile_to=profile_from, profile_from__in=profile_ids),
+            status__in=[1, 2, 3]
+        )
+
+        for ei in interests:
+            if ei.profile_from == profile_from:
+                target = ei.profile_to
+                action = "Express Interest Sent" if ei.status == 1 else (
+                         "Express Interest Accepted" if ei.status == 2 else "Express Interest Rejected")
+            else:
+                target = ei.profile_from
+                action = "Express Interest Received"
+
+            if target in scores:
+                scores[target]["score"] += 1
+                scores[target]["actions"].append({"action": action, "datetime": ei.req_datetime})
+
+        wishlists = Profile_wishlists.objects.filter(
+            Q(profile_from=profile_from, profile_to__in=profile_ids, status=1) |
+            Q(profile_to=profile_from, profile_from__in=profile_ids, status=1)
+        )
+        for wl in wishlists:
+            if wl.profile_from == profile_from:
+                scores[wl.profile_to]["score"] += 1
+                scores[wl.profile_to]["actions"].append({"action": "Bookmarked", "datetime": wl.marked_datetime})
+            else:
+                scores[wl.profile_from]["score"] += 1
+                scores[wl.profile_from]["actions"].append({"action": "Bookmark Received", "datetime": wl.marked_datetime})
+
+        photo_requests = Photo_request.objects.filter(
+            Q(profile_from=profile_from, profile_to__in=profile_ids, status=1) |
+            Q(profile_to=profile_from, profile_from__in=profile_ids, status=1)
+        )
+        for pr in photo_requests:
+            if pr.profile_from == profile_from:
+                scores[pr.profile_to]["score"] += 1
+                scores[pr.profile_to]["actions"].append({"action": "Photo Request Sent", "datetime": pr.req_datetime})
+            else:
+                scores[pr.profile_from]["score"] += 1
+                scores[pr.profile_from]["actions"].append({"action": "Photo Request Received", "datetime": pr.req_datetime})
+
+        visitors = Profile_visitors.objects.filter(
+            Q(profile_id=profile_from, viewed_profile__in=profile_ids, status=1) |
+            Q(viewed_profile=profile_from, profile_id__in=profile_ids, status=1)
+        )
+        for v in visitors:
+            if v.profile_id == profile_from:
+                scores[v.viewed_profile]["score"] += 1
+                scores[v.viewed_profile]["actions"].append({"action": "Visited", "datetime": v.datetime})
+            else:
+                scores[v.profile_id]["score"] += 1
+                scores[v.profile_id]["actions"].append({"action": "Viewed", "datetime": v.datetime})
+
+        return scores
+
     def post(self, request):
         serializer = GetproflistSerializer(data=request.data)
 
-        #print('Testing','123456')
+        if not serializer.is_valid():
+            return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        if serializer.is_valid():            
-            
-            profile_id = serializer.validated_data['profile_id']
-            profile_data =  Registration1.objects.get(ProfileId=profile_id) 
-            
-            search_profile_id = request.data.get('search_profile_id')
+        profile_id = serializer.validated_data['profile_id']
 
-            search_profession= request.data.get('search_profession')
-            search_age= request.data.get('search_age')
-            search_location= request.data.get('search_location')
+        try:
+            profile_data = Registration1.objects.get(ProfileId=profile_id)
+        except Registration1.DoesNotExist:
+            return JsonResponse({"Status": 0, "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        gender = profile_data.Gender
 
-            order_by = request.data.get('order_by')
-            
-            gender=profile_data.Gender
+        # Pagination setup
+        try:
+            per_page = int(request.data.get("per_page", 10))
+        except (ValueError, TypeError):
+            per_page = 10
 
+        try:
+            page_number = int(request.data.get("page_number", 1))
+        except (ValueError, TypeError):
+            page_number = 1
 
-            #psgination code
+        per_page = max(1, per_page)
+        page_number = max(1, page_number)
 
-            received_per_page = request.data.get('per_page')
-            received_page_number = request.data.get('page_number')
+        start = (page_number - 1) * per_page
 
-                # Set default values if not provided
-            if received_per_page is None:
-                    per_page = 10
-            else:
-                    try:
-                        per_page = int(received_per_page)
-                    except (ValueError, TypeError):
-                        per_page = 10  # Fall back to default if conversion fails
+        # Exclude existing partner preferences
+        partner_profiles = gpt.get_profile_list_for_pref_type(
+            profile_id=profile_id,
+            use_suggested=False
+        )
+        exclude_profile_ids = [r['ProfileId'] for r in partner_profiles]
+        print("match",len(exclude_profile_ids))
 
-            if received_page_number is None:
-                    page_number = 1
-            else:
-                    try:
-                        page_number = int(received_page_number)
-                    except (ValueError, TypeError):
-                        page_number = 1  # Fall back to default if conversion fails
+        # Fetch matching profiles with filtering and pagination inside query
+        profile_details, total_count, profile_with_indices = Get_profiledata_Matching.get_suggest_profile_list(
+            gender=gender,
+            profile_id=profile_id,
+            start=start,
+            per_page=per_page,
+            search_profile_id=request.data.get('search_profile_id'),
+            order_by=request.data.get('order_by'),
+            search_profession=request.data.get('search_profession'),
+            search_age=request.data.get('search_age'),
+            search_location=request.data.get('search_location'),
+            complexion=request.data.get('complexion'),
+            city=request.data.get('city'),
+            state=request.data.get('state'),
+            education=request.data.get('education'),
+            foreign_intrest=request.data.get('foreign_intrest'),
+            has_photos=request.data.get('has_photos'),
+            height_from=request.data.get('height_from'),
+            height_to=request.data.get('height_to'),
+            matching_stars=request.data.get('matching_stars'),
+            min_anual_income=request.data.get('min_anual_income'),
+            max_anual_income=request.data.get('max_anual_income'),
+            membership=request.data.get('membership'),
+            ragu=request.data.get('ragu'),
+            chev=request.data.get('chev'),
+            father_alive=request.data.get('father_alive'),
+            mother_alive=request.data.get('mother_alive'),
+            marital_status=request.data.get('marital_status'),
+            family_status=request.data.get('family_status'),
+            whatsapp_field=request.data.get('whatsapp_field'),
+            field_of_study=request.data.get('pref_fieldof_study'),
+            degree=request.data.get('degree'),
+            exclude_profile_ids=exclude_profile_ids
+        )
+        print("tol",total_count)
+        if not profile_details:
+            return JsonResponse({
+                "Status": 0,
+                "message": "No matching records",
+                "search_result": "1"
+            }, status=status.HTTP_200_OK)
 
-                # Ensure valid values for pagination
-            per_page = max(1, per_page)
-            page_number = max(1, page_number)
+        profile_ids = [p["ProfileId"] for p in profile_details]
 
-                # Calculate the starting record for the SQL LIMIT clause
-            start = (page_number - 1) * per_page
+        my_profile_details = get_profile_details([profile_id])[0]
+        my_star_id = str(my_profile_details['birthstar_name'])
+        my_rasi_id = str(my_profile_details['birth_rasi_name'])
 
-            # print('params names567',gender,'  ',profile_id,'  ',start,'  ',per_page,'  ',search_profile_id,'  ',order_by,'  ',search_profession,'  ',search_age,'  ',search_location,'  ')
+        preload_matching_scores()
+        score_map = cache.get("matching_score_map", {})
 
+        # Action logs/scores
+        try:
+            action_scores = self.get_action_scores_bulk(profile_id, profile_ids)
+        except Exception:
+            action_scores = {}
 
-            profile_details , total_count ,profile_with_indices = Get_profiledata_Matching.get_suggest_profile_list(
-                gender,
-                profile_id,start=0,
-                per_page=100000,  # Large enough to fetch all
-                search_profile_id=search_profile_id,
-                order_by=order_by,
-                search_profession=search_profession,
-                search_age=search_age,
-                search_location=search_location,
-                complexion=request.data.get('complexion'),
-                city=request.data.get('city'),
-                state=request.data.get('state'),
-                education=request.data.get('education'),
-                foreign_intrest=request.data.get('foreign_intrest'),
-                has_photos=request.data.get('has_photos'),
-                height_from=request.data.get('height_from'),
-                height_to=request.data.get('height_to'),
-                matching_stars=request.data.get('matching_stars'),
-                min_anual_income=request.data.get('min_anual_income'),
-                max_anual_income=request.data.get('max_anual_income'),
-                membership=request.data.get('membership'),
-                ragu=request.data.get('ragu'),
-                chev=request.data.get('chev'),
-                father_alive=request.data.get('father_alive'),
-                mother_alive=request.data.get('mother_alive'),
-                marital_status=request.data.get('marital_status') ,
-                family_status=request.data.get('family_status'),
-                whatsapp_field=request.data.get('whatsapp_field'),
-                field_of_study=request.data.get('pref_fieldof_study'),
-                degree = request.data.get('degree')
-                )
-            print("total_count",total_count)
-            print('profile_details',len(profile_details))
-            my_profile_id = [profile_id]   
+        logs_map = get_bulk_action_logs(profile_id, profile_ids)
 
-            # print(my_profile_id,'my_profile_id')
-           
-            my_profile_details = get_profile_details(my_profile_id)
+        # Lookup dictionaries
+        plans = {p.id: p.plan_name for p in PlanDetails.objects.all()}
+        family_statuses = {f.id: f.status for f in FamilyStatus.objects.all()}
+        professions = {p.row_id: p.profession for p in Profession.objects.all()}
+        states = {s.id: s.name for s in State.objects.all()}
+        anualincomes = {i.id: i.income for i in AnnualIncome.objects.all()}
 
-            my_gender=my_profile_details[0]['Gender']
-            my_star_id=my_profile_details[0]['birthstar_name']
-            my_rasi_id=my_profile_details[0]['birth_rasi_name']
-            
-            partner_results = gpt.get_profile_list_for_pref_type(
-                profile_id=profile_id,
-                use_suggested=False
-            )
-            print('partner_results',len(partner_results))
-            partner_ids = set(r['ProfileId'] for r in partner_results)
+        result_profiles = []
 
-           
-            suggested_ids = set(detail["ProfileId"] for detail in profile_details)
-            partner_ids = set(r["ProfileId"] for r in partner_results)
-            unique_ids = list(suggested_ids - partner_ids)
-            print('unique_ids',len(unique_ids))
-            # Recalculate total count and index mapping
-            # Step 3: Filter all suggested details
-            unique_profiles = [d for d in profile_details if d["ProfileId"] in unique_ids]
-            total_count = len(unique_profiles)
-            profile_with_indices = {
-                str(i + 1): d["ProfileId"]
-                for i, d in enumerate(unique_profiles)
-            }
-            # Step 4: Apply pagination AFTER subtraction
-            start = (page_number - 1) * per_page
-            paginated_profiles = unique_profiles[start:start + per_page]
-            if profile_details:
-            
+        for detail in profile_details:
+            pid = detail["ProfileId"]
+            dest_star = str(detail.get("birthstar_name"))
+            dest_rasi = str(detail.get("birth_rasi_name"))
+            key = (my_star_id, my_rasi_id, dest_star, dest_rasi, gender.lower())
+            match_count = score_map.get(key, 0)
+            matching_score = 100 if match_count == 15 else match_count * 10
 
-            # (user_profile_id, gender, no_of_image, photo_protection, is_admin=False):
+            chevvai = get_dhosham_new(detail.get("calc_chevvai_dhosham"))
+            raguketu = get_dhosham_new(detail.get("calc_raguketu_dhosham"))
 
-                restricted_profile_details = [
-                            {
-                                "profile_id": detail.get("ProfileId"),
-                                "profile_name": detail.get("Profile_name"),
-                                "profile_img": Get_profile_image(
-                                    detail.get("ProfileId"),
-                                    gender="female" if gender.lower() == "male" else "male",
-                                    no_of_image=1,
-                                    photo_protection=0,
-                                    is_admin=True
-                                ),
-                                "profile_age": calculate_age(detail.get("Profile_dob")),
-                                # "profile_gender":detail.get("Gender"),
-                                # "height": detail.get("Profile_height"),
-                                "plan": get_plan(detail.get("Plan_id")),
-                                "family_status": get_family_status(detail.get("family_status")),
-                                # "weight": detail.get("weight"),
-                                "degree": degree(detail.get("degree"),detail.get("other_degree")),
-                                "anual_income":get_annual_income(detail.get("anual_income"),detail.get("actual_income")),
-                                # "degree": degree(detail.get("degree"),detail.get("other_degree")),
-                                "star":detail.get("star"),
-                                "profession": getprofession(detail.get("profession")),
-                                "city": detail.get("Profile_city") if detail.get("Profile_city") not in [None,"0", "N/A","~"] else "N/A",
-                                "state": get_state_name(detail.get("Profile_state")) if detail.get("Profile_state") not in [None,"0", "N/A","~"] else "N/A",
-                                "work_place": get_location(detail.get("work_city"),detail.get("work_state"),detail.get("work_country")),
-                                "designation": get_designation_or_nature(detail.get("designation"),detail.get("nature_of_business")),
-                                "company_name": get_company_or_business(detail.get("company_name"),detail.get("business_name")),
-                                "father_occupation":detail.get("father_occupation") if detail.get("father_occupation") not in [None,"0", "N/A","~"] else "N/A",
-                                "suya_gothram": detail.get("suya_gothram") if detail.get("suya_gothram") not in [None,"0", "N/A","~"] else "N/A",
-                                "chevvai":get_dhosham(detail.get("calc_chevvai_dhosham")),
-                                "raguketu":get_dhosham(detail.get("calc_raguketu_dhosham")),
-                                "photo_protection":detail.get("Photo_protection"),
-                                "matching_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
-                                #"profile_image":"http://matrimonyapp.rainyseasun.com/assets/Bride-BEuOb3-D.png",
-                                "wish_list":Get_wishlist(profile_id,detail.get("ProfileId")),
-                                "verified":detail.get('Profile_verified'),
-                                "dateofjoin": detail.get("DateOfJoin") if detail.get("DateOfJoin") else None,
-                            }
-                            for detail in paginated_profiles
-                        ]
-            
-                combined_data = {
-                            #"interests": serialized_fetch_data,
-                            "profiles": restricted_profile_details
-                        }
-                
-                return JsonResponse({"Status": 1, "message": "Matching records fetched successfully","profiles": restricted_profile_details,"total_count":total_count,
-                            'received_per_page': received_per_page,
-                            'received_page_number': received_page_number,
-                            'calculated_per_page': per_page,
-                            'calculated_page_number': page_number,
-                            'all_profile_ids':profile_with_indices,
-                            'search_result':"1"
+            result_profiles.append({
+                "profile_id": pid,
+                "profile_name": detail.get("Profile_name"),
+                "profile_img": settings.MEDIA_URL + (detail.get("profile_image") or "default_img.png"),
+                "profile_age": detail.get("profile_age"),
+                "plan": plans.get(int(detail.get("Plan_id"))) if detail.get("Plan_id") else "N/A",
+                "family_status": family_statuses.get(int(detail.get("family_status"))) if detail.get("family_status") else "N/A",
+                "degree": degree(detail.get("degree"), detail.get("other_degree")),
+                "anual_income": detail.get("actual_income") if detail.get("actual_income") not in [None, "", "0"]
+                                  else anualincomes.get(int(detail.get("anual_income"))) if detail.get("anual_income") else "N/A",
+                "star": detail.get("star"),
+                "profession": professions.get(int(detail.get("profession"))) if detail.get("profession") else "N/A",
+                "city": detail.get("Profile_city") if detail.get("Profile_city") not in [None, "0", "N/A", "~"] else "N/A",
+                "state": states.get(int(detail.get("Profile_state"))) if detail.get("Profile_state") else "N/A",
+                "work_place": get_location_new(detail.get("work_city"), detail.get("work_state"), detail.get("work_country")),
+                "designation": get_designation_or_nature_new(detail.get("designation"), detail.get("nature_of_business")),
+                "company_name": get_company_or_business_new(detail.get("company_name"), detail.get("business_name")),
+                "father_occupation": detail.get("father_occupation") if detail.get("father_occupation") not in [None, "0", "N/A", "~"] else "N/A",
+                "suya_gothram": detail.get("suya_gothram") if detail.get("suya_gothram") not in [None, "0", "N/A", "~"] else "N/A",
+                "chevvai": chevvai,
+                "raguketu": raguketu,
+                "matching_score": matching_score,
+                "action_score": action_scores.get(pid, {}),
+                "action_log": logs_map.get(pid, "No logs"),
+                "dateofjoin": detail.get("DateOfJoin") if detail.get("DateOfJoin") else None,
+                "verified": detail.get("Profile_verified"),
+                "profile_status": detail.get("Status")
+            })
 
-                            }, status=status.HTTP_200_OK)
-            else:
-                return JsonResponse({"Status": 0, "message": "No matching records ","search_result": "1" }, status=status.HTTP_200_OK)
-        
-
-        
-        return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
+        return JsonResponse({
+            "Status": 1,
+            "message": "Matching records fetched successfully",
+            "profiles": result_profiles,
+            "total_count": total_count,
+            "received_per_page": per_page,
+            "received_page_number": page_number,
+            "all_profile_ids": profile_with_indices,
+            "search_result": "1"
+        }, status=status.HTTP_200_OK)
+       
 class Get_visibility_list_match(APIView):
     def post(self, request):
         serializer = GetproflistSerializer(data=request.data)
@@ -12349,3 +12402,102 @@ def new_get_all_logs_by_call_id(request, call_id):
         "action_logs": list(ActionLog_New.objects.filter(call_management_id=call_id).values()),
         "assign_logs": list(AssignLog_New.objects.filter(call_management_id=call_id).values())
     })
+    
+def safe_get_value(model, pk_field, value, name_field='name', default='N/A'):
+    try:
+        if value and str(value).isdigit():
+            return model.objects.filter(**{pk_field: value}).values_list(name_field, flat=True).first() or default
+    except Exception:
+        pass
+    return default
+
+class WhatsappShareView(APIView):
+    def get(self, request, profile_id=None, *args, **kwargs):
+        if not profile_id:
+            return Response(
+                {'status': 'error', 'message': 'profile_id is required'},
+                status=400
+            )
+        format_type = request.GET.get("format_type")
+        try:
+            profile = LoginDetails.objects.get(ProfileId=profile_id)
+        except Exception:
+            return Response(
+                {'status': 'error', 'message': 'profile not found'},
+                status=404
+            )
+        try:
+            horoscope_data = get_object_or_404(models.ProfileHoroscope, profile_id=profile_id)
+            birthstar = safe_get_value(models.BirthStar, 'id', horoscope_data.birthstar_name, 'star')
+        except Exception:
+            birthstar=None
+        try:
+            education_details = get_object_or_404(models.ProfileEduDetails, profile_id=profile_id)
+            annual_income = "Unknown"
+            actual_income = str(education_details.actual_income).strip()
+            annual_income_id = education_details.anual_income
+            try:
+                if not actual_income or actual_income in ["", "~"]:
+                    if annual_income_id and str(annual_income_id).isdigit():
+                        annual_income = models.AnnualIncome.objects.filter(id=int(annual_income_id)).values_list('income', flat=True).first() or "Unknown"
+                else:
+                    annual_income = actual_income
+            except Exception:
+                annual_income=None
+            try:
+                highest_education_id = education_details.highest_education
+                highest_education = "Unknown"
+                if highest_education_id:
+                    highest_education = models.EducationLevel.objects.filter(row_id=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
+            except Exception:
+                highest_education = None 
+            try:
+                work_place =get_work_address(city=education_details.work_city,state=education_details.work_state,district=education_details.work_district,country=education_details.work_country)
+            except Exception:
+                work_place = None
+            
+            profession_id = education_details.profession
+            profession = "Unknown"
+            if profession_id:
+                profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
+
+            occupation=''
+
+            try:
+                prof_id_int = int(profession_id)
+                if prof_id_int == 1:
+                    occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                elif prof_id_int == 2:
+                    occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+            except Exception:
+                occupation = None
+        except Exception:
+            annual_income=None
+            highest_education = None
+            occupation = None
+            work_place = None
+        print("format",format_type)
+        if format_type == "with_image":
+            profile_link = f"https://app.vysyamala.com/auth/profile/{profile.ProfileId}/"
+        else:  # default to without image
+            profile_link = f"https://app.vysyamala.com/auth/profile_view/{profile.ProfileId}/"
+               
+        # Build context for template
+        profile_data = {
+            "profile_id": profile.ProfileId,
+            "profile_name": profile.Profile_name or "N/A",
+            "age": calculate_age(profile.Profile_dob) if profile.Profile_dob else "Unknown",
+            "star_name": birthstar if birthstar else "N/A",
+            "annual_income": annual_income if annual_income else "N/A",
+            "highest_education":highest_education if highest_education else "N/A",
+            "occupation": occupation if occupation else "N/A",
+            "work_place": work_place if work_place else "N/A",
+            "profile_link": profile_link
+        }
+
+        context = {
+            "profiles": [profile_data]  # template loops over profiles
+        }
+
+        return render(request, "whatsapp_profile.html", context)
+
