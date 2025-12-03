@@ -4484,16 +4484,6 @@ class AssignLog(models.Model):
 
 
 
-class CallManagement_New(models.Model):
-    id = models.AutoField(primary_key=True)
-    profile_id = models.CharField(max_length=50)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        managed = False
-        db_table = 'call_management'
-
-
 # -----------------------------
 # LOG TABLES
 # -----------------------------
