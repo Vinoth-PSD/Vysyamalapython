@@ -181,6 +181,21 @@ class GetMasterStatus(APIView):
 class GetSubMasterStatus(APIView):
     def post(self, request):
         primary_status=request.data.get('primary_status')
+        owner_id = request.data.get('admin_user_id')
+        try:
+            owner_id = int(owner_id)
+            user = User.objects.get(id=owner_id)
+        except Exception:
+            user = None
+
+        if user:
+            role = user.role
+            permissions = RolePermission.objects.filter(role=role).select_related('action')
+            data = permissions.values('action__code', 'value')
+            edit_permission = data.filter(action__code='membership_activation').first()
+            perm = edit_permission['value'] if edit_permission else None
+        else:
+            perm = None
 
         if not primary_status:
             return Response({
@@ -190,9 +205,20 @@ class GetSubMasterStatus(APIView):
 
         statuses = ProfileSubStatus.objects.filter(status_code=primary_status)
         serializer = ProfileSubStatusSerializer(statuses, many=True)
+        response_data = serializer.data
+        if str(primary_status) == "1" and perm is not None:
+
+            for item in response_data:
+                if perm == 0:
+                    item["value"] = 0
+                elif perm == 1:
+                    item["value"] = 1
+                elif perm in [2, 3]:
+                    item["value"] = 1 if item["id"] in [1, 2, 3, 4] else 0
+
         return Response({
             'status': 'success',
-            'data': serializer.data
+            'data': response_data
         })
     
 
@@ -13124,4 +13150,10 @@ class ExpiredMembersReport(APIView):
             "data": final_filtered
         })
 
-        
+class GetPlans(APIView):
+    def get(self,request):
+        plans = PlanDetails.objects.exclude(id__in=[4,6,7,8,9])
+        return Response({
+            "status":True,
+            "plans":plans.values('id', 'plan_name')
+        })  
