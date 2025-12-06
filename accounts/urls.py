@@ -240,8 +240,10 @@ urlpatterns = [
     path("call_manage_new-delete/", CallManageDeleteView_New.as_view(), name='call_manage-new-delete'),
     
     path("call-details-new/<int:call_id>/", new_get_all_logs_by_call_id),
-    path('whatsapp-share/<str:profile_id>/',views.WhatsappShareView.as_view(),name='whatsapp-share')
+    path('whatsapp-share/<str:profile_id>/',views.WhatsappShareView.as_view(),name='whatsapp-share'),
+    path("renewal-report/",views.ExpiredMembersReport.as_view(),name="renewal-report")
     
+
     
 
     

@@ -12501,3 +12501,627 @@ class WhatsappShareView(APIView):
 
         return render(request, "whatsapp_profile.html", context)
 
+    
+
+# class ExpiredMembersReport(APIView):
+
+#     def get(self, request, *args, **kwargs):
+#         filters = request.GET.get("filters")
+#         status_param = 1
+#         today = date.today()
+#         yesterday = today - timedelta(days=1)
+
+#         with connection.cursor() as cursor:
+#             cursor.callproc('GetExpiredMembersReport', [status_param])
+#             rows = cursor.fetchall()
+#             columns = [col[0] for col in cursor.description]
+#             data = [dict(zip(columns, row)) for row in rows]
+
+#         def calculate_age(dob):
+#             if not dob:
+#                 return None
+#             return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
+#         under_30, above_30 = 0, 0
+#         today_login, yesterday_login = 0, 0
+#         expired_count, expiring_count = 0, 0
+#         male_count, female_count = 0, 0
+#         hot, warm, cold = 0, 0, 0
+#         family_status_counts = {3: 0, 4: 0, 6: 0}
+#         family_status_labels = {3: "Upper Middle Class", 4: "Rich", 6: "Affluent"}
+
+#         for item in data:
+#             dob = item.get("Profile_dob")
+#             age = calculate_age(dob)
+#             if age is not None:
+#                 if age < 30:
+#                     under_30 += 1
+#                 else:
+#                     above_30 += 1
+
+#             gender = str(item.get("Gender", "")).lower()
+#             if gender in ["male", "m", "1"]:
+#                 male_count += 1
+#             elif gender in ["female", "f", "2"]:
+#                 female_count += 1
+
+#             family_status = item.get("family_status")
+#             try:
+#                 fs_int = int(family_status)
+#                 if fs_int in family_status_counts:
+#                     family_status_counts[fs_int] += 1
+#             except:
+#                 pass
+
+#             last_login = item.get("Last_login_date")
+#             if isinstance(last_login, datetime):
+#                 last_login = last_login.date()
+#                 if last_login == today:
+#                     today_login += 1
+#                 elif last_login == yesterday:
+#                     yesterday_login += 1
+
+#             membership_end = item.get("membership_enddate")
+#             if isinstance(membership_end, datetime):
+#                 membership_end = membership_end.date()
+#                 if membership_end < today:
+#                     expired_count += 1
+#                 elif membership_end.month == today.month and membership_end.year == today.year:
+#                     expiring_count += 1
+
+#             call_status = item.get("last_call_status")
+#             try:
+#                 call_status = int(call_status)
+#                 if call_status == 1: hot += 1
+#                 elif call_status == 2: warm += 1
+#                 elif call_status == 3: cold += 1
+#             except:
+#                 pass
+        
+#         filtered_data = []
+
+#         for item in data:
+#             include = True
+
+#             dob = item.get("Profile_dob")
+#             age = calculate_age(dob)
+#             gender_fil = str(item.get("Gender", "")).lower()
+#             if filters == "under_30" and (age is None or age >= 30):
+#                 include = False
+#             elif filters == "above_30" and (age is None or age < 30):
+#                 include = False
+#             elif filters == "male" and gender_fil not in ["male", "m"]:
+#                 include = False
+#             elif filters == "female" and gender_fil not in ["female", "f"]:
+#                 include = False
+#             family_status = item.get("family_status")
+#             try:
+#                 fs_int = int(family_status)
+#             except:
+#                 fs_int = None
+
+#             if filters == "family_3" and fs_int != 3:
+#                 include = False
+#             elif filters == "family_4" and fs_int != 4:
+#                 include = False
+#             elif filters == "family_6" and fs_int != 6:
+#                 include = False
+                
+#             last_login = item.get("Last_login_date")
+#             if isinstance(last_login, datetime):
+#                 last_login = last_login.date()
+#             else:
+#                 last_login = None
+
+#             if filters == "today_login" and last_login != today:
+#                 include = False
+#             elif filters == "yesterday_login" and last_login != yesterday:
+#                 include = False
+            
+#             membership_end = item.get("membership_enddate")
+#             if isinstance(membership_end, datetime):
+#                 membership_end = membership_end.date()
+#             else:
+#                 membership_end = None
+
+#             if filters == "expiring_this_month":
+#                 if not membership_end:
+#                     include = False
+#                 else:
+#                     if not (membership_end.month == today.month and membership_end.year == today.year):
+#                         include = False
+
+#             if include:
+#                 filtered_data.append(item)
+
+#         return Response({
+#             "status": True,
+#             "count": len(data),
+#             "under_30": under_30,
+#             "above_30": above_30,
+#             "male_count": male_count,
+#             "female_count": female_count,
+#             "family_status_counts": {
+#                 family_status_labels[k]: v for k, v in family_status_counts.items()
+#             },
+#             "today_login_count": today_login,
+#             "yesterday_login_count": yesterday_login,
+#             "expiring_this_month_count": expiring_count,
+#             "call_status_counts": {
+#                 "hot": hot,
+#                 "warm": warm,
+#                 "cold": cold
+#             },
+#             "filtered_data_count": len(filtered_data),
+#             "data":filtered_data
+#         })
+        
+# class ExpiredMembersReport(APIView):
+
+#     def get(self, request, *args, **kwargs):
+#         status_param = request.GET.get("status", "1")          # string
+#         owner_param = request.GET.get("owner", "26")           # '26' bypasses owner filter
+#         age_filter = request.GET.get("ageFilter", "")          # 'under_30' / 'above_30' / ''
+#         gender_filter = request.GET.get("genderFilter", "")    # 'male' / 'female' / ''
+#         family_filter = request.GET.get("familyFilter", "")    # '3' / '4' / '6' / ''
+#         login_filter = request.GET.get("loginFilter", "")      # 'today' / 'yesterday' / ''
+#         expiring_filter = request.GET.get("expiringFilter", "")# 'expiring_this_month' / 'expired' / ''
+#         call_status_filter = request.GET.get("callStatusFilter", "")
+#         idle_days_filter = request.GET.get("idleDaysFilter", "")
+#         from_date = request.GET.get("from_date", "")    
+#         to_date = request.GET.get("to_date", "")       
+#         age_from = request.GET.get("age_from", "")
+#         age_to = request.GET.get("age_to", "")
+#         plan_id = request.GET.get("plan_id", "")
+#         search = request.GET.get("search", "").strip().lower()
+
+#         today = date.today()
+#         yesterday = today - timedelta(days=1)
+
+#         def calculate_age(dob):
+#             if not dob:
+#                 return None
+#             if isinstance(dob, datetime):
+#                 dob_date = dob.date()
+#             else:
+#                 dob_date = dob
+#             try:
+#                 return today.year - dob_date.year - ((today.month, today.day) < (dob_date.month, dob_date.day))
+#             except Exception:
+#                 return None
+            
+#         def to_date_obj(d):
+#             try:
+#                 return datetime.strptime(d, "%Y-%m-%d").date()
+#             except:
+#                 return None
+
+#         from_date_obj = to_date_obj(from_date)
+#         to_date_obj = to_date_obj(to_date)
+
+#         final_filtered = []
+        
+#         with connection.cursor() as cursor:
+#             cursor.callproc('GetExpiredMembersReport', [
+#                 status_param,
+#                 owner_param,
+#                 age_filter,
+#                 gender_filter,
+#                 family_filter,
+#                 login_filter,
+#                 expiring_filter,
+#                 call_status_filter,
+#                 idle_days_filter
+#             ])
+
+#             base_rows = cursor.fetchall()
+#             base_columns = [col[0] for col in cursor.description]
+#             base_data = [dict(zip(base_columns, row)) for row in base_rows]
+
+#             cursor.nextset()
+#             overall_row = cursor.fetchone()
+#             overall_count = overall_row[0] if overall_row else len(base_data)
+
+#             cursor.nextset()
+#             filtered_rows = cursor.fetchall()
+#             filtered_columns = [col[0] for col in cursor.description]
+#             filtered_data = [dict(zip(filtered_columns, row)) for row in filtered_rows]
+
+#             for row in filtered_data:
+#                 dob = row.get("Profile_dob")
+#                 age = calculate_age(dob)
+#                 row["age"] = age
+#                 next_action_res = row.get("next_action_date")
+#                 if isinstance(next_action_res, datetime):
+#                     next_action_date_res = next_action_res.date()
+#                 else:
+#                     next_action_date_res = next_action_res
+#                 if next_action_date_res:
+#                     idle_days_from_next_action = (today - next_action_date_res).days
+#                     if idle_days_from_next_action > 0:
+#                         row["idle_days"] = idle_days_from_next_action
+#                     else:
+#                         row["idle_days"] = None
+#                 else:
+#                     row["idle_days"] = None
+#             for row in filtered_data:
+#                 include = True
+
+#                 mem_end = row.get("membership_enddate")
+
+#                 if isinstance(mem_end, datetime):
+#                     mem_end = mem_end.date()
+#                 elif isinstance(mem_end, str):
+#                     try:
+#                         mem_end = datetime.strptime(mem_end, "%Y-%m-%d").date()
+#                     except:
+#                         mem_end = None
+
+#                 if from_date_obj and (not mem_end or mem_end < from_date_obj):
+#                     include = False
+#                 if to_date_obj and (not mem_end or mem_end > to_date_obj):
+#                     include = False
+
+#                 age = row.get("age")
+#                 if age_from and (age is None or age < int(age_from)):
+#                     include = False
+#                 if age_to and (age is None or age > int(age_to)):
+#                     include = False
+
+#                 if plan_id:
+#                     row_plan = row.get("Plan_id", "") 
+#                     if str(row_plan) != str(plan_id):
+#                         include = False
+#                 if search:
+#                     p_id = str(row.get("ProfileId", "")).lower()
+#                     p_name = str(row.get("Profile_name", "")).lower()
+
+#                     if not (
+#                         search in p_id or
+#                         search in p_name
+#                     ):
+#                         include = False
+#                 if include:
+#                     final_filtered.append(row)
+
+#             filtered_data = final_filtered
+
+#         under_30 = above_30 = 0
+#         today_login = yesterday_login = 0
+#         expired_count = expiring_count = 0
+#         male_count = female_count = 0
+#         hot = warm = cold = not_interested= 0
+#         family_status_counts = {3: 0, 4: 0, 6: 0}
+#         family_status_labels = {3: "Upper Middle Class", 4: "Rich", 6: "Affluent"}
+#         idle_45_count = 0
+#         idle_90_count = 0
+#         today_work_count = 0
+#         pending_work_count = 0
+#         idle_days_from_next_action=0
+#         for item in base_data:
+#             dob = item.get("Profile_dob")
+#             age = calculate_age(dob)
+#             if age is not None:
+#                 if age < 30:
+#                     under_30 += 1
+#                 else:
+#                     above_30 += 1
+
+#             gender = str(item.get("Gender", "")).lower()
+#             if gender in ["male", "m", "1"]:
+#                 male_count += 1
+#             elif gender in ["female", "f", "2"]:
+#                 female_count += 1
+
+#             family_status = item.get("family_status")
+#             try:
+#                 fs_int = int(family_status)
+#                 if fs_int in family_status_counts:
+#                     family_status_counts[fs_int] += 1
+#             except:
+#                 pass
+
+#             last_login = item.get("Last_login_date")
+#             if isinstance(last_login, datetime):
+#                 last_login_date = last_login.date()
+#             else:
+#                 last_login_date = last_login
+
+#             if last_login_date == today:
+#                 today_login += 1
+#             elif last_login_date == yesterday:
+#                 yesterday_login += 1
+
+#             membership_end = item.get("membership_enddate")
+#             if isinstance(membership_end, datetime):
+#                 membership_end_date = membership_end.date()
+#             else:
+#                 membership_end_date = membership_end
+
+#             try:
+#                 # print(f"membership_end_date: {membership_end_date}, today: {today},month:{today.month}, year:{today.year},membership_end_date.month:{membership_end_date.month}, membership_end_date.year:{membership_end_date.year}")
+#                 if membership_end_date and membership_end_date.month == today.month and membership_end_date.year == today.year:
+#                     expiring_count += 1
+#                 elif membership_end_date and membership_end_date < today:
+#                     expired_count += 1
+#             except Exception:
+#                 pass
+
+#             call_status = item.get("last_call_status")
+#             try:
+#                 call_status = int(call_status)
+#                 if call_status == 1:
+#                     hot += 1
+#                 elif call_status == 2:
+#                     warm += 1
+#                 elif call_status == 3:
+#                     cold += 1
+#                 elif call_status == 4:
+#                     not_interested += 1
+#             except:
+#                 pass
+            
+#             last_action = item.get("last_action_date")
+#             last_action_date = last_action.date() if isinstance(last_action, datetime) else last_action
+
+#             if last_action_date:
+#                 idle_days = (today - last_action_date).days
+
+#                 if idle_days > 45:
+#                     idle_45_count += 1
+#                 if idle_days > 90:
+#                     idle_90_count += 1
+#             next_action = item.get("next_action_date")
+#             if isinstance(next_action, datetime):
+#                 next_action_date = next_action.date()
+#             else:
+#                 next_action_date = next_action
+
+#             if next_action_date:
+#                 if next_action_date == today:
+#                     today_work_count += 1
+#                 elif next_action_date < today:
+#                     pending_work_count += 1
+        
+#         family_status_counts_named = {family_status_labels[k]: v for k, v in family_status_counts.items()}
+#         return Response({
+#             "status": True,
+#             "overall_count": overall_count,
+#             "filtered_count": len(filtered_data),
+#             "under_30": under_30,
+#             "above_30": above_30,
+#             "male_count": male_count,
+#             "female_count": female_count,
+#             "family_status_counts": family_status_counts_named,
+#             "today_login_count": today_login,
+#             "yesterday_login_count": yesterday_login,
+#             "expired_this_month_count": expiring_count,
+#             "call_status_counts": {"hot": hot, "warm": warm, "cold": cold,"not_interested":not_interested},
+#             "last_action_counts": {
+#                 "over_45_days": idle_45_count,
+#                 "over_90_days": idle_90_count
+#             },
+#             "action_counts": {
+#                 "today_work": today_work_count,
+#                 "pending_work": pending_work_count
+#             },
+#             "data": filtered_data
+#         })
+
+class ExpiredMembersReport(APIView):
+
+    def get(self, request, *args, **kwargs):
+
+        status_param      = request.GET.get("status", "1")
+        owner_param       = request.GET.get("owner", "26")
+        age_filter        = request.GET.get("ageFilter", "")
+        gender_filter     = request.GET.get("genderFilter", "")
+        family_filter     = request.GET.get("familyFilter", "")
+        login_filter      = request.GET.get("loginFilter", "")
+        expiring_filter   = request.GET.get("expiringFilter", "")
+        call_status_filter = request.GET.get("callStatusFilter", "")
+        idle_days_filter  = request.GET.get("idleDaysFilter", "")
+        from_date         = request.GET.get("from_date", "")
+        to_date           = request.GET.get("to_date", "")
+        age_from          = request.GET.get("age_from", "")
+        age_to            = request.GET.get("age_to", "")
+        plan_id           = request.GET.get("plan_id", "")
+        search            = request.GET.get("search", "").strip().lower()
+
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+
+        def calculate_age(dob):
+            if not dob:
+                return None
+            try:
+                if isinstance(dob, datetime):
+                    dob = dob.date()
+                return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+            except:
+                return None
+
+        def safe_date(d):
+            try:
+                return datetime.strptime(d, "%Y-%m-%d").date()
+            except:
+                return None
+
+        from_date_obj = safe_date(from_date)
+        to_date_obj   = safe_date(to_date)
+
+        final_filtered = []
+        with connection.cursor() as cursor:
+
+            cursor.callproc("GetExpiredMembersReport", [
+                status_param,
+                owner_param,
+                age_filter,
+                gender_filter,
+                family_filter,
+                login_filter,
+                expiring_filter,
+                call_status_filter,
+                idle_days_filter
+            ])
+
+            base_rows = cursor.fetchall()
+            base_columns = [col[0] for col in cursor.description]
+            base_data = [dict(zip(base_columns, row)) for row in base_rows]
+
+            cursor.nextset()
+            overall_row = cursor.fetchone()
+            overall_count = overall_row[0] if overall_row else len(base_data)
+
+            cursor.nextset()
+            filtered_rows = cursor.fetchall() if cursor.description else []
+            filtered_columns = [col[0] for col in cursor.description] if cursor.description else []
+            filtered_data = [dict(zip(filtered_columns, row)) for row in filtered_rows]
+
+        for row in filtered_data:
+
+            row["age"] = calculate_age(row.get("Profile_dob"))
+            age = row["age"]
+
+            next_action_raw = row.get("next_action_date")
+            next_action = next_action_raw.date() if isinstance(next_action_raw, datetime) else next_action_raw
+
+            if next_action:
+                diff = (today - next_action).days
+                row["idle_days"] = diff if diff > 0 else None
+            else:
+                row["idle_days"] = None
+
+            include = True
+
+            mem_end = row.get("membership_enddate")
+            if isinstance(mem_end, datetime):
+                mem_end = mem_end.date()
+
+            if from_date_obj and (not mem_end or mem_end < from_date_obj):
+                include = False
+            if to_date_obj and (not mem_end or mem_end > to_date_obj):
+                include = False
+
+            if age_from and (age is None or age < int(age_from)):
+                include = False
+            if age_to and (age is None or age > int(age_to)):
+                include = False
+
+            if plan_id and str(row.get("Plan_id")) != str(plan_id):
+                include = False
+
+            if search:
+                if search not in str(row.get("ProfileId", "")).lower() and \
+                   search not in str(row.get("Profile_name", "")).lower():
+                    include = False
+
+            if include:
+                final_filtered.append(row)
+
+        under_30 = above_30 = 0
+        male_count = female_count = 0
+        today_login = yesterday_login = 0
+        expired_count = expiring_count = 0
+        hot = warm = cold = not_interested = 0
+        idle_45_count = idle_90_count = 0
+        today_work_count = pending_work_count = 0
+
+        family_status_counts = {3: 0, 4: 0, 6: 0}
+        family_status_labels = {3: "Upper Middle Class", 4: "Rich", 6: "Affluent"}
+
+        for item in base_data:
+
+            age = calculate_age(item.get("Profile_dob"))
+            if age is not None:
+                if age < 30:
+                    under_30 += 1
+                else:
+                    above_30 += 1
+
+            gender = str(item.get("Gender", "")).lower()
+            if gender in ["male", "m", "1"]:
+                male_count += 1
+            elif gender in ["female", "f", "2"]:
+                female_count += 1
+
+            try:
+                fs = int(item.get("family_status"))
+                if fs in family_status_counts:
+                    family_status_counts[fs] += 1
+            except:
+                pass
+
+            last_login = item.get("Last_login_date")
+            last_login = last_login.date() if isinstance(last_login, datetime) else last_login
+            if last_login == today:
+                today_login += 1
+            elif last_login == yesterday:
+                yesterday_login += 1
+
+            mem_end = item.get("membership_enddate")
+            mem_end = mem_end.date() if isinstance(mem_end, datetime) else mem_end
+            if mem_end:
+                if mem_end.month == today.month and mem_end.year == today.year:
+                    expiring_count += 1
+                elif mem_end < today:
+                    expired_count += 1
+
+            call_st = item.get("last_call_status")
+            try:
+                call_st = int(call_st)
+                if call_st == 1: hot += 1
+                elif call_st == 2: warm += 1
+                elif call_st == 3: cold += 1
+                elif call_st == 4: not_interested += 1
+            except:
+                pass
+            last_action = item.get("last_action_date")
+            last_action = last_action.date() if isinstance(last_action, datetime) else last_action
+            if last_action:
+                gap = (today - last_action).days
+                if gap > 45: idle_45_count += 1
+                if gap > 90: idle_90_count += 1
+
+            next_action = item.get("next_action_date")
+            next_action = next_action.date() if isinstance(next_action, datetime) else next_action
+            if next_action:
+                if next_action == today:
+                    today_work_count += 1
+                elif next_action < today:
+                    pending_work_count += 1
+
+        family_status_counts_named = {
+            family_status_labels[k]: v for k, v in family_status_counts.items()
+        }
+
+        return Response({
+            "status": True,
+            "overall_count": overall_count,
+            "filtered_count": len(final_filtered),
+            "under_30": under_30,
+            "above_30": above_30,
+            "male_count": male_count,
+            "female_count": female_count,
+            "family_status_counts": family_status_counts_named,
+            "today_login_count": today_login,
+            "yesterday_login_count": yesterday_login,
+            "expired_this_month_count": expiring_count,
+            "call_status_counts": {
+                "hot": hot,
+                "warm": warm,
+                "cold": cold,
+                "not_interested": not_interested
+            },
+            "last_action_counts": {
+                "over_45_days": idle_45_count,
+                "over_90_days": idle_90_count
+            },
+            "action_counts": {
+                "today_work": today_work_count,
+                "pending_work": pending_work_count
+            },
+            "data": final_filtered
+        })
+
+        
