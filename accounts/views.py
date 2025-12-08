@@ -98,6 +98,8 @@ from django.shortcuts import render
 
 from rest_framework import viewsets, permissions
 
+from accounts.utils.round_robin_assign import assign_user_for_state
+
 
 
 
@@ -2205,6 +2207,14 @@ class SubmitProfileAPIView(APIView):
         except Exception as e:
             pass
         # Success response
+
+        state_id=login_detail.Profile_state
+
+        assigned_user = assign_user_for_state(state_id)
+
+        if assigned_user:
+            login_detail.Owner_id = str(assigned_user.id)
+            login_detail.save()
         return Response({"status": "success", "ProfileId": profile_id}, status=status.HTTP_201_CREATED)
 
 def parse_membership_date(date_str):
@@ -13157,3 +13167,23 @@ class GetPlans(APIView):
             "status":True,
             "plans":plans.values('id', 'plan_name')
         })  
+
+
+
+
+
+class AutoAssignProfile(APIView):
+    def post(self, request, profile_id):
+        profile = get_object_or_404(LoginDetails, ProfileId=profile_id)
+
+        assigned_admin = assign_user_for_state(profile.Profile_state)
+
+        if assigned_admin:
+            profile.Owner_id = str(assigned_admin.id)
+            profile.save()
+
+        return Response({
+            "status": True,
+            "profile_id": profile_id,
+            "assigned_admin": assigned_admin.username if assigned_admin else None
+        })

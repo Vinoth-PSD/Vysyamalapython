@@ -4721,3 +4721,21 @@ class AssignLog_New(models.Model):
                 setattr(self, field, None)
 
         super().save(*args, **kwargs)
+
+
+class StateRoundRobin(models.Model):
+    id = models.AutoField(primary_key=True)
+    
+    # IMPORTANT: use state_id, not name
+    state_id = models.IntegerField(unique=True)
+    
+    last_assigned_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        db_table = "state_round_robin"
+        managed = False  # Set to True only if Django should manage the table
