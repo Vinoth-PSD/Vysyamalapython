@@ -482,7 +482,7 @@ EMAIL_HOST = 'bv-b29.yuvanetworks.in'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'vinoth@psdigitise.com'
-EMAIL_HOST_PASSWORD = 'VinoTH@12160'
+EMAIL_HOST_PASSWORD = 'Vignesh@12160'
 DEFAULT_FROM_EMAIL = 'vinoth@psdigitise.com'
 
 
