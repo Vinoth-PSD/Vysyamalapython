@@ -93,7 +93,13 @@ import time  # For performance measurement
 import logging
 from functools import lru_cache
 from django.db.models import Prefetch
-# import imgkit
+import imgkit
+
+
+config = imgkit.config(
+    wkhtmltoimage=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltoimage.exe"
+)
+
 
 
 
@@ -22509,13 +22515,9 @@ class Free_packages(APIView):
                     "data_message": f"Thank you for registering in Vysyamala. Your profile has been successfully submitted.Your Profile Id is  {profile_id} . We truly appreciate you taking the time to join Vysyamala—it means a lot to us! Our customer support team will review your details and get in touch with you shortly to complete the approval process. Welcome to the Vysyamala family!",
                     'token':token.key ,'profile_id':profile_id ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till }, status=status.HTTP_200_OK)
 
-class Rasi_Image(APIView):
-    def post(self,request):
-        planet_mapping = {
-    "1": "Sun", "2": "Moo", "3": "Rahu", "4": "Kethu", "5": "Mar",
-    "6": "Ven", "7": "Jup", "8": "Mer", "9": "Sat", "10": "Lag"
-}
-default_placeholder = '-'
+
+
+
 
 def generate_table_html(grid_dict, title):
     return f"""
@@ -22574,44 +22576,45 @@ def generate_table_html(grid_dict, title):
     </html>
     """
 
-# class Rasi_Image(APIView):
-#     def post(self, request):
-#         user_profile_id = request.data.get("profile_id")
-#         if not user_profile_id:
-#             return Response({"message": "Profile_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-#         horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
 
-#         if horoscope.rasi_kattam:
-#             rasi_kattam_data = parse_data(horoscope.rasi_kattam)
-#         else:
-#             rasi_kattam_data = parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
+class Rasi_Image(APIView):
+    def post(self, request):
+        user_profile_id = request.data.get("profile_id")
+        if not user_profile_id:
+            return Response({"message": "Profile_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
 
-#         rasi_kattam_data.extend([default_placeholder] * (12 - len(rasi_kattam_data)))
+        if horoscope.rasi_kattam:
+            rasi_kattam_data = parse_data(horoscope.rasi_kattam)
+        else:
+            rasi_kattam_data = parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
 
-#         print("rasi",rasi_kattam_data)
+        rasi_kattam_data.extend([default_placeholder] * (12 - len(rasi_kattam_data)))
 
-#         html_content = generate_table_html( rasi_kattam_data, title="Rasi Chart")
+        print("rasi",rasi_kattam_data)
 
-#         img_data = imgkit.from_string(html_content, False)
+        html_content = generate_table_html( rasi_kattam_data, title="Rasi Chart")
 
-#         return HttpResponse(img_data, content_type="image/jpeg")
+        img_data = imgkit.from_string(html_content, False)
+
+        return HttpResponse(img_data, content_type="image/jpeg")
     
-# class Amsam_Image(APIView):
-#     def post(self, request):
-#         user_profile_id = request.data.get("profile_id")
-#         if not user_profile_id:
-#             return Response({"message": "Profile_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-#         horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
+class Amsam_Image(APIView):
+    def post(self, request):
+        user_profile_id = request.data.get("profile_id")
+        if not user_profile_id:
+            return Response({"message": "Profile_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
 
-#         if horoscope.amsa_kattam:
-#             amsa_kattam_data = parse_data(horoscope.amsa_kattam)
-#         else:
-#             amsa_kattam_data = parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
+        if horoscope.amsa_kattam:
+            amsa_kattam_data = parse_data(horoscope.amsa_kattam)
+        else:
+            amsa_kattam_data = parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
 
-#         amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))
+        amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))
 
-#         html_content = generate_table_html(amsa_kattam_data, title="Amsam")
+        html_content = generate_table_html(amsa_kattam_data, title="Amsam")
 
-#         img_data = imgkit.from_string(html_content, False)
+        img_data = imgkit.from_string(html_content, False)
 
-#         return HttpResponse(img_data, content_type="image/jpeg")
+        return HttpResponse(img_data, content_type="image/jpeg")
