@@ -245,8 +245,8 @@ urlpatterns = [
 
     path('Free_packages/',views.Free_packages.as_view(),name='Free_packages'),
 
-    # path('rasi-image/',views.Rasi_Image.as_view(),name="rasi-image"),
-    # path('amsa-image/',views.Amsam_Image.as_view(),name="amsa-image"),
+    path('rasi-image/',views.Rasi_Image.as_view(),name="rasi-image"),
+    path('amsa-image/',views.Amsam_Image.as_view(),name="amsa-image"),
 
       #  path('get_blurred_image/', views.get_blurred_image.as_view(), name='get_blurred_image'),
      path('', views.home, name='home'),
