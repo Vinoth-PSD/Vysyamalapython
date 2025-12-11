@@ -3040,17 +3040,48 @@ class GetProfEditDetailsAPIView(APIView):
 
         return Response(response_data, status=status.HTTP_200_OK)
 
+# def safe_get_by_id(model, pk_value, return_field):
+#     if not pk_value:
+#         return ""
+#     try:
+#         obj = model.objects.get(pk=pk_value)
+#         return getattr(obj, return_field)
+#     except model.DoesNotExist:
+#         return ""
+#     except Exception as e:
+#         print(f"[ERROR] {e}")
+#         return ""
+
+
 def safe_get_by_id(model, pk_value, return_field):
+    """
+    Safely fetch a field value from a model using the primary key.
+    If pk_value is a name (e.g., "Chennai"), return it as is.
+    """
+
     if not pk_value:
         return ""
-    try:
-        obj = model.objects.get(pk=pk_value)
-        return getattr(obj, return_field)
-    except model.DoesNotExist:
-        return ""
-    except Exception as e:
-        print(f"[ERROR] {e}")
-        return ""
+
+    # Convert comma-separated values → take first ID
+    if isinstance(pk_value, str) and "," in pk_value:
+        pk_value = pk_value.split(",")[0].strip()
+
+    # If pk_value is a pure number → treat as ID
+    if isinstance(pk_value, int) or (isinstance(pk_value, str) and pk_value.isdigit()):
+        try:
+            pk_int = int(pk_value)
+            obj = model.objects.filter(pk=pk_int).first()
+            if not obj:
+                return ""   # ID not found
+            return getattr(obj, return_field, "")
+        except Exception as e:
+            print(f"[ERROR] Failed DB fetch for {model.__name__} with id={pk_value}: {e}")
+            return ""
+
+    # Otherwise → pk_value is not an ID, it's a name → return directly
+    return pk_value
+
+
 
 
 
@@ -4186,14 +4217,33 @@ def get_dhosham_new(dhosham_id):
     return dhosham_map.get(dhosham_id, "N/A")
 
 
-{s.id: s.name for s in State.objects.all()}
+# {s.id: s.name for s in State.objects.all()}
 
-# Use the dictionary keys directly
-states_map = {s["id"]: s["name"] for s in State.objects.filter(is_deleted=False).values("id", "name")}
-countries_map = {c["id"]: c["name"] for c in Country.objects.filter(is_deleted=False).values("id", "name")}
+# # Use the dictionary keys directly
+# states_map = {s["id"]: s["name"] for s in State.objects.filter(is_deleted=False).values("id", "name")}
+# countries_map = {c["id"]: c["name"] for c in Country.objects.filter(is_deleted=False).values("id", "name")}
+
+
+
+def get_states_map():
+    return {
+        s["id"]: s["name"]
+        for s in State.objects.filter(is_deleted=False).values("id", "name")
+    }
+
+def get_countries_map():
+    return {
+        c["id"]: c["name"]
+        for c in Country.objects.filter(is_deleted=False).values("id", "name")
+    }
+
 
 
 def get_location_new(city, state_id, country_id):
+
+    states_map = get_states_map()
+    countries_map = get_countries_map()
+
     parts = []
 
     # City
@@ -4202,17 +4252,26 @@ def get_location_new(city, state_id, country_id):
 
     # State
     if state_id:
-        state_name = states_map.get(int(state_id)) if str(state_id).isdigit() else state_id
+        if str(state_id).isdigit():
+            state_name = states_map.get(int(state_id))
+        else:
+            state_name = state_id
+
         if state_name:
             parts.append(state_name)
 
-    # Country (used only if state not present)
+    # Country (only if state missing)
     elif country_id:
-        country_name = countries_map.get(int(country_id)) if str(country_id).isdigit() else country_id
+        if str(country_id).isdigit():
+            country_name = countries_map.get(int(country_id))
+        else:
+            country_name = country_id
+
         if country_name:
             parts.append(country_name)
 
     return ", ".join(parts) if parts else "N/A"
+
 
 
 def get_designation_or_nature_new(des, nature):
@@ -12944,243 +13003,25 @@ class WhatsappShareView(APIView):
 #             "data": filtered_data
 #         })
 
-# class ExpiredMembersReport(APIView):
-
-#     def get(self, request, *args, **kwargs):
-
-#         status_param      = request.GET.get("status", "1")
-#         owner_param       = request.GET.get("owner", "26")
-#         age_filter        = request.GET.get("ageFilter", "")
-#         gender_filter     = request.GET.get("genderFilter", "")
-#         family_filter     = request.GET.get("familyFilter", "")
-#         login_filter      = request.GET.get("loginFilter", "")
-#         expiring_filter   = request.GET.get("expiringFilter", "")
-#         call_status_filter = request.GET.get("callStatusFilter", "")
-#         idle_days_filter  = request.GET.get("idleDaysFilter", "")
-#         from_date         = request.GET.get("from_date", "")
-#         to_date           = request.GET.get("to_date", "")
-#         age_from          = request.GET.get("age_from", "")
-#         age_to            = request.GET.get("age_to", "")
-#         plan_id           = request.GET.get("plan_id", "")
-#         search            = request.GET.get("search", "").strip().lower()
-
-#         today = date.today()
-#         yesterday = today - timedelta(days=1)
-
-#         def calculate_age(dob):
-#             if not dob:
-#                 return None
-#             try:
-#                 if isinstance(dob, datetime):
-#                     dob = dob.date()
-#                 return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-#             except:
-#                 return None
-
-#         def safe_date(d):
-#             try:
-#                 return datetime.strptime(d, "%Y-%m-%d").date()
-#             except:
-#                 return None
-
-#         from_date_obj = safe_date(from_date)
-#         to_date_obj   = safe_date(to_date)
-
-#         final_filtered = []
-#         with connection.cursor() as cursor:
-
-#             cursor.callproc("GetExpiredMembersReport", [
-#                 status_param,
-#                 owner_param,
-#                 age_filter,
-#                 gender_filter,
-#                 family_filter,
-#                 login_filter,
-#                 expiring_filter,
-#                 call_status_filter,
-#                 idle_days_filter
-#             ])
-
-#             base_rows = cursor.fetchall()
-#             base_columns = [col[0] for col in cursor.description]
-#             base_data = [dict(zip(base_columns, row)) for row in base_rows]
-
-#             cursor.nextset()
-#             overall_row = cursor.fetchone()
-#             overall_count = overall_row[0] if overall_row else len(base_data)
-
-#             cursor.nextset()
-#             filtered_rows = cursor.fetchall() if cursor.description else []
-#             filtered_columns = [col[0] for col in cursor.description] if cursor.description else []
-#             filtered_data = [dict(zip(filtered_columns, row)) for row in filtered_rows]
-
-#         for row in filtered_data:
-
-#             row["age"] = calculate_age(row.get("Profile_dob"))
-#             age = row["age"]
-
-#             next_action_raw = row.get("next_action_date")
-#             next_action = next_action_raw.date() if isinstance(next_action_raw, datetime) else next_action_raw
-
-#             if next_action:
-#                 diff = (today - next_action).days
-#                 row["idle_days"] = diff if diff > 0 else None
-#             else:
-#                 row["idle_days"] = None
-
-#             include = True
-
-#             mem_end = row.get("membership_enddate")
-#             if isinstance(mem_end, datetime):
-#                 mem_end = mem_end.date()
-
-#             if from_date_obj and (not mem_end or mem_end < from_date_obj):
-#                 include = False
-#             if to_date_obj and (not mem_end or mem_end > to_date_obj):
-#                 include = False
-
-#             if age_from and (age is None or age < int(age_from)):
-#                 include = False
-#             if age_to and (age is None or age > int(age_to)):
-#                 include = False
-
-#             if plan_id and str(row.get("Plan_id")) != str(plan_id):
-#                 include = False
-
-#             if search:
-#                 if search not in str(row.get("ProfileId", "")).lower() and \
-#                    search not in str(row.get("Profile_name", "")).lower():
-#                     include = False
-
-#             if include:
-#                 final_filtered.append(row)
-
-#         under_30 = above_30 = 0
-#         male_count = female_count = 0
-#         today_login = yesterday_login = 0
-#         expired_count = expiring_count = 0
-#         hot = warm = cold = not_interested = 0
-#         idle_45_count = idle_90_count = 0
-#         today_work_count = pending_work_count = 0
-
-#         family_status_counts = {3: 0, 4: 0, 6: 0}
-#         family_status_labels = {3: "Upper Middle Class", 4: "Rich", 6: "Affluent"}
-
-#         for item in base_data:
-
-#             age = calculate_age(item.get("Profile_dob"))
-#             if age is not None:
-#                 if age < 30:
-#                     under_30 += 1
-#                 else:
-#                     above_30 += 1
-
-#             gender = str(item.get("Gender", "")).lower()
-#             if gender in ["male", "m", "1"]:
-#                 male_count += 1
-#             elif gender in ["female", "f", "2"]:
-#                 female_count += 1
-
-#             try:
-#                 fs = int(item.get("family_status"))
-#                 if fs in family_status_counts:
-#                     family_status_counts[fs] += 1
-#             except:
-#                 pass
-
-#             last_login = item.get("Last_login_date")
-#             last_login = last_login.date() if isinstance(last_login, datetime) else last_login
-#             if last_login == today:
-#                 today_login += 1
-#             elif last_login == yesterday:
-#                 yesterday_login += 1
-
-#             mem_end = item.get("membership_enddate")
-#             mem_end = mem_end.date() if isinstance(mem_end, datetime) else mem_end
-#             if mem_end:
-#                 if mem_end.month == today.month and mem_end.year == today.year:
-#                     expiring_count += 1
-#                 elif mem_end < today:
-#                     expired_count += 1
-
-#             call_st = item.get("last_call_status")
-#             try:
-#                 call_st = int(call_st)
-#                 if call_st == 1: hot += 1
-#                 elif call_st == 2: warm += 1
-#                 elif call_st == 3: cold += 1
-#                 elif call_st == 4: not_interested += 1
-#             except:
-#                 pass
-#             last_action = item.get("last_action_date")
-#             last_action = last_action.date() if isinstance(last_action, datetime) else last_action
-#             if last_action:
-#                 gap = (today - last_action).days
-#                 if gap > 45: idle_45_count += 1
-#                 if gap > 90: idle_90_count += 1
-
-#             next_action = item.get("next_action_date")
-#             next_action = next_action.date() if isinstance(next_action, datetime) else next_action
-#             if next_action:
-#                 if next_action == today:
-#                     today_work_count += 1
-#                 elif next_action < today:
-#                     pending_work_count += 1
-
-#         family_status_counts_named = {
-#             family_status_labels[k]: v for k, v in family_status_counts.items()
-#         }
-
-#         return Response({
-#             "status": True,
-#             "overall_count": overall_count,
-#             "filtered_count": len(final_filtered),
-#             "under_30": under_30,
-#             "above_30": above_30,
-#             "male_count": male_count,
-#             "female_count": female_count,
-#             "family_status_counts": family_status_counts_named,
-#             "today_login_count": today_login,
-#             "yesterday_login_count": yesterday_login,
-#             "expired_this_month_count": expiring_count,
-#             "call_status_counts": {
-#                 "hot": hot,
-#                 "warm": warm,
-#                 "cold": cold,
-#                 "not_interested": not_interested
-#             },
-#             "last_action_counts": {
-#                 "over_45_days": idle_45_count,
-#                 "over_90_days": idle_90_count
-#             },
-#             "action_counts": {
-#                 "today_work": today_work_count,
-#                 "pending_work": pending_work_count
-#             },
-#             "data": final_filtered
-#         })
-
-
 class ExpiredMembersReport(APIView):
 
     def get(self, request, *args, **kwargs):
 
-        status_param        = request.GET.get("status", "1")
-        owner_param         = request.GET.get("owner", "26")
-        age_filter          = request.GET.get("ageFilter", "")
-        gender_filter       = request.GET.get("genderFilter", "")
-        family_filter       = request.GET.get("familyFilter", "")
-        login_filter        = request.GET.get("loginFilter", "")
-        expiring_filter     = request.GET.get("expiringFilter", "")
-        call_status_filter  = request.GET.get("callStatusFilter", "")
-        idle_days_filter    = request.GET.get("idleDaysFilter", "")
-
-        from_date           = request.GET.get("from_date", "")
-        to_date             = request.GET.get("to_date", "")
-        age_from            = request.GET.get("age_from", "")
-        age_to              = request.GET.get("age_to", "")
-        plan_id             = request.GET.get("plan_id", "")
-        search              = request.GET.get("search", "").strip().lower()
+        status_param      = request.GET.get("status", "1")
+        owner_param       = request.GET.get("owner", "26")
+        age_filter        = request.GET.get("ageFilter", "")
+        gender_filter     = request.GET.get("genderFilter", "")
+        family_filter     = request.GET.get("familyFilter", "")
+        login_filter      = request.GET.get("loginFilter", "")
+        expiring_filter   = request.GET.get("expiringFilter", "")
+        call_status_filter = request.GET.get("callStatusFilter", "")
+        idle_days_filter  = request.GET.get("idleDaysFilter", "")
+        from_date         = request.GET.get("from_date", "")
+        to_date           = request.GET.get("to_date", "")
+        age_from          = request.GET.get("age_from", "")
+        age_to            = request.GET.get("age_to", "")
+        plan_id           = request.GET.get("plan_id", "")
+        search            = request.GET.get("search", "").strip().lower()
 
         today = date.today()
         yesterday = today - timedelta(days=1)
@@ -13194,6 +13035,15 @@ class ExpiredMembersReport(APIView):
                 return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
             except:
                 return None
+
+        def safe_date(d):
+            try:
+                return datetime.strptime(d, "%Y-%m-%d").date()
+            except:
+                return None
+
+        from_date_obj = safe_date(from_date)
+        to_date_obj   = safe_date(to_date)
 
         final_filtered = []
         with connection.cursor() as cursor:
