@@ -180,7 +180,8 @@ DATABASES = {
         'USER': 'vysyamala_new25',
         'PASSWORD': 'DevVy@2025',
         'HOST': 'vysyamat.mysql.database.azure.com',  # e.g., 'localhost' or an IP address
-        'PORT': '3306'  # default MySQL port
+        'PORT': '3306',  # default MySQL port
+        'CONN_MAX_AGE': 60, 
         # 'OPTIONS': {
         #     'init_command': 'SET SESSION wait_timeout=28800',
         #     'connect_timeout': 10
