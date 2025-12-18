@@ -13014,8 +13014,11 @@ class ExpiredMembersReport(APIView):
         family_filter     = request.GET.get("familyFilter", "")
         login_filter      = request.GET.get("loginFilter", "")
         expiring_filter   = request.GET.get("expiringFilter", "")
-        call_status_filter = request.GET.get("callStatusFilter", "")
+        call_status_filter= request.GET.get("callStatusFilter", "")
         idle_days_filter  = request.GET.get("idleDaysFilter", "")
+        action_filter     = request.GET.get("actionFilter", "")
+        photo_filter      = request.GET.get("photoFilter", "")   
+        horo_filter       = request.GET.get("horoFilter", "") 
         from_date         = request.GET.get("from_date", "")
         to_date           = request.GET.get("to_date", "")
         age_from          = request.GET.get("age_from", "")
@@ -13093,6 +13096,49 @@ class ExpiredMembersReport(APIView):
                 row["idle_days"] = None
 
             include = True
+            if action_filter:
+                today = date.today()
+
+                next_call = row.get("next_call_date")
+                if isinstance(next_call, datetime):
+                    next_call = next_call.date()
+
+                next_action = row.get("next_action_date")
+                if isinstance(next_action, datetime):
+                    next_action = next_action.date()
+
+                if action_filter == "today_work":
+                    if not next_call or next_call != today:
+                        continue
+
+                elif action_filter == "pending_work":
+                    if not next_call or next_call >= today:
+                        continue
+
+                elif action_filter == "today_task":
+                    if not next_action or next_action != today:
+                        continue
+
+                elif action_filter == "pending_task":
+                    if not next_action or next_action >= today:
+                        continue
+                
+            if include and photo_filter:
+                has_photo = bool(row.get("has_photo"))
+
+                if photo_filter == "has_photo" and not has_photo:
+                    include = False
+                elif photo_filter == "no_photo" and has_photo:
+                    include = False
+
+            if include and horo_filter:
+                has_horo = bool(row.get("has_horo"))
+
+                if horo_filter == "has_horo" and not has_horo:
+                    include = False
+                elif horo_filter == "no_horo" and has_horo:
+                    include = False
+
             if search:
                 if search not in str(row.get("ProfileId", "")).lower() and \
                    search not in str(row.get("Profile_name", "")).lower():
@@ -13108,6 +13154,12 @@ class ExpiredMembersReport(APIView):
         hot = warm = cold = not_interested = 0
         idle_45_count = idle_90_count = 0
         today_work_count = pending_work_count = 0
+        today_task_count = pending_task_count = 0
+        no_photo_count = 0
+        no_horo_count = 0
+        has_photo_count = 0
+        has_horo_count = 0
+
 
         family_status_counts = {3: 0, 4: 0, 6: 0}
         family_status_labels = {3: "Upper Middle Class", 4: "Rich", 6: "Affluent"}
@@ -13165,13 +13217,31 @@ class ExpiredMembersReport(APIView):
                 if gap > 45: idle_45_count += 1
                 if gap > 90: idle_90_count += 1
 
+            next_call = item.get("next_call_date")
+            next_call = next_call.date() if isinstance(next_call, datetime) else next_call
+            if next_call:
+                if next_call == today:
+                    today_work_count += 1
+                elif next_call < today:
+                    pending_work_count += 1
+                    
             next_action = item.get("next_action_date")
             next_action = next_action.date() if isinstance(next_action, datetime) else next_action
             if next_action:
                 if next_action == today:
-                    today_work_count += 1
+                    today_task_count += 1
                 elif next_action < today:
-                    pending_work_count += 1
+                    pending_task_count += 1
+                    
+            if item.get("has_photo"):
+                has_photo_count += 1
+            else:
+                no_photo_count += 1
+
+            if item.get("has_horo"):
+                has_horo_count += 1
+            else:
+                no_horo_count += 1
 
         family_status_counts_named = {
             family_status_labels[k]: v for k, v in family_status_counts.items()
@@ -13201,8 +13271,12 @@ class ExpiredMembersReport(APIView):
             },
             "action_counts": {
                 "today_work": today_work_count,
-                "pending_work": pending_work_count
+                "pending_work": pending_work_count,
+                "today_task": today_task_count,
+                "pending_task": pending_task_count
             },
+            "no_photo": no_photo_count,
+            "no_horo": no_horo_count,
             "data": final_filtered
         })
 
@@ -13233,3 +13307,159 @@ class AutoAssignProfile(APIView):
             "profile_id": profile_id,
             "assigned_admin": assigned_admin.username if assigned_admin else None
         })
+        
+
+@api_view(['GET'])
+def get_call_log_by_id(request, id):
+    call_logs = (
+        CallLog.objects
+        .filter(id=id, is_deleted=0)
+        .select_related('call_type', 'particulars', 'call_status')
+        .annotate(
+            call_type_name=F('call_type__call_type'),
+            particulars_name=F('particulars__particulars'),
+            call_status_name=F('call_status__status'),
+        )
+        .order_by('-call_date')
+        .values(
+            'id',
+            'call_management_id',
+            'call_date',
+            'comments',
+            'next_call_date',
+            'call_owner',
+            'created_at',
+
+            'call_type_id',
+            'call_type_name',
+
+            'particulars_id',
+            'particulars_name',
+
+            'call_status_id',
+            'call_status_name',
+        )
+    )
+
+
+    user_ids = set()
+    for log in call_logs:
+        if log["call_owner"]:
+            try:
+                user_ids.add(int(log["call_owner"]))  
+            except:
+                pass
+
+    users = User.objects.in_bulk(user_ids)
+
+    for log in call_logs:
+        owner_id = log["call_owner"]
+        try:
+            owner_id = int(owner_id)
+        except:
+            owner_id = None
+
+        log["call_owner_name"] = (
+            users[owner_id].username if owner_id in users else None
+        )
+
+    return Response({
+        "call_logs": list(call_logs)
+    })
+
+
+@api_view(['GET'])
+def get_action_log_by_id(request, id):
+
+    action_logs = list(
+        ActionLog.objects
+        .filter(id=id, is_deleted=0)
+        .select_related('action_point', 'next_action')
+        .annotate(
+            action_point_name=F('action_point__action_point'),
+            next_action_name=F('next_action__action_point'),
+        )
+        .order_by('-action_date')
+        .values(
+            'id',
+            'call_management_id',
+            'action_date',
+            'comments',
+            'created_at',
+            
+            'action_point_id',
+            'action_point_name',
+            'next_action_date',
+            'next_action_id',
+            'next_action_name',
+
+            'action_owner'
+        )
+    )
+
+    user_ids = set()
+    for log in action_logs:
+        if log["action_owner"]:
+            try:
+                user_ids.add(int(log["action_owner"]))   
+            except:
+                pass
+
+    users = User.objects.in_bulk(user_ids)
+
+    for log in action_logs:
+        owner_id = log["action_owner"]
+        try:
+            owner_id = int(owner_id)
+        except:
+            owner_id = None
+
+        log["action_owner_name"] = (
+            users[owner_id].username if owner_id in users else None
+        )
+
+    return Response({
+        "action_logs": action_logs
+    })
+
+@api_view(['GET'])
+def get_action_summary(request, profile_id):
+    summary = { 
+               "interest_sent": 0, 
+               "interest_received": 0, 
+               "interest_accepted": 0, 
+               "interest_rejected": 0, 
+               "bookmarked": 0, 
+               "bookmark_received": 0, 
+               "photo_request_sent": 0, 
+               "photo_request_received": 0, 
+               "visited_count": 0, 
+               "viewed_count": 0, 
+               }
+    interests = Express_interests.objects.filter( Q(profile_from=profile_id) | Q(profile_to=profile_id), status__in=[1, 2, 3] ) 
+    for ei in interests: 
+        if ei.profile_from == profile_id: 
+            if ei.status == 1: 
+                summary["interest_sent"] += 1 
+            elif ei.status == 2: 
+                summary["interest_accepted"] += 1 
+            elif ei.status == 3: 
+                summary["interest_rejected"] += 1 
+            else: 
+                if ei.status == 1: summary["interest_received"] += 1 
+                
+    wishlists = Profile_wishlists.objects.filter( Q(profile_from=profile_id, status=1) | Q(profile_to=profile_id, status=1) ) 
+    for wl in wishlists: 
+        if wl.profile_from == profile_id: 
+            summary["bookmarked"] += 1 
+        else: 
+            summary["bookmark_received"] += 1 
+     
+    visitors = Profile_visitors.objects.filter( Q(profile_id=profile_id, status=1) | Q(viewed_profile=profile_id, status=1) ) 
+    for v in visitors: 
+        if v.profile_id == profile_id: 
+            summary["visited_count"] += 1 
+        else: 
+            summary["viewed_count"] += 1 
+            
+    return Response(summary)

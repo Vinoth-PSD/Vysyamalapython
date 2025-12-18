@@ -4381,7 +4381,7 @@ class CallLog(models.Model):
 
     call_management = models.ForeignKey(CallManagement, on_delete=models.CASCADE)
 
-    call_date = models.DateField(null=True, blank=True)
+    call_date = models.DateTimeField(null=True, blank=True)
     call_type = models.ForeignKey(CallTypeMaster, on_delete=models.SET_NULL, null=True)
     particulars = models.ForeignKey(ParticularsMaster, on_delete=models.SET_NULL, null=True)
     call_status = models.ForeignKey(CallStatusMaster, on_delete=models.SET_NULL, null=True)
@@ -4414,7 +4414,7 @@ class ActionLog(models.Model):
         db_column='call_management_id'
     )
 
-    action_date = models.DateField(null=True, blank=True)
+    action_date = models.DateTimeField(null=True, blank=True)
 
     action_point = models.ForeignKey(
         ActionPointMaster,
@@ -4460,7 +4460,7 @@ class AssignLog(models.Model):
         db_column='call_management_id'
     )
 
-    assigned_date = models.DateField(null=True, blank=True)
+    assigned_date = models.DateTimeField(null=True, blank=True)
     assigned_to = models.IntegerField(null=True)
     assigned_by = models.IntegerField(null=True)
     notes = models.TextField(null=True)
@@ -4622,7 +4622,7 @@ class CallLog_New(models.Model):
 
     call_management = models.ForeignKey(CallManagement_New, on_delete=models.CASCADE)
 
-    call_date = models.DateField(null=True, blank=True)
+    call_date = models.DateTimeField(null=True, blank=True)
     call_type = models.ForeignKey(CallTypeMaster, on_delete=models.SET_NULL, null=True)
     particulars = models.ForeignKey(ParticularsMaster, on_delete=models.SET_NULL, null=True)
     call_status = models.ForeignKey(CallStatusMaster, on_delete=models.SET_NULL, null=True)
@@ -4655,7 +4655,7 @@ class ActionLog_New(models.Model):
         db_column='call_management_id'
     )
 
-    action_date = models.DateField(null=True, blank=True)
+    action_date = models.DateTimeField(null=True, blank=True)
 
     action_point = models.ForeignKey(
         ActionPointMaster,
@@ -4701,7 +4701,7 @@ class AssignLog_New(models.Model):
         db_column='call_management_id'
     )
 
-    assigned_date = models.DateField(null=True, blank=True)
+    assigned_date = models.DateTimeField(null=True, blank=True)
     assigned_to = models.IntegerField(null=True)
     assigned_by = models.IntegerField(null=True)
     notes = models.TextField(null=True)
