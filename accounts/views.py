@@ -67,7 +67,7 @@ from django.db.models import DateTimeField
 from .models import Invoice,AdminPrintLogs
 import tempfile
 from xhtml2pdf import pisa
-from io import BytesIO
+from io import BytesIO,StringIO
 import base64
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
@@ -13003,6 +13003,24 @@ class WhatsappShareView(APIView):
 #             "data": filtered_data
 #         })
 
+EXPORT_COLUMNS = [
+    ("ProfileId", "Profile ID"),
+    ("Profile_name", "Name"),
+    ("age", "Age"),
+    ("family_status_name", "Family Status"),
+    ("education", "Education Details"),
+    ("income", "Annual Income"),
+    ("Profile_city", "City"),
+    ("plan_name", "Mode"),
+    ("owner_name", "Owner"),
+    ("membership_startdate", "From Date"),
+    ("membership_enddate", "To Date"),
+    ("Last_login_date", "Last Login"),
+    ("idle_days", "Idle Days"),
+    ("call_status", "Status"),
+]
+
+
 class ExpiredMembersReport(APIView):
 
     def get(self, request, *args, **kwargs):
@@ -13025,7 +13043,7 @@ class ExpiredMembersReport(APIView):
         age_to            = request.GET.get("age_to", "")
         plan_id           = request.GET.get("plan_id", "")
         search            = request.GET.get("search", "").strip().lower()
-
+        export_type       = request.GET.get("export", "").lower()
         today = date.today()
         yesterday = today - timedelta(days=1)
 
@@ -13146,6 +13164,56 @@ class ExpiredMembersReport(APIView):
 
             if include:
                 final_filtered.append(row)
+                
+                
+        if export_type in ["csv", "excel"]:
+
+            export_data = []
+            for row in final_filtered:
+                education = ""
+                if row.get("degree_name") and row.get("other_degree"):
+                    education = f"{row.get('degree_name')} / {row.get('other_degree')}"
+                else:
+                    education = row.get("degree_name") or row.get("other_degree") or ""
+
+                export_row = {
+                    "Profile ID": row.get("ProfileId"),
+                    "Name": row.get("Profile_name"),
+                    "Age": row.get("age"),
+                    "Family Status": row.get("family_status_name"),
+                    "Education Details": education,
+                    "Annual Income": row.get("income"),
+                    "City": row.get("Profile_city"),
+                    "Mode": row.get("plan_name"),
+                    "Owner": row.get("owner_name"),
+                    "From Date": row.get("membership_startdate"),
+                    "To Date": row.get("membership_enddate"),
+                    "Last Login": row.get("Last_login_date"),
+                    "Idle Days": row.get("idle_days"),
+                    "Status": row.get("call_status"),
+                }
+
+                export_data.append(export_row)
+
+            df = pd.DataFrame(export_data)
+
+            if export_type == "csv":
+                output = StringIO()
+                df.to_csv(output, index=False)
+                response = HttpResponse(output.getvalue(), content_type="text/csv")
+                response["Content-Disposition"] = 'attachment; filename="expired_members_report.csv"'
+                return response
+
+            elif export_type == "excel":
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                    df.to_excel(writer, index=False, sheet_name="Report")
+                response = HttpResponse(
+                    output.getvalue(),
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+                response["Content-Disposition"] = 'attachment; filename="expired_members_report.xlsx"'
+                return response
 
         under_30 = above_30 = 0
         male_count = female_count = 0
