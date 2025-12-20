@@ -13531,3 +13531,264 @@ def get_action_summary(request, profile_id):
             summary["viewed_count"] += 1 
             
     return Response(summary)
+
+def safe_int(val, default=0):
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return default
+
+
+def safe_str(val):
+    return val if val not in (None, "null", "undefined") else ""
+
+
+def is_missing_file(val):
+    return (
+        val is None
+        or val == ""
+        or val == 0
+        or str(val).lower() in ("null", "undefined", "false")
+    )
+
+
+def to_date_safe(val):
+    try:
+        return val.date() if hasattr(val, "date") else val
+    except Exception:
+        return None
+
+
+def dictfetchall(cursor):
+    columns = [col[0] for col in cursor.description]
+    return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+
+# ---------------- API VIEW ----------------
+
+class NewRegistrationsDashboard(APIView):
+
+    def get(self, request):
+
+        # ---------------- GET PARAMS ----------------
+        owner = safe_str(request.GET.get("owner", "26"))
+        gender = safe_str(request.GET.get("genderFilter", ""))
+        login = safe_str(request.GET.get("loginFilter", ""))
+        call_status = safe_str(request.GET.get("callStatusFilter", ""))
+        idle = safe_str(request.GET.get("idleDaysFilter", ""))
+        from_date = safe_str(request.GET.get("from_date", ""))
+        to_date = safe_str(request.GET.get("to_date", ""))
+        age_from = safe_str(request.GET.get("age_from", ""))
+        age_to = safe_str(request.GET.get("age_to", ""))
+        plan_id = safe_str(request.GET.get("plan_id", ""))
+        count_filter = safe_str(request.GET.get("countFilter", ""))
+        search = safe_str(request.GET.get("search", ""))
+
+        today = date.today()
+
+        # STATE IDS
+        TN = 2
+        KAT = 4
+
+        # ---------------- CALL STORED PROCEDURE ----------------
+        with connection.cursor() as cursor:
+            cursor.callproc(
+                "GetNewRegistrationsDashboard",
+                [
+                    owner, "", gender, "", login,
+                    call_status, idle,
+                    from_date, to_date,
+                    age_from, age_to,
+                    plan_id,
+                    count_filter,
+                    search
+                ]
+            )
+
+            base = dictfetchall(cursor) or []
+
+            cursor.nextset()
+            overall_row = cursor.fetchone()
+            overall = overall_row[0] if overall_row else 0
+
+            cursor.nextset()
+            filtered = dictfetchall(cursor) or []
+
+        base = base or []
+
+        # ---------------- BASIC COUNTS ----------------
+        total = len(base)
+
+        approved = sum(1 for x in base if safe_int(x.get("status")) == 1)
+        unapproved = total - approved
+
+        non_login = sum(1 for x in base if not x.get("Last_login_date"))
+
+        premium = 0
+        for x in base:
+            pid = safe_int(x.get("Plan_id"), None)
+            if pid and pid not in [4, 6, 7, 8, 9]:
+                premium += 1
+
+        # ---------------- WORK / TASK COUNTS ----------------
+        today_work = pending_work = 0
+        today_task = pending_task = 0
+
+        # ---------------- ONLINE / ADMIN COUNTS ----------------
+        online_approved = admin_approved = 0
+        online_unapproved = admin_unapproved = 0
+
+        online_approved_tn = online_approved_kat = 0
+        online_unapproved_tn = online_unapproved_kat = 0
+        admin_approved_tn = admin_approved_kat = 0
+        admin_unapproved_tn = admin_unapproved_kat = 0
+
+        # ---------------- INTEREST COUNTS ----------------
+        hot = warm = cold = not_interested = 0
+
+        # ---------------- MAIN LOOP ----------------
+        for x in base:
+
+            status = safe_int(x.get("status"))
+            state = safe_int(x.get("Profile_state"))
+            profile_for = safe_int(x.get("Profile_for"))
+
+            next_call = to_date_safe(x.get("next_call_date"))
+            next_action = to_date_safe(x.get("next_action_date"))
+
+            # Work
+            if next_call:
+                if next_call == today:
+                    today_work += 1
+                elif next_call < today:
+                    pending_work += 1
+
+            # Task
+            if next_action:
+                if next_action == today:
+                    today_task += 1
+                elif next_action < today:
+                    pending_task += 1
+
+            is_online = profile_for != 8
+            is_admin = profile_for == 8
+            is_approved = status == 1
+
+            # Online
+            if is_online:
+                if is_approved:
+                    online_approved += 1
+                    if state == TN:
+                        online_approved_tn += 1
+                    elif state == KAT:
+                        online_approved_kat += 1
+                else:
+                    online_unapproved += 1
+                    if state == TN:
+                        online_unapproved_tn += 1
+                    elif state == KAT:
+                        online_unapproved_kat += 1
+
+            # Admin
+            if is_admin:
+                if is_approved:
+                    admin_approved += 1
+                    if state == TN:
+                        admin_approved_tn += 1
+                    elif state == KAT:
+                        admin_approved_kat += 1
+                else:
+                    admin_unapproved += 1
+                    if state == TN:
+                        admin_unapproved_tn += 1
+                    elif state == KAT:
+                        admin_unapproved_kat += 1
+
+            # Interest
+            interest = safe_int(x.get("last_call_status"))
+            if interest == 1:
+                hot += 1
+            elif interest == 2:
+                warm += 1
+            elif interest == 3:
+                cold += 1
+            elif interest == 4:
+                not_interested += 1
+
+        # ---------------- EXTRA COUNTS ----------------
+        today_login = sum(
+            1 for x in base
+            if x.get("Last_login_date")
+            and to_date_safe(x.get("Last_login_date")) == today
+        )
+
+        today_birthday = sum(
+            1 for x in base
+            if x.get("Profile_dob")
+            and to_date_safe(x.get("Profile_dob")).day == today.day
+            and to_date_safe(x.get("Profile_dob")).month == today.month
+        )
+
+        # ---------------- SAFE FILE COUNTS ----------------
+        no_id = no_photo = no_horo = 0
+
+        for x in base:
+            if is_missing_file(x.get("Profile_idproof")):
+                no_id += 1
+            if is_missing_file(x.get("has_photo")):
+                no_photo += 1
+            if is_missing_file(x.get("has_horo")):
+                no_horo += 1
+
+        # ---------------- RESPONSE ----------------
+        return Response({
+            "status": True,
+            "overall_count": overall,
+            "filtered_count": len(filtered),
+
+            "total_registration": total,
+            "approved": approved,
+            "unapproved": unapproved,
+            "non_logged_in": non_login,
+            "premium": premium,
+
+            "today_login": today_login,
+            "today_birthday": today_birthday,
+
+            "work_counts": {
+                "today_work": today_work,
+                "pending_work": pending_work
+            },
+
+            "task_counts": {
+                "today_task": today_task,
+                "pending_task": pending_task
+            },
+
+            "online": {
+                "total_approved": online_approved,
+                "total_unapproved": online_unapproved,
+                "approved": {"TN": online_approved_tn, "KAT": online_approved_kat},
+                "unapproved": {"TN": online_unapproved_tn, "KAT": online_unapproved_kat}
+            },
+
+            "admin": {
+                "total_approved": admin_approved,
+                "total_unapproved": admin_unapproved,
+                "approved": {"TN": admin_approved_tn, "KAT": admin_approved_kat},
+                "unapproved": {"TN": admin_unapproved_tn, "KAT": admin_unapproved_kat}
+            },
+
+            "interest": {
+                "hot": hot,
+                "warm": warm,
+                "cold": cold,
+                "not_interested": not_interested
+            },
+
+            "no_photo": no_photo,
+            "no_horo": no_horo,
+            "no_id": no_id,
+
+            "data": filtered
+        })

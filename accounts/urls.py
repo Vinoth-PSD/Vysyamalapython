@@ -248,7 +248,7 @@ urlpatterns = [
     path("profile/<str:profile_id>/auto-assign/", AutoAssignProfile.as_view(), name="auto_assign_profile"),
     path("call-log-details/<int:id>/", views.get_call_log_by_id),
     path("action-log-details/<int:id>/", views.get_action_log_by_id),
-    path("get_profile_action_count/<str:profile_id>/",views.get_action_summary)
-
+    path("get_profile_action_count/<str:profile_id>/",views.get_action_summary),
+    path("registration-report/",views.NewRegistrationsDashboard.as_view(),name="registration-report")
 
 ]
