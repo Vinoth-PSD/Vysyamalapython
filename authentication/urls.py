@@ -220,8 +220,8 @@ urlpatterns = [
      path("create-orderid/", views.CreateOrderView.as_view(), name="create_orderid"),
      path("razorpay-webhook/", views.RazorpayWebhookView.as_view(), name="razorpay_webhook"),
      path("update-payment-status/", views.UpdatePaymentStatusView.as_view(), name="update-payment-status"),
-     path("profile/<str:profile_id>/", views.profile_preview, name="profile_preview"),
-     path("profile_view/<str:profile_id>/", views.profile_preview_withouphoto, name="profile_preview"),
+     path("profile/<str:profile_token>/", views.profile_preview, name="profile_preview"),
+     path("profile_view/<str:profile_token>/", views.profile_preview_withouphoto, name="profile_preview"),
 
      path('generate-porutham-pdf/', views.generate_porutham_pdf, name='generate_porutham_pdf'),
      path('generate-porutham-pdf-mobile/<str:profile_from>/<str:profile_to>/',views.generate_porutham_pdf_mobile,name='generate_porutham_pdf_mobile'

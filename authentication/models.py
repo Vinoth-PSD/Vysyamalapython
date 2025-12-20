@@ -847,6 +847,7 @@ class Familydetails(models.Model):
     madulamn = models.CharField(max_length=10 ,null=True,blank=True)
     father_alive = models.CharField(max_length=10 ,null=True,blank=True)
     mother_alive = models.CharField(max_length=10 ,null=True,blank=True)
+    Physically_challenged_details = models.TextField(null=True,blank=True)
     
     class Meta:
         managed = False  # This tells Django not to handle database table creation/migration for this model

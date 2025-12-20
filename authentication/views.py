@@ -32,6 +32,7 @@ import zipfile
 from datetime import datetime, timedelta
 import base64
 import re
+from django.core import signing
 
 from django.template.loader import render_to_string
 
@@ -3452,17 +3453,26 @@ class Get_profile_wishlist(APIView):
                             "wishlist_match_score":Get_matching_score(my_star_id,my_rasi_id,detail.get("birthstar_name"),detail.get("birth_rasi_name"),my_gender),
                             "wishlist_views":count_records(models.Profile_visitors, {'status': 1,'viewed_profile':detail.get("ProfileId")}),
                             "wishlist_lastvisit": wishlist_map.get(str(detail.get("ProfileId"))).strftime("%b %d, %Y"),
+                            "wishlist_lastvisit_raw": wishlist_map.get(str(detail.get("ProfileId"))),
                             "wishlist_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "wishlist_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "wishlist_profile":Get_wishlist(profile_id,detail.get("ProfileId")),
-
+                            "wishlist_marriage_check": (
+                                int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]
+                            ),
+                            "wishlist_marriage_badge": ( "https://vysyamat.blob.core.windows.net/vysyamala/marriage_settled.jpeg" if (int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]) else None ),
                             # "wishlist_profile_notes": 'Iam intrested in your profile if you are intrested in my profile , please contact me',
                         }
                         for detail in profile_details
                     ]
                     if sort_by == "profile_id":
+                            restricted_profile_details.sort(
+                                key=lambda x: x["wishlist_profileid"],
+                                reverse=(sort_order == "desc")
+                            )
+                    elif sort_by == "datetime":
                         restricted_profile_details.sort(
-                            key=lambda x: x["wishlist_profileid"],
+                            key=lambda x: x["wishlist_lastvisit_raw"],
                             reverse=(sort_order == "desc")
                         )
                     else:
@@ -3600,10 +3610,14 @@ class My_profile_visit(APIView):
                             "viwed_views":count_records(models.Profile_visitors, {'status': 1,'viewed_profile':detail.get("ProfileId")}),
                             # "viwed_lastvisit": visitor_map.get(str(detail.get("ProfileId"))).strftime("%b %d, %Y"),
                             "viwed_lastvisit": profile_datetimes.get(detail.get("ProfileId")).strftime("%b %d, %Y"),
+                            "viwed_lastvisit_raw": profile_datetimes.get(detail.get("ProfileId")),
                             "viwed_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "viwed_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "viwed_profile_wishlist":Get_wishlist(profile_id,detail.get("ProfileId")),
-                             
+                            "visited_marriage_check": (
+                                int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]
+                            ),
+                            "visited_marriage_badge": ( "https://vysyamat.blob.core.windows.net/vysyamala/marriage_settled.jpeg" if (int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]) else None ),
                         }
                         for detail in profile_details
                     ]
@@ -3614,7 +3628,7 @@ class My_profile_visit(APIView):
                         )
                     else:
                         restricted_profile_details.sort(
-                            key=lambda x: x["viwed_lastvisit"],
+                            key=lambda x: x["viwed_lastvisit_raw"],
                             reverse=(sort_order == "desc")
                         )
                     #serialized_fetch_data = serializers.ExpressintrSerializer(fetch_data, many=True).data
@@ -3865,6 +3879,10 @@ class My_viewed_profiles(APIView):
                             "visited_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "visited_profile_wishlist": Get_wishlist(profile_id, detail.get("ProfileId")),
                             "visited_datetime": profile_datetimes.get(detail.get("ProfileId")).strftime("%b %d, %Y"),
+                            "visited_marriage_check": (
+                                int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]
+                            ),
+                            "visited_marriage_badge": ( "https://vysyamat.blob.core.windows.net/vysyamala/marriage_settled.jpeg" if (int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]) else None ),
                         }
                         for detail in profile_details
                     ]
@@ -7748,7 +7766,8 @@ class GetMyProfilePersonal(APIView):
                 # "heightest_education":Profile_high_edu,
                 "heightest_education": f"{Profile_high_edu} {Profile_field_edu} {qualification_name_1} {about_edu}",
                 "prosession":Profile_prosession,
-                "mobile_no":registration.Mobile_no
+                "mobile_no":registration.Mobile_no,
+                "encrypted_profile_id":signing.dumps(profile_id)
             }
 
             response = {
@@ -11319,7 +11338,13 @@ class CreateOrderView(APIView):
 def safe_value(val):
     return val if val not in [None, '', 'null', 'None'] else "N/A"
 
-def profile_preview(request: HttpRequest, profile_id):
+def profile_preview(request: HttpRequest, profile_token):
+    profile_id = None
+    try:
+        profile_id = signing.loads(profile_token)
+    except signing.BadSignature:
+        profile_id= profile_token 
+    
     profile = get_object_or_404(models.Registration1, ProfileId=profile_id)
 
     # Safely fetch profile image
@@ -11421,7 +11446,13 @@ def profile_preview(request: HttpRequest, profile_id):
     return render(request, "profile_preview.html", context)
 
 
-def profile_preview_withouphoto(request: HttpRequest, profile_id):
+def profile_preview_withouphoto(request: HttpRequest, profile_token):
+    profile_id = None
+    try:
+        profile_id = signing.loads(profile_token)
+    except signing.BadSignature:
+        profile_id= profile_token 
+        
     profile = get_object_or_404(models.Registration1, ProfileId=profile_id)
 
     # Optional image (not used here, but still fetched)
@@ -12291,7 +12322,7 @@ class FeaturedProfile(APIView):
                 OR CURDATE() BETWEEN CAST(pf.boosted_date AS DATE) AND CAST(pf.boosted_enddate AS DATE)
             )    
                 ORDER BY RAND()
-                LIMIT 10
+                LIMIT 15
             ) AS rand_ld
             JOIN logindetails ld ON ld.ProfileId = rand_ld.ProfileId
             JOIN (
@@ -12355,6 +12386,7 @@ class FeaturedProfile(APIView):
             return JsonResponse({
                 "Status": 1,
                 "message": "Featured profiles fetched successfully",
+                "profile_count": len(restricted_profile_details),
                 "profiles": restricted_profile_details
             }, status=status.HTTP_200_OK)
 
