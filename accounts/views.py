@@ -13518,6 +13518,7 @@ class ProspectDashboard(APIView):
         current_month_registration = 0
         payment_created = payment_success = payment_failed = 0
         express_interest_20 = 0
+        idle_90_count=0
         
         if export_type in ["csv", "excel"]:
 
@@ -13638,6 +13639,13 @@ class ProspectDashboard(APIView):
                 
             if safe_int(x.get("express_interest_count")) > 20:
                 express_interest_20 += 1
+                
+            last_action = x.get("last_call_date")
+            last_action = last_action.date() if isinstance(last_action, datetime) else last_action
+            if last_action:
+                gap = (today - last_action).days
+                if gap > 45: idle_45_count += 1
+                if gap > 90: idle_90_count += 1
 
 
         # ---------------- EXTRA COUNTS ----------------
@@ -13684,7 +13692,7 @@ class ProspectDashboard(APIView):
             "today_login": today_login,
             "yesterday_login": yesterday_login,
             "today_birthday": today_birthday,
-
+            "idle_90_count":idle_90_count,
             "payment_counts": {
                 "success": payment_success,
                 "failed": payment_failed
