@@ -13644,7 +13644,6 @@ class ProspectDashboard(APIView):
             last_action = last_action.date() if isinstance(last_action, datetime) else last_action
             if last_action:
                 gap = (today - last_action).days
-                if gap > 45: idle_45_count += 1
                 if gap > 90: idle_90_count += 1
 
 
