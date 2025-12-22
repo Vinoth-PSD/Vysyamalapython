@@ -249,6 +249,7 @@ urlpatterns = [
     path("call-log-details/<int:id>/", views.get_call_log_by_id),
     path("action-log-details/<int:id>/", views.get_action_log_by_id),
     path("get_profile_action_count/<str:profile_id>/",views.get_action_summary),
-    path("registration-report/",views.NewRegistrationsDashboard.as_view(),name="registration-report")
+    path("registration-report/",views.NewRegistrationsDashboard.as_view(),name="registration-report"),
+    path("prospect-report/",views.ProspectDashboard.as_view(),name="propect-report"),
 
 ]

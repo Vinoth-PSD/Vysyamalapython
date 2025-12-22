@@ -13338,13 +13338,13 @@ class NewRegistrationsDashboard(APIView):
                     online_approved += 1
                     if state == TN:
                         online_approved_tn += 1
-                    elif state == KAT:
+                    else:
                         online_approved_kat += 1
                 else:
                     online_unapproved += 1
                     if state == TN:
                         online_unapproved_tn += 1
-                    elif state == KAT:
+                    else:
                         online_unapproved_kat += 1
 
             # Admin
@@ -13353,13 +13353,13 @@ class NewRegistrationsDashboard(APIView):
                     admin_approved += 1
                     if state == TN:
                         admin_approved_tn += 1
-                    elif state == KAT:
+                    else:
                         admin_approved_kat += 1
                 else:
                     admin_unapproved += 1
                     if state == TN:
                         admin_unapproved_tn += 1
-                    elif state == KAT:
+                    else:
                         admin_unapproved_kat += 1
 
             # Interest
@@ -13451,4 +13451,274 @@ class NewRegistrationsDashboard(APIView):
             "data": filtered
         })
         
+PAYMENT_STATUS_MAP = {
+    1: "created",
+    2: "success",
+    3: "failed"
+}
+
+class ProspectDashboard(APIView):
+
+    def get(self, request):
+
+        owner = safe_str(request.GET.get("owner", "26"))
+        gender = safe_str(request.GET.get("genderFilter", ""))
+        login = safe_str(request.GET.get("loginFilter", ""))
+        call_status = safe_str(request.GET.get("callStatusFilter", ""))
+        idle = safe_str(request.GET.get("idleDaysFilter", ""))
+        from_date = safe_str(request.GET.get("from_date", ""))
+        to_date = safe_str(request.GET.get("to_date", ""))
+        age_from = safe_str(request.GET.get("age_from", ""))
+        age_to = safe_str(request.GET.get("age_to", ""))
+        plan_id = safe_str(request.GET.get("plan_id", ""))
+        count_filter = safe_str(request.GET.get("countFilter", ""))
+        search = safe_str(request.GET.get("search", ""))
+        export_type = safe_str(request.GET.get("export", "")).lower()
+
+
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+
+        TN = 2
+        KAT = 4
+
+        with connection.cursor() as cursor:
+            cursor.callproc(
+                "GetProspectDashboard",
+                [
+                    owner, "", gender, "", login,
+                    call_status, idle,
+                    from_date, to_date,
+                    age_from, age_to,
+                    plan_id,
+                    count_filter,
+                    search
+                ]
+            )
+
+            base = dictfetchall(cursor) or []
+
+            cursor.nextset()
+            overall_row = cursor.fetchone()
+            overall = overall_row[0] if overall_row else 0
+
+            cursor.nextset()
+            filtered = dictfetchall(cursor) or []
+
+        base = base or []
+
+        total = len(base)
+        under_30 = above_30 = 0
+
+        today_work = pending_work = 0
+        today_task = pending_task = 0
+        prospect = free = basic = offer = 0
+        hot = warm = cold = not_interested = 0
+        no_id = no_photo = no_horo = 0
+        current_month_registration = 0
+        payment_created = payment_success = payment_failed = 0
+        express_interest_20 = 0
+        
+        if export_type in ["csv", "excel"]:
+
+            export_rows = []
+
+            for row in filtered:
+                education = ""
+                if row.get("degree_name") and row.get("other_degree"):
+                    education = f"{row.get('degree_name')} / {row.get('other_degree')}"
+                else:
+                    education = row.get("degree_name") or row.get("other_degree") or ""
+
+                export_rows.append({
+                    "Profile ID": row.get("ProfileId"),
+                    "Name": row.get("Profile_name"),
+                    "Gender": row.get("Gender"),
+                    "Age": row.get("age"),
+                    "City": row.get("Profile_city"),
+                    "State": row.get("state"),
+                    "Education Details": education,
+                    "Annual Income": row.get("income"),
+                    "Family Status": row.get("family_status_name"),
+                    "Plan": row.get("plan_name"),
+                    "Status": row.get("status_name"),
+                    "Owner": row.get("owner_name"),
+                    "Registered Date": row.get("DateOfJoin"),
+                    "Last Login": row.get("Last_login_date"),
+                    "Call Status": row.get("call_status"),
+                })
+
+            df = pd.DataFrame(export_rows)
+
+            if export_type == "csv":
+                output = StringIO()
+                df.to_csv(output, index=False)
+
+                response = HttpResponse(
+                    output.getvalue(),
+                    content_type="text/csv"
+                )
+                response["Content-Disposition"] = (
+                    'attachment; filename="new_registrations_report.csv"'
+                )
+                return response
+
+            elif export_type == "excel":
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                    df.to_excel(writer, index=False, sheet_name="New Registrations")
+
+                response = HttpResponse(
+                    output.getvalue(),
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+                response["Content-Disposition"] = (
+                    'attachment; filename="new_registrations_report.xlsx"'
+                )
+                return response
+
+        
+        for x in base:
+            state = safe_int(x.get("Profile_state"))
+            next_call = to_date_safe(x.get("next_call_date"))
+            next_action = to_date_safe(x.get("next_action_date"))
+            plan_id = safe_int(x.get("Plan_id"), None)
+            age = calculate_age(x.get("Profile_dob"))
+            ps = safe_int(x.get("payment_status"))
+            if age is not None:
+                if age < 30:
+                    under_30 += 1
+                else:
+                    above_30 += 1
+            if plan_id == 6:
+                basic += 1
+            elif plan_id == 7:
+                free += 1
+            elif plan_id == 8:
+                prospect += 1
+            elif plan_id == 9:
+                offer += 1
+            
+
+            # Work
+            if next_call:
+                if next_call == today:
+                    today_work += 1
+                elif next_call < today:
+                    pending_work += 1
+
+            # Task
+            if next_action:
+                if next_action == today:
+                    today_task += 1
+                elif next_action < today:
+                    pending_task += 1
+
+            # Interest
+            interest = safe_int(x.get("last_call_status"))
+            if interest == 1:
+                hot += 1
+            elif interest == 2:
+                warm += 1
+            elif interest == 3:
+                cold += 1
+            elif interest == 4:
+                not_interested += 1
+                
+            if is_missing_file(x.get("Profile_idproof")):
+                no_id += 1
+            if is_missing_file(x.get("has_photo")):
+                no_photo += 1
+            if is_missing_file(x.get("has_horo")):
+                no_horo += 1
+            if ps == 1 or ps ==3:
+                payment_failed += 1
+            elif ps == 2:
+                payment_success += 1
+                
+            if safe_int(x.get("express_interest_count")) > 20:
+                express_interest_20 += 1
+
+
+        # ---------------- EXTRA COUNTS ----------------
+        today_login = sum(
+            1 for x in base
+            if x.get("Last_login_date")
+            and to_date_safe(x.get("Last_login_date")) == today
+        )
+
+        today_birthday = sum(
+            1 for x in base
+            if x.get("Profile_dob")
+            and to_date_safe(x.get("Profile_dob")).day == today.day
+            and to_date_safe(x.get("Profile_dob")).month == today.month
+        )
+        yesterday_login = sum(
+            1 for x in base
+            if x.get("Last_login_date")
+            and to_date_safe(x.get("Last_login_date")) == yesterday
+        )
+        current_month_registration = sum(
+            1 for x in base
+            if x.get("DateOfJoin")
+            and to_date_safe(x.get("DateOfJoin")).month == today.month
+            and to_date_safe(x.get("DateOfJoin")).year == today.year
+        )
+        
+        for row in filtered:
+            ps = safe_int(row.get("payment_status"))
+            row["payment_status_name"] = PAYMENT_STATUS_MAP.get(ps, None)
+
+            
+
+        # ---------------- RESPONSE ----------------
+        return Response({
+            "status": True,
+            "overall_count": overall,
+            "filtered_count": len(filtered),
+            "age_under_30":under_30,
+            "age_above_30":above_30,
+            "total_profiles": total,
+            "cur_month_registrations":current_month_registration,
+
+            "today_login": today_login,
+            "yesterday_login": yesterday_login,
+            "today_birthday": today_birthday,
+
+            "payment_counts": {
+                "success": payment_success,
+                "failed": payment_failed
+            },
+            "work_counts": {
+                "today_work": today_work,
+                "pending_work": pending_work
+            },
+            "express_interest": {
+                "above_20": express_interest_20
+            },
+
+            "task_counts": {
+                "today_task": today_task,
+                "pending_task": pending_task
+            },
+            "plan_counts":{
+                "prospect":prospect,
+                "free":free,
+                "basic":basic,
+                "offer":offer
+            },
+
+            "interest": {
+                "hot": hot,
+                "warm": warm,
+                "cold": cold,
+                "not_interested": not_interested
+            },
+
+            "no_photo": no_photo,
+            "no_horo": no_horo,
+            "no_id": no_id,
+
+            "data": filtered
+        })
         
