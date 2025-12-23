@@ -13729,3 +13729,360 @@ class ProspectDashboard(APIView):
             "data": filtered
         })
         
+def month_diff(from_date, to_date):
+    return (to_date.year - from_date.year) * 12 + (to_date.month - from_date.month)
+
+
+class PremiumDashboard(APIView):
+
+    def get(self, request):
+
+        owner = safe_str(request.GET.get("owner", "26"))
+        gender = safe_str(request.GET.get("genderFilter", ""))
+        login = safe_str(request.GET.get("loginFilter", ""))
+        call_status = safe_str(request.GET.get("callStatusFilter", ""))
+        idle = safe_str(request.GET.get("idleDaysFilter", ""))
+        from_date = safe_str(request.GET.get("from_date", ""))
+        to_date = safe_str(request.GET.get("to_date", ""))
+        age_from = safe_str(request.GET.get("age_from", ""))
+        age_to = safe_str(request.GET.get("age_to", ""))
+        plan_id = safe_str(request.GET.get("plan_id", ""))
+        count_filter = safe_str(request.GET.get("countFilter", ""))
+        search = safe_str(request.GET.get("search", ""))
+        export_type = safe_str(request.GET.get("export", "")).lower()
+
+
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+
+        TN = 2
+        KAT = 4
+
+        with connection.cursor() as cursor:
+            cursor.callproc(
+                "GetPremiumDashboard",
+                [
+                    owner, "", gender, "", login,
+                    call_status, idle,
+                    from_date, to_date,
+                    age_from, age_to,
+                    plan_id,
+                    count_filter,
+                    search
+                ]
+            )
+
+            base = dictfetchall(cursor) or []
+
+            cursor.nextset()
+            overall_row = cursor.fetchone()
+            overall = overall_row[0] if overall_row else 0
+
+            cursor.nextset()
+            filtered = dictfetchall(cursor) or []
+
+        base = base or []
+
+        total = len(base)
+        under_30 = above_30 = 0
+
+        today_work = pending_work = 0
+        today_task = pending_task = 0
+        hot = warm = cold = not_interested = 0
+        gold = platinum = platinum_private = vys_delight = 0
+        g_call_count =g_action_count=p_call_count=p_action_count=0
+        pp_call_count=pp_action_count =vysd_call_count=vysd_action_count=0
+        no_id = no_photo = no_horo = 0
+        current_month_registration = 0
+        male_count = female_count = 0
+        express_interest_20 = 0
+        idle_90_count=0
+        tn=not_tn =0
+        exp_four_month = first_three_month=0
+        selected_month = 3 
+        selected_formonth = 4
+        yesterday_vys_assist = 0
+        yesterday_express_sent = 0
+        yesterday_express_received = 0
+        yesterday_bookmark = 0
+
+
+
+        
+        if export_type in ["csv", "excel"]:
+
+            export_rows = []
+
+            for row in filtered:
+                education = ""
+                if row.get("degree_name") and row.get("other_degree"):
+                    education = f"{row.get('degree_name')} / {row.get('other_degree')}"
+                else:
+                    education = row.get("degree_name") or row.get("other_degree") or ""
+
+                export_rows.append({
+                    "Profile ID": row.get("ProfileId"),
+                    "Name": row.get("Profile_name"),
+                    "Gender": row.get("Gender"),
+                    "Age": row.get("age"),
+                    "City": row.get("Profile_city"),
+                    "State": row.get("state"),
+                    "Education Details": education,
+                    "Annual Income": row.get("income"),
+                    "Family Status": row.get("family_status_name"),
+                    "Plan": row.get("plan_name"),
+                    "Owner": row.get("owner_name"),
+                    "Activation Date": row.get("latest_plan_date"),
+                    "Last Login": row.get("Last_login_date"),
+                    "Call Status": row.get("call_status"),
+                })
+
+            df = pd.DataFrame(export_rows)
+
+            if export_type == "csv":
+                output = StringIO()
+                df.to_csv(output, index=False)
+
+                response = HttpResponse(
+                    output.getvalue(),
+                    content_type="text/csv"
+                )
+                response["Content-Disposition"] = (
+                    'attachment; filename="new_registrations_report.csv"'
+                )
+                return response
+
+            elif export_type == "excel":
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                    df.to_excel(writer, index=False, sheet_name="New Registrations")
+
+                response = HttpResponse(
+                    output.getvalue(),
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+                response["Content-Disposition"] = (
+                    'attachment; filename="new_registrations_report.xlsx"'
+                )
+                return response
+
+        
+        for x in base:
+            state = safe_int(x.get("Profile_state"))
+            next_call = to_date_safe(x.get("next_call_date"))
+            next_action = to_date_safe(x.get("next_action_date"))
+            plan = safe_int(x.get("Plan_id"))
+            age = calculate_age(x.get("Profile_dob"))
+            particular = safe_int(x.get("particulars_id"))
+            today_action = safe_int(x.get("action_point_id"))
+            call_days = safe_int(x.get("call_gap_days"))
+            action_days = safe_int(x.get("action_gap_days"))
+            mem_end = to_date_safe(x.get("membership_enddate"))
+            doj = to_date_safe(x.get("DateOfJoin"))
+            if age is not None:
+                if age < 30:
+                    under_30 += 1
+                else:
+                    above_30 += 1
+                    
+            gender = str(x.get("Gender", "")).lower()
+            if gender in ["male", "m", "1"]:
+                male_count += 1
+            elif gender in ["female", "f", "2"]:
+                female_count += 1
+
+            if state == 2:
+                tn+=1
+            else:
+                not_tn+=1
+            # Work
+            if next_call:
+                if next_call == today:
+                    today_work += 1
+                elif next_call < today:
+                    pending_work += 1
+
+            # Task
+            if next_action:
+                if next_action == today:
+                    today_task += 1
+                elif next_action < today:
+                    pending_task += 1
+
+            # Interest
+            interest = safe_int(x.get("last_call_status"))
+            if interest == 1:
+                hot += 1
+            elif interest == 2:
+                warm += 1
+            elif interest == 3:
+                cold += 1
+            elif interest == 4:
+                not_interested += 1
+                
+            if is_missing_file(x.get("Profile_idproof")):
+                no_id += 1
+            if is_missing_file(x.get("has_photo")):
+                no_photo += 1
+            if is_missing_file(x.get("has_horo")):
+                no_horo += 1
+                
+            if safe_int(x.get("express_interest_count")) > 20:
+                express_interest_20 += 1
+                
+            last_action = x.get("last_call_date")
+            last_action = last_action.date() if isinstance(last_action, datetime) else last_action
+            if last_action:
+                gap = (today - last_action).days
+                if gap > 90: idle_90_count += 1
+
+
+            if x.get("doj_months") == 3:
+                first_three_month += 1
+
+            if x.get("mem_months_left") == 4:
+                exp_four_month += 1
+ 
+            if plan == 1:
+                gold += 1
+                if call_days > 60 and particular == 4:
+                    g_call_count += 1
+                if action_days > 60 and today_action == 11:
+                    g_action_count += 1
+            elif plan == 2:
+                platinum += 1
+                if call_days > 45:
+                    p_call_count += 1
+                if action_days > 45:
+                    p_action_count += 1
+            elif plan == 3:
+                platinum_private +=1
+                if call_days > 30:
+                    pp_call_count += 1
+                if action_days > 30:
+                    pp_action_count += 1
+            elif plan == 16:
+                vys_delight +=1
+                if call_days > 30:
+                    vysd_call_count += 1
+                if action_days > 30:
+                    vysd_action_count += 1
+                    
+            if safe_int(x.get("yesterday_vys_assist")) == 1:
+                yesterday_vys_assist += 1
+
+            if safe_int(x.get("yesterday_express_sent")) == 1:
+                yesterday_express_sent += 1
+
+            if safe_int(x.get("yesterday_express_received")) == 1:
+                yesterday_express_received += 1
+
+            if safe_int(x.get("yesterday_bookmark")) == 1:
+                yesterday_bookmark += 1
+
+
+
+        # ---------------- EXTRA COUNTS ----------------
+        today_login = sum(
+            1 for x in base
+            if x.get("Last_login_date")
+            and to_date_safe(x.get("Last_login_date")) == today
+        )
+
+        today_birthday = sum(
+            1 for x in base
+            if x.get("Profile_dob")
+            and to_date_safe(x.get("Profile_dob")).day == today.day
+            and to_date_safe(x.get("Profile_dob")).month == today.month
+        )
+        yesterday_login = sum(
+            1 for x in base
+            if x.get("Last_login_date")
+            and to_date_safe(x.get("Last_login_date")) == yesterday
+        )
+        current_month_registration = sum(
+            1 for x in base
+            if x.get("DateOfJoin")
+            and to_date_safe(x.get("DateOfJoin")).month == today.month
+            and to_date_safe(x.get("DateOfJoin")).year == today.year
+        )
+            
+
+        # ---------------- RESPONSE ----------------
+        return Response({
+            "status": True,
+            "overall_count": overall,
+            "filtered_count": len(filtered),
+            "age_under_30":under_30,
+            "age_above_30":above_30,
+            "male_count":male_count,
+            "female":female_count,
+            "total_profiles": total,
+            "cur_month_registrations":current_month_registration,
+
+            "today_login": today_login,
+            "yesterday_login": yesterday_login,
+            "today_birthday": today_birthday,
+            "idle_90_count":idle_90_count,
+            "yesterday_activity": {
+                "vys_assist": yesterday_vys_assist,
+                "express_interest_sent": yesterday_express_sent,
+                "express_interest_received": yesterday_express_received,
+                "bookmark": yesterday_bookmark
+            },
+
+            "state_count":{
+                "tn":tn,
+                "non-tn":not_tn
+                },
+            "fisrt_three_month":first_three_month,
+            "last_four_month":exp_four_month,
+            "plan_counts":{
+                "gold":{
+                    "total":gold,
+                    "call":g_call_count,
+                    "action":g_action_count
+                    },
+                "platinum":{
+                    "total":platinum,
+                    "call":p_call_count,
+                    "action":p_action_count
+                },
+                "platinum_private":{
+                    "total":platinum_private,
+                    "call":pp_call_count,
+                    "action":pp_action_count
+                },
+                "vysyamala_delight":{
+                    "total":vys_delight,
+                    "call":vysd_call_count,
+                    "action":vysd_action_count
+                }},
+            "work_counts": {
+                "today_work": today_work,
+                "pending_work": pending_work
+            },
+            "express_interest": {
+                "above_20": express_interest_20
+            },
+
+            "task_counts": {
+                "today_task": today_task,
+                "pending_task": pending_task
+            },
+
+            "interest": {
+                "hot": hot,
+                "warm": warm,
+                "cold": cold,
+                "not_interested": not_interested
+            },
+
+            "no_photo": no_photo,
+            "no_horo": no_horo,
+            "no_id": no_id,
+
+            "data": filtered
+        })
+        
+

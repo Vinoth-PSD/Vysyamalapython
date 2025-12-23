@@ -251,5 +251,6 @@ urlpatterns = [
     path("get_profile_action_count/<str:profile_id>/",views.get_action_summary),
     path("registration-report/",views.NewRegistrationsDashboard.as_view(),name="registration-report"),
     path("prospect-report/",views.ProspectDashboard.as_view(),name="propect-report"),
+    path("premium-report/",views.PremiumDashboard.as_view(),name="premium-report"),
 
 ]
