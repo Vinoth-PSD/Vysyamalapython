@@ -2479,6 +2479,12 @@ class EditProfileAPIView(APIView):
 
                 old_plan_id = getattr(login_detail, 'Plan_id', None)
                 new_plan_id = profile_common_data.get("secondary_status") or old_plan_id
+                others_id = profile_common_data.get("primary_status")
+                try:
+                    others = ProfileSubStatus.objects.get(id=others_id)
+                except:    
+                    others = None
+                
                 if old_status is not None and int(old_status) != int(new_status) and int(old_plan_id) != int(new_plan_id):
                     try:
                         DataHistory.objects.create(
@@ -2494,7 +2500,8 @@ class EditProfileAPIView(APIView):
                         DataHistory.objects.create(
                             profile_id=profile_id,
                             profile_status=new_status,
-                            owner_id = owner_id
+                            owner_id = owner_id,
+                            others=others
                         )
                     except Exception as e:
                         pass
@@ -11317,6 +11324,13 @@ class EditProfileWithPermissionAPIView(APIView):
 
                 old_plan_id = getattr(login_detail, 'Plan_id', None)
                 new_plan_id = profile_common_data.get("secondary_status") or old_plan_id
+                others_id = profile_common_data.get("primary_status")
+                try:
+                    status_sub = ProfileSubStatus.objects.get(id=others_id)
+                    others = status_sub.sub_status_name
+                except:    
+                    others = None
+                
                 if old_status is not None and int(old_status) != int(new_status) and int(old_plan_id) != int(new_plan_id):
                     try:
                         DataHistory.objects.create(
@@ -11332,7 +11346,8 @@ class EditProfileWithPermissionAPIView(APIView):
                         DataHistory.objects.create(
                             profile_id=profile_id,
                             profile_status=new_status,
-                            owner_id = owner_id
+                            owner_id = owner_id,
+                            others=others
                         )
                     except Exception as e:
                         pass
@@ -13460,12 +13475,6 @@ PAYMENT_STATUS_MAP = {
 class ProspectDashboard(APIView):
 
     def get(self, request):
-
-        owner = safe_str(request.GET.get("owner", "26"))
-        gender = safe_str(request.GET.get("genderFilter", ""))
-        login = safe_str(request.GET.get("loginFilter", ""))
-        call_status = safe_str(request.GET.get("callStatusFilter", ""))
-        idle = safe_str(request.GET.get("idleDaysFilter", ""))
         from_date = safe_str(request.GET.get("from_date", ""))
         to_date = safe_str(request.GET.get("to_date", ""))
         age_from = safe_str(request.GET.get("age_from", ""))
@@ -13475,12 +13484,14 @@ class ProspectDashboard(APIView):
         search = safe_str(request.GET.get("search", ""))
         export_type = safe_str(request.GET.get("export", "")).lower()
 
+        owner = safe_str(request.GET.get("owner", "26"))
+        gender = safe_str(request.GET.get("genderFilter", ""))
+        login = safe_str(request.GET.get("loginFilter", ""))
+        call_status = safe_str(request.GET.get("callStatusFilter", ""))
+        idle = safe_str(request.GET.get("idleDaysFilter", ""))
 
         today = date.today()
         yesterday = today - timedelta(days=1)
-
-        TN = 2
-        KAT = 4
 
         with connection.cursor() as cursor:
             cursor.callproc(
@@ -13497,238 +13508,223 @@ class ProspectDashboard(APIView):
             )
 
             base = dictfetchall(cursor) or []
-
             cursor.nextset()
             overall_row = cursor.fetchone()
             overall = overall_row[0] if overall_row else 0
-
             cursor.nextset()
             filtered = dictfetchall(cursor) or []
 
-        base = base or []
-
-        total = len(base)
-        under_30 = above_30 = 0
-
-        today_work = pending_work = 0
-        today_task = pending_task = 0
-        prospect = free = basic = offer = 0
-        hot = warm = cold = not_interested = 0
-        no_id = no_photo = no_horo = 0
-        current_month_registration = 0
-        payment_created = payment_success = payment_failed = 0
-        express_interest_20 = 0
-        idle_90_count=0
-        
         if export_type in ["csv", "excel"]:
+            return self.export_to_file(filtered, export_type)
 
-            export_rows = []
+        # Counter variables
+        stats = {
+            "under_30": 0,
+            "above_30": 0,
+            "today_work": 0,
+            "pending_work": 0,
+            "today_task": 0,
+            "pending_task": 0,
+            "prospect": 0,
+            "free": 0,
+            "basic": 0,
+            "offer": 0,
+            "hot": 0,
+            "warm": 0,
+            "cold": 0,
+            "not_interested": 0,
+            "no_id": 0,
+            "no_photo": 0,
+            "no_horo": 0,
+            "payment_success": 0,
+            "payment_failed": 0,
+            "express_interest_20": 0,
+            "idle_90_count": 0,
+            "today_login": 0,
+            "yesterday_login": 0,
+            "today_birthday": 0,
+            "cur_month_registrations": 0,
+            "assigned_to_me": 0,
+        }
 
-            for row in filtered:
-                education = ""
-                if row.get("degree_name") and row.get("other_degree"):
-                    education = f"{row.get('degree_name')} / {row.get('other_degree')}"
-                else:
-                    education = row.get("degree_name") or row.get("other_degree") or ""
+        for row in base:
+            dob = to_date_safe(row.get("Profile_dob"))
+            login_date = to_date_safe(row.get("Last_login_date"))
+            join_date = to_date_safe(row.get("DateOfJoin"))
+            plan = safe_int(row.get("Plan_id"))
+            age = calculate_age(dob)
+            last_call_date = to_date_safe(row.get("last_call_date"))
+            next_call = to_date_safe(row.get("next_call_date"))
+            next_action = to_date_safe(row.get("next_action_date"))
+            ps = safe_int(row.get("payment_status"))
+            express_interest = safe_int(row.get("express_interest_count"))
+            call_status = safe_int(row.get("last_call_status"))
 
-                export_rows.append({
-                    "Profile ID": row.get("ProfileId"),
-                    "Name": row.get("Profile_name"),
-                    "Gender": row.get("Gender"),
-                    "Age": row.get("age"),
-                    "City": row.get("Profile_city"),
-                    "State": row.get("state"),
-                    "Education Details": education,
-                    "Annual Income": row.get("income"),
-                    "Family Status": row.get("family_status_name"),
-                    "Plan": row.get("plan_name"),
-                    "Status": row.get("status_name"),
-                    "Owner": row.get("owner_name"),
-                    "Registered Date": row.get("DateOfJoin"),
-                    "Last Login": row.get("Last_login_date"),
-                    "Call Status": row.get("call_status"),
-                })
-
-            df = pd.DataFrame(export_rows)
-
-            if export_type == "csv":
-                output = StringIO()
-                df.to_csv(output, index=False)
-
-                response = HttpResponse(
-                    output.getvalue(),
-                    content_type="text/csv"
-                )
-                response["Content-Disposition"] = (
-                    'attachment; filename="new_registrations_report.csv"'
-                )
-                return response
-
-            elif export_type == "excel":
-                output = BytesIO()
-                with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                    df.to_excel(writer, index=False, sheet_name="New Registrations")
-
-                response = HttpResponse(
-                    output.getvalue(),
-                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-                response["Content-Disposition"] = (
-                    'attachment; filename="new_registrations_report.xlsx"'
-                )
-                return response
-
-        
-        for x in base:
-            state = safe_int(x.get("Profile_state"))
-            next_call = to_date_safe(x.get("next_call_date"))
-            next_action = to_date_safe(x.get("next_action_date"))
-            plan_id = safe_int(x.get("Plan_id"), None)
-            age = calculate_age(x.get("Profile_dob"))
-            ps = safe_int(x.get("payment_status"))
+            # Age
             if age is not None:
                 if age < 30:
-                    under_30 += 1
+                    stats["under_30"] += 1
                 else:
-                    above_30 += 1
-            if plan_id == 6:
-                basic += 1
-            elif plan_id == 7:
-                free += 1
-            elif plan_id == 8:
-                prospect += 1
-            elif plan_id == 9:
-                offer += 1
-            
+                    stats["above_30"] += 1
 
-            # Work
+            # Login counts
+            if login_date:
+                if login_date == today:
+                    stats["today_login"] += 1
+                elif login_date == yesterday:
+                    stats["yesterday_login"] += 1
+
+            # Birthday count
+            if dob and dob.day == today.day and dob.month == today.month:
+                stats["today_birthday"] += 1
+
+            # Registrations
+            if join_date and join_date.month == today.month and join_date.year == today.year:
+                stats["cur_month_registrations"] += 1
+
+            # Work & tasks
             if next_call:
                 if next_call == today:
-                    today_work += 1
+                    stats["today_work"] += 1
                 elif next_call < today:
-                    pending_work += 1
-
-            # Task
+                    stats["pending_work"] += 1
             if next_action:
                 if next_action == today:
-                    today_task += 1
+                    stats["today_task"] += 1
                 elif next_action < today:
-                    pending_task += 1
+                    stats["pending_task"] += 1
 
-            # Interest
-            interest = safe_int(x.get("last_call_status"))
-            if interest == 1:
-                hot += 1
-            elif interest == 2:
-                warm += 1
-            elif interest == 3:
-                cold += 1
-            elif interest == 4:
-                not_interested += 1
-                
-            if is_missing_file(x.get("Profile_idproof")):
-                no_id += 1
-            if is_missing_file(x.get("has_photo")):
-                no_photo += 1
-            if is_missing_file(x.get("has_horo")):
-                no_horo += 1
-            if ps == 1 or ps ==3:
-                payment_failed += 1
-            elif ps == 2:
-                payment_success += 1
-                
-            if safe_int(x.get("express_interest_count")) > 20:
-                express_interest_20 += 1
-                
-            last_action = x.get("last_call_date")
-            last_action = last_action.date() if isinstance(last_action, datetime) else last_action
-            if last_action:
-                gap = (today - last_action).days
-                if gap > 90: idle_90_count += 1
+            # Plan count
+            plan_map = {6: "basic", 7: "free", 8: "prospect", 9: "offer"}
+            if plan in plan_map:
+                stats[plan_map[plan]] += 1
 
+            # Interest status
+            interest_map = {1: "hot", 2: "warm", 3: "cold", 4: "not_interested"}
+            if call_status in interest_map:
+                stats[interest_map[call_status]] += 1
 
-        # ---------------- EXTRA COUNTS ----------------
-        today_login = sum(
-            1 for x in base
-            if x.get("Last_login_date")
-            and to_date_safe(x.get("Last_login_date")) == today
-        )
+            # Missing data
+            if is_missing_file(row.get("Profile_idproof")):
+                stats["no_id"] += 1
+            if is_missing_file(row.get("has_photo")):
+                stats["no_photo"] += 1
+            if is_missing_file(row.get("has_horo")):
+                stats["no_horo"] += 1
 
-        today_birthday = sum(
-            1 for x in base
-            if x.get("Profile_dob")
-            and to_date_safe(x.get("Profile_dob")).day == today.day
-            and to_date_safe(x.get("Profile_dob")).month == today.month
-        )
-        yesterday_login = sum(
-            1 for x in base
-            if x.get("Last_login_date")
-            and to_date_safe(x.get("Last_login_date")) == yesterday
-        )
-        current_month_registration = sum(
-            1 for x in base
-            if x.get("DateOfJoin")
-            and to_date_safe(x.get("DateOfJoin")).month == today.month
-            and to_date_safe(x.get("DateOfJoin")).year == today.year
-        )
-        
-        for row in filtered:
-            ps = safe_int(row.get("payment_status"))
-            row["payment_status_name"] = PAYMENT_STATUS_MAP.get(ps, None)
+            # Payment
+            if ps == 2:
+                stats["payment_success"] += 1
+            elif ps in (1, 3):
+                stats["payment_failed"] += 1
 
+            # Express Interest
+            if express_interest > 20:
+                stats["express_interest_20"] += 1
+
+            # Idle count
+            if last_call_date and (today - last_call_date).days > 90:
+                stats["idle_90_count"] += 1
             
+            if safe_int(row.get("assigned_to_owner")) == 1:
+                stats["assigned_to_me"] += 1
 
-        # ---------------- RESPONSE ----------------
+        # Add payment status label to response
+        for row in filtered:
+            ps_filter = safe_int(row.get("payment_status"))
+            row["payment_status_name"] = PAYMENT_STATUS_MAP.get(ps_filter, None)
+
         return Response({
             "status": True,
             "overall_count": overall,
             "filtered_count": len(filtered),
-            "age_under_30":under_30,
-            "age_above_30":above_30,
-            "total_profiles": total,
-            "cur_month_registrations":current_month_registration,
-
-            "today_login": today_login,
-            "yesterday_login": yesterday_login,
-            "today_birthday": today_birthday,
-            "idle_90_count":idle_90_count,
+            "age_under_30": stats["under_30"],
+            "age_above_30": stats["above_30"],
+            "assigned_to_me": stats["assigned_to_me"],
+            "total_profiles": len(base),
+            "today_login": stats["today_login"],
+            "yesterday_login": stats["yesterday_login"],
+            "today_birthday": stats["today_birthday"],
+            "idle_90_count": stats["idle_90_count"],
             "payment_counts": {
-                "success": payment_success,
-                "failed": payment_failed
+                "success": stats["payment_success"],
+                "failed": stats["payment_failed"]
             },
             "work_counts": {
-                "today_work": today_work,
-                "pending_work": pending_work
+                "today_work": stats["today_work"],
+                "pending_work": stats["pending_work"]
+            },
+            "task_counts": {
+                "today_task": stats["today_task"],
+                "pending_task": stats["pending_task"]
             },
             "express_interest": {
-                "above_20": express_interest_20
+                "above_20": stats["express_interest_20"]
             },
-
-            "task_counts": {
-                "today_task": today_task,
-                "pending_task": pending_task
+            "plan_counts": {
+                "prospect": stats["prospect"],
+                "free": stats["free"],
+                "basic": stats["basic"],
+                "offer": stats["offer"]
             },
-            "plan_counts":{
-                "prospect":prospect,
-                "free":free,
-                "basic":basic,
-                "offer":offer
-            },
-
             "interest": {
-                "hot": hot,
-                "warm": warm,
-                "cold": cold,
-                "not_interested": not_interested
+                "hot": stats["hot"],
+                "warm": stats["warm"],
+                "cold": stats["cold"],
+                "not_interested": stats["not_interested"]
             },
-
-            "no_photo": no_photo,
-            "no_horo": no_horo,
-            "no_id": no_id,
-
+            "no_photo": stats["no_photo"],
+            "no_horo": stats["no_horo"],
+            "no_id": stats["no_id"],
+            "cur_month_registrations": stats["cur_month_registrations"],
             "data": filtered
         })
-        
+
+    def export_to_file(self, rows, export_type):
+        data = []
+
+        for row in rows:
+            education = " / ".join(filter(None, [row.get("degree_name"), row.get("other_degree")]))
+            data.append({
+                "Profile ID": row.get("ProfileId"),
+                "Name": row.get("Profile_name"),
+                "Gender": row.get("Gender"),
+                "Age": row.get("age"),
+                "City": row.get("Profile_city"),
+                "State": row.get("state"),
+                "Education Details": education,
+                "Annual Income": row.get("income"),
+                "Family Status": row.get("family_status_name"),
+                "Plan": row.get("plan_name"),
+                "Status": row.get("status_name"),
+                "Owner": row.get("owner_name"),
+                "Registered Date": row.get("DateOfJoin"),
+                "Last Login": row.get("Last_login_date"),
+                "Call Status": row.get("call_status"),
+            })
+
+        df = pd.DataFrame(data)
+
+        if export_type == "csv":
+            output = StringIO()
+            df.to_csv(output, index=False)
+            return HttpResponse(
+                output.getvalue(),
+                content_type="text/csv",
+                headers={"Content-Disposition": 'attachment; filename="prospects.csv"'}
+            )
+
+        elif export_type == "excel":
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                df.to_excel(writer, index=False, sheet_name="Prospects")
+            return HttpResponse(
+                output.getvalue(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": 'attachment; filename="prospects.xlsx"'}
+            )  
+            
+                 
 def month_diff(from_date, to_date):
     return (to_date.year - from_date.year) * 12 + (to_date.month - from_date.month)
 
@@ -13951,21 +13947,21 @@ class PremiumDashboard(APIView):
                     g_action_count += 1
             elif plan == 2:
                 platinum += 1
-                if call_days > 45:
+                if call_days > 45 and particular == 4:
                     p_call_count += 1
-                if action_days > 45:
+                if action_days > 45 and today_action == 11:
                     p_action_count += 1
             elif plan == 3:
                 platinum_private +=1
-                if call_days > 30:
+                if call_days > 30 and particular == 4:
                     pp_call_count += 1
-                if action_days > 30:
+                if action_days > 30 and today_action == 11:
                     pp_action_count += 1
             elif plan == 16:
                 vys_delight +=1
-                if call_days > 30:
+                if call_days > 30 and particular == 4:
                     vysd_call_count += 1
-                if action_days > 30:
+                if action_days > 30 and today_action == 11:
                     vysd_action_count += 1
                     
             if safe_int(x.get("yesterday_vys_assist")) == 1:
