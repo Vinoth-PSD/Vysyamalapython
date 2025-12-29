@@ -956,9 +956,10 @@ class Newprofile_get(generics.ListAPIView):
         sql = """
             SELECT ld.ContentId, ld.ProfileId, ld.Profile_name, ld.Gender, ld.Mobile_no, ld.EmailId, 
                    ld.Profile_dob,  ld.Profile_whatsapp, ld.Profile_alternate_mobile, ld.Plan_id, ld.status, 
-                   ld.DateOfJoin, ld.Last_login_date, ld.Profile_for, ms.MaritalStatus, cm.complexion_desc, s.name AS state_name, 
+                   ld.DateOfJoin, ld.Last_login_date, ld.Profile_for, ld.membership_startdate, ld.membership_enddate, ms.MaritalStatus, cm.complexion_desc, s.name AS state_name, 
                    ld.Profile_city AS Profile_city, cy.city_name , c.name AS country_name, d.name AS district_name,
-                   pfd.family_status, ped.highest_education, ped.anual_income, ph.birthstar_name , mp.profession AS profession ,pl.plan_name ,ld.Owner_id
+                   pfd.family_status, ped.highest_education, ped.anual_income, ph.birthstar_name , mp.profession AS profession ,pl.plan_name ,ld.Owner_id,
+                   md.ModeName,ou.username,IF(pi.profile_id IS NULL, 0, 1) AS has_photo,IF(hi.profile_id IS NULL, 0, 1) AS has_horo
             FROM logindetails ld
             LEFT JOIN maritalstatusmaster ms ON ld.Profile_marital_status = ms.StatusId
             LEFT JOIN complexionmaster cm ON ld.Profile_complexion = cm.complexion_id
@@ -971,6 +972,15 @@ class Newprofile_get(generics.ListAPIView):
             LEFT JOIN profile_horoscope ph ON ld.ProfileId = ph.profile_id 
             LEFT JOIN plan_master pl ON ld.Plan_id = pl.id 
             LEFT JOIN masterprofession mp ON ped.profession = mp.RowId 
+            LEFT JOIN mastermode md ON md.Mode = ld.Profile_for
+            LEFT JOIN users ou ON ou.id = ld.Owner_id
+            LEFT JOIN (SELECT DISTINCT profile_id FROM profile_images
+               WHERE is_deleted=0 AND image<>'' AND image IS NOT NULL) pi
+                ON pi.profile_id=ld.ProfileId
+                
+            LEFT JOIN ( SELECT DISTINCT profile_id FROM profile_horoscope 
+            WHERE (horoscope_file IS NOT NULL AND horoscope_file <> '') OR (horoscope_file_admin IS NOT NULL AND horoscope_file_admin <> '') ) hi 
+            ON hi.profile_id = ld.ProfileId
             """
         
         # Add the search query conditions if provided
@@ -13526,9 +13536,17 @@ class ProspectDashboard(APIView):
             "today_task": 0,
             "pending_task": 0,
             "prospect": 0,
+            "prospect_tn":0,
+            "prospect_non_tn":0,
             "free": 0,
+            "free_tn":0,
+            "free_non_tn":0,
             "basic": 0,
+            "basic_tn":0,
+            "basic_non_tn":0,
             "offer": 0,
+            "offer_tn":0,
+            "offer_non_tn":0,
             "hot": 0,
             "warm": 0,
             "cold": 0,
@@ -13559,6 +13577,7 @@ class ProspectDashboard(APIView):
             ps = safe_int(row.get("payment_status"))
             express_interest = safe_int(row.get("express_interest_count"))
             call_status = safe_int(row.get("last_call_status"))
+            state = safe_int(row.get("Profile_state"))
 
             # Age
             if age is not None:
@@ -13598,6 +13617,26 @@ class ProspectDashboard(APIView):
             plan_map = {6: "basic", 7: "free", 8: "prospect", 9: "offer"}
             if plan in plan_map:
                 stats[plan_map[plan]] += 1
+                if plan ==6:
+                    if state == 2:
+                        stats["basic_tn"] +=1
+                    else:
+                        stats["basic_non_tn"] +=1
+                elif plan ==7:
+                    if state == 2:
+                        stats["free_tn"] +=1
+                    else:
+                        stats["free_non_tn"] +=1
+                elif plan ==8:
+                    if state == 2:
+                        stats["prospect_tn"] +=1
+                    else:
+                        stats["prospect_non_tn"] +=1
+                elif plan ==9:
+                    if state == 2:
+                        stats["offer_tn"] +=1
+                    else:
+                        stats["offer_non_tn"] +=1       
 
             # Interest status
             interest_map = {1: "hot", 2: "warm", 3: "cold", 4: "not_interested"}
@@ -13663,9 +13702,17 @@ class ProspectDashboard(APIView):
             },
             "plan_counts": {
                 "prospect": stats["prospect"],
+                "prospect_tn": stats["prospect_tn"],
+                "prospect_non_tn": stats["prospect_non_tn"],
                 "free": stats["free"],
+                "free_tn": stats["free_tn"],
+                "free_non_tn": stats["free_non_tn"],
                 "basic": stats["basic"],
-                "offer": stats["offer"]
+                "basic_tn": stats["basic_tn"],
+                "basic_non_tn": stats["basic_non_tn"],
+                "offer": stats["offer"],
+                "offer_tn": stats["offer_tn"],
+                "offer_non_tn": stats["offer_non_tn"],
             },
             "interest": {
                 "hot": stats["hot"],
@@ -13874,7 +13921,7 @@ class PremiumDashboard(APIView):
             call_days = safe_int(x.get("call_gap_days"))
             action_days = safe_int(x.get("action_gap_days"))
             mem_end = to_date_safe(x.get("membership_enddate"))
-            doj = to_date_safe(x.get("DateOfJoin"))
+            mem_start = to_date_safe(x.get("membership_startdate"))
             if age is not None:
                 if age < 30:
                     under_30 += 1
@@ -13933,11 +13980,17 @@ class PremiumDashboard(APIView):
                 if gap > 90: idle_90_count += 1
 
 
-            if x.get("doj_months") == 3:
-                first_three_month += 1
+            if mem_start:
+                mem_start = mem_start.date() if isinstance(mem_start, datetime) else mem_start
+                first_three = (today - mem_start).days
+                if first_three <= 90:
+                    first_three_month += 1
 
-            if x.get("mem_months_left") == 4:
-                exp_four_month += 1
+            if mem_end:
+                mem_end = mem_end.date() if isinstance(mem_end, datetime) else mem_end
+                last_four = (mem_end-today).days
+                if 0 <= last_four <= 120:
+                    exp_four_month += 1
  
             if plan == 1:
                 gold += 1
@@ -13998,9 +14051,9 @@ class PremiumDashboard(APIView):
         )
         current_month_registration = sum(
             1 for x in base
-            if x.get("DateOfJoin")
-            and to_date_safe(x.get("DateOfJoin")).month == today.month
-            and to_date_safe(x.get("DateOfJoin")).year == today.year
+            if x.get("membership_startdate")
+            and to_date_safe(x.get("membership_startdate")).month == today.month
+            and to_date_safe(x.get("membership_startdate")).year == today.year
         )
             
 
@@ -14081,4 +14134,38 @@ class PremiumDashboard(APIView):
             "data": filtered
         })
         
+class DailyWorkDashboard(APIView):
+    def post(self, request):
+        owner_id = str(request.data.get("owner"))
 
+        dashboards = {}
+        group = ["renewal", "registration", "prospect", "premium"]
+
+        with connection.cursor() as cursor:
+            cursor.callproc("GetDailyWorkDashboard", [owner_id])
+
+            idx = 0
+            while True:
+                rows = cursor.fetchall()
+                if not rows:
+                    if cursor.nextset() is None:
+                        break
+                    continue
+
+                dashboards[group[idx]] = {
+                    "todays_work": int(rows[0][1] or 0),
+                    "pending_work": int(rows[0][2] or 0),
+                    "todays_action": int(rows[0][3] or 0),
+                    "pending_action": int(rows[0][4] or 0),
+                    "assigned_work": int(rows[0][5] or 0),
+                }
+
+                idx += 1
+                if cursor.nextset() is None:
+                    break
+
+        return Response({
+            "status": True,
+            "message": "Dashboard loaded",
+            "data": dashboards
+        })

@@ -257,7 +257,8 @@ class LoginDetailsSerializer(serializers.ModelSerializer):
     Profile_emailid = serializers.CharField(required=False , allow_blank=True, allow_null=True)
     facebook = serializers.CharField(required=False , allow_blank=True, allow_null=True)
     linkedin = serializers.CharField(required=False , allow_blank=True, allow_null=True)
-    
+    Profile_for = serializers.CharField(required=False , allow_blank=True, allow_null=True)
+    DateOfJoin = serializers.CharField(required=False , allow_blank=True, allow_null=True)
 
     class Meta:
         model = LoginDetails
@@ -468,8 +469,36 @@ class Getnewprofiledata_new(serializers.Serializer):
     anual_income = serializers.SerializerMethodField()
     Last_login_date= serializers.CharField()  
     years = serializers.SerializerMethodField()
-
+    ModeName = serializers.CharField()
+    username = serializers.CharField()
+    has_photo = serializers.SerializerMethodField()
+    has_horo = serializers.SerializerMethodField()
+    membership_startdate = serializers.SerializerMethodField()
+    membership_enddate = serializers.SerializerMethodField()
     # Method to calculate age from Profile_dob
+    
+    def get_membership_startdate(self,obj):
+        return obj['membership_startdate'].date() if obj.get('membership_startdate') else None
+    
+    def get_membership_enddate(self,obj):
+        return obj['membership_enddate'].date() if obj.get('membership_enddate') else None
+    
+    def get_has_photo(self, obj): 
+        value = obj.get("has_photo") 
+        if value == 1: 
+            return "Yes" 
+        elif value == 0: 
+            return "No" 
+        return None
+    
+    def get_has_horo(self, obj): 
+        value = obj.get("has_horo") 
+        if value == 1: 
+            return "Yes" 
+        elif value == 0: 
+            return "No" 
+        return None
+    
     def get_years(self, obj):
         dob = obj.get('Profile_dob')
         if dob:
