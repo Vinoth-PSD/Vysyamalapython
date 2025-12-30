@@ -17607,12 +17607,12 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                                 margin: 0;
                             }}
                             body {{
+                                margin: 0;
+                                padding: 0;
                                 background-color: #ffffff;
                             }}
 
-                            .header {{
-                                margin-bottom: 10px;
-                            }}
+                           
 
                             .header-left img {{
                                 width: 100%;
@@ -17692,7 +17692,12 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                                 color: #000000;
                                 padding:20px 0px;
                             }}
-
+                            table, tr, td {{
+                                margin: 0;
+                                padding: 0;
+                                border-spacing: 0;
+                                border-collapse: collapse;
+                            }}
 
                             .matching-score{{
                                 font-size:30px ;
@@ -17701,7 +17706,7 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                         
 
                             .compatibility-page-wrapper {{
-                                 margin:0px auto;
+                                 margin:0px;
                                 text-align:center;
                                 width:100%;
                             }}
@@ -17827,7 +17832,7 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                             .inner td {{
                                 width: 25%;
                                 height: 80px;
-                                border: 2px solid #d6d6d6;
+                                border: 2px solid #008000;
                                 padding: 10px;
                                 color: #008000;
                                 font-weight: bold;
@@ -18025,7 +18030,18 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                     </table>
             <br>
                     
-            <br>
+            <br><br>
+                    
+            <br><br>
+                    
+            <br><br>
+                    
+            <br><br>
+                    
+            <br> <br>
+            <br> <br>
+            <br> <br>
+            <br><br>
                     
             </td>
             </tr>
@@ -22620,7 +22636,7 @@ def generate_table_html(grid_dict, title):
 </tr>
 <tr>
 <td>{grid_dict[11].replace('/', '<br>')}</td>
-<td colspan="2" rowspan="2" class="highlight">Amsam
+<td colspan="2" rowspan="2" class="highlight">{title}
 <br><small>vysyamala.com</small>
 </td>
 <td>{grid_dict[4].replace('/', '<br>')}</td>
@@ -22664,7 +22680,7 @@ class Rasi_Image(APIView):
  
         rasi_kattam_data.extend([''] * (12 - len(rasi_kattam_data)))
  
-        html_content = generate_table_html(rasi_kattam_data, title="Rasi Chart")
+        html_content = generate_table_html(rasi_kattam_data, title="Rasi")
  
         img_data = imgkit.from_string(html_content, False, options=options, config=imgconfig)
  
