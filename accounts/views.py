@@ -5576,7 +5576,12 @@ class My_viewed_profiles(APIView):
                 if fetch_data.exists():
                     profile_ids = fetch_data.values_list('viewed_profile', flat=True)
                     profile_details = get_profile_details(profile_ids)
-
+                    profile_datetime_map = {
+                        record.viewed_profile: (
+                            record.datetime.strftime("%Y-%m-%d %H:%M:%S") if record.datetime else None
+                        )
+                        for record in fetch_data
+                    }
                     profile_data = Registration1.objects.get(ProfileId=profile_id)
                     horo_data = ProfileHoroscope.objects.get(profile_id=profile_id)
 
@@ -5598,7 +5603,7 @@ class My_viewed_profiles(APIView):
                             "visited_degree": " ",
                             "visited_match_score": Get_matching_score(my_star_id, my_rasi_id, detail.get("birthstar_name"), detail.get("birth_rasi_name"), my_gender),
                             "visited_views": count_records(Profile_visitors, {'status': 1, 'viewed_profile': detail.get("ProfileId")}),
-                            "visited_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
+                            "visited_lastvisit":  profile_datetime_map.get(detail.get("ProfileId")),
                             "visited_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "visited_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "visited_profile_wishlist": Get_wishlist(profile_id, detail.get("ProfileId")),
@@ -14139,6 +14144,7 @@ def dictfetchall(cursor):
     columns = [col[0] for col in cursor.description]
     return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
+
 class DailyWorkDashboard(APIView):
 
     def get(self, request):
@@ -14149,27 +14155,22 @@ class DailyWorkDashboard(APIView):
         with connection.cursor() as cursor:
             cursor.callproc("GetDailyWorkDashboard", [owner_id, count_filter])
 
-            filtered_profiles = dictfetchall(cursor) or []
+            filtered_profiles = dictfetchall(cursor)  # resultset 1: filtered profiles
             cursor.nextset()
+            counts_by_type_list = dictfetchall(cursor)  # resultset 2.1
+            cursor.nextset()
+            global_counts = dictfetchall(cursor) 
 
-            counts_rows = dictfetchall(cursor) or []
-
-        counts_by_type = {row["dashboard_type"]: {
-            "todays_work": row["todays_work"],
-            "pending_work": row["pending_work"],
-            "todays_action": row["todays_action"],
-            "pending_action": row["pending_action"],
-            "assigned_work": row["assigned_work"],
-            "total_profiles": row["total_profiles"],
-        } for row in counts_rows}
-
+        counts_by_type = {row["dashboard_type"]: row for row in counts_by_type_list}
+        counts_by_type["all"] = global_counts[0]
+        # Export if needed
         if export_type in ["csv", "excel"]:
             return self.export_to_file(filtered_profiles, export_type)
 
         return Response({
             "status": True,
             "counts_by_type": counts_by_type,
-            "filtered_count":len(filtered_profiles),
+            "filtered_count": len(filtered_profiles),
             "data": filtered_profiles
         })
 
@@ -14205,5 +14206,6 @@ class DailyWorkDashboard(APIView):
                 output.getvalue(),
                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 headers={"Content-Disposition": 'attachment; filename="daily_work_dashboard.xlsx"'}
-            )
+            )     
             
+                   
