@@ -14134,38 +14134,76 @@ class PremiumDashboard(APIView):
             "data": filtered
         })
         
-class DailyWorkDashboard(APIView):
-    def post(self, request):
-        owner_id = str(request.data.get("owner"))
+def dictfetchall(cursor):
+    "Return all rows from a cursor as a dict"
+    columns = [col[0] for col in cursor.description]
+    return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
-        dashboards = {}
-        group = ["renewal", "registration", "prospect", "premium"]
+class DailyWorkDashboard(APIView):
+
+    def get(self, request):
+        owner_id = safe_str(request.GET.get("owner", "26"))
+        count_filter = safe_str(request.GET.get("countFilter", ""))
+        export_type = safe_str(request.GET.get("export", "")).lower()
 
         with connection.cursor() as cursor:
-            cursor.callproc("GetDailyWorkDashboard", [owner_id])
+            cursor.callproc("GetDailyWorkDashboard", [owner_id, count_filter])
 
-            idx = 0
-            while True:
-                rows = cursor.fetchall()
-                if not rows:
-                    if cursor.nextset() is None:
-                        break
-                    continue
+            filtered_profiles = dictfetchall(cursor) or []
+            cursor.nextset()
 
-                dashboards[group[idx]] = {
-                    "todays_work": int(rows[0][1] or 0),
-                    "pending_work": int(rows[0][2] or 0),
-                    "todays_action": int(rows[0][3] or 0),
-                    "pending_action": int(rows[0][4] or 0),
-                    "assigned_work": int(rows[0][5] or 0),
-                }
+            counts_rows = dictfetchall(cursor) or []
 
-                idx += 1
-                if cursor.nextset() is None:
-                    break
+        counts_by_type = {row["dashboard_type"]: {
+            "todays_work": row["todays_work"],
+            "pending_work": row["pending_work"],
+            "todays_action": row["todays_action"],
+            "pending_action": row["pending_action"],
+            "assigned_work": row["assigned_work"],
+            "total_profiles": row["total_profiles"],
+        } for row in counts_rows}
+
+        if export_type in ["csv", "excel"]:
+            return self.export_to_file(filtered_profiles, export_type)
 
         return Response({
             "status": True,
-            "message": "Dashboard loaded",
-            "data": dashboards
+            "counts_by_type": counts_by_type,
+            "filtered_count":len(filtered_profiles),
+            "data": filtered_profiles
         })
+
+    def export_to_file(self, rows, export_type):
+        data = []
+        for row in rows:
+            data.append({
+                "Profile ID": row.get("ProfileId"),
+                "Gender": row.get("Gender"),
+                "Plan": row.get("plan_name"),
+                "Membership End Date": row.get("membership_enddate"),
+                "Next Call Date": row.get("next_call_date"),
+                "Next Action Date": row.get("next_action_date"),
+                "Owner": row.get("owner_name"),
+            })
+
+        df = pd.DataFrame(data)
+
+        if export_type == "csv":
+            output = StringIO()
+            df.to_csv(output, index=False)
+            return HttpResponse(
+                output.getvalue(),
+                content_type="text/csv",
+                headers={"Content-Disposition": 'attachment; filename="daily_work_dashboard.csv"'}
+            )
+
+        elif export_type == "excel":
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                df.to_excel(writer, index=False, sheet_name="DailyWork")
+            return HttpResponse(
+                output.getvalue(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": 'attachment; filename="daily_work_dashboard.xlsx"'}
+            )
+            
