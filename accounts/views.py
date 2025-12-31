@@ -8286,7 +8286,8 @@ def GetPhotoProofDetails(request):
                 return JsonResponse({
                     "status": "error",
                     "message": "Permission Error"
-                }, status=status.HTTP_403_FORBIDDEN)
+                }, status=403)
+
         if not profile_id:
             return JsonResponse({'status': 'error', 'message': 'profile_id is required'}, status=400)
     
@@ -8303,56 +8304,80 @@ def GetPhotoProofDetails(request):
                     return JsonResponse({'status': 'error', 'message': 'Length of image_id, is_deleted, and image_approved must match'}, status=400)
     
                 updated_images = []
+                deleted_images = []
+
                 for idx, image_id in enumerate(image_ids):
                     try:
                         image = Image_Upload.objects.get(id=image_id, profile_id=profile_id)
-                        image.is_deleted = bool(is_deleted_vals[idx])
-                        image.image_approved = bool(image_approved_vals[idx])
-                        image.save()
-                        updated_images.append(image.id)
+                        file_name = os.path.basename(image.image.name) if image.image else None
 
-                        if image.image_approved:
+                        if is_deleted_vals[idx] == 1:
                             try:
                                 container_name = 'vysyamala'
                                 connection_string = settings.AZURE_CONNECTION_STRING
-                                source_folder = "profile_images/"  # from where image is fetched
-                                dest_folder = "blurred_images/"    # where blurred image is saved
-
-                                file_name = os.path.basename(image.image.name)  # replace this with your image field name
-                                source_blob_name = f"{source_folder}{file_name}"
-                                dest_blob_name = f"{dest_folder}{file_name}"
-
                                 blob_service = BlobServiceClient.from_connection_string(connection_string)
                                 container_client = blob_service.get_container_client(container_name)
 
-                                # Download original image from blob storage
-                                blob_client = container_client.get_blob_client(source_blob_name)
+                                if file_name:
+                                    for folder in ["profile_images/", "blurred_images/"]:
+                                        blob_name = f"{folder}{file_name}"
+                                        blob_client = container_client.get_blob_client(blob_name)
+                                        if blob_client.exists():
+                                            blob_client.delete_blob()
+                                            update_summary.setdefault('azure_blobs_deleted', []).append(blob_name)
 
-                                if blob_client.exists():
-                                    image_data = blob_client.download_blob().readall()
+                            except Exception as azure_delete_error:
+                                update_summary.setdefault('azure_delete_errors', []).append({
+                                    'image_id': image.id,
+                                    'error': str(azure_delete_error)
+                                })
 
-                                    # Apply blur
-                                    blurred_img = process_and_blur_image(image_data)
+                            image.delete()
+                            deleted_images.append(image_id)
 
-                                    # Upload blurred image
-                                    container_client.get_blob_client(dest_blob_name).upload_blob(
-                                        blurred_img,
-                                        overwrite=True,
-                                        content_settings=ContentSettings(content_type="image/jpeg")
-                                    )
+                        else:
+                            image.image_approved = bool(image_approved_vals[idx])
+                            image.save()
+                            updated_images.append(image.id)
 
-                                    update_summary.setdefault('blurred_images_uploaded', []).append(file_name)
-                                else:
-                                    update_summary.setdefault('blurred_images_skipped', []).append(file_name)
+                            if image.image_approved and image.image:
+                                try:
+                                    container_name = 'vysyamala'
+                                    connection_string = settings.AZURE_CONNECTION_STRING
+                                    source_folder = "profile_images/"
+                                    dest_folder = "blurred_images/"
+                                    file_name = os.path.basename(image.image.name)
+                                    source_blob_name = f"{source_folder}{file_name}"
+                                    dest_blob_name = f"{dest_folder}{file_name}"
 
-                            except Exception as blur_e:
-                                update_summary.setdefault('blur_errors', []).append({'image_id': image.id, 'error': str(blur_e)})
+                                    blob_service = BlobServiceClient.from_connection_string(connection_string)
+                                    container_client = blob_service.get_container_client(container_name)
+                                    blob_client = container_client.get_blob_client(source_blob_name)
+
+                                    if blob_client.exists():
+                                        image_data = blob_client.download_blob().readall()
+                                        blurred_img = process_and_blur_image(image_data)
+                                        container_client.get_blob_client(dest_blob_name).upload_blob(
+                                            blurred_img,
+                                            overwrite=True,
+                                            content_settings=ContentSettings(content_type="image/jpeg")
+                                        )
+                                        update_summary.setdefault('blurred_images_uploaded', []).append(file_name)
+                                    else:
+                                        update_summary.setdefault('blurred_images_skipped', []).append(file_name)
+
+                                except Exception as blur_e:
+                                    update_summary.setdefault('blur_errors', []).append({
+                                        'image_id': image.id,
+                                        'error': str(blur_e)
+                                    })
 
                     except Image_Upload.DoesNotExist:
                         continue
-                    
+
                 update_summary['images_updated'] = updated_images
-    
+                update_summary['images_deleted'] = deleted_images
+
             # PHOTO PASSWORD UPDATE
             if photo_password is not None:
                 try:
