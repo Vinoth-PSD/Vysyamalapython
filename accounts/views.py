@@ -14351,6 +14351,7 @@ class MarriageDashboard(APIView):
         pre_settle_vys = pre_settle_oth = pre_both = pre_single =0
         fop_settle_vys = fop_settle_oth = fop_both = fop_single =0
         upcoming_marriage = current_month_marriage =0
+        assigned_to=0
 
         for x in base:
             plan = safe_int(x.get("Plan_id"))
@@ -14362,6 +14363,8 @@ class MarriageDashboard(APIView):
             marriage_photo = to_date_safe(x.get("marriagephotodetails"))
             eng_photo = to_date_safe(x.get("engagementphotodetails"))
             invitation = to_date_safe(x.get("marriageinvitationdetails"))
+            if safe_int(x.get("assigned_to_owner")) == 1:
+                assigned_to += 1
             if marriage_date:
                 if marriage_date.month == today.month and marriage_date.year == today.year:
                     current_month_marriage +=1
@@ -14406,6 +14409,7 @@ class MarriageDashboard(APIView):
             "overall_count": overall,
             "filtered_count": len(filtered),
             "total_profiles": total,
+            "assigned_to_me": assigned_to,
             "marriage_counts": {
                 "upcoming_marriage": upcoming_marriage,
                 "current_month_marriage": current_month_marriage
@@ -14441,4 +14445,123 @@ class MarriageDashboard(APIView):
 
             "data": filtered
         })
-           
+
+class DeleteDashboard(APIView):
+
+    def get(self, request):
+
+        owner = safe_str(request.GET.get("owner", "26"))
+        profile_id = safe_str(request.GET.get("profile_id", ""))
+        gender = safe_str(request.GET.get("genderFilter", ""))
+        family = safe_str(request.GET.get("familyFilter", ""))
+        login = safe_str(request.GET.get("loginFilter", ""))
+        call_status = safe_str(request.GET.get("callStatusFilter", ""))
+        idle = safe_str(request.GET.get("idleDaysFilter", ""))
+        from_date = safe_str(request.GET.get("from_date", ""))
+        to_date = safe_str(request.GET.get("to_date", ""))
+        age_from = safe_str(request.GET.get("age_from", ""))
+        age_to = safe_str(request.GET.get("age_to", ""))
+        plan_id = safe_str(request.GET.get("plan_id", ""))
+        count_filter = safe_str(request.GET.get("countFilter", ""))
+        search = safe_str(request.GET.get("search", ""))
+        order_dir = safe_str(request.GET.get("order", "desc")).lower()
+        export_type = safe_str(request.GET.get("export", "")).lower()
+
+        with connection.cursor() as cursor:
+            cursor.callproc(
+                "GetDeleteDashboard",
+                [
+                    owner,
+                    profile_id,
+                    gender,
+                    family,
+                    login,
+                    call_status,
+                    idle,
+                    from_date,
+                    to_date,
+                    age_from,
+                    age_to,
+                    plan_id,
+                    count_filter,
+                    search,
+                    order_dir
+                ]
+            )
+
+            # resultset 1 → base
+            base = dictfetchall(cursor) or []
+
+            # resultset 2 → overall count
+            cursor.nextset()
+            overall_row = cursor.fetchone()
+            overall_count = overall_row[0] if overall_row else 0
+
+            # resultset 3 → filtered
+            cursor.nextset()
+            filtered = dictfetchall(cursor) or []
+
+        total_profiles = len(base)
+
+        # ---------------- EXPORT ----------------
+        if export_type in ["csv", "excel"]:
+
+            export_rows = []
+            for row in filtered:
+                education = ""
+                if row.get("degree_name") and row.get("other_degree"):
+                    education = f"{row['degree_name']} / {row['other_degree']}"
+                else:
+                    education = row.get("degree_name") or row.get("other_degree") or ""
+
+                export_rows.append({
+                    "Profile ID": row.get("ProfileId"),
+                    "Name": row.get("Profile_name"),
+                    "Gender": row.get("Gender"),
+                    "Age": row.get("age"),
+                    "City": row.get("Profile_city"),
+                    "State": row.get("state"),
+                    "Education": education,
+                    "Annual Income": row.get("income"),
+                    "Family Status": row.get("family_status_name"),
+                    "Plan": row.get("plan_name"),
+                    "Owner": row.get("owner_name"),
+                    "Last Login": row.get("Last_login_date"),
+                    "Deleted On": row.get("dh_date_time"),
+                })
+
+            df = pd.DataFrame(export_rows)
+
+            if export_type == "csv":
+                output = StringIO()
+                df.to_csv(output, index=False)
+                return HttpResponse(
+                    output.getvalue(),
+                    content_type="text/csv",
+                    headers={
+                        "Content-Disposition":
+                        'attachment; filename="delete_dashboard.csv"'
+                    }
+                )
+
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                df.to_excel(writer, index=False)
+
+            return HttpResponse(
+                output.getvalue(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={
+                    "Content-Disposition":
+                    'attachment; filename="delete_dashboard.xlsx"'
+                }
+            )
+
+        return Response({
+            "status": True,
+            "overall_count": overall_count,
+            "filtered_count": len(filtered),
+            "total_profiles": total_profiles,
+            "data": filtered
+        })
+        
