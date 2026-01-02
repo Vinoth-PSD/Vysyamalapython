@@ -252,5 +252,6 @@ urlpatterns = [
     path("registration-report/",views.NewRegistrationsDashboard.as_view(),name="registration-report"),
     path("prospect-report/",views.ProspectDashboard.as_view(),name="propect-report"),
     path("premium-report/",views.PremiumDashboard.as_view(),name="premium-report"),
-    path("daily-work-report/",views.DailyWorkDashboard.as_view(),name="daily-work-report")
+    path("daily-work-report/",views.DailyWorkDashboard.as_view(),name="daily-work-report"),
+    path("marriage-report/",views.MarriageDashboard.as_view(),name="marriage-report")
 ]

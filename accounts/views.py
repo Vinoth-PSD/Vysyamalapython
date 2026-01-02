@@ -14233,4 +14233,212 @@ class DailyWorkDashboard(APIView):
                 headers={"Content-Disposition": 'attachment; filename="daily_work_dashboard.xlsx"'}
             )     
             
-                   
+class MarriageDashboard(APIView):
+
+    def get(self, request):
+
+        owner = safe_str(request.GET.get("owner", "26"))
+        profile_id = safe_str(request.GET.get("profile_id", ""))
+        particular_id = safe_str(request.GET.get("particular_id", ""))
+        gender = safe_str(request.GET.get("genderFilter", ""))
+        family = safe_str(request.GET.get("familyFilter", ""))
+        login = safe_str(request.GET.get("loginFilter", ""))
+        call_status = safe_str(request.GET.get("callStatusFilter", ""))
+        idle = safe_str(request.GET.get("idleDaysFilter", ""))
+        from_date = safe_str(request.GET.get("from_date", ""))
+        to_date = safe_str(request.GET.get("to_date", ""))
+        age_from = safe_str(request.GET.get("age_from", ""))
+        age_to = safe_str(request.GET.get("age_to", ""))
+        plan_id = safe_str(request.GET.get("plan_id", ""))
+        count_filter = safe_str(request.GET.get("countFilter", ""))
+        search = safe_str(request.GET.get("search", ""))
+        export_type = safe_str(request.GET.get("export", "")).lower()
+        order_by = safe_str(request.GET.get("order_by", "asc")).lower()
+
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+
+        with connection.cursor() as cursor:
+            cursor.callproc(
+                "GetMarriageDashboard",
+                [
+                    owner,
+                    profile_id,
+                    particular_id,
+                    gender,
+                    family,
+                    login,
+                    call_status,
+                    idle,
+                    from_date,
+                    to_date,
+                    age_from,
+                    age_to,
+                    plan_id,
+                    count_filter,
+                    search,
+                    order_by
+                ]
+            )
+
+            base = dictfetchall(cursor) or []
+
+            cursor.nextset()
+            overall_row = cursor.fetchone()
+            overall = overall_row[0] if overall_row else 0
+
+            cursor.nextset()
+            filtered = dictfetchall(cursor) or []
+
+        total = len(base)
+
+        if export_type in ["csv", "excel"]:
+
+            export_rows = []
+            for row in filtered:
+                education = ""
+                if row.get("degree_name") and row.get("other_degree"):
+                    education = f"{row.get('degree_name')} / {row.get('other_degree')}"
+                else:
+                    education = row.get("degree_name") or row.get("other_degree") or ""
+
+                export_rows.append({
+                    "Profile ID": row.get("ProfileId"),
+                    "Name": row.get("Profile_name"),
+                    "Gender": row.get("Gender"),
+                    "Age": row.get("age"),
+                    "City": row.get("Profile_city"),
+                    "State": row.get("state"),
+                    "Education": education,
+                    "Annual Income": row.get("income"),
+                    "Family Status": row.get("family_status_name"),
+                    "Plan": row.get("plan_name"),
+                    "Owner": row.get("owner_name"),
+                    "Last Login": row.get("Last_login_date"),
+                    "Call Status": row.get("call_status"),
+                })
+
+            df = pd.DataFrame(export_rows)
+
+            if export_type == "csv":
+                output = StringIO()
+                df.to_csv(output, index=False)
+                return HttpResponse(
+                    output.getvalue(),
+                    content_type="text/csv",
+                    headers={
+                        "Content-Disposition":
+                        'attachment; filename="marriage_dashboard.csv"'
+                    }
+                )
+
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                df.to_excel(writer, index=False)
+            return HttpResponse(
+                output.getvalue(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={
+                    "Content-Disposition":
+                    'attachment; filename="marriage_dashboard.xlsx"'
+                }
+            )
+            
+        premium = free_offer = propect = 0
+        premium_tn = premium_not_tn = free_offer_tn = free_offer_not_tn = propect_tn = propect_not_tn =0
+        today_work = pending_work = 0
+        today_task = pending_task = 0
+        pre_settle_vys = pre_settle_oth = pre_both = pre_single =0
+        fop_settle_vys = fop_settle_oth = fop_both = fop_single =0
+        upcoming_marriage = current_month_marriage =0
+
+        for x in base:
+            plan = safe_int(x.get("Plan_id"))
+            state = safe_int(x.get("Profile_state"))
+            marriage_date = to_date_safe(x.get("marriagedate"))
+            settle = to_date_safe(x.get("settledthru"))
+            mr_id = to_date_safe(x.get("groombridevysysaid"))
+            eng_date = to_date_safe(x.get("engagementdate"))
+            marriage_photo = to_date_safe(x.get("marriagephotodetails"))
+            eng_photo = to_date_safe(x.get("engagementphotodetails"))
+            invitation = to_date_safe(x.get("marriageinvitationdetails"))
+            if marriage_date:
+                if marriage_date.month == today.month and marriage_date.year == today.year:
+                    current_month_marriage +=1
+                if marriage_date >= today:
+                    upcoming_marriage +=1
+                    
+            if plan in [1, 2, 3, 16]:
+                premium += 1
+                if state == 2:
+                    premium_tn += 1
+                else:
+                    premium_not_tn += 1
+            elif plan in [7, 9]:
+                free_offer += 1
+                if state == 2:
+                    free_offer_tn += 1
+                else:
+                    free_offer_not_tn += 1
+            elif plan == 8:
+                propect += 1
+                if state == 2:
+                    propect_tn += 1
+                else:
+                    propect_not_tn += 1
+
+
+            next_call = to_date_safe(x.get("next_call_date"))
+            next_action = to_date_safe(x.get("next_action_date"))
+
+            if next_call:
+                today_work += next_call == today
+                pending_work += next_call < today
+
+            if next_action:
+                today_task += next_action == today
+                pending_task += next_action < today
+
+
+        # ---------------- RESPONSE ----------------
+        return Response({
+            "status": True,
+            "overall_count": overall,
+            "filtered_count": len(filtered),
+            "total_profiles": total,
+            "marriage_counts": {
+                "upcoming_marriage": upcoming_marriage,
+                "current_month_marriage": current_month_marriage
+            },
+            "plan_counts":{
+                "premium":{
+                    "total":premium,
+                    "tn":premium_tn,
+                    "non-tn":premium_not_tn
+                    },
+                "free_offer":{
+                    "total":free_offer,
+                    "tn":free_offer_tn,
+                    "non-tn":free_offer_not_tn
+                },
+                "propect":{
+                    "total":propect,
+                    "tn":propect_tn,
+                    "non-tn":propect_not_tn
+                }
+                },
+            
+            "work_counts": {
+                "today_work": today_work,
+                "pending_work": pending_work
+            },
+
+            "task_counts": {
+                "today_task": today_task,
+                "pending_task": pending_task
+            },
+
+
+            "data": filtered
+        })
+           
