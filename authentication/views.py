@@ -2936,7 +2936,10 @@ class Get_Gallery_lists(APIView):
                        ROW_NUMBER() OVER (PARTITION BY pi.profile_id ORDER BY pi.id ASC) AS rn
                 FROM profile_images pi
                 JOIN logindetails ld ON pi.profile_id = ld.ProfileId
-                WHERE ld.Photo_protection != 1
+                WHERE 
+                pi.is_deleted = 0
+                AND pi.image_approved=1
+                AND ld.Photo_protection != 1
                 AND ld.ProfileId IN ({placeholders})
                 ORDER BY ld.DateOfJoin DESC
             )
@@ -2952,7 +2955,10 @@ class Get_Gallery_lists(APIView):
                 SELECT DISTINCT pi.profile_id
                 FROM profile_images pi
                 JOIN logindetails ld ON pi.profile_id = ld.ProfileId
-                WHERE ld.Photo_protection != 1
+                WHERE 
+                pi.is_deleted = 0
+                AND pi.image_approved=1
+                AND ld.Photo_protection != 1
                 AND ld.ProfileId IN ({placeholders})
             ) AS subquery;
             """
