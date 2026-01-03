@@ -14466,6 +14466,9 @@ class DeleteDashboard(APIView):
         search = safe_str(request.GET.get("search", ""))
         order_dir = safe_str(request.GET.get("order", "desc")).lower()
         export_type = safe_str(request.GET.get("export", "")).lower()
+        pending_param = safe_str(request.GET.get("pending", ""))
+        hidden_param = safe_str(request.GET.get("hidden", ""))
+
 
         with connection.cursor() as cursor:
             cursor.callproc(
@@ -14485,25 +14488,31 @@ class DeleteDashboard(APIView):
                     plan_id,
                     count_filter,
                     search,
-                    order_dir
+                    order_dir,
+                    int(pending_param or 0),
+                    int(hidden_param or 0)
                 ]
             )
 
-            # resultset 1 → base
             base = dictfetchall(cursor) or []
 
-            # resultset 2 → overall count
             cursor.nextset()
             overall_row = cursor.fetchone()
             overall_count = overall_row[0] if overall_row else 0
 
-            # resultset 3 → filtered
             cursor.nextset()
             filtered = dictfetchall(cursor) or []
+            cursor.nextset()
+            row = cursor.fetchone() or (0, 0)
+            pending, hidden = row
+            
+            if pending_param == "1" or hidden_param == "1":
+                cursor.nextset()
+                filtered = dictfetchall(cursor) or []
+
 
         total_profiles = len(base)
 
-        # ---------------- EXPORT ----------------
         if export_type in ["csv", "excel"]:
 
             export_rows = []
@@ -14556,11 +14565,102 @@ class DeleteDashboard(APIView):
                     'attachment; filename="delete_dashboard.xlsx"'
                 }
             )
+            
+        tn=non_tn=0
+        premium = pre_tn = pre_non_tn =0
+        free =free_tn =free_non_tn =0
+        offer =offer_tn =offer_non_tn =0
+        prospect =prospect_tn =prospect_non_tn =0
+        cur_month_delete = 0
+        duplicate = fake = marriage = others = 0
+        
+        for x in base:
+            state = safe_int(x.get("Profile_state"))
+            plan = safe_int(x.get("Plan_id"))
+            delete_date = to_date_safe(x.get("dh_date_time"))
+            sub_id = safe_int(x.get("sub_status_id"))
+            if delete_date:
+                if delete_date.month == date.today().month and delete_date.year == date.today().year:
+                    cur_month_delete += 1
+            if sub_id == 18:
+                duplicate += 1
+            elif sub_id == 19:
+                fake += 1
+            elif sub_id in [20,21]:
+                marriage += 1
+            elif sub_id == 22:
+                others += 1
+                
+            if state == 2:
+                tn += 1
+            else:
+                non_tn += 1
+            if plan in [1,2,3,16]:
+                premium +=1
+                if state == 2:
+                    pre_tn += 1
+                else:
+                    pre_non_tn += 1
+            elif plan ==7:
+                free += 1
+                if state == 2:
+                    free_tn += 1
+                else:
+                    free_non_tn += 1
+            elif plan == 9:
+                offer += 1
+                if state == 2:
+                    offer_tn += 1
+                else:
+                    offer_non_tn += 1
+            elif plan == 8:
+                prospect += 1
+                if state == 2:
+                    prospect_tn += 1
+                else:
+                    prospect_non_tn += 1
 
         return Response({
             "status": True,
             "overall_count": overall_count,
             "filtered_count": len(filtered),
+            "current_month_deletions": cur_month_delete,
+            "state_counts":{
+              "tn":tn,
+              "non_tn":non_tn
+            },
+            "plan_counts":{
+                "premium":{
+                    "total":premium,
+                    "tn":pre_tn,
+                    "non_tn":pre_non_tn
+                    },
+                "free": {
+                    "total":free,
+                    "tn":free_tn,
+                    "non_tn":free_non_tn
+                    },
+                "offer":{
+                    "total":offer,
+                    "tn":offer_tn,
+                    "non_tn":offer_non_tn
+                    },
+                "prospect": {
+                    "total":prospect,
+                    "tn":prospect_tn,
+                    "non_tn":prospect_non_tn
+                    }
+            },
+            "other_status_counts": {
+                "pending": pending,
+                "hidden": hidden
+            },
+            "status_counts":{
+                "duplicate":duplicate,
+                "fake":fake,
+                "marriage":marriage,
+                "others":others
+                },
             "total_profiles": total_profiles,
             "data": filtered
         })
