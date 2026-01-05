@@ -2762,6 +2762,22 @@ def get_preferred_gothram(primary_id, fallback_value):
         return fallback_value if fallback_value not in [None, "", "0", "N/A", "~"] else "N/A"
     except Exception:
         return None
+    
+def get_others(id,status):
+    try:
+        others=None
+        dh = DataHistory.objects.filter(profile_id=id,profile_status=status).order_by('-date_time').first()
+        if status == 4:
+            others = dh.delete_others
+        elif status == 3:
+            others = dh.hide_others
+        elif status == 2:
+            others = dh.pending_others
+        else:
+            others = None
+        return others
+    except Exception:
+        return None
 
 class GetProfEditDetailsAPIView(APIView):
     """
@@ -2961,7 +2977,8 @@ class GetProfEditDetailsAPIView(APIView):
                 "profile_owner_id":login_detail.Owner_id,
                 "profile_owner":get_owner_name(login_detail.Owner_id),
                 "membership_status":get_mem_status(login_detail.ProfileId),
-                "profile_relation":get_profile_relation(login_detail.Profile_for)
+                "profile_relation":get_profile_relation(login_detail.Profile_for),
+                "others":get_others(login_detail.ProfileId,login_detail.status)
                 #"myself":myself
                 }
     
@@ -11353,56 +11370,144 @@ class EditProfileWithPermissionAPIView(APIView):
                 })
             else:
                 return Response({'error': 'You do not have permission to edit this profile.'}, status=status.HTTP_403_FORBIDDEN)
+
+            
+            # try:
+            #     if owner:
+            #         owner_id =int(owner)
+            #     else:
+            #         owner_id = None
+            #     old_status = getattr(login_detail, 'status', None)
+            #     new_status = profile_common_data.get("status") or old_status
+
+            #     old_plan_id = getattr(login_detail, 'Plan_id', None)
+            #     new_plan_id = profile_common_data.get("secondary_status") or old_plan_id
+            #     others_id = profile_common_data.get("primary_status")
+            #     try:
+            #         status_sub = ProfileSubStatus.objects.get(id=others_id)
+            #         others = status_sub.sub_status_name
+            #     except:    
+            #         others = None
+                
+            #     if old_status is not None and int(old_status) != int(new_status) and int(old_plan_id) != int(new_plan_id):
+            #         try:
+            #             DataHistory.objects.create(
+            #                 profile_id=profile_id,
+            #                 profile_status=new_status,
+            #                 plan_id=new_plan_id,
+            #                 owner_id = owner_id
+            #             )
+            #         except Exception as e:
+            #             pass
+            #     elif old_status is not None and int(old_status) != int(new_status):
+            #         try:
+            #             DataHistory.objects.create(
+            #                 profile_id=profile_id,
+            #                 profile_status=new_status,
+            #                 owner_id = owner_id,
+            #                 others=others
+            #             )
+            #         except Exception as e:
+            #             pass
+                    
+            #     elif int(old_plan_id) != int(new_plan_id):
+            #         try:
+            #             DataHistory.objects.create(
+            #                 profile_id=profile_id,
+            #                 profile_status=new_status, 
+            #                 plan_id=new_plan_id,
+            #                 owner_id = owner_id
+            #             )
+            #         except Exception as e:
+            #             pass
             
             try:
-                if owner:
-                    owner_id =int(owner)
-                else:
-                    owner_id = None
+                owner_id = int(owner) if owner else None
+
                 old_status = getattr(login_detail, 'status', None)
                 new_status = profile_common_data.get("status") or old_status
+                old_sub_status = getattr(login_detail, 'secondary_status', None)
+                new_sub_status = profile_common_data.get("primary_status") or old_sub_status
 
                 old_plan_id = getattr(login_detail, 'Plan_id', None)
                 new_plan_id = profile_common_data.get("secondary_status") or old_plan_id
-                others_id = profile_common_data.get("primary_status")
-                try:
-                    status_sub = ProfileSubStatus.objects.get(id=others_id)
-                    others = status_sub.sub_status_name
-                except:    
-                    others = None
-                
-                if old_status is not None and int(old_status) != int(new_status) and int(old_plan_id) != int(new_plan_id):
+                other = profile_common_data.get("others")
+                status_changed = (
+                    old_status is not None and
+                    new_status is not None and
+                    int(old_status) != int(new_status)
+                )
+                sub_status_changed = (
+                    old_sub_status is not None and
+                    new_sub_status is not None and
+                    int(old_sub_status) != int(new_sub_status)
+                )
+                plan_changed = (
+                    old_plan_id is not None and
+                    new_plan_id is not None and
+                    int(old_plan_id) != int(new_plan_id)
+                )
+
+                if not status_changed and not plan_changed and not sub_status_changed:
+                    if old_status == 4:
+                        others_field = 'delete_others'
+                    elif old_status == 3:
+                        others_field = 'hide_others'
+                    elif old_status == 2:
+                        others_field = 'pending_others'
+                    else:
+                        others_field = None
+                    latest_log = (
+                        DataHistory.objects
+                        .filter(profile_id=profile_id)
+                        .order_by('-date_time')
+                        .first()
+                    )
+
+                    if latest_log:
+                        update_data = {
+                            others_field: other,
+                        }
+
+                        DataHistory.objects.filter(id=latest_log.id).update(**update_data)
+                else:
+                    others_id = profile_common_data.get("primary_status")
+
                     try:
-                        DataHistory.objects.create(
-                            profile_id=profile_id,
-                            profile_status=new_status,
-                            plan_id=new_plan_id,
-                            owner_id = owner_id
-                        )
-                    except Exception as e:
-                        pass
-                elif old_status is not None and int(old_status) != int(new_status):
-                    try:
-                        DataHistory.objects.create(
-                            profile_id=profile_id,
-                            profile_status=new_status,
-                            owner_id = owner_id,
-                            others=others
-                        )
-                    except Exception as e:
-                        pass
+                        status_sub = ProfileSubStatus.objects.get(id=others_id)
+                        others_text = status_sub.sub_status_name
+                    except ProfileSubStatus.DoesNotExist:
+                        others_text = None
+                        
+                    others_field = None
+                    if status_changed:
+                        if new_status == 4:
+                            others_field = 'delete_others'
+                        elif new_status == 3:
+                            others_field = 'hide_others'
+                        elif new_status == 2:
+                            others_field = 'pending_others'
+                        else:
+                            others_field = None
+
+                    data_history_payload = {
+                        'profile_id': profile_id,
+                        'owner_id': owner_id,
+                        'profile_status': new_status,
+                    }
+
+                    if plan_changed:
+                        data_history_payload['plan_id'] = new_plan_id
+
+                    if status_changed and others_field:
+                        data_history_payload['others'] = others_text
+                        if other:
+                            data_history_payload[others_field] = other
+
+                    DataHistory.objects.create(**data_history_payload)
                     
-                elif int(old_plan_id) != int(new_plan_id):
-                    try:
-                        DataHistory.objects.create(
-                            profile_id=profile_id,
-                            profile_status=new_status, 
-                            plan_id=new_plan_id,
-                            owner_id = owner_id
-                        )
-                    except Exception as e:
-                        pass
             except Exception as e:
+                # print('Error logging data history:', str(e))
                 pass
             # print('login_common_data', login_common_data)
             # Update Login Details
