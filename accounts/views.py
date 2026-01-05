@@ -14504,7 +14504,10 @@ class DeleteDashboard(APIView):
             filtered = dictfetchall(cursor) or []
             cursor.nextset()
             row = cursor.fetchone() or (0, 0)
-            pending, hidden = row
+            pending = row[0]
+            hidden = row[1]
+            pending_current_month = row[2]
+            hidden_current_month = row[3]
             
             if pending_param == "1" or hidden_param == "1":
                 cursor.nextset()
@@ -14651,9 +14654,12 @@ class DeleteDashboard(APIView):
                     "non_tn":prospect_non_tn
                     }
             },
+            
             "other_status_counts": {
                 "pending": pending,
-                "hidden": hidden
+                "hidden": hidden,
+                "pending_current_month": pending_current_month,
+                "hidden_current_month": hidden_current_month
             },
             "status_counts":{
                 "duplicate":duplicate,
