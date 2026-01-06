@@ -1294,9 +1294,10 @@ class PersonalFamilydetailsSerializer(serializers.ModelSerializer):
     uncle_gothram = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     father_alive = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     mother_alive = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    Physically_challenged_details = serializers.CharField(required=False, allow_blank=True , allow_null=True)
     class Meta:
         model = models.Familydetails
-        fields = ['blood_group', 'about_self', 'hobbies', 'Pysically_changed','weight','eye_wear','body_type','suya_gothram','uncle_gothram', 'father_alive', 'mother_alive']
+        fields = ['blood_group', 'about_self', 'hobbies', 'Pysically_changed','weight','eye_wear','body_type','suya_gothram','uncle_gothram', 'father_alive', 'mother_alive','Physically_challenged_details']
 
 
 class PersHoroscopeSerializer(serializers.ModelSerializer):
