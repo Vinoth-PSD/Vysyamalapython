@@ -4110,33 +4110,31 @@ class ProfileCallManagement(models.Model):
         return f"ProfileCallManagement {self.id}"
 
 class MarriageSettleDetails(models.Model):
-    id = models.AutoField(primary_key=True)
-    profile_id = models.CharField(max_length=255)
+    profile_id = models.CharField(max_length=255,primary_key=True)
     owner_id = models.IntegerField()
 
-    marriagedate = models.DateField(null=True, blank=True)
+    marriage_date = models.DateField(null=True, blank=True)
     groombridefathername = models.CharField(max_length=255, null=True, blank=True)
-    groombridevysysaid = models.CharField(max_length=255, null=True, blank=True)
-    engagementdate = models.DateField(null=True, blank=True)
-    marriagephotodetails = models.TextField(null=True, blank=True)
-    engagementphotodetails = models.TextField(null=True, blank=True)
-    adminmarriagecomments = models.TextField(null=True, blank=True)
-    groombridename = models.CharField(max_length=255, null=True, blank=True)
+    groom_bride_vysyamala_id = models.CharField(max_length=255, null=True, blank=True)
+    engagement_date = models.DateField(null=True, blank=True)
+    marriage_photo_details = models.TextField(null=True, blank=True)
+    engagement_photo_details = models.TextField(null=True, blank=True)
+    admin_marriage_comments = models.TextField(null=True, blank=True)
+    groom_bride_name = models.CharField(max_length=255, null=True, blank=True)
     groombridecity = models.CharField(max_length=255, null=True, blank=True)
-    settledthru = models.CharField(max_length=255, null=True, blank=True)
-    marriagecomments = models.TextField(null=True, blank=True)
-    marriageinvitationdetails = models.TextField(null=True, blank=True)
-    engagementinvitationdetails = models.TextField(null=True, blank=True)
-    adminsettledthru = models.CharField(max_length=255, null=True, blank=True)
-    updated_date = models.DateTimeField(auto_now=True)
+    settled_thru= models.CharField(max_length=255, null=True, blank=True)
+    marriage_comments = models.TextField(null=True, blank=True)
+    marriage_invitation_details = models.TextField(null=True, blank=True)
+    engagement_invitation_details = models.TextField(null=True, blank=True)
+    admin_settled_thru = models.CharField(max_length=255, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now=True)
+    others = models.CharField(max_length=255, null=True, blank=True)
+    admin_others = models.TextField(max_length=255, null=True, blank=True)
+    marriage_location = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         managed = False  # This table already exists in the DB
-        db_table = 'Marriage_settle_details'  # Database table name
-
-
-    def __str__(self):
-        return f"MarriageSettleDetails {self.id}"
+        db_table = 'marriage_settled'  # Database table name
 
 class PaymentTransaction(models.Model):
     id = models.AutoField(primary_key=True)

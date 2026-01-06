@@ -1219,6 +1219,26 @@ class MarriageSettleDetailsSerializer(serializers.ModelSerializer):
             if not data.get(field):
                 raise serializers.ValidationError({field: "This field is required."})
         return data
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        for field in ['marriage_date', 'engagement_date']:
+            raw_value = data.get(field)
+            if raw_value:
+                try:
+                    parsed = None
+                    for fmt in ("%m-%d-%Y", "%m.%d.%Y", "%m/%d/%Y", "%Y-%m-%d"):
+                        try:
+                            parsed = datetime.strptime(raw_value, fmt)
+                            break
+                        except ValueError:
+                            continue
+                    if parsed:
+                        data[field] = parsed.strftime("%Y-%m-%d")
+                except Exception:
+                    pass
+
+        return data
+
 
 class PaymentTransactionSerializer(serializers.ModelSerializer):
     plan_id = serializers.IntegerField(required=False)
