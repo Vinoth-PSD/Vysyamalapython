@@ -2779,6 +2779,16 @@ def get_others(id,status):
     except Exception:
         return None
 
+def map_eye_wear(value): 
+    try:
+        if str(value) == "1": 
+            return "Yes" 
+        elif str(value) == "0": 
+            return "No" 
+        return str(value)
+    except Exception:
+        return "No"
+
 class GetProfEditDetailsAPIView(APIView):
     """
     This API view will fetch all profile-related details to populate the edit page based on ProfileId.
@@ -2800,6 +2810,7 @@ class GetProfEditDetailsAPIView(APIView):
             family_detail = ProfileFamilyDetails.objects.get(profile_id=profile_id)
             family_data = ProfileFamilyDetailsSerializer(family_detail).data
             family_data['uncle_gothram'] = family_data.get('madulamn')
+            family_data['eye_wear'] = map_eye_wear(family_data.get('eye_wear'))
             response_data['family_details']= family_data
         except ProfileFamilyDetails.DoesNotExist:
             response_data['family_details'] = {}  # Return an empty object if not found

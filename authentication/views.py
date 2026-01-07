@@ -4120,7 +4120,15 @@ def calculate_age(dob):
         return age
     return None
 
-
+def map_eye_wear(value): 
+    try:
+        if str(value) == "1": 
+            return "Yes" 
+        elif str(value) == "0": 
+            return "No" 
+        return str(value)
+    except Exception:
+        return "No"
 
 def Get_wishlist(profile_id,user_profile_id):
    
@@ -5280,7 +5288,8 @@ class Get_profile_det_match_old(APIView):
                             "complexion": Profile_complexion,
                             "hobbies": profile_details[0]['hobbies'],
                             "physical_status": "No" if profile_details[0]['Pysically_changed'] == 0 else "1" if profile_details[0]['Pysically_changed'] == 1 else profile_details[0]['Pysically_changed'] ,
-                            "eye_wear": profile_details[0]['eye_wear'] ,
+                            # "eye_wear": profile_details[0]['eye_wear'] ,
+                            "eye_wear": map_eye_wear(profile_details[0].get('eye_wear')),
                             "weight": profile_details[0]['weight'] ,
                             "body_type": profile_details[0]['body_type'] ,
                             "profile_created_by": Profile_owner,
@@ -5555,7 +5564,7 @@ class Get_profile_det_match(APIView):
             "physical_status": "No" if profile_data.get('Pysically_changed', 0) == 0 
                           else "1" if profile_data.get('Pysically_changed', 0) == 1 
                           else profile_data.get('Pysically_changed', 0),
-            "eye_wear": profile_data.get('eye_wear', '0'),
+            "eye_wear": map_eye_wear(profile_data.get('eye_wear', '0')),
             "weight": profile_data.get('weight', '0'),
             "body_type": profile_data.get('body_type', ''),
             "profile_created_by": self._get_profile_creator(profile_data.get('Profile_for'))
