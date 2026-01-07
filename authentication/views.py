@@ -7773,7 +7773,8 @@ class GetMyProfilePersonal(APIView):
                 "heightest_education": f"{Profile_high_edu} {Profile_field_edu} {qualification_name_1} {about_edu}",
                 "prosession":Profile_prosession,
                 "mobile_no":registration.Mobile_no,
-                "encrypted_profile_id":signing.dumps(profile_id)
+                "encrypted_profile_id":signing.dumps(profile_id),
+                "Physically_challenged_details": familydetails_serializer.data.get("Physically_challenged_details"),
             }
 
             response = {

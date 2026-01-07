@@ -14455,6 +14455,8 @@ class MarriageDashboard(APIView):
         today_task = pending_task = 0
         pre_settle_vys = pre_settle_oth = pre_both = pre_single =0
         fop_settle_vys = fop_settle_oth = fop_both = fop_single =0
+        nm_date = ne_date = nm_photo = ne_photo = 0
+        wish_card_accept = wish_card_rejected = instagram_accept = 0
         upcoming_marriage = current_month_marriage =0
         assigned_to=0
 
@@ -14467,7 +14469,54 @@ class MarriageDashboard(APIView):
             eng_date = to_date_safe(x.get("engagementdate"))
             marriage_photo = to_date_safe(x.get("marriagephotodetails"))
             eng_photo = to_date_safe(x.get("engagementphotodetails"))
-            invitation = to_date_safe(x.get("marriageinvitationdetails"))
+            wish_card_accept_val = to_date_safe(x.get("wish_card_accept"))
+            instagram_accept_val = to_date_safe(x.get("instagram_accept"))
+            if wish_card_accept_val ==1:
+                wish_card_accept +=1
+            else:
+                wish_card_rejected +=1
+            if instagram_accept_val ==1:
+                instagram_accept +=1
+                
+            if eng_date:
+                pass
+            else:
+                ne_date +=1
+            if marriage_date:
+                pass
+            else:
+                nm_date +=1
+            if eng_photo:
+                pass
+            else:
+                ne_photo +=1
+            if marriage_photo:
+                pass
+            else:
+                nm_photo +=1
+                            
+            if settle:
+                if settle.lower()=="vysyamala":
+                    if plan in [1,2,3,16]:
+                        pre_settle_vys += 1
+                    elif plan in [7,8,9]:
+                        fop_settle_vys += 1
+                else:
+                    if plan in [1,2,3,16]:
+                        pre_settle_oth += 1
+                    elif plan in [7,8,9]:
+                        fop_settle_oth += 1        
+            if mr_id:
+                if plan in [1,2,3,16]:
+                    pre_both += 1
+                elif plan in [7,8,9]:
+                    fop_both += 1
+            else:
+                if plan in [1,2,3,16]:
+                    pre_single += 1
+                elif plan in [7,8,9]:
+                    fop_single += 1
+                    
             if safe_int(x.get("assigned_to_owner")) == 1:
                 assigned_to += 1
             if marriage_date:
@@ -14515,6 +14564,27 @@ class MarriageDashboard(APIView):
             "filtered_count": len(filtered),
             "total_profiles": total,
             "assigned_to_me": assigned_to,
+            "pre_settlement": {
+                "vysyamala": pre_settle_vys,
+                "others": pre_settle_oth,
+                "both": pre_both,
+                "single": pre_single
+            },
+            "free_offer_settlement": {
+                "vysyamala": fop_settle_vys,
+                "others": fop_settle_oth,   
+                "both": fop_both,
+                "single": fop_single
+            },
+            "missing_details": {
+                "no_marriage_date": nm_date,
+                "no_engagement_date": ne_date,
+                "no_marriage_photo": nm_photo,
+                "no_engagement_photo": ne_photo,
+                "wish_card_accepted": wish_card_accept,
+                "wish_card_rejected": wish_card_rejected,
+                "instagram_accepted": instagram_accept
+            },
             "marriage_counts": {
                 "upcoming_marriage": upcoming_marriage,
                 "current_month_marriage": current_month_marriage

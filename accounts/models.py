@@ -4131,6 +4131,8 @@ class MarriageSettleDetails(models.Model):
     others = models.CharField(max_length=255, null=True, blank=True)
     admin_others = models.TextField(max_length=255, null=True, blank=True)
     marriage_location = models.CharField(max_length=255, null=True, blank=True)
+    wish_card_accept = models.CharField(max_length=255, null=True, blank=True)
+    instagram_accept = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         managed = False  # This table already exists in the DB
