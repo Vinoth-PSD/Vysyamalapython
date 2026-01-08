@@ -5383,8 +5383,105 @@ class Get_profile_det_match_old(APIView):
     
       return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+def safe_int(val, default=0):
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return default
 
+def check_visibility(from_profile, to_profile):
+    if not from_profile or not to_profile:
+        return False
+    try:
+        from_reg = models.Registration1.objects.get(ProfileId=from_profile)
+        to_reg = models.Registration1.objects.get(ProfileId=to_profile)
+        if safe_int(to_reg.Plan_id) !=  3:
+            return True
+        elif safe_int(to_reg.Plan_id) == 3 and safe_int(from_reg.Plan_id) == 3:
+            return True
+        elif safe_int(to_reg.Plan_id) == 3 and safe_int(from_reg.Plan_id) != 3:
+            try:
+                try:
+                    pv = models.ProfileVisibility.objects.get(profile_id=to_profile)
+                except models.ProfileVisibility.DoesNotExist:
+                    return False
 
+                from_age = calculate_age(from_reg.Profile_dob)
+
+                from_edu = models.Edudetails.objects.get(profile_id=from_profile)
+                from_family = models.Familydetails.objects.get(profile_id=from_profile)
+                from_horo = models.Horoscope.objects.get(profile_id=from_profile)
+                if pv.visibility_age_from and from_age < int(pv.visibility_age_from):
+
+                    return False
+                if pv.visibility_age_to and from_age > int(pv.visibility_age_to):
+                    return False
+                
+                if pv.visibility_height_from and from_reg.Profile_height < pv.visibility_height_from:
+                    return False
+                if pv.visibility_height_to and from_reg.Profile_height > pv.visibility_height_to:
+                    return False
+                
+                if pv.visibility_profession:
+                    if str(from_edu.profession) not in str(pv.visibility_profession).split(','):
+                        return False
+                
+                if pv.visibility_education:
+                    if str(from_edu.highest_education) not in str(pv.visibility_education).split(','):
+                        return False
+
+                if pv.visibility_anual_income:
+                    if safe_int(from_edu.anual_income) < safe_int(pv.visibility_anual_income):
+                        return False
+
+                if pv.visibility_anual_income_max:
+                    if safe_int(from_edu.anual_income) > safe_int(pv.visibility_anual_income_max):
+                        return False
+
+                if pv.degree:
+                    if str(from_edu.degree) not in str(pv.degree).split(','):
+                        return False
+                
+                if pv.visibility_field_of_study:
+                    if str(from_edu.field_ofstudy) not in str(pv.visibility_field_of_study).split(','):
+                        return False
+                
+                if pv.visibility_family_status:
+                    if str(from_family.family_status) not in str(pv.visibility_family_status).split(','):
+                        return False
+                
+                if pv.visibility_chevvai and pv.visibility_chevvai.lower() != 'both':
+                    chevvai_val = str(from_horo.calc_chevvai_dhosham).lower()
+                    if pv.visibility_chevvai.lower() == 'yes' and chevvai_val not in ('yes', 'true', '1', ''):
+                        
+                        return False
+                    if pv.visibility_chevvai.lower() == 'no' and chevvai_val not in ('no', 'false', '2', ''):
+                        
+                        return False
+                
+                if pv.visibility_ragukethu and pv.visibility_ragukethu.lower() != 'both':
+                    ragu_val = str(from_horo.calc_raguketu_dhosham).lower()
+                    if pv.visibility_ragukethu.lower() == 'yes' and ragu_val not in ('yes', 'true', '1', ''):
+                        
+                        return False
+                    if pv.visibility_ragukethu.lower() == 'no' and ragu_val not in ('no', 'false', '2', ''):
+                        
+                        return False
+                if pv.visibility_foreign_interest and pv.visibility_foreign_interest.lower() !='both':
+                    con = from_reg.Profile_country
+                    if pv.visibility_foreign_interest.lower() == 'yes' and con !=1: 
+                        return False
+                    if pv.visibility_foreign_interest.lower() == 'no' and con ==1:
+                        return False
+                return True
+                
+            except Exception:
+                return False
+            return False
+        else:
+            return False
+    except Exception:
+        return True
 
 class Get_profile_det_match(APIView):
     # Cache settings (seconds)
@@ -5447,6 +5544,11 @@ class Get_profile_det_match(APIView):
         profile_id = request.data['profile_id']
         user_profile_id = request.data['user_profile_id']
         page_id = request.data.get('page_id', '1')
+        if check_visibility(profile_id, user_profile_id) is False:
+            return JsonResponse(
+                {'status': 'failure', 'message': 'Profile visibility restricted'},
+                status= status.HTTP_403_FORBIDDEN
+            )
 
         # 2. Check View Limits
         if not (can_get_viewd_profile_count(profile_id, user_profile_id) or 
