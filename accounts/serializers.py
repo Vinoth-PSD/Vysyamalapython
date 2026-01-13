@@ -475,10 +475,14 @@ class Getnewprofiledata_new(serializers.Serializer):
     has_horo = serializers.SerializerMethodField()
     membership_startdate = serializers.SerializerMethodField()
     membership_enddate = serializers.SerializerMethodField()
+    delete_date = serializers.SerializerMethodField()
     # Method to calculate age from Profile_dob
     
     def get_membership_startdate(self,obj):
         return obj['membership_startdate'].date() if obj.get('membership_startdate') else None
+    
+    def get_delete_date(self,obj):
+        return obj['deleted_date'].date() if obj.get('deleted_date') else None
     
     def get_membership_enddate(self,obj):
         return obj['membership_enddate'].date() if obj.get('membership_enddate') else None
@@ -970,9 +974,20 @@ class QuickUploadSerializer(serializers.ModelSerializer):
     Profile_marital_status = serializers.SerializerMethodField()  # Fetch human-readable name for Profile_marital_status
     status = serializers.SerializerMethodField()
     plan_name = serializers.SerializerMethodField()
+    profile_image = serializers.SerializerMethodField()
     class Meta:
         model = LoginDetails
-        fields = ['ProfileId', 'Profile_for', 'Gender', 'Mobile_no', 'Profile_name', 'Profile_marital_status', 'Profile_idproof', 'horoscope_file','DateOfJoin','status','Plan_id','plan_name']
+        fields = ['ProfileId', 'Profile_for', 'Gender', 'Mobile_no', 'Profile_name', 'Profile_marital_status', 'Profile_idproof', 'horoscope_file','DateOfJoin','status','Plan_id','plan_name','profile_image']
+
+    def get_profile_image(self, obj):
+        try:
+            image_upload = Image_Upload.objects.filter(profile_id=obj.ProfileId,is_deleted=False).first()
+            if image_upload and image_upload.image:
+                return image_upload.image.url  
+            else:
+                return None
+        except Image_Upload.DoesNotExist:
+            return None
 
     def get_plan_name(self,obj):
         try:
@@ -1305,6 +1320,28 @@ class CommonProfileSearchSerializer(serializers.Serializer):
     dob_month = serializers.CharField(required=False,allow_blank=True)
     dob_year = serializers.CharField(required=False,allow_blank=True)
     family_status = serializers.CharField(required=False,allow_blank=True)
+    email_id  = serializers.CharField(required=False,allow_blank=True)
+    gender = serializers.CharField(required=False,allow_blank=True)
+    father_name = serializers.CharField(required=False,allow_blank=True)
+    father_occupation = serializers.CharField(required=False,allow_blank=True)
+    mother_name = serializers.CharField(required=False,allow_blank=True)
+    mother_occupation = serializers.CharField(required=False,allow_blank=True)
+    business_name = serializers.CharField(required=False,allow_blank=True)
+    company_name = serializers.CharField(required=False,allow_blank=True)
+    last_action_date = serializers.CharField(required=False,allow_blank=True)
+    from_doj = serializers.CharField(required=False,allow_blank=True)
+    to_doj = serializers.CharField(required=False,allow_blank=True)
+    created_by = serializers.CharField(required=False,allow_blank=True)
+    delete_status = serializers.CharField(required=False,allow_blank=True)
+    address = serializers.CharField(required=False,allow_blank=True)
+    admin_comments = serializers.CharField(required=False,allow_blank=True)
+    admin_details = serializers.CharField(required=False,allow_blank=True)
+    marriage_from = serializers.CharField(required=False,allow_blank=True)
+    marriage_to = serializers.CharField(required=False,allow_blank=True)
+    engagement_from = serializers.CharField(required=False,allow_blank=True)
+    engagement_to = serializers.CharField(required=False,allow_blank=True)
+    field_of_study = serializers.CharField(required=False,allow_blank=True)
+    degree = serializers.CharField(required=False,allow_blank=True)
     per_page = serializers.IntegerField(default=10)
     page_number = serializers.IntegerField(default=1)
 

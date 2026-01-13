@@ -959,7 +959,8 @@ class Newprofile_get(generics.ListAPIView):
                    ld.DateOfJoin, ld.Last_login_date, ld.Profile_for, ld.membership_startdate, ld.membership_enddate, ms.MaritalStatus, cm.complexion_desc, s.name AS state_name, 
                    ld.Profile_city AS Profile_city, cy.city_name , c.name AS country_name, d.name AS district_name,
                    pfd.family_status, ped.highest_education, ped.anual_income, ph.birthstar_name , mp.profession AS profession ,pl.plan_name ,ld.Owner_id,
-                   md.ModeName,ou.username,IF(pi.profile_id IS NULL, 0, 1) AS has_photo,IF(hi.profile_id IS NULL, 0, 1) AS has_horo
+                   md.ModeName,ou.username,IF(pi.profile_id IS NULL, 0, 1) AS has_photo,IF(hi.profile_id IS NULL, 0, 1) AS has_horo,
+                   dh.deleted_date
             FROM logindetails ld
             LEFT JOIN maritalstatusmaster ms ON ld.Profile_marital_status = ms.StatusId
             LEFT JOIN complexionmaster cm ON ld.Profile_complexion = cm.complexion_id
@@ -982,7 +983,25 @@ class Newprofile_get(generics.ListAPIView):
             WHERE (horoscope_file IS NOT NULL AND horoscope_file <> '') OR (horoscope_file_admin IS NOT NULL AND horoscope_file_admin <> '') ) hi 
             ON hi.profile_id = ld.ProfileId
             """
-        
+        if int(page_id) == 4:
+            print("Inside page_id 4 block")
+            sql += """
+            LEFT JOIN (
+                SELECT profile_id, MAX(date_time) AS deleted_date
+                FROM datahistory
+                WHERE profile_status = 4
+                GROUP BY profile_id
+            ) dh ON dh.profile_id = ld.ProfileId
+            """
+        else:
+            sql += """
+            LEFT JOIN (
+                SELECT NULL AS profile_id, NULL AS deleted_date
+            ) dh ON 1 = 0
+            """
+
+            
+
         # Add the search query conditions if provided
         if search_query:
             sql += """
@@ -1014,8 +1033,10 @@ class Newprofile_get(generics.ListAPIView):
                 placeholders = ','.join(['%s'] * len(plan_id_list))
                 sql += f" AND ld.Plan_id IN ({placeholders})"
                 params.extend(plan_id_list)
-        
-        sql += " ORDER BY ld.ContentId DESC"
+        if int(page_id) == 4:
+            sql += " ORDER BY dh.deleted_date DESC"
+        else:
+            sql += " ORDER BY ld.ContentId DESC"
         
 
         with connection.cursor() as cursor:

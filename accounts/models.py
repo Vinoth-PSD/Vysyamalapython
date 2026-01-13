@@ -3335,7 +3335,11 @@ class Get_profiledata_Matching(models.Model):
                                 foreign_intrest=None, has_photos=None, height_from=None, height_to=None,
                                 matching_stars=None, min_anual_income=None, max_anual_income=None,
                                 membership=None,profile_name=None,father_alive=None,mother_alive=None,martial_status=None,
-                                mobile_no=None, profile_dob=None,status=None,dob_date=None,dob_month=None,dob_year=None,family_status=None
+                                mobile_no=None, profile_dob=None,status=None,dob_date=None,dob_month=None,dob_year=None,family_status=None,
+                                email_id=None,gender=None,father_name=None,father_occupation=None,mother_name=None,mother_occupation=None,
+                                business_name=None,company_name=None,last_action_date=None,from_doj=None,to_doj=None,created_by=None,
+                                delete_status=None,address=None,admin_comments=None,marriage_from=None,marriage_to=None,
+                                engagement_from=None,engagement_to=None,field_of_study=None,degree=None
                                 ):
 
         try:
@@ -3353,10 +3357,145 @@ class Get_profiledata_Matching(models.Model):
                 LEFT JOIN masterannualincome h ON f.anual_income = h.id
                 LEFT JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
                 LEFT JOIN profile_images i ON i.profile_id=a.ProfileId
+                LEFT JOIN marriage_settled j ON a.ProfileId = j.profile_id
                 WHERE 1 
             """
 
             query_params = []
+
+            
+            if field_of_study:
+                base_query += " AND f.field_ofstudy = %s"
+                query_params.append(field_of_study)
+
+            if degree:
+                base_query += " AND f.degree = %s"
+                query_params.append(degree)
+
+            if engagement_from and engagement_to:
+                try:
+                    ef = datetime.strptime(engagement_from, '%Y-%m-%d').date()
+                    et = datetime.strptime(engagement_to, '%Y-%m-%d').date()
+                    base_query += " AND j.engagement_date BETWEEN %s AND %s"
+                    query_params.extend([ef, et])
+                except Exception:
+                    pass
+            elif engagement_from:  
+                try:
+                    ef = datetime.strptime(engagement_from, '%Y-%m-%d').date()
+                    base_query += " AND j.engagement_date >= %s"
+                    query_params.append(ef)
+                except Exception:
+                    pass
+            elif engagement_to:
+                try:
+                    et = datetime.strptime(engagement_to, '%Y-%m-%d').date()
+                    base_query += " AND j.engagement_date <= %s"
+                    query_params.append(et)
+                except Exception:
+                    pass
+            
+            if marriage_from and marriage_to:
+                try:
+                    mf = datetime.strptime(marriage_from, '%Y-%m-%d').date()
+                    mt = datetime.strptime(marriage_to, '%Y-%m-%d').date()
+                    base_query += " AND j.marriage_date BETWEEN %s AND %s"
+                    query_params.extend([mf, mt])
+                except Exception:
+                    pass
+            elif marriage_from:
+                try:
+                    mf = datetime.strptime(marriage_from, '%Y-%m-%d').date()
+                    base_query += " AND j.marriage_date >= %s"
+                    query_params.append(mf)
+                except Exception:
+                    pass
+            elif marriage_to:
+                try:
+                    mt = datetime.strptime(marriage_to, '%Y-%m-%d').date()
+                    base_query += " AND j.marriage_date <= %s"
+                    query_params.append(mt)
+                except Exception:
+                    pass
+            
+            if admin_comments:
+                base_query += " AND lower(a.Admin_comments) LIKE %s"
+                query_params.append(f"%{admin_comments.lower()}%")
+            
+            if address:
+                base_query += " AND lower(a.Profile_address) LIKE %s"
+                query_params.append(f"%{address.lower()}%")
+            
+            if delete_status:
+                base_query += " AND a.secondary_status = %s"
+                query_params.append(delete_status)
+            
+            if created_by:
+                base_query += " AND a.Profile_for = %s"
+                query_params.append(created_by)
+            
+            if from_doj and to_doj:
+                try:
+                    fd = datetime.strptime(from_doj, '%Y-%m-%d').date()
+                    td = datetime.strptime(to_doj, '%Y-%m-%d').date()
+                    base_query += " AND a.DateOfJoin BETWEEN %s AND %s"
+                    query_params.extend([fd, td])
+                except Exception:
+                    pass
+            elif from_doj:
+                try:
+                    fd = datetime.strptime(from_doj, '%Y-%m-%d').date()
+                    base_query += " AND a.DateOfJoin >= %s"
+                    query_params.append(fd)
+                except Exception:
+                    pass
+            elif to_doj:
+                try:
+                    td = datetime.strptime(to_doj, '%Y-%m-%d').date()
+                    base_query += " AND a.DateOfJoin <= %s"
+                    query_params.append(td)
+                except Exception:
+                    pass
+            
+            if last_action_date:
+                try:
+                    lad = datetime.strptime(last_action_date, '%Y-%m-%d').date()
+                    base_query += " AND YEAR(a.Last_login_date) = %s AND MONTH(a.Last_login_date) = %s AND DAY(a.Last_login_date) = %s"
+                    query_params.extend([lad.year, lad.month, lad.day])
+                except Exception:
+                    pass
+            
+            if business_name:
+                base_query += " AND lower(f.business_name) LIKE %s"
+                query_params.append(f"%{business_name.lower()}%")
+                
+            if company_name:
+                base_query += " AND lower(f.company_name) LIKE %s"
+                query_params.append(f"%{company_name.lower()}%")
+            
+            if father_name:
+                base_query += " AND lower(c.father_name) LIKE %s"
+                query_params.append(f"%{father_name.lower()}%")
+                
+            if father_occupation:
+                base_query += " AND lower(c.father_occupation) LIKE %s"
+                query_params.append(f"%{father_occupation.lower()}%")
+                
+            if mother_name:
+                base_query += " AND lower(c.mother_name) LIKE %s"
+                query_params.append(f"%{mother_name.lower()}%")
+                
+            if mother_occupation:
+                base_query += " AND lower(c.mother_occupation) LIKE %s"
+                query_params.append(f"%{mother_occupation.lower()}%")
+            
+            if email_id:
+                base_query += " AND a.EmailId LIKE %s"
+                query_params.append(f"%{email_id}%")
+
+            if gender:
+                base_query += " AND lower(a.Gender) = %s"
+                query_params.append(gender.lower())
 
             if family_status and family_status != "0":
                 family_status_list = [c.strip() for c in family_status.split(',') if c.strip()]
@@ -3488,11 +3627,21 @@ class Get_profiledata_Matching(models.Model):
                     except ValueError:
                         pass
 
-            # Foreign interest
-            if foreign_intrest.lower() == "yes":
-                base_query += " AND (a.Profile_country != 1 OR (f.work_country != 1 AND f.work_country IS NOT NULL AND f.work_country !=0))"
-            elif foreign_intrest.lower() == "no":
-                base_query += " AND (a.Profile_country = 1 AND f.work_country != 1) "
+            if foreign_intrest:
+                foreign_intrest_val = foreign_intrest.strip().lower()
+
+                if foreign_intrest_val == "yes":
+                    base_query += """
+                        AND (
+                            a.Profile_country != 1 
+                            OR (f.work_country != 1 AND f.work_country IS NOT NULL AND f.work_country != 0)
+                        )
+                    """
+                elif foreign_intrest_val == "no":
+                    base_query += """
+                        AND (a.Profile_country = 1 AND (f.work_country = 1 OR f.work_country IS NULL))
+                    """
+
             # Has photos
             if has_photos and has_photos.lower() == "yes":
                 base_query += " AND i.image IS NOT NULL"
@@ -3503,14 +3652,6 @@ class Get_profiledata_Matching(models.Model):
                 placeholders = ", ".join(["%s"] * len(memberships))
                 base_query += f" AND a.Plan_id IN ({placeholders})"
                 query_params.extend(memberships)
-
-            # if chevvai_dosham:
-            #     base_query += " AND e.chevvai_dosaham = %s"
-            #     query_params.append(chevvai_dosham)
-
-            # if ragu_dosham:
-            #     base_query += " AND e.ragu_dosham = %s"
-            #     query_params.append(ragu_dosham)
             
             conditions = []
 
@@ -3535,7 +3676,6 @@ class Get_profiledata_Matching(models.Model):
             if conditions:
                 base_query += f"\nAND ({' OR '.join(conditions)})"
 
-            # Income range
             if min_anual_income and max_anual_income:
                 try:
                     with connection.cursor() as cursor:
@@ -3559,7 +3699,7 @@ class Get_profiledata_Matching(models.Model):
                             query_params.append(amounts[0])
                 except Exception as e:
                     print("[Income Filter Error]", str(e))
-            # Height range
+
             if height_from and height_to:
                 if height_from > height_to:
                     height_from, height_to = height_to, height_from
@@ -3579,37 +3719,28 @@ class Get_profiledata_Matching(models.Model):
             if mother_alive and mother_alive.strip().lower() in ['yes', 'no']:
                 base_query += " AND c.mother_alive = %s"
                 query_params.append(mother_alive.strip().lower())
-                
-            # if mobile_no:
-            #     if len(mobile_no) == 10 :
-            #         mobile_no = '91' + mobile_no
-            #         base_query += " AND a.Mobile_no = %s"
-            #         query_params.append(mobile_no)
-            #     elif len(mobile_no) == 12 and mobile_no.startswith('91'):  
-            #         base_query += " AND a.Mobile_no = %s"
-            #         query_params.append(mobile_no)
-            #     else:
-            #         pass
             
             if mobile_no:
-                    # Clean the mobile number - keep only digits
                     cleaned_mobile = ''.join(filter(str.isdigit, mobile_no))
                     
                     if cleaned_mobile:
                         base_query += """
                             AND (a.Mobile_no LIKE %s 
                                 OR a.Profile_alternate_mobile LIKE %s 
-                                OR a.Profile_mobile_no LIKE %s)
+                                OR a.Profile_mobile_no LIKE %s
+                                OR a.Profile_whatsapp LIKE %s
+                                )
                         """
                         like_pattern = f'%{cleaned_mobile}%'
-                        query_params.extend([like_pattern, like_pattern, like_pattern]) 
+                        query_params.extend([like_pattern, like_pattern, like_pattern, like_pattern]) 
 
             if profile_dob:
                 try:
                     dob = datetime.strptime(profile_dob, '%Y-%m-%d').date()
-                    base_query += " AND YEAR(a.Profile_dob) = %s AND MONTH(a.Profile_dob) = %s"
+                    base_query += " AND YEAR(a.Profile_dob) = %s AND MONTH(a.Profile_dob) = %s AND DAY(a.Profile_dob) = %s"
                     query_params.append(dob.year)
                     query_params.append(dob.month)
+                    query_params.append(dob.day)
                 except Exception:
                     pass
             

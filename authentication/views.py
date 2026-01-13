@@ -3522,7 +3522,7 @@ class Create_profile_visit(APIView):
             
             # Check if an entry with the same profile_id and viewed_profile already exists
             existing_entry, created = models.Profile_visitors.objects.update_or_create(
-                profile_id=profile_id, viewed_profile=viewed_profile, 
+                profile_id=profile_id.upper(), viewed_profile=viewed_profile, 
                 defaults={'status': 1,'datetime': datetime_value})
             
             if created:
