@@ -137,7 +137,7 @@ class Registration1(models.Model):
     primary_status = models.IntegerField() 
     secondary_status = models.IntegerField() 
     plan_status = models.IntegerField() 
-
+    allow_visit = models.CharField(max_length=100)
     #Profile_idproof= models.TextField()
     
 
@@ -1178,7 +1178,7 @@ class Get_profiledata(models.Model):
                     )
                     OR 
                     -- If opposite profile is not Platinum → skip pv.* checks
-                    (a.Plan_id NOT IN (3,16,17))
+                    (a.Plan_id NOT IN (3,16,17) OR (a.Plan_id = 16 AND a.allow_visit = 1 AND l1_from.Plan_id = 16))
                 )
                     AND a.gender != %s
                     AND a.ProfileId != %s

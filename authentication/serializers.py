@@ -1579,11 +1579,19 @@ class ProfileImagesSerializer(serializers.Serializer):
     Video_url = serializers.SerializerMethodField()
     Photo_protection = serializers.SerializerMethodField()
     Photo_password = serializers.SerializerMethodField()
+    allow_visit = serializers.SerializerMethodField()
     
     base_url =settings.MEDIA_URL
 
     class Meta:
-        fields = ['horoscope_file', 'Profile_idproof', 'Profile_divorceproof','images','Video_url','Photo_protection','Photo_password']
+        fields = ['horoscope_file', 'Profile_idproof', 'Profile_divorceproof','images','Video_url','Photo_protection','Photo_password','allow_visit']
+
+    def get_allow_visit(self, obj):
+        try:
+            profile_details = models.Registration1.objects.get(ProfileId=obj)
+            return profile_details.allow_visit
+        except Exception:
+            return None
 
     def get_horoscope_file(self, obj):
         try:

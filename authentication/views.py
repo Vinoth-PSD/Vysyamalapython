@@ -2518,6 +2518,9 @@ class Get_dashboard_details(APIView):
             
             default_img=''
 
+            excluded_profile_ids = models.Registration1.objects.filter(
+                Plan_id=16
+            ).values_list('ProfileId', flat=True)
 
             my_oposit_gender=''
             if gender.lower()=='male':
@@ -2582,8 +2585,10 @@ class Get_dashboard_details(APIView):
                     SELECT ProfileId
                     FROM logindetails
                     WHERE Photo_protection != 1
+                    AND Plan_id != 16
                     AND ProfileId IN ({placeholders})
-                )
+                ) AND is_deleted = 0
+                AND image_approved=1
                 ORDER BY RAND()
                 LIMIT 5;
                 """
@@ -2638,14 +2643,61 @@ class Get_dashboard_details(APIView):
             # profile_ids = ['VY240001', 'VY240002', 'VY240003', 'VY240004', 'VY240005', 'VY240006', 'VY240007', 'VY240008', 'VY240009']
             
             #mutual_condition = {'status': 2,'profile_from':profile_id,'profile_to':profile_id}
-            mutual_condition = Q(status=2) & (Q(profile_from=profile_id) | Q(profile_to=profile_id))
-            personal_notes_condition={'status': 1,'profile_id':profile_id}
-            wishlist_condition = {'status': 1,'profile_from':profile_id}
-            received_intrests_count = {'status': 1,'profile_to':profile_id}
-            sent_intrest_count = {'status': 1,'profile_from':profile_id}
-            viewed_profile_count = {'status': 1,'profile_id':profile_id}
-            my_vistor_count = {'status': 1,'viewed_profile':profile_id}
-            photo_int_count = {'status': 1,'profile_to':profile_id}
+            mutual_condition = (
+                Q(status=2) &
+                (Q(profile_from=profile_id) | Q(profile_to=profile_id)) &
+                ~Q(profile_from__in=excluded_profile_ids) &
+                ~Q(profile_to__in=excluded_profile_ids)
+            )
+
+            # personal_notes_condition={'status': 1,'profile_id':profile_id}
+            # wishlist_condition = {'status': 1,'profile_from':profile_id}
+            # received_intrests_count = {'status': 1,'profile_to':profile_id}
+            # sent_intrest_count = {'status': 1,'profile_from':profile_id}
+            # viewed_profile_count = {'status': 1,'profile_id':profile_id}
+            # my_vistor_count = {'status': 1,'viewed_profile':profile_id}
+            # photo_int_count = {'status': 1,'profile_to':profile_id}
+            personal_notes_condition = (
+                Q(status=1) &
+                Q(profile_id=profile_id) &
+                ~Q(profile_to__in=excluded_profile_ids)
+            )
+
+            wishlist_condition = (
+                Q(status=1) &
+                Q(profile_from=profile_id) &
+                ~Q(profile_to__in=excluded_profile_ids)
+            )
+
+            received_intrests_count = (
+                Q(status=1) &
+                Q(profile_to=profile_id) &
+                ~Q(profile_from__in=excluded_profile_ids)
+            )
+
+            sent_intrest_count = (
+                Q(status=1) &
+                Q(profile_from=profile_id) &
+                ~Q(profile_to__in=excluded_profile_ids)
+            )
+
+            viewed_profile_count = (
+                Q(status=1) &
+                Q(profile_id=profile_id) &
+                ~Q(viewed_profile__in=excluded_profile_ids)
+            )
+
+            my_vistor_count = (
+                Q(status=1) &
+                Q(viewed_profile=profile_id) &
+                ~Q(profile_id__in=excluded_profile_ids)
+            )
+
+            photo_int_count = (
+                Q(status=1) &
+                Q(profile_to=profile_id) &
+                ~Q(profile_from__in=excluded_profile_ids)
+            )
             gallery_count = matching_gallery(profile_id)
 
             # print('gallery_count',gallery_count)
@@ -2656,14 +2708,14 @@ class Get_dashboard_details(APIView):
             
             # Call the dashbiard counts through one function
             mutual_int_count = count_records_forQ(models.Express_interests, mutual_condition)
-            personal_notes_count = count_records(models.Profile_personal_notes, personal_notes_condition)
-            wishlist_count = count_records(models.Profile_wishlists, wishlist_condition)
-            received_int_count = count_records(models.Express_interests, received_intrests_count)
-            sent_int_count = count_records(models.Express_interests, sent_intrest_count)
-            myvisitor_count = count_records(models.Profile_visitors, my_vistor_count)
-            viewed_profile_count = count_records(models.Profile_visitors, viewed_profile_count)
+            personal_notes_count = count_records_forQ(models.Profile_personal_notes, personal_notes_condition)
+            wishlist_count = count_records_forQ(models.Profile_wishlists, wishlist_condition)
+            received_int_count = count_records_forQ(models.Express_interests, received_intrests_count)
+            sent_int_count = count_records_forQ(models.Express_interests, sent_intrest_count)
+            myvisitor_count = count_records_forQ(models.Profile_visitors, my_vistor_count)
+            viewed_profile_count = count_records_forQ(models.Profile_visitors, viewed_profile_count)
 
-            photo_int_count = count_records(models.Photo_request, photo_int_count)
+            photo_int_count = count_records_forQ(models.Photo_request, photo_int_count)
             #gallery_count = count_records(models.Express_interests, filter_condition)
             
             profile_ids = [profile_id]
@@ -2749,6 +2801,9 @@ def matching_gallery(profile_id):
                 FROM profile_images pi
                 JOIN logindetails ld ON pi.profile_id = ld.ProfileId
                 WHERE ld.Photo_protection != 1
+                AND pi.is_deleted = 0
+                AND pi.image_approved=1
+                AND ld.Plan_id != 16
                 AND ld.ProfileId IN ({placeholders})
             """
 
@@ -2940,6 +2995,7 @@ class Get_Gallery_lists(APIView):
                 pi.is_deleted = 0
                 AND pi.image_approved=1
                 AND ld.Photo_protection != 1
+                AND ld.Plan_id != 16
                 AND ld.ProfileId IN ({placeholders})
                 ORDER BY ld.DateOfJoin DESC
             )
@@ -2959,6 +3015,7 @@ class Get_Gallery_lists(APIView):
                 pi.is_deleted = 0
                 AND pi.image_approved=1
                 AND ld.Photo_protection != 1
+                AND ld.Plan_id != 16
                 AND ld.ProfileId IN ({placeholders})
             ) AS subquery;
             """
@@ -3063,8 +3120,12 @@ class My_intrests_list(APIView):
                     order_field = "req_datetime"
 
                 if sort_order == "desc":
-                    order_field = f"-{order_field}"               
-                all_profiles = models.Express_interests.objects.filter(profile_from=profile_id, status=1).order_by(order_field)
+                    order_field = f"-{order_field}"  
+                    
+                excluded_profile_ids = models.Registration1.objects \
+                .filter(Plan_id=16) \
+                .values_list('ProfileId', flat=True)             
+                all_profiles = models.Express_interests.objects.filter(profile_from=profile_id, status=1).exclude(profile_to__in=excluded_profile_ids).order_by(order_field)
 
                 # Now, create the dictionary of all profile IDs.
                 all_profile_ids = {str(index + 1): profile_id for index, profile_id in enumerate(all_profiles.values_list('profile_to', flat=True))}
@@ -3076,7 +3137,7 @@ class My_intrests_list(APIView):
                 end = start + per_page
                 
                 
-                fetch_data = models.Express_interests.objects.filter(profile_from=profile_id,status=1).order_by(order_field)[start:end]
+                fetch_data = models.Express_interests.objects.filter(profile_from=profile_id,status=1).exclude(profile_to__in=excluded_profile_ids).order_by(order_field)[start:end]
                 if fetch_data.exists():
                     profile_ids = fetch_data.values_list('profile_to', flat=True)
                     profile_details = get_profile_details(profile_ids)
@@ -3180,8 +3241,16 @@ class Get_mutual_intrests(APIView):
 
                 if sort_order == "desc":
                     order_field = f"-{order_field}"
+                    
+                excluded_profile_ids = models.Registration1.objects \
+                    .filter(Plan_id=16) \
+                    .values_list('ProfileId', flat=True)
                 all_profiles = models.Express_interests.objects.filter(
-                    (Q(profile_from=profile_id) | Q(profile_to=profile_id)) & Q(status=2)
+                    Q(status=2) &
+                    (
+                        (Q(profile_from=profile_id) & ~Q(profile_to__in=excluded_profile_ids)) |
+                        (Q(profile_to=profile_id) & ~Q(profile_from__in=excluded_profile_ids))
+                    )
                 ).order_by(order_field)
 
                 # Get both profile_from and profile_to IDs, and exclude the current profile_id
@@ -3204,7 +3273,12 @@ class Get_mutual_intrests(APIView):
 
                 #fetch_data = models.Express_interests.objects.filter(profile_from=profile_id , profile_to=profile_id)
                 fetch_data = models.Express_interests.objects.filter(
-                    (Q(profile_from=profile_id) | Q(profile_to=profile_id)) &  Q(status=2)).order_by(order_field)[start:end]
+    Q(status=2) &
+    (
+        (Q(profile_from=profile_id) & ~Q(profile_to__in=excluded_profile_ids)) |
+        (Q(profile_to=profile_id) & ~Q(profile_from__in=excluded_profile_ids))
+    )
+).order_by(order_field)[start:end]
 
                 if fetch_data.exists():
                     #profile_ids = fetch_data.values_list('profile_to', flat=True)
@@ -3401,8 +3475,10 @@ class Get_profile_wishlist(APIView):
                 if sort_order == "desc":
                     order_field = f"-{order_field}"
                 # total_records = models.Profile_wishlists.objects.filter(profile_from=profile_id, status=1).count()
-
-                all_profiles = models.Profile_wishlists.objects.filter(profile_from=profile_id, status=1).order_by(order_field)
+                excluded_profile_ids = models.Registration1.objects \
+                .filter(Plan_id=16) \
+                .values_list('ProfileId', flat=True)
+                all_profiles = models.Profile_wishlists.objects.filter(profile_from=profile_id, status=1).exclude(profile_to__in=excluded_profile_ids).order_by(order_field)
                 all_profile_ids = {str(index + 1): profile_id for index, profile_id in enumerate(all_profiles.values_list('profile_to', flat=True))}
                     
                     # Get the total number of records
@@ -3411,7 +3487,7 @@ class Get_profile_wishlist(APIView):
                 start = (page - 1) * per_page
                 end = start + per_page
 
-                fetch_data = models.Profile_wishlists.objects.filter(profile_from=profile_id,status=1).order_by(order_field)[start:end]
+                fetch_data = models.Profile_wishlists.objects.filter(profile_from=profile_id,status=1).exclude(profile_to__in=excluded_profile_ids).order_by(order_field)[start:end]
                 if fetch_data.exists():
                     profile_ids = fetch_data.values_list('profile_to', flat=True)
                     profile_details = get_profile_details(profile_ids)
@@ -3506,7 +3582,14 @@ class Get_profile_wishlist(APIView):
         else:
             return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+def check_vys_delight(profile_id):
+    try:
+        profile = models.Registration1.objects.get(ProfileId=profile_id)
+        if int(profile.Plan_id)== 16:
+            return False
+        return True
+    except Exception:
+        return False
 
 class Create_profile_visit(APIView):
     def post(self, request):
@@ -3557,7 +3640,14 @@ class My_profile_visit(APIView):
 
                 if sort_order == "desc":
                     order_field = f"-{order_field}"
-                all_profiles = models.Profile_visitors.objects.filter(viewed_profile=profile_id).order_by(order_field)
+                    
+                excluded_profile_ids = models.Registration1.objects\
+                    .filter(Plan_id=16)\
+                    .values_list('ProfileId', flat=True)
+                
+                all_profiles = models.Profile_visitors.objects.filter(viewed_profile=profile_id)\
+                                .exclude(profile_id__in=excluded_profile_ids)\
+                                .order_by(order_field)
                 all_profile_ids = {str(index + 1): profile_id for index, profile_id in enumerate(all_profiles.values_list('profile_id', flat=True))}
 
                 total_records = all_profiles.count()
@@ -3565,7 +3655,7 @@ class My_profile_visit(APIView):
                 end = start + per_page
 
                 
-                fetch_data = models.Profile_visitors.objects.filter(viewed_profile=profile_id).order_by(order_field)[start:end]
+                fetch_data = all_profiles[start:end]
                 if fetch_data.exists():
                     
                     profile_ids = fetch_data.values_list('profile_id', flat=True)
@@ -3811,10 +3901,17 @@ class My_viewed_profiles(APIView):
                 if sort_order == "desc":
                     order_field = f"-{order_field}"
 
+                                    
+                excluded_profile_ids = set(
+                    models.Registration1.objects
+                    .filter(Plan_id=16)
+                    .values_list('ProfileId', flat=True)
+                )
                 # Fetch ordered data
                 all_profiles = (
                     models.Profile_visitors.objects
                     .filter(profile_id=profile_id)
+                    .exclude(viewed_profile__in=excluded_profile_ids)
                     .order_by(order_field, "-datetime")  # secondary sort ensures stable order
                 )
 
@@ -4008,17 +4105,19 @@ class Get_personal_notes(APIView):
             page = int(request.data.get('page_number', 1))
             per_page = int(request.data.get('per_page', 10))  
             try:
-                
-                all_profiles = models.Profile_personal_notes.objects.filter(profile_id=profile_id)
+                excluded_profile_ids = models.Registration1.objects \
+                    .filter(Plan_id=16) \
+                    .values_list('ProfileId', flat=True)
+                all_profiles = models.Profile_personal_notes.objects.filter(profile_id=profile_id).exclude(profile_to__in=excluded_profile_ids)
                 all_profile_ids = {str(index + 1): profile_id for index, profile_id in enumerate(all_profiles.values_list('profile_id', flat=True))}
 
                 total_records = all_profiles.count()
 
                 start = (page - 1) * per_page
                 end = start + per_page
-                
-                
-                fetch_data = models.Profile_personal_notes.objects.filter(profile_id=profile_id)[start:end]
+
+
+                fetch_data = models.Profile_personal_notes.objects.filter(profile_id=profile_id).exclude(profile_to__in=excluded_profile_ids)[start:end]
                 if fetch_data.exists():
                     profile_ids = fetch_data.values_list('profile_to', flat=True)
                     profile_details = get_profile_details(profile_ids)
@@ -6441,7 +6540,11 @@ class Get_photo_request_list(APIView):
                 if sort_order == "desc":
                     order_field = f"-{order_field}"    
 
-                all_profiles = models.Photo_request.objects.filter(profile_to=profile_id,status__in=[1, 2, 3]).order_by(order_field)
+                excluded_profile_ids = models.Registration1.objects \
+                    .filter(Plan_id=16) \
+                    .values_list('ProfileId', flat=True)
+                
+                all_profiles = models.Photo_request.objects.filter(profile_to=profile_id,status__in=[1, 2, 3]).exclude(profile_from__in=excluded_profile_ids).order_by(order_field)
                 all_profile_ids = {str(index + 1): profile_id for index, profile_id in enumerate(all_profiles.values_list('profile_from', flat=True))}
 
                 total_records = all_profiles.count()
@@ -6450,7 +6553,7 @@ class Get_photo_request_list(APIView):
                 end = start + per_page
                 
                 
-                fetch_data = models.Photo_request.objects.filter(profile_to=profile_id,status__in=[1, 2, 3]).order_by(order_field)[start:end]
+                fetch_data = models.Photo_request.objects.filter(profile_to=profile_id,status__in=[1, 2, 3]).exclude(profile_from__in=excluded_profile_ids).order_by(order_field)[start:end]
                 if fetch_data.exists():
                     profile_ids = fetch_data.values_list('profile_from', flat=True)
                     profile_details = get_profile_details(profile_ids)
@@ -10252,7 +10355,7 @@ class GetSearchResults(APIView):
                     )
                     OR 
                     -- If opposite profile is not Platinum → skip pv.* checks
-                    (a.Plan_id NOT IN (3,16,17))
+                    (a.Plan_id NOT IN (3,16,17) OR (a.Plan_id = 16 AND a.allow_visit = 1 AND l1_from.Plan_id = 16))
                 )
 
             """
@@ -11194,9 +11297,10 @@ class Photo_Id_Settings(APIView):
         divorcepf_file = request.FILES.get('divorcepf_file')
         photo_password = request.data.get('photo_password')
         photo_protection = request.data.get('photo_protection')
+        allow_visit = request.data.get('allow_visit')
         Video_url = request.data.get('Video_url')
 
-        if not any([horoscope_file, idproof_file, divorcepf_file, photo_password, photo_protection,horoscope_file_admin]):
+        if not any([horoscope_file, idproof_file, divorcepf_file, photo_password, photo_protection,horoscope_file_admin,allow_visit]):
             return JsonResponse({"error": "At least one of 'horoscope_file', 'idproof_file', 'divorcepf_file', 'photo_password', or 'photo_protection' or 'Video_url' is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
@@ -11209,6 +11313,15 @@ class Photo_Id_Settings(APIView):
             valid_extensions = ['doc', 'docx', 'pdf', 'png', 'jpeg', 'jpg']
 
             # Update the respective fields if provided
+            if allow_visit is not None: 
+                try: 
+                    if int(registration_instance.Plan_id) == 16:
+                        registration_instance.allow_visit = int(allow_visit) 
+                        registration_instance.save()
+                except ValueError: 
+                    return JsonResponse({"error": "allow_visit must be 0 or 1"}, status=status.HTTP_400_BAD_REQUEST)
+   
+
             if horoscope_file:
                 if horoscope_file.size > max_file_size:
                     return JsonResponse({"error": "Horoscope file size should be less than 10MB"}, status=status.HTTP_400_BAD_REQUEST)
@@ -11257,7 +11370,7 @@ class Photo_Id_Settings(APIView):
                 
             if (photo_protection == 1 or photo_protection=='1') and photo_password:
                 registration_instance.Photo_password = photo_password
-            registration_instance.Photo_protection = photo_protection
+            registration_instance.Photo_protection = photo_protection or 0
             registration_instance.save()
         
             if Video_url or Video_url is not None:
@@ -12663,7 +12776,7 @@ class Search_byprofile_id(APIView):
                     )
                     OR 
                     -- If opposite profile is not Platinum → skip pv.* checks
-                    (a.Plan_id NOT IN (3,16,17))
+                    (a.Plan_id NOT IN (3,16,17) OR (a.Plan_id = 16 AND a.allow_visit = 1 AND l1_from.Plan_id = 16))
                 ) AND (a.ProfileId = %s
        OR a.Profile_name LIKE CONCAT('%%', %s, '%%'));
         """
