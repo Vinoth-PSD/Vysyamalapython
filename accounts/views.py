@@ -928,7 +928,9 @@ class Newprofile_get(generics.ListAPIView):
         search_query = self.request.query_params.get('search', None)
         page_id=self.request.query_params.get('page_name', None)
         plan_ids=self.request.query_params.get('plan_ids', None)
-
+        plan_id_list_new = [] 
+        if plan_ids: 
+            plan_id_list_new = [int(pid.strip()) for pid in plan_ids.split(',') if pid.strip().isdigit()]
         if page_id is None:
             status_id = 0  # Default status to 0 when page_id is '1'
         else:
@@ -983,13 +985,12 @@ class Newprofile_get(generics.ListAPIView):
             WHERE (horoscope_file IS NOT NULL AND horoscope_file <> '') OR (horoscope_file_admin IS NOT NULL AND horoscope_file_admin <> '') ) hi 
             ON hi.profile_id = ld.ProfileId
             """
-        if int(page_id) == 4:
+        if int(page_id) == 4 or int(page_id) == 3 or int(page_id) == 2 or (int(page_id) == 1 and plan_ids in [None,'']):
             print("Inside page_id 4 block")
             sql += """
             LEFT JOIN (
                 SELECT profile_id, MAX(date_time) AS deleted_date
                 FROM datahistory
-                WHERE profile_status = 4
                 GROUP BY profile_id
             ) dh ON dh.profile_id = ld.ProfileId
             """
@@ -1033,8 +1034,14 @@ class Newprofile_get(generics.ListAPIView):
                 placeholders = ','.join(['%s'] * len(plan_id_list))
                 sql += f" AND ld.Plan_id IN ({placeholders})"
                 params.extend(plan_id_list)
-        if int(page_id) == 4:
+        if int(page_id) == 4 or int(page_id) == 3 or int(page_id) == 2 or (int(page_id) == 1 and plan_ids in [None,'']):
             sql += " ORDER BY dh.deleted_date DESC"
+        elif int(page_id) == 1 and 8 in plan_id_list_new:
+            sql += " ORDER BY ld.DateOfJoin DESC"
+        elif int(page_id) == 1:
+            sql += " ORDER BY ld.membership_startdate DESC"
+        elif int(page_id) == 0:
+            sql += " ORDER BY ld.DateOfJoin DESC"
         else:
             sql += " ORDER BY ld.ContentId DESC"
         
@@ -3612,7 +3619,7 @@ class QuickUploadAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         # Fetch data where quick_registration is set to '1'
-        quick_upload_data = LoginDetails.objects.filter(quick_registration='1')
+        quick_upload_data = LoginDetails.objects.filter(quick_registration='1').order_by('-DateOfJoin')
         return quick_upload_data
 
 
