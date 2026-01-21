@@ -118,6 +118,8 @@ from django.db.models.functions import Concat
 
 import pandas as pd
 import numpy as np
+from django.db.models import OuterRef, Subquery
+from django.db.models import Exists
 
 # User = get_user_model()
 
@@ -14885,3 +14887,341 @@ class DeleteDashboard(APIView):
             "data": filtered
         })
         
+        
+def detect_input_type(value: str):
+    if not value:
+        return None
+
+    value = value.strip()
+
+    if re.match(r'^(VM|VF)\d+$', value):
+        return "PROFILE_ID"
+
+    if value.isdigit() and len(value) in [10, 12]:
+        return "MOBILE"
+
+    return None
+
+def as_list(value):
+    if value is None:
+        return None
+    if isinstance(value, list):
+        return value
+    return [value]
+
+from django.db.models import Q, F, Window
+from django.db.models.functions import RowNumber
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from datetime import datetime, timedelta
+
+
+def get_status(status_id):
+    if status_id or status_id==0:
+        try:
+            status = ProfileStatus.objects.get(status_code=status_id)
+            return status.status_name
+        except Exception as e:
+            return None
+    return None
+
+class CallManagementSearchAPI(APIView):
+    def post(self, request):
+        try:
+            data = request.data
+            search_value = data.get("search_value")
+            input_type = detect_input_type(search_value)
+
+            if input_type == "MOBILE":
+                cms = CallManagement_New.objects.filter(mobile_no=search_value).order_by('-created_at')
+                if not cms.exists():
+                    return Response({"status": True, "count": 0, "profiles": []})
+
+                latest_cm = cms.first()
+
+                call_filters = Q(call_management=latest_cm, is_deleted=0)
+                action_filters = Q(call_management=latest_cm, is_deleted=0)
+                assign_filters = Q(call_management=latest_cm, is_deleted=0)
+
+                if cl_from_date := data.get("call_from_date"):
+                    cl_from_dt = datetime.strptime(cl_from_date, "%Y-%m-%d")
+                    call_filters &= Q(call_date__gte=cl_from_dt)
+                if cl_to_date := data.get("call_to_date"):
+                    cl_to_dt = datetime.strptime(cl_to_date, "%Y-%m-%d") + timedelta(days=1)
+                    call_filters &= Q(call_date__lt=cl_to_dt)
+
+                if nc_from := data.get("next_call_from_date"):
+                    nc_from_dt = datetime.strptime(nc_from, "%Y-%m-%d")
+                    call_filters &= Q(next_call_date__gte=nc_from_dt)
+                if nc_to := data.get("next_call_to_date"):
+                    nc_to_dt = datetime.strptime(nc_to, "%Y-%m-%d")
+                    call_filters &= Q(next_call_date__lte=nc_to_dt)
+
+                if ct := data.get("call_type"):
+                    call_filters &= Q(call_type_id__in=ct)
+                if cs := data.get("call_status"):
+                    call_filters &= Q(call_status_id__in=cs)
+                if pt := data.get("particulars"):
+                    call_filters &= Q(particulars_id__in=pt)
+                if co := data.get("call_owner"):
+                    call_filters &= Q(call_owner__in=co)
+                if cc := data.get("call_comments"):
+                    call_filters &= Q(comments__icontains=cc)
+
+                if af := data.get("action_from_date"):
+                    af_dt = datetime.strptime(af, "%Y-%m-%d")
+                    action_filters &= Q(action_date__gte=af_dt)
+                if at := data.get("action_to_date"):
+                    at_dt = datetime.strptime(at, "%Y-%m-%d") + timedelta(days=1)
+                    action_filters &= Q(action_date__lt=at_dt)
+
+                if naf := data.get("next_action_from_date"):
+                    naf_dt = datetime.strptime(naf, "%Y-%m-%d")
+                    action_filters &= Q(next_action_date__gte=naf_dt)
+                if nat := data.get("next_action_to_date"):
+                    nat_dt = datetime.strptime(nat, "%Y-%m-%d")
+                    action_filters &= Q(next_action_date__lte=nat_dt)
+
+                if ap := data.get("action_point"):
+                    action_filters &= Q(action_point_id__in=ap)
+                if na := data.get("next_action"):
+                    action_filters &= Q(next_action_id__in=na)
+                if ao := data.get("action_owner"):
+                    action_filters &= Q(action_owner__in=ao)
+                if ac := data.get("action_comments"):
+                    action_filters &= Q(comments__icontains=ac)
+                if nac := data.get("next_action_comments"):
+                    action_filters &= Q(next_action_comments__icontains=nac)
+
+                if adf := data.get("assign_from_date"):
+                    adf_dt = datetime.strptime(adf, "%Y-%m-%d")
+                    assign_filters &= Q(assigned_date__gte=adf_dt)
+                if adt := data.get("assign_to_date"):
+                    adt_dt = datetime.strptime(adt, "%Y-%m-%d") + timedelta(days=1)
+                    assign_filters &= Q(assigned_date__lt=adt_dt)
+                if ab := data.get("assigned_by"):
+                    assign_filters &= Q(assigned_by__in=ab)
+                if at := data.get("assigned_to"):
+                    assign_filters &= Q(assigned_to__in=at)
+                if an := data.get("assign_notes"):
+                    assign_filters &= Q(notes__icontains=an)
+
+                latest_call = CallLog_New.objects.filter(call_filters).order_by('-call_date', '-created_at').first()
+                latest_action = ActionLog_New.objects.filter(action_filters).order_by('-action_date', '-created_at').first()
+                latest_assign = AssignLog_New.objects.filter(assign_filters).order_by('-assigned_date', '-created_at').first()
+
+                return Response({
+                    "status": True,
+                    "count": 1,
+                    "profiles": [{
+                        "mobile_no": latest_cm.mobile_no,
+                        "profile_id": latest_cm.profile_id,
+                        "particulars": getattr(latest_call.particulars, 'particulars', None) if latest_call else None,
+                        "call_type": getattr(latest_call.call_type, 'call_type', None) if latest_call else None,
+                        "call_comments": getattr(latest_call, 'comments', None),
+                        "call_status": getattr(latest_call.call_status, 'status', None) if latest_call else None,
+                        "call_date": getattr(latest_call, 'call_date', None),
+                        "next_call_date": getattr(latest_call, 'next_call_date', None),
+                        "action_point": getattr(latest_action.action_point, 'action_point', None) if latest_action else None,
+                        "next_action_point": getattr(latest_action.next_action, 'action_point', None) if latest_action else None,
+                        "next_action_date": getattr(latest_action, 'next_action_date', None),
+                        "owner": get_owner_name(latest_call.call_owner if latest_call else latest_action.action_owner if latest_action else None),
+                        "work_assign": getattr(latest_assign, 'assigned_to', None),
+                    }]
+                })
+
+            profiles = LoginDetails.objects.all().only("ProfileId", "Owner_id", "status", "Plan_id")
+
+            filters = Q()
+            if input_type == "PROFILE_ID":
+                filters &= Q(ProfileId=search_value)
+
+            if owner := data.get("owner"):
+                filters &= Q(Owner_id__in=as_list(owner))
+            if plan := data.get("plan"):
+                filters &= Q(Plan_id__in=as_list(plan))
+            if status := data.get("status"):
+                filters &= Q(status__in=as_list(status))
+
+            if filters:
+                profiles = profiles.filter(filters)
+
+            from_date, to_date = data.get("from_date"), data.get("to_date")
+            call_filters = Q(is_deleted=0)
+            action_filters = Q(is_deleted=0)
+            assign_filters = Q(is_deleted=0)
+
+            if from_date and to_date:
+                from_dt = datetime.strptime(from_date, "%Y-%m-%d")
+                to_dt = datetime.strptime(to_date, "%Y-%m-%d") + timedelta(days=1)
+                call_filters &= Q(call_date__gte=from_dt, call_date__lt=to_dt)
+                action_filters &= Q(action_date__gte=from_dt, action_date__lt=to_dt)
+                assign_filters &= Q(assigned_date__gte=from_dt, assigned_date__lt=to_dt)
+
+            if cl_from_date := data.get("call_from_date"):
+                from_dt = datetime.strptime(cl_from_date, "%Y-%m-%d")
+                call_filters &= Q(call_date__gte=from_dt)
+            if cl_to_date := data.get("call_to_date"):
+                to_dt = datetime.strptime(cl_to_date, "%Y-%m-%d") + timedelta(days=1)
+                call_filters &= Q(call_date__lt=to_dt)
+
+            if nc_from := data.get("next_call_from_date"):
+                nc_from_dt = datetime.strptime(nc_from, "%Y-%m-%d")
+                call_filters &= Q(next_call_date__gte=nc_from_dt)
+            if nc_to := data.get("next_call_to_date"):
+                nc_to_dt = datetime.strptime(nc_to, "%Y-%m-%d")
+                call_filters &= Q(next_call_date__lte=nc_to_dt)
+
+            if ct := data.get("call_type"):
+                call_filters &= Q(call_type_id__in=ct)
+            if cs := data.get("call_status"):
+                call_filters &= Q(call_status_id__in=cs)
+            if pt := data.get("particulars"):
+                call_filters &= Q(particulars_id__in=pt)
+            if co := data.get("call_owner"):
+                call_filters &= Q(call_owner__in=co)
+
+            if cc := data.get("call_comments"):
+                call_filters &= Q(comments__icontains=cc)
+
+            if af := data.get("action_from_date"):
+                af_dt = datetime.strptime(af, "%Y-%m-%d")
+                action_filters &= Q(action_date__gte=af_dt)
+            if at := data.get("action_to_date"):
+                at_dt = datetime.strptime(at, "%Y-%m-%d") + timedelta(days=1)
+                action_filters &= Q(action_date__lt=at_dt)
+
+            if naf := data.get("next_action_from_date"):
+                naf_dt = datetime.strptime(naf, "%Y-%m-%d")
+                action_filters &= Q(next_action_date__gte=naf_dt)
+            if nat := data.get("next_action_to_date"):
+                nat_dt = datetime.strptime(nat, "%Y-%m-%d")
+                action_filters &= Q(next_action_date__lte=nat_dt)
+
+            if ap := data.get("action_point"):
+                action_filters &= Q(action_point_id__in=ap)
+            if na := data.get("next_action"):
+                action_filters &= Q(next_action_id__in=na)
+            if ao := data.get("action_owner"):
+                action_filters &= Q(action_owner__in=ao)
+
+            if ac := data.get("action_comments"):
+                action_filters &= Q(comments__icontains=ac)
+            if nac := data.get("next_action_comments"):
+                action_filters &= Q(next_action_comments__in=nac)  # if you have a separate field
+
+            if adf := data.get("assign_from_date"):
+                adf_dt = datetime.strptime(adf, "%Y-%m-%d")
+                assign_filters &= Q(assigned_date__gte=adf_dt)
+            if adt := data.get("assign_to_date"):
+                adt_dt = datetime.strptime(adt, "%Y-%m-%d") + timedelta(days=1)
+                assign_filters &= Q(assigned_date__lt=adt_dt)
+
+            if ab := data.get("assigned_by"):
+                assign_filters &= Q(assigned_by__in=ab)
+            if at := data.get("assigned_to"):
+                assign_filters &= Q(assigned_to__in=at)
+
+            if an := data.get("assign_notes"):
+                assign_filters &= Q(notes__icontains=an)
+
+
+            from django.db.models import F
+
+            call_qs = CallLog.objects.filter(call_filters).annotate(
+                rn=Window(
+                    expression=RowNumber(),
+                    partition_by=[F('call_management__profile_id')],
+                    order_by=F('call_date').desc()
+                )
+            ).filter(rn=1).values(
+                'call_management__profile_id',
+                'particulars__particulars',
+                'call_type__call_type',
+                'comments',
+                'call_status__status',
+                'call_date',
+                'next_call_date',
+                'created_at',
+            )
+
+            action_qs = ActionLog.objects.filter(action_filters).annotate(
+                rn=Window(
+                    expression=RowNumber(),
+                    partition_by=[F('call_management__profile_id')],
+                    order_by=F('action_date').desc()
+                )
+            ).filter(rn=1).values(
+                'call_management__profile_id',
+                'action_point__action_point',
+                'next_action__action_point',
+                'next_action_date',
+            )
+
+            assign_qs = AssignLog.objects.filter(assign_filters).annotate(
+                rn=Window(
+                    expression=RowNumber(),
+                    partition_by=[F('call_management__profile_id')],
+                    order_by=F('assigned_date').desc()
+                )
+            ).filter(rn=1).values(
+                'call_management__profile_id',
+                'assigned_to',
+            )
+
+            call_dict = {c['call_management__profile_id']: c for c in call_qs}
+            action_dict = {a['call_management__profile_id']: a for a in action_qs}
+            assign_dict = {asn['call_management__profile_id']: asn for asn in assign_qs}
+            
+            owner_ids = {p.Owner_id for p in profiles if p.Owner_id}
+            status_ids = {p.status for p in profiles if p.status is not None}
+            
+            owners_map = {
+                u.id: u.username
+                for u in User.objects.filter(id__in=owner_ids).only("id", "username")
+            }
+
+            status_map = {
+                s.status_code: s.status_name
+                for s in ProfileStatus.objects.filter(status_code__in=status_ids)
+            }
+            if from_date and to_date:
+                call_profile_ids = set(c['call_management__profile_id'] for c in call_qs)
+                action_profile_ids = set(a['call_management__profile_id'] for a in action_qs)
+                assign_profile_ids = set(asn['call_management__profile_id'] for asn in assign_qs)
+                valid_profile_ids = call_profile_ids | action_profile_ids | assign_profile_ids
+                profiles = profiles.filter(ProfileId__in=valid_profile_ids)
+
+            profiles_data = []
+            for profile in profiles:
+                pid = profile.ProfileId
+                latest_call = call_dict.get(pid)
+                latest_action = action_dict.get(pid)
+                latest_assign = assign_dict.get(pid)
+
+                profiles_data.append({
+                    "ProfileId": pid,
+                    "particulars": latest_call.get('particulars__particulars') if latest_call else None,
+                    "call_type": latest_call.get('call_type__call_type') if latest_call else None,
+                    "call_comments": latest_call.get('comments') if latest_call else None,
+                    "call_status": latest_call.get('call_status__status') if latest_call else None,
+                    "call_date": latest_call.get('call_date') if latest_call else None,
+                    "next_call_date": latest_call.get('next_call_date') if latest_call else None,
+                    "next_action_date": latest_action.get('next_action_date') if latest_action else None,
+                    "action_point": latest_action.get('action_point__action_point') if latest_action else None,
+                    "next_action_point": latest_action.get('next_action__action_point') if latest_action else None,
+                    "work_assign": latest_assign.get('assigned_to') if latest_assign else None,
+                    "owner": owners_map.get(profile.Owner_id),
+                    "profile_status": status_map.get(profile.status),
+                    "lad_call_date": latest_call.get('call_date') if latest_call else None,
+                })
+
+            return Response({
+                "status": True,
+                "count": len(profiles_data),
+                "profiles": profiles_data,
+            })
+
+        except Exception as e:
+            return Response({"status": False, "error": str(e)}, status=500)
+
