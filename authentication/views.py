@@ -7982,6 +7982,7 @@ class GetMyProfilePersonal(APIView):
                 "empty_fields":result_percen['empty_fields'],
                 "profile_id":registration_serializer.data.get("ProfileId"),
                 "star":birth_starname,
+                "padham":horoscope_serializer.data.get('padham'),
                 # "gothram":registration_serializer.data.get("Profile_gothras"),
                 "gothram":familydetails_serializer.data.get("suya_gothram"),
                 "uncle_gothram":familydetails_serializer.data.get("uncle_gothram"),
@@ -9221,7 +9222,8 @@ class GetMyProfileHoroscope(APIView):
                 "personal_dasa_bal": dasa_format_date(horoscope_serializer.data.get("dasa_balance")),
                 "personal_rasi_katt": horoscope_serializer.data.get("rasi_kattam"),
                 "personal_amsa_katt": horoscope_serializer.data.get("amsa_kattam"),
-                "personal_horoscope_hints": horoscope_serializer.data.get("horoscope_hints")
+                "personal_horoscope_hints": horoscope_serializer.data.get("horoscope_hints"),
+                "personal_padham":horoscope_serializer.data.get("padham")
             }
 
             response = {

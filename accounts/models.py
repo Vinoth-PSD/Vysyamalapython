@@ -995,6 +995,8 @@ class ProfileHoroscope(models.Model):
     calc_raguketu_dhosham = models.CharField(max_length=100, null=True, blank=True)  # Added missing field
     horoscope_file_admin = models.FileField(upload_to=upload_to_profile_horoscope_admin,storage=AzureMediaStorage(),null=True, blank=True)
     didi = models.CharField(max_length=50, null=True, blank=True)
+    padham = models.IntegerField(null=True, blank=True)
+    
     class Meta:
         db_table = 'profile_horoscope'
     

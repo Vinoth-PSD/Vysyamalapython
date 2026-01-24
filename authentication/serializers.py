@@ -668,7 +668,7 @@ class HoroscopeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Horoscope
-        fields = ('profile_id','time_of_birth','place_of_birth', 'birthstar_name', 'birth_rasi_name','lagnam_didi','chevvai_dosaham','ragu_dosham','nalikai','dasa_name','dasa_balance','horoscope_hints','rasi_kattam','amsa_kattam','didi','calc_chevvai_dhosham','calc_raguketu_dhosham')
+        fields = ('profile_id','time_of_birth','place_of_birth', 'birthstar_name', 'birth_rasi_name','lagnam_didi','chevvai_dosaham','ragu_dosham','nalikai','dasa_name','dasa_balance','horoscope_hints','rasi_kattam','amsa_kattam','didi','calc_chevvai_dhosham','calc_raguketu_dhosham','padham')
         
 class FamilydetaiSerializer(serializers.ModelSerializer):
 
@@ -1281,7 +1281,7 @@ class PersonalHoroscopeSerializer(serializers.ModelSerializer):
     time_of_birth = serializers.CharField(required=False, allow_blank=True , allow_null=True)
     class Meta:
         model = models.Horoscope
-        fields = ['place_of_birth', 'time_of_birth','birth_rasi_name','birthstar_name']
+        fields = ['place_of_birth', 'time_of_birth','birth_rasi_name','birthstar_name','padham']
 
 class PersonalFamilydetailsSerializer(serializers.ModelSerializer):
     weight = serializers.CharField(required=False, allow_blank=True , allow_null=True)

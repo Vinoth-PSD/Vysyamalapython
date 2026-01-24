@@ -805,7 +805,8 @@ class Horoscope(models.Model):
     calc_chevvai_dhosham = models.CharField(max_length=100,null=True, blank=True)
     calc_raguketu_dhosham = models.CharField(max_length=100,null=True, blank=True)
     horoscope_file_admin = models.FileField(upload_to=upload_to_profile_horoscope_admin,storage=AzureMediaStorage(),null=True,blank=True)
-
+    padham = models.IntegerField(null=True, blank=True)
+    
     class Meta:
         managed = False  # This tells Django not to handle database table creation/migration for this model
         db_table = 'profile_horoscope'  # Name of the table in your database

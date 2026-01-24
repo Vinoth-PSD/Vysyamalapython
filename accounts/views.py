@@ -3635,7 +3635,7 @@ class ExpressInterestView(APIView):
         "2": "Accepted",
         "3": "Rejected"
     }
-    
+
     def get(self, request):
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
@@ -3671,10 +3671,16 @@ class ExpressInterestView(APIView):
 
         express_interests = Express_interests.objects.filter(
             req_datetime__range=(from_date, to_date)
-        ).order_by('-req_datetime')
-
+        )
+        response_statuses = {"2", "3"}
         if status_list:
             express_interests = express_interests.filter(status__in=status_list)
+            if any(s in response_statuses for s in status_list):
+                express_interests = express_interests.order_by('-response_datetime')
+            else:
+                express_interests = express_interests.order_by('-req_datetime')
+        else:
+            express_interests = express_interests.order_by('-req_datetime')
         
         from_ids = set(express_interests.values_list('profile_from', flat=True))
         to_ids = set(express_interests.values_list('profile_to', flat=True))
@@ -3718,6 +3724,8 @@ class ExpressInterestView(APIView):
         for interest in express_interests:
             profile_from = profile_map.get(interest.profile_from)
             profile_to = profile_map.get(interest.profile_to)
+            from_state_id = profile_from.get('Profile_state')
+            to_state_id = profile_to.get('Profile_state')
 
             if not profile_from or not profile_to:
                 continue
@@ -3729,13 +3737,13 @@ class ExpressInterestView(APIView):
                 'profile_from_id': profile_from['ProfileId'],
                 'profile_from_name': profile_from['Profile_name'],
                 'profile_from_mobile': profile_from['Mobile_no'],
-                'from_state': state_map.get(int(profile_from['Profile_state'])),
+                'from_state': state_map.get(int(from_state_id)) if from_state_id else None,
                 'from_plan': plan_map.get(int(profile_from['Plan_id'])) if profile_from.get('Plan_id') else None,
 
                 'profile_to_id': profile_to['ProfileId'],
                 'profile_to_name': profile_to['Profile_name'],
                 'profile_to_mobile': profile_to['Mobile_no'],
-                'to_state': state_map.get(int(profile_to['Profile_state'])),
+                'to_state': state_map.get(int(to_state_id)) if to_state_id else None,
                 'to_plan': plan_map.get(int(profile_to['Plan_id'])) if profile_to.get('Plan_id') else None,
 
                 'to_express_message': interest.to_express_message,
@@ -3757,110 +3765,117 @@ class ExpressInterestView(APIView):
 
 
 
-#Viewed profile by date range
 class ViewedProfileByDateRangeView(APIView):
     pagination_class = StandardResultsPaging
 
     def get(self, request):
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
+        
 
-        # Ensure both dates are provided
         if not from_date or not to_date:
             return Response({"error": "Please provide both from_date and to_date."}, status=400)
 
-        # Validate the date format
         try:
             from_date = datetime.strptime(from_date, '%Y-%m-%d')
             to_date = datetime.strptime(to_date, '%Y-%m-%d')
         except ValueError:
-            return Response({"error": "Invalid date format. Please use YYYY-MM-DD."}, status=400)
+            return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=400)
 
-        # Fetch profile visitors within the given date range
-        profile_visitors = Profile_visitors.objects.filter(
-            datetime__range=[from_date, to_date]
-        )
+        visitors = Profile_visitors.objects.filter(
+            datetime__range=(from_date, to_date)
+        ).order_by('-datetime')
 
-        if not profile_visitors.exists():
+        if not visitors.exists():
             return Response({"message": "No profile visitors found in the given date range."}, status=404)
 
-        # Create a result list to include profile information
+
+        viewer_ids = set(visitors.values_list('profile_id', flat=True))
+        viewed_ids = set(visitors.values_list('viewed_profile', flat=True))
+        all_profile_ids = viewer_ids | viewed_ids
+
+        profiles = LoginDetails.objects.filter(
+            ProfileId__in=all_profile_ids
+        )
+
+        profile_map = {p.ProfileId: p for p in profiles}
+
+        plan_ids = set(p.Plan_id for p in profiles if p.Plan_id)
+        mode_ids = set(p.Profile_for for p in profiles if p.Profile_for)
+        city_ids = set(
+            p.Profile_city for p in profiles
+            if p.Profile_city and str(p.Profile_city).isdigit()
+        )
+
+        plan_map = {
+            p.id: p.plan_name
+            for p in PlanDetails.objects.filter(id__in=plan_ids)
+        }
+
+        mode_map = {
+            m.mode: m.mode_name
+            for m in Mode.objects.filter(mode__in=mode_ids)
+        }
+
+        city_map = {
+            c.id: c.city_name
+            for c in City.objects.filter(id__in=city_ids, is_deleted=False)
+        }
+
+        view_pairs = set(
+            visitors.values_list('profile_id', 'viewed_profile')
+        )
+
         result = []
 
-        for visitor in profile_visitors:
-            # Fetch profile_id (the user who viewed the profile)
-            profile_viewer = LoginDetails.objects.filter(ProfileId=visitor.profile_id).first()
+        for v in visitors:
+            viewer = profile_map.get(v.profile_id)
+            viewed = profile_map.get(v.viewed_profile)
+            is_mutual = (v.viewed_profile, v.profile_id) in view_pairs
+            if not viewer or not viewed:
+                continue
 
-            # Fetch viewed_profile (the profile that was viewed)
-            viewed_profile = LoginDetails.objects.filter(ProfileId=visitor.viewed_profile).first()
+            def resolve_city(profile):
+                city = profile.Profile_city
+                if isinstance(city, str) and not city.isdigit():
+                    return city
+                return city_map.get(city)
 
-            # Only add to the result if both profile_viewer and viewed_profile exist
-            if profile_viewer and viewed_profile:
-                # Fetch plan_name from PlanDetails based on Plan_id
-                profile_viewer_plan = PlanDetails.objects.filter(id=profile_viewer.Plan_id).first()
-                viewed_profile_plan = PlanDetails.objects.filter(id=viewed_profile.Plan_id).first()
+            result.append({
+                'profile_viewer_contentId': viewer.ContentId,
+                'profile_viewer_profileId': viewer.ProfileId,
+                'profile_viewer_name': viewer.Profile_name,
+                'profile_viewer_dob': viewer.Profile_dob.isoformat() if viewer.Profile_dob else None,
+                'profile_viewer_city': resolve_city(viewer),
+                'profile_viewer_mobile': viewer.Mobile_no,
+                'profile_viewer_gender': viewer.Gender,
+                'profile_viewer_planid': plan_map.get(viewer.Plan_id),
+                'profile_viewer_created_by': mode_map.get(viewer.Profile_for),
+                'profile_viewer_state': None,
 
-                # Fetch mode_name from Mode table based on Profile_for
-                profile_viewer_mode = Mode.objects.filter(mode=profile_viewer.Profile_for).first()
-                viewed_profile_mode = Mode.objects.filter(mode=viewed_profile.Profile_for).first()
+                'viewed_profile_contentId': viewed.ContentId,
+                'viewed_profile_profileId': viewed.ProfileId,
+                'viewed_profile_name': viewed.Profile_name,
+                'viewed_profile_dob': viewed.Profile_dob.isoformat() if viewed.Profile_dob else None,
+                'viewed_profile_city': resolve_city(viewed),
+                'viewed_profile_mobile': viewed.Mobile_no,
+                'viewed_profile_gender': viewed.Gender,
+                'viewed_profile_planid': plan_map.get(viewed.Plan_id),
+                'viewed_profile_created_by': mode_map.get(viewed.Profile_for),
+                'viewed_profile_state': None,
 
-                # Fetch state name from State table based on Profile_state
-                # profile_viewer_state = State.objects.filter(id=profile_viewer.Profile_state).first()
-                # viewed_profile_state = State.objects.filter(id=viewed_profile.Profile_state).first()
+                'datetime': v.datetime.isoformat(),
+                'status': v.status,
+                'is_mutual_viewed': is_mutual
+            })
 
-                profile_viewer_state = ""
-                viewed_profile_state = ""
 
-                # Fetch profile_viewer city name
-                profile_viewer_city = profile_viewer.Profile_city
-                if isinstance(profile_viewer_city, str) and not profile_viewer_city.isdigit():
-                    profile_viewer_city_name = profile_viewer_city  # City name provided as a string
-                else:
-                    profile_viewer_city_name = City.objects.filter(id=profile_viewer_city, is_deleted=False).values_list('city_name', flat=True).first()
-
-                # Fetch viewed_profile city name
-                viewed_profile_city = viewed_profile.Profile_city
-                if isinstance(viewed_profile_city, str) and not viewed_profile_city.isdigit():
-                    viewed_profile_city_name = viewed_profile_city  # City name provided as a string
-                else:
-                    viewed_profile_city_name = City.objects.filter(id=viewed_profile_city, is_deleted=False).values_list('city_name', flat=True).first()
-
-                result.append({
-                    'profile_viewer_contentId': profile_viewer.ContentId,
-                    'profile_viewer_profileId': profile_viewer.ProfileId,
-                    'profile_viewer_name': profile_viewer.Profile_name,
-                    'profile_viewer_dob': profile_viewer.Profile_dob.isoformat() if profile_viewer.Profile_dob else None,
-                    'profile_viewer_city': profile_viewer_city_name,  # City name resolved
-                    'profile_viewer_mobile': profile_viewer.Mobile_no,
-                    'profile_viewer_gender': profile_viewer.Gender,
-                    'profile_viewer_planid': profile_viewer_plan.plan_name if profile_viewer_plan else None,  # Plan name
-                    'profile_viewer_created_by': profile_viewer_mode.mode_name if profile_viewer_mode else None,  # Mode name
-                    'profile_viewer_state': profile_viewer_state.name if profile_viewer_state else None,  # State name
-
-                    'viewed_profile_contentId': viewed_profile.ContentId,
-                    'viewed_profile_profileId': viewed_profile.ProfileId,
-                    'viewed_profile_name': viewed_profile.Profile_name,
-                    'viewed_profile_dob': viewed_profile.Profile_dob.isoformat() if viewed_profile.Profile_dob else None,
-                    'viewed_profile_city': viewed_profile_city_name,  # City name resolved
-                    'viewed_profile_mobile': viewed_profile.Mobile_no,
-                    'viewed_profile_gender': viewed_profile.Gender,
-                    'viewed_profile_planid': viewed_profile_plan.plan_name if viewed_profile_plan else None,  # Plan name
-                    'viewed_profile_created_by': viewed_profile_mode.mode_name if viewed_profile_mode else None,  # Mode name
-                    'viewed_profile_state': viewed_profile_state.name if viewed_profile_state else None,  # State name
-
-                    'datetime': visitor.datetime.isoformat(),
-                    'status': visitor.status
-                })
-
-        # Implement pagination if necessary
         paginator = self.pagination_class()
-        paginated_result = paginator.paginate_queryset(result, request)
+        page = paginator.paginate_queryset(result, request)
 
-        # If there are paginated results, return the paginated response
-        if paginated_result is not None:
-            return paginator.get_paginated_response(paginated_result)
+        if page is not None:
+            return paginator.get_paginated_response(page)
 
-        # If no pagination is needed, return the full result set
         return Response(result, status=200)
 
 
