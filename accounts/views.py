@@ -3613,7 +3613,40 @@ def export_excel(request):
     return response
 
 
+def export_csv(data, filename="call_management_export.csv"):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
+
+    if not data:
+        return response
+
+
+    writer = csv.DictWriter(response, fieldnames=data[0].keys())
+    writer.writeheader()
+    writer.writerows(data)
+
+
+    return response
+
+def export_excel_call(data, filename="call_management_export.xlsx"):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Call Management"
+
+
+    if data:
+        ws.append(list(data[0].keys()))
+        for row in data:
+            ws.append(list(row.values()))
+
+
+    response = HttpResponse(
+    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
 
 class QuickUploadAPIView(generics.ListAPIView):
     serializer_class = QuickUploadSerializer
@@ -8643,7 +8676,59 @@ def get_star_lookup():
     with connection.cursor() as cursor:
         cursor.execute("SELECT id, star FROM masterbirthstar WHERE is_deleted = 0")
         return {str(row[0]): row[1] for row in cursor.fetchall()}
+  
+  
+def build_profession_map(profile_details):
+    profession_ids = {
+        int(d["profession"])
+        for d in profile_details
+        if d.get("profession") not in [None, "0", "N/A", "~", " ", ""]
+        and str(d.get("profession")).isdigit()
+    }
+
+    return {
+        p.RowId: p.profession
+        for p in Profespref.objects.filter(RowId__in=profession_ids)
+    }
     
+def build_degree_map(profile_details):
+    degree_ids = set()
+
+    for d in profile_details:
+        if d.get("degree"):
+            ids = [
+                int(x) for x in str(d["degree"]).split(",")
+                if x.strip().isdigit() and int(x) != 86
+            ]
+            degree_ids.update(ids)
+
+    return {
+        d.id: d.degeree_name
+        for d in models.MasterhighestEducation.objects.filter(id__in=degree_ids)
+    }
+    
+def getprofession_fast(profession, profession_map):
+    if profession in [None, "0", "N/A", "~", " ", ""]:
+        return "N/A"
+    return profession_map.get(int(profession), "N/A")
+  
+  
+def degree_fast(degree_ids, other_degree, degree_map):
+    if not degree_ids:
+        return other_degree or "N/A"
+
+    ids = [
+        int(x) for x in str(degree_ids).split(",")
+        if x.strip().isdigit() and int(x) != 86
+    ]
+
+    names = [degree_map.get(i) for i in ids if degree_map.get(i)]
+
+    if other_degree:
+        names.append(other_degree)
+
+    return ", ".join(names) if names else "N/A"
+
 class CommonProfileSearchAPIView(APIView):
 
     def post(self, request):
@@ -8676,16 +8761,23 @@ class CommonProfileSearchAPIView(APIView):
             return JsonResponse(serializer.errors, status=400)
         
         filters = serializer.validated_data
+        export_type = filters.pop('export_type', None)
+        
         per_page = filters.pop('per_page', 10)
         page_number = filters.pop('page_number', 1)
-        start = (page_number - 1) * per_page
-
+        if export_type:
+            start = 0
+            per_page = 100000
+        else:
+            start = (page_number - 1) * per_page
+        print("wrerw")
         profile_details, total_count, profile_with_indices = Get_profiledata_Matching.get_common_profile_list(
             start=start,
             per_page=per_page,
+            is_export=bool(export_type),
             **filters
         )
-        
+        print("fsdf")
         if not profile_details:
             return JsonResponse({
                 "Status": 0,
@@ -8694,23 +8786,81 @@ class CommonProfileSearchAPIView(APIView):
             }, status=200)
         star_lookup = get_star_lookup()
         profiles = []
-        for detail in profile_details: 
-            star_id = str(detail.get("birthstar_name", "")).strip()
-            star_name = star_lookup.get(star_id, "")
-            profiles.append({
-                "profile_id": detail["ProfileId"],
-                "profile_name": detail["Profile_name"],
-                "profile_img": Get_profile_image(detail["ProfileId"], detail["Gender"], 1, 0, is_admin=True),
-                "profile_age": calculate_age(detail["Profile_dob"]),
-                "profile_gender": detail["Gender"],
-                "height": detail["Profile_height"],
-                "degree": degree(detail.get("degree"),detail.get("other_degree")),
-                "profession": getprofession(detail.get("profession")),
-                "location": detail["Profile_city"],
-                "photo_protection": detail["Photo_protection"],
-                "verified": detail.get('Profile_verified'),
-                "star": star_name
-            })
+        print("gdgdfg")
+        today = date.today()
+        def fast_age(dob):
+            if not dob:
+                return None
+            return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        if not export_type:
+            for detail in profile_details: 
+                star_id = str(detail.get("birthstar_name", "")).strip()
+                star_name = star_lookup.get(star_id, "")
+                profiles.append({
+                    "profile_id": detail["ProfileId"],
+                    "profile_name": detail["Profile_name"],
+                    "profile_img": Get_profile_image(detail["ProfileId"], detail["Gender"], 1, 0, is_admin=True),
+                    "profile_age": calculate_age(detail["Profile_dob"]),
+                    "profile_gender": detail["Gender"],
+                    "height": detail["Profile_height"],
+                    "degree": degree(detail.get("degree"),detail.get("other_degree")),
+                    "profession": getprofession(detail.get("profession")),
+                    "location": detail["Profile_city"],
+                    "photo_protection": detail["Photo_protection"],
+                    "verified": detail.get('Profile_verified'),
+                    "star": star_name
+                })
+        print("fdsgvdfg")
+        if export_type:
+            export_rows = []
+            print("itha")
+            profession_map = build_profession_map(profile_details)
+            degree_map = build_degree_map(profile_details)
+
+
+            export_rows = [
+                {
+                "Profile ID": d.get("ProfileId"),
+                "Name": d.get("Profile_name"),
+                "Gender": d.get("Gender"),
+                "Age": calculate_age(d.get("Profile_dob")),
+                "Height": d.get("Profile_height"),
+                "City": d.get("Profile_city"),
+                "Profession": getprofession_fast(d.get("profession"), profession_map),
+                "Education": degree_fast(d.get("degree"), d.get("other_degree"), degree_map),
+                "Mobile": d.get("mobile_no"),
+                "Email": d.get("email_id")
+               }
+                for d in profile_details
+            ]
+            print("itha")
+            if export_type == "csv":
+                response = HttpResponse(content_type='text/csv')
+                response['Content-Disposition'] = 'attachment; filename="profiles.csv"'
+
+                writer = csv.DictWriter(response, fieldnames=export_rows[0].keys())
+                writer.writeheader()
+                writer.writerows(export_rows)
+
+                return response
+            if export_type == "excel":
+                wb = openpyxl.Workbook()
+                ws = wb.active
+                ws.title = "Profiles"
+
+                headers = export_rows[0].keys()
+                ws.append(list(headers))
+
+                for row in export_rows:
+                    ws.append(list(row.values()))
+
+                response = HttpResponse(
+                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
+                response['Content-Disposition'] = 'attachment; filename="profiles.xlsx"'
+
+                wb.save(response)
+                return response
 
         return JsonResponse({
             "Status": 1,
@@ -15009,6 +15159,7 @@ class CallManagementSearchAPI(APIView):
         try:
             data = request.data
             search_value = data.get("search_value")
+            export_type = data.get("export_type")
             input_type = detect_input_type(search_value)
 
             if input_type == "MOBILE":
@@ -15108,7 +15259,11 @@ class CallManagementSearchAPI(APIView):
                         ),
                         "work_assign": getattr(latest_assign, 'assigned_to', None),
                     })
-                    
+                if export_type == "csv":
+                    return export_csv(profiles, "general_call_management.csv")
+                if export_type == "excel":
+                    return export_excel_call(profiles, "general_call_management.xlsx")
+                
                 return Response({
                     "status": True,
                     "count": len(profiles),
@@ -15369,7 +15524,7 @@ class CallManagementSearchAPI(APIView):
                 s = assign_dict.get(pid)
 
                 profiles_data_dict[pid]={
-                    "ProfileId": pid,
+                    "profile_id": pid,
                     "particulars": c.get('particulars__particulars') if c else None,
                     "call_type": c.get('call_type__call_type') if c else None,
                     "call_comments": c.get('comments') if c else None,
@@ -15386,6 +15541,11 @@ class CallManagementSearchAPI(APIView):
                 }
                 
             profiles_data = list(profiles_data_dict.values())
+            if export_type == "csv":
+                return export_csv(profiles_data, "profile_call_management.csv")
+            if export_type == "excel":
+                return export_excel_call(profiles_data, "profile_call_management.xlsx")
+                            
             return Response({
                 "status": True,
                 "count": len(profiles_data),

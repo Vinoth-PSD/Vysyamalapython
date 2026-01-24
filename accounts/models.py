@@ -3341,16 +3341,18 @@ class Get_profiledata_Matching(models.Model):
                                 email_id=None,gender=None,father_name=None,father_occupation=None,mother_name=None,mother_occupation=None,
                                 business_name=None,company_name=None,from_last_action_date=None,to_last_action_date=None,from_doj=None,to_doj=None,created_by=None,
                                 delete_status=None,address=None,admin_comments=None,marriage_from=None,marriage_to=None,
-                                engagement_from=None,engagement_to=None,field_of_study=None,degree=None
+                                engagement_from=None,engagement_to=None,field_of_study=None,degree=None,is_export=False
                                 ):
 
         try:
-            base_query = """
-                SELECT DISTINCT a.ProfileId, a.Gender, a.Photo_protection, a.Profile_city, a.Profile_verified,
-                    a.Profile_name, a.Profile_dob, a.Profile_height,
-                    e.birthstar_name, e.birth_rasi_name,
-                    f.degree,f.other_degree, f.profession, g.EducationLevel, 
-                    h.income, (SELECT image FROM profile_images WHERE profile_id = a.ProfileId LIMIT 1) as image
+            if is_export:
+                base_query = """
+                SELECT
+                a.ProfileId, a.Gender, a.Photo_protection, a.Profile_city, a.Profile_verified,
+                        a.Profile_name, a.Profile_dob, a.Profile_height,
+                        e.birthstar_name, e.birth_rasi_name,
+                        f.degree,f.other_degree, f.profession, g.EducationLevel, 
+                        h.income
                 FROM logindetails a
                 LEFT JOIN profile_horoscope e ON a.ProfileId = e.profile_id
                 LEFT JOIN profile_familydetails c ON a.ProfileId = c.profile_id
@@ -3358,10 +3360,28 @@ class Get_profiledata_Matching(models.Model):
                 LEFT JOIN mastereducation g ON f.highest_education = g.RowId
                 LEFT JOIN masterannualincome h ON f.anual_income = h.id
                 LEFT JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
-                LEFT JOIN profile_images i ON i.profile_id=a.ProfileId
                 LEFT JOIN marriage_settled j ON a.ProfileId = j.profile_id
-                WHERE 1 
-            """
+                WHERE 1
+                """
+            else:
+            
+                base_query = """
+                    SELECT DISTINCT a.ProfileId, a.Gender, a.Photo_protection, a.Profile_city, a.Profile_verified,
+                        a.Profile_name, a.Profile_dob, a.Profile_height,
+                        e.birthstar_name, e.birth_rasi_name,
+                        f.degree,f.other_degree, f.profession, g.EducationLevel, 
+                        h.income, (SELECT image FROM profile_images WHERE profile_id = a.ProfileId LIMIT 1) as image
+                    FROM logindetails a
+                    LEFT JOIN profile_horoscope e ON a.ProfileId = e.profile_id
+                    LEFT JOIN profile_familydetails c ON a.ProfileId = c.profile_id
+                    LEFT JOIN profile_edudetails f ON a.ProfileId = f.profile_id
+                    LEFT JOIN mastereducation g ON f.highest_education = g.RowId
+                    LEFT JOIN masterannualincome h ON f.anual_income = h.id
+                    LEFT JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
+                    LEFT JOIN profile_images i ON i.profile_id=a.ProfileId
+                    LEFT JOIN marriage_settled j ON a.ProfileId = j.profile_id
+                    WHERE 1 
+                """
 
             query_params = []
 
@@ -3806,10 +3826,17 @@ class Get_profiledata_Matching(models.Model):
             # print("MySQL Executable Query:", format_sql_for_debug_new(base_query, query_params))
 
             # Count total
-            count_query = f"""SELECT COUNT(*) FROM ({base_query}) AS total"""
-            with connection.cursor() as cursor:
-                cursor.execute(count_query, query_params)
-                total_count = cursor.fetchone()[0]
+            # count_query = f"""SELECT COUNT(*) FROM ({base_query}) AS total"""
+            # with connection.cursor() as cursor:
+            #     cursor.execute(count_query, query_params)
+            #     total_count = cursor.fetchone()[0]
+            if not is_export:
+                count_query = f"SELECT COUNT(*) FROM ({base_query}) AS total"
+                with connection.cursor() as cursor:
+                    cursor.execute(count_query, query_params)
+                    total_count = cursor.fetchone()[0]
+            else:
+                total_count = None
 
             # Limit and offset
             base_query += " LIMIT %s OFFSET %s"

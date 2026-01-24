@@ -1343,6 +1343,11 @@ class CommonProfileSearchSerializer(serializers.Serializer):
     engagement_to = serializers.CharField(required=False,allow_blank=True)
     field_of_study = serializers.CharField(required=False,allow_blank=True)
     degree = serializers.CharField(required=False,allow_blank=True)
+    export_type = serializers.ChoiceField(
+        choices=['csv', 'excel'],
+        required=False,
+        allow_blank=True
+        )
     per_page = serializers.IntegerField(default=10)
     page_number = serializers.IntegerField(default=1)
 
