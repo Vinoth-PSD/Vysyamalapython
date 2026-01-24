@@ -44,7 +44,7 @@
         <p>🆔 <strong>Profile ID:</strong> {{ profile.profile_id }}</p>
         <p>👤 <strong>Profile Name:</strong> {{ profile.profile_name }}</p>
         <p>🎂 <strong>Age:</strong> {{ profile.age }} years</p>
-        <p>✨ <strong>Star Name:</strong> {{ profile.star_name }}</p>
+        <p>✨ <strong>Star Name:</strong> {{ profile.star_name }} {% if profile.padham %} - {{ profile.padham }} {% endif %}</p>
         <p>💰 <strong>Annual Income:</strong> {{ profile.annual_income|default:"N/A" }}</p>
         <p>🎓 <strong>Education:</strong> {{ profile.highest_education|default:"N/A" }}</p>
         <p>💼 <strong>Profession:</strong> {{ profile.occupation|default:"N/A" }}</p>

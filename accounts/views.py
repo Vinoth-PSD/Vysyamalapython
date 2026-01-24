@@ -9273,6 +9273,7 @@ class AdminProfilePDFView(APIView):
             "birth_rasi": birth_rasi if birth_rasi not in [None, ""] else "N/A",
             "birth_place": horoscope_data.place_of_birth if horoscope_data.place_of_birth not in [None, ""] else "N/A",
             "address": address_content,
+            "padham":horoscope_data.padham if horoscope_data.padham not in [None,""] else None,
             "lagnam":lagnam,
             "dasa_year":dasa_year,
             "dasa_month":dasa_month,
@@ -9648,7 +9649,8 @@ class AdminMatchProfilePDFView(APIView):
                         "occupation":occupation,
                         "work_place":work_place if work_place not in [None, ""] else "N/A",
                         "age": calculate_age(login.Profile_dob) if login.Profile_dob else "Unknown",
-                        "star_name": birthstar if birthstar not in [None, ""] else "N/A"
+                        "star_name": birthstar if birthstar not in [None, ""] else "N/A",
+                        "padham":horoscope_data.padham if horoscope_data.padham not in [None,""] else None
                     }
                     whatsapp_profiles.append(profile_data)
 
@@ -9664,7 +9666,8 @@ class AdminMatchProfilePDFView(APIView):
                         "occupation":occupation,
                         "work_place":work_place if work_place not in [None, ""] else "N/A",
                         "age": calculate_age(login.Profile_dob) if login.Profile_dob else "Unknown",
-                        "star_name": birthstar if birthstar not in [None, ""] else "N/A"
+                        "star_name": birthstar if birthstar not in [None, ""] else "N/A",
+                        "padham":horoscope_data.padham if horoscope_data.padham not in [None,""] else None
                     }
                     whatsapp_profiles.append(profile_data)
                 
@@ -9718,6 +9721,7 @@ class AdminMatchProfilePDFView(APIView):
                     "dasa_month":dasa_month,
                     "dasa_day":dasa_day,
                     "dasa_name":get_dasa_name(horoscope_data.dasa_name),
+                    "padham":horoscope_data.padham if horoscope_data.padham not in [None,""] else None,
                     "birth_start":birth_time,
                     "my_time_of_birth":my_birth_time,
                     "profession":profession,
@@ -12944,8 +12948,10 @@ class WhatsappShareView(APIView):
         try:
             horoscope_data = get_object_or_404(models.ProfileHoroscope, profile_id=profile_id)
             birthstar = safe_get_value(models.BirthStar, 'id', horoscope_data.birthstar_name, 'star')
+            patham = horoscope_data.padham
         except Exception:
             birthstar=None
+            patham = None
         try:
             education_details = get_object_or_404(models.ProfileEduDetails, profile_id=profile_id)
             annual_income = "Unknown"
@@ -13007,6 +13013,7 @@ class WhatsappShareView(APIView):
             "highest_education":highest_education if highest_education else "N/A",
             "occupation": occupation if occupation else "N/A",
             "work_place": work_place if work_place else "N/A",
+            "padham":patham if patham else None,
             "profile_link": profile_link
         }
 
@@ -15154,6 +15161,14 @@ def aware_date(date_str, end=False):
         dt += timedelta(days=1)
     return timezone.make_aware(dt)
 
+def excel_safe_datetime(dt):
+    if not dt:
+        return None
+    if isinstance(dt, datetime) and timezone.is_aware(dt):
+        return dt.replace(tzinfo=None)
+    return dt
+
+
 class CallManagementSearchAPI(APIView):
     def post(self, request):
         try:
@@ -15248,11 +15263,11 @@ class CallManagementSearchAPI(APIView):
                         "call_type": getattr(latest_call.call_type, 'call_type', None) if latest_call else None,
                         "call_comments": getattr(latest_call, 'comments', None),
                         "call_status": getattr(latest_call.call_status, 'status', None) if latest_call else None,
-                        "call_date": getattr(latest_call, 'call_date', None),
-                        "next_call_date": getattr(latest_call, 'next_call_date', None),
+                        "call_date": excel_safe_datetime(getattr(latest_call, 'call_date', None)),
+                        "next_call_date": excel_safe_datetime(getattr(latest_call, 'next_call_date', None)),
                         "action_point": getattr(latest_action.action_point, 'action_point', None) if latest_action else None,
                         "next_action_point": getattr(latest_action.next_action, 'action_point', None) if latest_action else None,
-                        "next_action_date": getattr(latest_action, 'next_action_date', None),
+                        "next_action_date": excel_safe_datetime(getattr(latest_action, 'next_action_date', None)),
                         "owner": get_owner_name(
                             latest_call.call_owner if latest_call
                             else latest_action.action_owner if latest_action else None
@@ -15529,15 +15544,15 @@ class CallManagementSearchAPI(APIView):
                     "call_type": c.get('call_type__call_type') if c else None,
                     "call_comments": c.get('comments') if c else None,
                     "call_status": c.get('call_status__status') if c else None,
-                    "call_date": c.get('call_date') if c else None,
-                    "next_call_date": c.get('next_call_date') if c else None,
-                    "next_action_date": a.get('next_action_date') if a else None,
+                    "call_date": excel_safe_datetime(c.get('call_date')) if c else None,
+                    "next_call_date": excel_safe_datetime(c.get('next_call_date')) if c else None,
+                    "next_action_date": excel_safe_datetime(a.get('next_action_date')) if a else None,
                     "action_point": a.get('action_point__action_point') if a else None,
                     "next_action_point": a.get('next_action__action_point') if a else None,
                     "work_assign": s.get('assigned_to') if s else None,
                     "owner": owner_map.get(int(p.Owner_id)) if p.Owner_id else None,
                     "profile_status": status_map.get(p.status),
-                    "lad_call_date": c.get('call_date') if c else None,
+                    "lad_call_date": excel_safe_datetime(c.get('call_date')) if c else None,
                 }
                 
             profiles_data = list(profiles_data_dict.values())

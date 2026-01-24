@@ -137,7 +137,7 @@ class Registration1(models.Model):
     primary_status = models.IntegerField() 
     secondary_status = models.IntegerField() 
     plan_status = models.IntegerField() 
-    allow_visit = models.CharField(max_length=100)
+    allow_visit = models.IntegerField(default=0)
     #Profile_idproof= models.TextField()
     
 
