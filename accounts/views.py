@@ -3629,77 +3629,131 @@ class QuickUploadAPIView(generics.ListAPIView):
 
 class ExpressInterestView(APIView):
     pagination_class = StandardResultsPaging
-
+    STATUS_MAP = {
+        "0": "Removed",
+        "1": "Request Sent",
+        "2": "Accepted",
+        "3": "Rejected"
+    }
+    
     def get(self, request):
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
-        profile_state = request.query_params.get('profile_state')  # Multiple profile states
-
-        # Ensure both dates are provided
+        profile_state = request.query_params.get('profile_state')
+        status_param = request.query_params.get('status')
+        
         if not from_date or not to_date:
-            return Response({"error": "Please provide both from_date and to_date."}, status=400)
+            return Response(
+                {"error": "Please provide both from_date and to_date."},
+                status=400
+            )
 
-        # Validate the date format
         try:
             from_date = datetime.strptime(from_date, '%Y-%m-%d')
             to_date = datetime.strptime(to_date, '%Y-%m-%d')
         except ValueError:
-            return Response({"error": "Invalid date format. Please use YYYY-MM-DD."}, status=400)
+            return Response(
+                {"error": "Invalid date format. Use YYYY-MM-DD."},
+                status=400
+            )
 
-        # Ensure profile_state is provided
         if not profile_state:
-            return Response({"error": "Please provide profile_state."}, status=400)
+            return Response(
+                {"error": "Please provide profile_state."},
+                status=400
+            )
 
-        # Split profile_state into a list of integers
         profile_state_list = profile_state.split(',')
         
-        # Fetch express interest records within the date range
+        status_list = None
+        if status_param:
+            status_list = status_param.split(',')
+
         express_interests = Express_interests.objects.filter(
-            req_datetime__range=[from_date, to_date]
+            req_datetime__range=(from_date, to_date)
+        ).order_by('-req_datetime')
+
+        if status_list:
+            express_interests = express_interests.filter(status__in=status_list)
+        
+        from_ids = set(express_interests.values_list('profile_from', flat=True))
+        to_ids = set(express_interests.values_list('profile_to', flat=True))
+        all_profile_ids = from_ids | to_ids
+
+        profiles = LoginDetails.objects.filter(
+            ProfileId__in=all_profile_ids
+        ).values(
+            'ProfileId',
+            'Profile_name',
+            'Mobile_no',
+            'Profile_state',
+            'Plan_id'
         )
 
-        if not express_interests.exists():
-            return Response({"message": "No express interest records found in the given date range."}, status=404)
+        profile_map = {p['ProfileId']: p for p in profiles}
+        state_ids = set()
+        plan_ids = set()
 
-        # Create a result list to include profile information
+        for p in profiles:
+            if p['Profile_state']:
+                state_ids.add(int(p['Profile_state']))
+            if p.get('Plan_id'):
+                plan_ids.add(int(p['Plan_id']))
+                
+        state_map = {
+            s.id: s.name
+            for s in State.objects.filter(
+                id__in=state_ids,
+                is_active=True,
+                is_deleted=False
+            )
+        }
+        plan_map = {
+            p.id: p.plan_name
+            for p in PlanDetails.objects.filter(id__in=plan_ids)
+        }
+
+
         result = []
-
         for interest in express_interests:
-            # Fetch profile_from data and filter by multiple Profile_state values
-            profile_from_data = LoginDetails.objects.filter(
-                ProfileId=interest.profile_from, Profile_state__in=profile_state_list
-            ).first()
+            profile_from = profile_map.get(interest.profile_from)
+            profile_to = profile_map.get(interest.profile_to)
 
-            # Fetch profile_to data without filtering by Profile_state
-            profile_to_data = LoginDetails.objects.filter(
-                ProfileId=interest.profile_to
-            ).first()
+            if not profile_from or not profile_to:
+                continue
 
-            # Only add to the result if profile_from matches one of the given Profile_state values
-            if profile_from_data and profile_to_data:
-                result.append({
-                    'profile_from_id': profile_from_data.ProfileId,
-                    'profile_from_name': profile_from_data.Profile_name,
-                    'profile_from_mobile': profile_from_data.Mobile_no,
-                    'profile_to_id': profile_to_data.ProfileId,
-                    'profile_to_name': profile_to_data.Profile_name,
-                    'profile_to_mobile': profile_to_data.Mobile_no,
-                    'to_express_message': interest.to_express_message,
-                    'req_datetime': interest.req_datetime.isoformat(),
-                    'response_datetime': interest.response_datetime,
-                    'status': interest.status
-                })
+            if profile_from['Profile_state'] not in profile_state_list:
+                continue
 
-        # Implement pagination
+            result.append({
+                'profile_from_id': profile_from['ProfileId'],
+                'profile_from_name': profile_from['Profile_name'],
+                'profile_from_mobile': profile_from['Mobile_no'],
+                'from_state': state_map.get(int(profile_from['Profile_state'])),
+                'from_plan': plan_map.get(int(profile_from['Plan_id'])) if profile_from.get('Plan_id') else None,
+
+                'profile_to_id': profile_to['ProfileId'],
+                'profile_to_name': profile_to['Profile_name'],
+                'profile_to_mobile': profile_to['Mobile_no'],
+                'to_state': state_map.get(int(profile_to['Profile_state'])),
+                'to_plan': plan_map.get(int(profile_to['Plan_id'])) if profile_to.get('Plan_id') else None,
+
+                'to_express_message': interest.to_express_message,
+                'req_datetime': interest.req_datetime,
+                'response_datetime': interest.response_datetime,
+                'status': self.STATUS_MAP.get(str(interest.status), "Sent")
+            })
+
+
+
         paginator = self.pagination_class()
         paginated_result = paginator.paginate_queryset(result, request)
 
-        # If there are paginated results, return the paginated response
         if paginated_result is not None:
             return paginator.get_paginated_response(paginated_result)
 
-        # If no pagination is needed, return the full result set
         return Response(result, status=200)
+
 
 
 
@@ -14897,7 +14951,7 @@ def detect_input_type(value: str):
     if re.match(r'^(VM|VF)\d+$', value):
         return "PROFILE_ID"
 
-    if value.isdigit() and len(value) in [10, 12]:
+    if len(value) > 4:
         return "MOBILE"
 
     return None
@@ -14914,6 +14968,8 @@ from django.db.models.functions import RowNumber
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from datetime import datetime, timedelta
+from django.db.models import Max
+
 
 
 def get_status(status_id):
@@ -14941,82 +14997,87 @@ class CallManagementSearchAPI(APIView):
             input_type = detect_input_type(search_value)
 
             if input_type == "MOBILE":
+                latest_ids = (
+                        CallManagement_New.objects
+                        .filter(mobile_no__icontains=search_value)
+                        .values('mobile_no')
+                        .annotate(latest_created=Max('created_at'))
+                    )
+                
                 cms = CallManagement_New.objects.filter(
-                    mobile_no=search_value
+                    mobile_no__icontains=search_value,
+                    created_at__in=[x['latest_created'] for x in latest_ids]
                 ).order_by('-created_at')
 
                 if not cms.exists():
                     return Response({"status": True, "count": 0, "profiles": []})
 
-                latest_cm = cms.first()
+                profiles = []
+                for cm in cms:
+                    call_filters = Q(call_management=cm, is_deleted=0)
+                    action_filters = Q(call_management=cm, is_deleted=0)
+                    assign_filters = Q(call_management=cm, is_deleted=0)
 
-                call_filters = Q(call_management=latest_cm, is_deleted=0)
-                action_filters = Q(call_management=latest_cm, is_deleted=0)
-                assign_filters = Q(call_management=latest_cm, is_deleted=0)
+                    if cl_from := data.get("call_from_date"):
+                        call_filters &= Q(call_date__gte=aware_date(cl_from))
+                    if cl_to := data.get("call_to_date"):
+                        call_filters &= Q(call_date__lt=aware_date(cl_to,end=True))
 
-                if cl_from := data.get("call_from_date"):
-                    call_filters &= Q(call_date__gte=aware_date(cl_from))
-                if cl_to := data.get("call_to_date"):
-                    call_filters &= Q(call_date__lt=aware_date(cl_to,end=True) + timedelta(days=1))
+                    if nc_from := data.get("next_call_from_date"):
+                        call_filters &= Q(next_call_date__gte=aware_date(nc_from))
+                    if nc_to := data.get("next_call_to_date"):
+                        call_filters &= Q(next_call_date__lte=aware_date(nc_to,end=True))
 
-                if nc_from := data.get("next_call_from_date"):
-                    call_filters &= Q(next_call_date__gte=aware_date(nc_from))
-                if nc_to := data.get("next_call_to_date"):
-                    call_filters &= Q(next_call_date__lte=aware_date(nc_to,end=True))
+                    if ct := data.get("call_type"):
+                        call_filters &= Q(call_type_id__in=ct)
+                    if cs := data.get("call_status"):
+                        call_filters &= Q(call_status_id__in=cs)
+                    if pt := data.get("particulars"):
+                        call_filters &= Q(particulars_id__in=pt)
+                    if co := data.get("call_owner"):
+                        call_filters &= Q(call_owner__in=co)
+                    if cc := data.get("call_comments"):
+                        call_filters &= Q(comments__icontains=cc)
 
-                if ct := data.get("call_type"):
-                    call_filters &= Q(call_type_id__in=ct)
-                if cs := data.get("call_status"):
-                    call_filters &= Q(call_status_id__in=cs)
-                if pt := data.get("particulars"):
-                    call_filters &= Q(particulars_id__in=pt)
-                if co := data.get("call_owner"):
-                    call_filters &= Q(call_owner__in=co)
-                if cc := data.get("call_comments"):
-                    call_filters &= Q(comments__icontains=cc)
+                    if af := data.get("action_from_date"):
+                        action_filters &= Q(action_date__gte=aware_date(af))
+                    if at := data.get("action_to_date"):
+                        action_filters &= Q(action_date__lt=aware_date(at,end=True))
 
-                if af := data.get("action_from_date"):
-                    action_filters &= Q(action_date__gte=aware_date(af))
-                if at := data.get("action_to_date"):
-                    action_filters &= Q(action_date__lt=aware_date(at,end=True) + timedelta(days=1))
+                    if naf := data.get("next_action_from_date"):
+                        action_filters &= Q(next_action_date__gte=aware_date(naf))
+                    if nat := data.get("next_action_to_date"):
+                        action_filters &= Q(next_action_date__lte=aware_date(nat,end=True))
 
-                if naf := data.get("next_action_from_date"):
-                    action_filters &= Q(next_action_date__gte=aware_date(naf))
-                if nat := data.get("next_action_to_date"):
-                    action_filters &= Q(next_action_date__lte=aware_date(nat,end=True))
+                    if ap := data.get("action_point"):
+                        action_filters &= Q(action_point_id__in=ap)
+                    if na := data.get("next_action"):
+                        action_filters &= Q(next_action_id__in=na)
+                    if ao := data.get("action_owner"):
+                        action_filters &= Q(action_owner__in=ao)
+                    if ac := data.get("action_comments"):
+                        action_filters &= Q(comments__icontains=ac)
+                    if nac := data.get("next_action_comments"):
+                        action_filters &= Q(next_action_comments__icontains=nac)
 
-                if ap := data.get("action_point"):
-                    action_filters &= Q(action_point_id__in=ap)
-                if na := data.get("next_action"):
-                    action_filters &= Q(next_action_id__in=na)
-                if ao := data.get("action_owner"):
-                    action_filters &= Q(action_owner__in=ao)
-                if ac := data.get("action_comments"):
-                    action_filters &= Q(comments__icontains=ac)
-                if nac := data.get("next_action_comments"):
-                    action_filters &= Q(next_action_comments__icontains=nac)
+                    if adf := data.get("assign_from_date"):
+                        assign_filters &= Q(assigned_date__gte=aware_date(adf))
+                    if adt := data.get("assign_to_date"):
+                        assign_filters &= Q(assigned_date__lt=aware_date(adt,end=True))
+                    if ab := data.get("assigned_by"):
+                        assign_filters &= Q(assigned_by__in=ab)
+                    if at := data.get("assigned_to"):
+                        assign_filters &= Q(assigned_to__in=at)
+                    if an := data.get("assign_notes"):
+                        assign_filters &= Q(notes__icontains=an)
 
-                if adf := data.get("assign_from_date"):
-                    assign_filters &= Q(assigned_date__gte=aware_date(adf))
-                if adt := data.get("assign_to_date"):
-                    assign_filters &= Q(assigned_date__lt=aware_date(adt,end=True) + timedelta(days=1))
-                if ab := data.get("assigned_by"):
-                    assign_filters &= Q(assigned_by__in=ab)
-                if at := data.get("assigned_to"):
-                    assign_filters &= Q(assigned_to__in=at)
-                if an := data.get("assign_notes"):
-                    assign_filters &= Q(notes__icontains=an)
+                    latest_call = CallLog_New.objects.filter(call_filters).order_by('-call_date', '-created_at').first()
+                    latest_action = ActionLog_New.objects.filter(action_filters).order_by('-action_date', '-created_at').first()
+                    latest_assign = AssignLog_New.objects.filter(assign_filters).order_by('-assigned_date', '-created_at').first()
 
-                latest_call = CallLog_New.objects.filter(call_filters).order_by('-call_date', '-created_at').first()
-                latest_action = ActionLog_New.objects.filter(action_filters).order_by('-action_date', '-created_at').first()
-                latest_assign = AssignLog_New.objects.filter(assign_filters).order_by('-assigned_date', '-created_at').first()
-
-                return Response({
-                    "status": True,
-                    "count": 1,
-                    "profiles": [{
-                        "mobile_no": latest_cm.mobile_no,
-                        "profile_id": latest_cm.profile_id,
+                    profiles.append({
+                        "mobile_no": cm.mobile_no,
+                        "profile_id": cm.profile_id,
                         "particulars": getattr(latest_call.particulars, 'particulars', None) if latest_call else None,
                         "call_type": getattr(latest_call.call_type, 'call_type', None) if latest_call else None,
                         "call_comments": getattr(latest_call, 'comments', None),
@@ -15031,7 +15092,12 @@ class CallManagementSearchAPI(APIView):
                             else latest_action.action_owner if latest_action else None
                         ),
                         "work_assign": getattr(latest_assign, 'assigned_to', None),
-                    }]
+                    })
+                    
+                return Response({
+                    "status": True,
+                    "count": len(profiles),
+                    "profiles": profiles
                 })
 
 
@@ -15060,6 +15126,58 @@ class CallManagementSearchAPI(APIView):
             call_filters = Q(is_deleted=0)
             action_filters = Q(is_deleted=0)
             assign_filters = Q(is_deleted=0)
+            if cl_from := data.get("call_from_date"):
+                call_filters &= Q(call_date__gte=aware_date(cl_from))
+            if cl_to := data.get("call_to_date"):
+                call_filters &= Q(call_date__lt=aware_date(cl_to,end=True))
+
+            if nc_from := data.get("next_call_from_date"):
+                call_filters &= Q(next_call_date__gte=aware_date(nc_from))
+            if nc_to := data.get("next_call_to_date"):
+                call_filters &= Q(next_call_date__lte=aware_date(nc_to,end=True))
+
+            if ct := data.get("call_type"):
+                call_filters &= Q(call_type_id__in=ct)
+            if cs := data.get("call_status"):
+                call_filters &= Q(call_status_id__in=cs)
+            if pt := data.get("particulars"):
+                call_filters &= Q(particulars_id__in=pt)
+            if co := data.get("call_owner"):
+                call_filters &= Q(call_owner__in=co)
+            if cc := data.get("call_comments"):
+                call_filters &= Q(comments__icontains=cc)
+
+            if af := data.get("action_from_date"):
+                action_filters &= Q(action_date__gte=aware_date(af))
+            if at := data.get("action_to_date"):
+                action_filters &= Q(action_date__lt=aware_date(at,end=True))
+
+            if naf := data.get("next_action_from_date"):
+                action_filters &= Q(next_action_date__gte=aware_date(naf))
+            if nat := data.get("next_action_to_date"):
+                action_filters &= Q(next_action_date__lte=aware_date(nat,end=True))
+
+            if ap := data.get("action_point"):
+                action_filters &= Q(action_point_id__in=ap)
+            if na := data.get("next_action"):
+                action_filters &= Q(next_action_id__in=na)
+            if ao := data.get("action_owner"):
+                action_filters &= Q(action_owner__in=ao)
+            if ac := data.get("action_comments"):
+                action_filters &= Q(comments__icontains=ac)
+            if nac := data.get("next_action_comments"):
+                action_filters &= Q(next_action_comments__icontains=nac)
+
+            if adf := data.get("assign_from_date"):
+                assign_filters &= Q(assigned_date__gte=aware_date(adf))
+            if adt := data.get("assign_to_date"):
+                assign_filters &= Q(assigned_date__lt=aware_date(adt,end=True))
+            if ab := data.get("assigned_by"):
+                assign_filters &= Q(assigned_by__in=ab)
+            if at := data.get("assigned_to"):
+                assign_filters &= Q(assigned_to__in=at)
+            if an := data.get("assign_notes"):
+                assign_filters &= Q(notes__icontains=an)
 
             if from_date and to_date:
                 fd = aware_date(from_date)
@@ -15067,7 +15185,6 @@ class CallManagementSearchAPI(APIView):
                 call_filters &= Q(call_date__gte=fd, call_date__lt=td)
                 action_filters &= Q(action_date__gte=fd, action_date__lt=td)
                 assign_filters &= Q(assigned_date__gte=fd, assigned_date__lt=td)
-
 
             call_qs = CallLog.objects.filter(call_filters).annotate(
                 rn=Window(
@@ -15113,7 +15230,6 @@ class CallManagementSearchAPI(APIView):
             call_dict = {c['call_management__profile_id']: c for c in call_qs}
             action_dict = {a['call_management__profile_id']: a for a in action_qs}
             assign_dict = {a['call_management__profile_id']: a for a in assign_qs}
-
             
             def in_range(dt, start, end):
                 if not dt:
@@ -15134,8 +15250,51 @@ class CallManagementSearchAPI(APIView):
             latest_action_from_dt = aware_date(latest_action_from)
             latest_action_to_dt   = aware_date(latest_action_to, end=True)
 
+            call_filters_applied = bool(
+                data.get("call_from_date") or
+                data.get("call_to_date") or
+                data.get("call_type") or
+                data.get("call_status") or
+                data.get("particulars") or
+                data.get("call_owner") or
+                data.get("call_comments") or
+                data.get("next_call_from_date") or
+                data.get("next_call_to_date")
+            )
+            action_filters_applied = bool(
+                data.get("action_from_date") or
+                data.get("action_to_date") or
+                data.get("next_action_from_date") or
+                data.get("next_action_to_date") or
+                data.get("action_point") or
+                data.get("next_action") or
+                data.get("action_owner") or
+                data.get("action_comments") or
+                data.get("next_action_comments")
+            )
+            assign_filters_applied = bool(
+                data.get("assign_from_date") or
+                data.get("assign_to_date") or
+                data.get("assigned_by") or
+                data.get("assigned_to") or
+                data.get("assign_notes") 
+            )
 
-            if from_date and to_date:
+            valid_ids = None
+
+            if call_filters_applied:
+                valid_ids = set(call_dict.keys())
+
+            if action_filters_applied:
+                valid_ids = valid_ids & set(action_dict.keys()) if valid_ids else set(action_dict.keys())
+
+            if assign_filters_applied:
+                valid_ids = valid_ids & set(assign_dict.keys()) if valid_ids else set(assign_dict.keys())
+
+            if valid_ids is not None:
+                profiles = profiles.filter(ProfileId__in=valid_ids)
+                
+            if from_date or to_date:
                 valid_ids = (
                     set(call_dict.keys()) |
                     set(action_dict.keys()) |
@@ -15184,14 +15343,17 @@ class CallManagementSearchAPI(APIView):
 
                 profiles = profiles.filter(ProfileId__in=valid_ids)
 
-            profiles_data = []
+
+            profiles_data_dict = {}
             for p in profiles:
                 pid = p.ProfileId
+                if pid in profiles_data_dict:
+                    continue 
                 c = call_dict.get(pid)
                 a = action_dict.get(pid)
                 s = assign_dict.get(pid)
 
-                profiles_data.append({
+                profiles_data_dict[pid]={
                     "ProfileId": pid,
                     "particulars": c.get('particulars__particulars') if c else None,
                     "call_type": c.get('call_type__call_type') if c else None,
@@ -15206,8 +15368,9 @@ class CallManagementSearchAPI(APIView):
                     "owner": owner_map.get(int(p.Owner_id)) if p.Owner_id else None,
                     "profile_status": status_map.get(p.status),
                     "lad_call_date": c.get('call_date') if c else None,
-                })
-
+                }
+                
+            profiles_data = list(profiles_data_dict.values())
             return Response({
                 "status": True,
                 "count": len(profiles_data),

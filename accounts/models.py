@@ -3337,7 +3337,7 @@ class Get_profiledata_Matching(models.Model):
                                 membership=None,profile_name=None,father_alive=None,mother_alive=None,martial_status=None,
                                 mobile_no=None, profile_dob=None,status=None,dob_date=None,dob_month=None,dob_year=None,family_status=None,
                                 email_id=None,gender=None,father_name=None,father_occupation=None,mother_name=None,mother_occupation=None,
-                                business_name=None,company_name=None,last_action_date=None,from_doj=None,to_doj=None,created_by=None,
+                                business_name=None,company_name=None,from_last_action_date=None,to_last_action_date=None,from_doj=None,to_doj=None,created_by=None,
                                 delete_status=None,address=None,admin_comments=None,marriage_from=None,marriage_to=None,
                                 engagement_from=None,engagement_to=None,field_of_study=None,degree=None
                                 ):
@@ -3427,8 +3427,15 @@ class Get_profiledata_Matching(models.Model):
                 query_params.append(f"%{address.lower()}%")
             
             if delete_status:
-                base_query += " AND a.secondary_status = %s"
-                query_params.append(delete_status)
+                delete_status_list = [s.strip() for s in delete_status.split(',') if s.strip()]
+
+                if len(delete_status_list) == 1:
+                    base_query += " AND a.secondary_status = %s"
+                    query_params.append(delete_status_list[0])
+                elif len(delete_status_list) > 1:
+                    placeholders = ','.join(['%s'] * len(delete_status_list))
+                    base_query += f" AND a.secondary_status IN ({placeholders})"
+                    query_params.extend(delete_status_list)
             
             if created_by:
                 base_query += " AND a.Profile_for = %s"
@@ -3457,14 +3464,29 @@ class Get_profiledata_Matching(models.Model):
                 except Exception:
                     pass
             
-            if last_action_date:
+            if from_last_action_date and to_last_action_date:
                 try:
-                    lad = datetime.strptime(last_action_date, '%Y-%m-%d').date()
-                    base_query += " AND YEAR(a.Last_login_date) = %s AND MONTH(a.Last_login_date) = %s AND DAY(a.Last_login_date) = %s"
-                    query_params.extend([lad.year, lad.month, lad.day])
+                    lad = datetime.strptime(from_last_action_date, '%Y-%m-%d').date()
+                    tad = datetime.strptime(to_last_action_date, '%Y-%m-%d').date()
+                    base_query += " AND a.Last_login_date BETWEEN %s AND %s"
+                    query_params.extend([lad, tad])
                 except Exception:
                     pass
-            
+            elif from_last_action_date:
+                try:
+                    lad = datetime.strptime(from_last_action_date, '%Y-%m-%d').date()
+                    base_query += " AND a.Last_login_date >= %s"
+                    query_params.append(lad)
+                except Exception:
+                    pass
+            elif to_last_action_date:
+                try:
+                    tad = datetime.strptime(to_last_action_date, '%Y-%m-%d').date()
+                    base_query += " AND a.Last_login_date <= %s"
+                    query_params.append(tad)
+                except Exception:
+                    pass
+                
             if business_name:
                 base_query += " AND lower(f.business_name) LIKE %s"
                 query_params.append(f"%{business_name.lower()}%")
@@ -3494,8 +3516,15 @@ class Get_profiledata_Matching(models.Model):
                 query_params.append(f"%{email_id}%")
 
             if gender:
-                base_query += " AND lower(a.Gender) = %s"
-                query_params.append(gender.lower())
+                gender_list = [g.strip().lower() for g in gender.split(',') if g.strip()]
+                
+                if len(gender_list) == 1:
+                    base_query += " AND lower(a.Gender) = %s"
+                    query_params.append(gender_list[0])
+                else:
+                    placeholders = ','.join(['%s'] * len(gender_list))
+                    base_query += f" AND lower(a.Gender) IN ({placeholders})"
+                    query_params.extend(gender_list)
 
             if family_status and family_status != "0":
                 family_status_list = [c.strip() for c in family_status.split(',') if c.strip()]
@@ -3528,13 +3557,20 @@ class Get_profiledata_Matching(models.Model):
                     pass
 
             if status is not None and status != '':
-                try:
-                    status = int(status)  # convert to integer safely
+                status_list = []
+                for s in status.split(','):
+                    s = s.strip()
+                    if s.isdigit():
+                        status_list.append(int(s))
+
+                if len(status_list) == 1:
                     base_query += " AND a.Status = %s"
-                    query_params.append(status)
-                except ValueError:
-                    # If status cannot be converted to int, ignore this filter
-                    pass
+                    query_params.append(status_list[0])
+
+                elif len(status_list) > 1:
+                    placeholders = ','.join(['%s'] * len(status_list))
+                    base_query += f" AND a.Status IN ({placeholders})"
+                    query_params.extend(status_list)
         
             # profile_id and name search
             if search_profile_id:
@@ -3602,8 +3638,16 @@ class Get_profiledata_Matching(models.Model):
 
             # State
             if state and state != "0":
-                base_query += " AND a.Profile_state = %s"
-                query_params.append(state)
+                state_list = [s.strip() for s in state.split(',') if s.strip()]
+                
+                if len(state_list) == 1:
+                    base_query += " AND a.Profile_state = %s"
+                    query_params.append(state_list[0])
+                else:
+                    placeholders = ','.join(['%s'] * len(state_list))
+                    base_query += f" AND a.Profile_state IN ({placeholders})"
+                    query_params.extend(state_list)
+
 
             # Education (multi IDs)
             if education:
