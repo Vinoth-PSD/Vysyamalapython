@@ -5720,6 +5720,7 @@ class Get_profile_det_match(APIView):
             "weight": user_profile.get('weight', '0'),
             "height": user_profile['Profile_height'],
             "star": user_profile['star_name'],
+            "padham":user_profile['padham'],
             "profession": self._get_profession_name(user_profile.get('profession')),
             "education": f"{self._get_education_level(user_profile.get('highest_education'))} {self._get_field_of_study(user_profile.get('field_ofstudy'))}".strip(),
             "degeree":self._get_degree_name(user_profile.get('degree'),user_profile.get('other_degree')),
@@ -5822,7 +5823,8 @@ class Get_profile_det_match(APIView):
             "dasa_balance": dasa_format_date(profile_data.get('dasa_balance', '')),
             "chevvai_dosham": self._format_dosham_value(profile_data.get('chevvai_dosaham', 0)),
             "sarpadosham": self._format_dosham_value(profile_data.get('ragu_dosham', 0)),
-            "madulamn": profile_data.get('madulamn', '')
+            "madulamn": profile_data.get('madulamn', ''),
+            "padham": profile_data.get('padham', ''),
         }
         
         if horoscope_permission:
