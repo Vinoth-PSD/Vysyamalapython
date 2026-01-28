@@ -3805,6 +3805,7 @@ class ViewedProfileByDateRangeView(APIView):
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
         
+        mutual_only = request.query_params.get('mutual_only') == '1'
 
         if not from_date or not to_date:
             return Response({"error": "Please provide both from_date and to_date."}, status=400)
@@ -3867,6 +3868,9 @@ class ViewedProfileByDateRangeView(APIView):
             is_mutual = (v.viewed_profile, v.profile_id) in view_pairs
             if not viewer or not viewed:
                 continue
+            
+            if mutual_only and not is_mutual:
+                continue
 
             def resolve_city(profile):
                 city = profile.Profile_city
@@ -3880,7 +3884,6 @@ class ViewedProfileByDateRangeView(APIView):
                 'profile_viewer_name': viewer.Profile_name,
                 'profile_viewer_dob': viewer.Profile_dob.isoformat() if viewer.Profile_dob else None,
                 'profile_viewer_city': resolve_city(viewer),
-                'profile_viewer_mobile': viewer.Mobile_no,
                 'profile_viewer_gender': viewer.Gender,
                 'profile_viewer_planid': plan_map.get(viewer.Plan_id),
                 'profile_viewer_created_by': mode_map.get(viewer.Profile_for),
@@ -3891,7 +3894,6 @@ class ViewedProfileByDateRangeView(APIView):
                 'viewed_profile_name': viewed.Profile_name,
                 'viewed_profile_dob': viewed.Profile_dob.isoformat() if viewed.Profile_dob else None,
                 'viewed_profile_city': resolve_city(viewed),
-                'viewed_profile_mobile': viewed.Mobile_no,
                 'viewed_profile_gender': viewed.Gender,
                 'viewed_profile_planid': plan_map.get(viewed.Plan_id),
                 'viewed_profile_created_by': mode_map.get(viewed.Profile_for),
@@ -3912,209 +3914,246 @@ class ViewedProfileByDateRangeView(APIView):
         return Response(result, status=200)
 
 
-# Bookmarks profile
 class BookmarksView(APIView):
     pagination_class = StandardResultsPaging
-
-    def get(self, request):
-        # Optionally, you can add date filtering or other query parameters if needed
-        from_date = request.query_params.get('from_date')
-        to_date = request.query_params.get('to_date')
-        
-        # Ensure both dates are provided
-        if not from_date or not to_date:
-            return Response({"error": "Please provide both from_date and to_date."}, status=400)
-
-        # Ensure both dates are provided
-        if from_date and to_date:
-            # Validate the date format
-            try:
-                from_date = datetime.strptime(from_date, '%Y-%m-%d')
-                to_date = datetime.strptime(to_date, '%Y-%m-%d')
-            except ValueError:
-                return Response({"error": "Invalid date format. Please use YYYY-MM-DD."}, status=400)
-
-        # Fetch bookmark records (you can include date filtering if needed)
-        bookmarks = Profile_wishlists.objects.all()
-
-        if from_date and to_date:
-            bookmarks = bookmarks.filter(marked_datetime__range=[from_date, to_date])
-
-        if not bookmarks.exists():
-            return Response({"message": "No bookmarks found."}, status=404)
-
-        # Create a result list to include profile information
-        result = []
-
-        for bookmark in bookmarks:
-            # Fetch profile_from data
-            profile_from_data = LoginDetails.objects.filter(ProfileId=bookmark.profile_from).first()
-            # Fetch profile_to data
-            profile_to_data = LoginDetails.objects.filter(ProfileId=bookmark.profile_to).first()
-
-            # Only add to the result if both profiles exist
-            if profile_from_data and profile_to_data:
-                # Get profile_from city
-                profile_from_city = profile_from_data.Profile_city
-                if isinstance(profile_from_city, str) and not profile_from_city.isdigit():  # Direct city name
-                    profile_from_city_name = profile_from_city
-                else:  # Assume it's an ID
-                    profile_from_city_name = City.objects.filter(id=profile_from_city, is_deleted=False).values_list('city_name', flat=True).first()
-
-                # Get profile_to city
-                profile_to_city = profile_to_data.Profile_city
-                if isinstance(profile_to_city, str) and not profile_to_city.isdigit():  # Direct city name
-                    profile_to_city_name = profile_to_city
-                else:  # Assume it's an ID
-                    profile_to_city_name = City.objects.filter(id=profile_to_city, is_deleted=False).values_list('city_name', flat=True).first()
-
-                # Get profile_from state
-                profile_from_state = profile_from_data.Profile_state
-                if isinstance(profile_from_state, str) and not profile_from_state.isdigit():  # Direct state name
-                    profile_from_state_name = profile_from_state
-                else:  # Assume it's an ID
-                    profile_from_state_name = State.objects.filter(id=profile_from_state, is_deleted=False).values_list('name', flat=True).first()
-
-                # Get profile_to state
-                profile_to_state = profile_to_data.Profile_state
-                if isinstance(profile_to_state, str) and not profile_to_state.isdigit():  # Direct state name
-                    profile_to_state_name = profile_to_state
-                else:  # Assume it's an ID
-                    profile_to_state_name = State.objects.filter(id=profile_to_state, is_deleted=False).values_list('name', flat=True).first()
-
-                result.append({
-                    'profile_from_id': profile_from_data.ProfileId,
-                    'profile_from_name': profile_from_data.Profile_name,
-                    'profile_from_mobile': profile_from_data.Mobile_no,
-                    'profile_from_gender': profile_from_data.Gender,
-                    'profile_from_city': profile_from_city_name,  # City name from either ID or direct value
-                    'profile_from_state': profile_from_state_name,  # State name from either ID or direct value
-                    'profile_to_id': profile_to_data.ProfileId,
-                    'profile_to_name': profile_to_data.Profile_name,
-                    'profile_to_mobile': profile_to_data.Mobile_no,
-                    'profile_to_gender': profile_to_data.Gender,
-                    'profile_to_city': profile_to_city_name,  # City name from either ID or direct value
-                    'profile_to_state': profile_to_state_name,  # State name from either ID or direct value
-                    'marked_datetime': bookmark.marked_datetime.isoformat(),
-                    'status': bookmark.status
-                })
-
-        # Implement pagination
-        paginator = self.pagination_class()
-        paginated_result = paginator.paginate_queryset(result, request)
-
-        # If there are paginated results, return the paginated response
-        if paginated_result is not None:
-            return paginator.get_paginated_response(paginated_result)
-
-        # If no pagination is needed, return the full result set
-        return Response(result, status=200)
-
-
-# Photo request profiles
-class PhotoRequestView(APIView):
-    pagination_class = StandardResultsPaging
-
+    STATUS_MAP = {
+        "0": "Bookmark Removed",
+        "1": "Bookmarked"
+    }
     def get(self, request):
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
 
-        # Ensure both dates are provided
         if not from_date or not to_date:
-            return Response({"error": "Please provide both from_date and to_date."}, status=400)
+            return Response(
+                {"error": "Please provide both from_date and to_date."},
+                status=400
+            )
 
-        # Validate the date format
         try:
             from_date = datetime.strptime(from_date, '%Y-%m-%d')
             to_date = datetime.strptime(to_date, '%Y-%m-%d')
         except ValueError:
-            return Response({"error": "Invalid date format. Please use YYYY-MM-DD."}, status=400)
+            return Response(
+                {"error": "Invalid date format. Use YYYY-MM-DD."},
+                status=400
+            )
 
-        # Fetch photo request records within the date range
-        photo_requests = Photo_request.objects.filter(
-            req_datetime__range=[from_date, to_date]
-        )
+        bookmarks = Profile_wishlists.objects.filter(
+            marked_datetime__range=(from_date, to_date)
+        ).order_by('-marked_datetime')
 
-        if not photo_requests.exists():
-            return Response({"message": "No photo request records found in the given date range."}, status=404)
+        if not bookmarks.exists():
+            return Response({"message": "No bookmarks found."}, status=404)
 
-        # Create a result list to include profile information
+        profile_ids = set()
+        for b in bookmarks:
+            profile_ids.add(b.profile_from)
+            profile_ids.add(b.profile_to)
+
+        profiles = LoginDetails.objects.filter(ProfileId__in=profile_ids)
+        profile_map = {p.ProfileId: p for p in profiles}
+
+
+        state_ids = set()
+        plan_ids = set()
+        profile_status_ids = set()
+        
+        for p in profiles:
+
+            if p.Profile_state and str(p.Profile_state).isdigit():
+                state_ids.add(int(p.Profile_state))
+                
+            if p.Plan_id and str(p.Plan_id).isdigit():
+                plan_ids.add(int(p.Plan_id))
+                
+            if p.status and str(p.status).isdigit():
+                profile_status_ids.add(int(p.status))
+
+
+        state_map = {
+            s.id: s.name
+            for s in State.objects.filter(id__in=state_ids, is_deleted=False)
+        }
+        
+        plan_map = {
+            p.id: p.plan_name
+            for p in PlanDetails.objects.filter(id__in=plan_ids)
+        }
+        
+        profile_status_map = {
+            ps.status_code: ps.status_name
+            for ps in ProfileStatus.objects.filter(status_code__in=profile_status_ids)
+        }
+
+
+        def resolve_state(profile):
+            state = profile.Profile_state
+            if isinstance(state, str) and not state.isdigit():
+                return state
+            return state_map.get(int(state)) if state else None
+
         result = []
 
-        for photo_request in photo_requests:  # Renamed from 'request' to 'photo_request'
-            # Fetch profile_from data
-            profile_from_data = LoginDetails.objects.filter(
-                ProfileId=photo_request.profile_from
-            ).first()
+        for b in bookmarks:
+            profile_from = profile_map.get(b.profile_from)
+            profile_to = profile_map.get(b.profile_to)
 
-            # Fetch profile_to data without filtering by Profile_state
-            profile_to_data = LoginDetails.objects.filter(
-                ProfileId=photo_request.profile_to
-            ).first()
+            if not profile_from or not profile_to:
+                continue
 
+            result.append({
+                    'profile_from_id': profile_from.ProfileId,
+                    'profile_from_name': profile_from.Profile_name,
+                    'profile_from_gender': profile_from.Gender,
+                    'profile_from_city': profile_from.Profile_city,
+                    'profile_from_state': resolve_state(profile_from),
+                    'profile_from_plan': plan_map.get(int(profile_from.Plan_id)) if profile_from.Plan_id else None,
+                    'profile_from_status': profile_status_map.get(int(profile_from.status)) if profile_from.status else None,
 
-            if profile_from_data and profile_to_data:
-                # Get profile_from city
-                profile_from_city = profile_from_data.Profile_city
-                if isinstance(profile_from_city, str) and not profile_from_city.isdigit():  # Direct city name
-                    profile_from_city_name = profile_from_city
-                else:  # Assume it's an ID
-                    profile_from_city_name = City.objects.filter(id=profile_from_city, is_deleted=False).values_list('city_name', flat=True).first()
+                    'profile_to_id': profile_to.ProfileId,
+                    'profile_to_name': profile_to.Profile_name,
+                    'profile_to_gender': profile_to.Gender,
+                    'profile_to_city': profile_to.Profile_city,
+                    'profile_to_state': resolve_state(profile_to),
+                    'profile_to_plan': plan_map.get(int(profile_to.Plan_id)) if profile_to.Plan_id else None,
+                    'profile_to_status': profile_status_map.get(int(profile_to.status)) if profile_to.status else None,
 
-                # Get profile_to city
-                profile_to_city = profile_to_data.Profile_city
-                if isinstance(profile_to_city, str) and not profile_to_city.isdigit():  # Direct city name
-                    profile_to_city_name = profile_to_city
-                else:  # Assume it's an ID
-                    profile_to_city_name = City.objects.filter(id=profile_to_city, is_deleted=False).values_list('city_name', flat=True).first()
-
-                # Get profile_from state
-                profile_from_state = profile_from_data.Profile_state
-                if isinstance(profile_from_state, str) and not profile_from_state.isdigit():  # Direct state name
-                    profile_from_state_name = profile_from_state
-                else:  # Assume it's an ID
-                    profile_from_state_name = State.objects.filter(id=profile_from_state, is_deleted=False).values_list('name', flat=True).first()
-
-                # Get profile_to state
-                profile_to_state = profile_to_data.Profile_state
-                if isinstance(profile_to_state, str) and not profile_to_state.isdigit():  # Direct state name
-                    profile_to_state_name = profile_to_state
-                else:  # Assume it's an ID
-                    profile_to_state_name = State.objects.filter(id=profile_to_state, is_deleted=False).values_list('name', flat=True).first()
-
-
-            # Only add to the result if both profiles are found
-            if profile_from_data and profile_to_data:
-                result.append({
-                    'profile_from_id': profile_from_data.ProfileId,
-                    'profile_from_name': profile_from_data.Profile_name,
-                    'profile_from_mobile': profile_from_data.Mobile_no,
-                    'profile_from_gender': profile_from_data.Gender,  # Assuming Gender is a field in LoginDetails
-                    'profile_from_city': profile_from_city_name,  # City name from either ID or direct value
-                    'profile_from_state': profile_from_state_name,  # State name from either ID or direct value
-                    'profile_to_id': profile_to_data.ProfileId,
-                    'profile_to_name': profile_to_data.Profile_name,
-                    'profile_to_mobile': profile_to_data.Mobile_no,
-                    'profile_to_gender': profile_to_data.Gender,  # Assuming Gender is a field in LoginDetails
-                    'profile_to_city': profile_to_city_name,  # City name from either ID or direct value
-                    'profile_to_state': profile_to_state_name,  # State name from either ID or direct value
-                    'req_datetime': photo_request.req_datetime,  # Updated reference
-                    'response_datetime': photo_request.response_datetime,  # Updated reference
-                    'response_message': photo_request.response_message,  # Updated reference
-                    'status': photo_request.status  # Updated reference
+                    'marked_datetime': b.marked_datetime.isoformat(),
+                    'status': self.STATUS_MAP.get(str(b.status), None)
                 })
 
-        # Implement pagination
         paginator = self.pagination_class()
-        paginated_result = paginator.paginate_queryset(result, request)
+        page = paginator.paginate_queryset(result, request)
 
-        # If there are paginated results, return the paginated response
-        if paginated_result is not None:
-            return paginator.get_paginated_response(paginated_result)
+        if page is not None:
+            return paginator.get_paginated_response(page)
 
-        # If no pagination is needed, return the full result set
         return Response(result, status=200)
-    
+
+
+class PhotoRequestView(APIView):
+    pagination_class = StandardResultsPaging
+    STATUS_MAP = {
+        "0": "Removed",
+        "1": "Request Sent",
+        "2": "Accepted",
+        "3": "Rejected"
+    }
+
+    def get(self, request):
+        from_date = request.query_params.get('from_date')
+        to_date = request.query_params.get('to_date')
+
+        if not from_date or not to_date:
+            return Response(
+                {"error": "Please provide both from_date and to_date."},
+                status=400
+            )
+
+        try:
+            from_date = datetime.strptime(from_date, '%Y-%m-%d')
+            to_date = datetime.strptime(to_date, '%Y-%m-%d')
+        except ValueError:
+            return Response(
+                {"error": "Invalid date format. Use YYYY-MM-DD."},
+                status=400
+            )
+
+        photo_requests = Photo_request.objects.filter(
+            req_datetime__range=(from_date, to_date)
+        ).order_by('-req_datetime')
+
+        if not photo_requests.exists():
+            return Response(
+                {"message": "No photo request records found."},
+                status=404
+            )
+
+        profile_ids = set()
+        for r in photo_requests:
+            profile_ids.add(r.profile_from)
+            profile_ids.add(r.profile_to)
+
+        profiles = LoginDetails.objects.filter(ProfileId__in=profile_ids)
+        profile_map = {p.ProfileId: p for p in profiles}
+
+        state_ids = set()
+        plan_ids = set()
+        profile_status_ids = set()
+
+        for p in profiles:
+            if p.Profile_state and str(p.Profile_state).isdigit():
+                state_ids.add(int(p.Profile_state))
+                
+            if p.Plan_id and str(p.Plan_id).isdigit():
+                plan_ids.add(int(p.Plan_id))
+                
+            if p.status and str(p.status).isdigit():
+                profile_status_ids.add(int(p.status))
+
+        state_map = {
+            s.id: s.name
+            for s in State.objects.filter(id__in=state_ids, is_deleted=False)
+        }
+
+        plan_map = {
+            p.id: p.plan_name
+            for p in PlanDetails.objects.filter(id__in=plan_ids)
+        }
+        
+        profile_status_map = {
+            ps.status_code: ps.status_name
+            for ps in ProfileStatus.objects.filter(status_code__in=profile_status_ids)
+        }
+
+        def resolve_state(profile):
+            state = profile.Profile_state
+            if isinstance(state, str) and not state.isdigit():
+                return state
+            return state_map.get(int(state)) if state else None
+
+        result = []
+
+        for r in photo_requests:
+            profile_from = profile_map.get(r.profile_from)
+            profile_to = profile_map.get(r.profile_to)
+
+            if not profile_from or not profile_to:
+                continue
+
+            result.append({
+                'profile_from_id': profile_from.ProfileId,
+                'profile_from_name': profile_from.Profile_name,
+                'profile_from_mobile': profile_from.Mobile_no,
+                'profile_from_gender': profile_from.Gender,
+                'profile_from_city': profile_from.Profile_city,
+                'profile_from_state': resolve_state(profile_from),
+                'profile_from_plan': plan_map.get(int(profile_from.Plan_id)) if profile_from.Plan_id else None,
+                'profile_from_status': profile_status_map.get(int(profile_from.status)) if profile_from.status else None,
+
+                'profile_to_id': profile_to.ProfileId,
+                'profile_to_name': profile_to.Profile_name,
+                'profile_to_mobile': profile_to.Mobile_no,
+                'profile_to_gender': profile_to.Gender,
+                'profile_to_city': profile_to.Profile_city,
+                'profile_to_state': resolve_state(profile_to),
+                'profile_to_plan': plan_map.get(int(profile_to.Plan_id)) if profile_to.Plan_id else None,
+                'profile_to_status': profile_status_map.get(int(profile_to.status)) if profile_to.status else None,
+
+                'req_datetime': r.req_datetime.isoformat() if r.req_datetime else None,
+                'response_datetime': r.response_datetime.isoformat() if r.response_datetime else None,
+                'response_message': r.response_message,
+                'status': self.STATUS_MAP.get(str(r.status), "Sent")
+            })
+            
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(result, request)
+
+        if page is not None:
+            return paginator.get_paginated_response(page)
+
+        return Response(result, status=200)
     
 
 
@@ -4170,74 +4209,131 @@ class ProfileImages(APIView):
     pagination_class = StandardResultsPaging
 
     def get(self, request):
-        search_term = request.query_params.get('search')
+        search = request.query_params.get('search')
         profile_id = request.query_params.get('profile_id')
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
 
-        # Build login filter
-        login_filter = Q()
-        if search_term:
-            login_filter |= Q(ProfileId__icontains=search_term)
-            login_filter |= Q(Profile_name__icontains=search_term)
-            login_filter |= Q(Gender__iexact=search_term)
-            login_filter |= Q(EmailId__icontains=search_term)
+        login_q = Q()
+
+        if search:
+            login_q |= Q(ProfileId__icontains=search)
+            login_q |= Q(Profile_name__icontains=search)
+            login_q |= Q(Gender__iexact=search)
+            login_q |= Q(EmailId__icontains=search)
+
             try:
-                parsed_dob = datetime.strptime(search_term, "%Y-%m-%d").date()
-                login_filter |= Q(Profile_dob=parsed_dob)
+                login_q |= Q(Profile_dob=datetime.strptime(search, "%Y-%m-%d").date())
             except ValueError:
-                login_filter |= Q(Profile_dob__icontains=search_term)
+                pass
 
         if profile_id:
-            login_filter &= Q(ProfileId=profile_id)
+            login_q &= Q(ProfileId=profile_id)
 
-        filtered_login_details = LoginDetails.objects.filter(login_filter)
-        filtered_profile_ids = list(filtered_login_details.values_list('ProfileId', flat=True))
+        profile_ids_qs = (
+                LoginDetails.objects
+                .filter(login_q, status__in=[0, 1])
+                .values_list('ProfileId', flat=True)
+            )
 
-        # Build image filter
-        image_filter = Q(profile_id__in=filtered_profile_ids)
+        image_q = Q(profile_id__in=profile_ids_qs)
+
         if from_date:
-            image_filter &= Q(uploaded_at__date__gte=from_date)
+            image_q &= Q(uploaded_at__date__gte=from_date)
         if to_date:
-            image_filter &= Q(uploaded_at__date__lte=to_date)
+            image_q &= Q(uploaded_at__date__lte=to_date)
 
-        images = Image_Upload.objects.filter(image_filter).exclude(
-            Q(image='') | Q(image_approved=True) | Q(is_deleted=True)
-        ).order_by('-id')
-
-        if not images.exists():
-            return Response({"message": "No images found."}, status=status.HTTP_404_NOT_FOUND)
-
-        # Group images by profile_id
-        profile_images = defaultdict(list)
-        for image in images:
-            profile_images[image.profile_id].append({
-                "image_url": request.build_absolute_uri(image.image.url),
-                "image_approved": image.image_approved,
-                "is_deleted": image.is_deleted
-            })
-
-        login_details_map = {ld.ProfileId: ld for ld in filtered_login_details}
-
-        result = []
-        for pid, images_data in profile_images.items():
-            ld = login_details_map.get(pid)
-            result.append({
-                "profile_id": pid,
-                "Profile_name": ld.Profile_name if ld else "N/A",
-                "Profile_mobile_no": ld.Mobile_no if ld else "N/A",
-                "Profile_dob": ld.Profile_dob.isoformat() if ld and ld.Profile_dob else None,
-                "profile_gender": ld.Gender if ld else "N/A",
-                "Profile_email": ld.EmailId if ld else "N/A",
-                "profile_whats_app_no": ld.Profile_whatsapp if ld else "N/A",
-                "images": images_data
-            })
+        latest_profiles_qs = (
+                Image_Upload.objects
+                .filter(
+                    profile_id__in=profile_ids_qs,
+                    image_approved__isnull=True
+                )
+                .filter(Q(is_deleted=False) | Q(is_deleted__isnull=True))
+                .exclude(image='')
+                .values('profile_id')
+                .annotate(latest_uploaded_at=Max('uploaded_at'))
+                .order_by('-latest_uploaded_at')
+            )
 
         paginator = self.pagination_class()
-        paginated_result = paginator.paginate_queryset(result, request)
-        return paginator.get_paginated_response(paginated_result)
+        page = paginator.paginate_queryset(latest_profiles_qs, request)
+
+        if not page:
+            return Response(
+                {"message": "No images found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        profile_ids = [row['profile_id'] for row in page]
+        latest_upload_map = {
+            row['profile_id']: row['latest_uploaded_at']
+            for row in page
+        }
 
 
+        images = (
+            Image_Upload.objects
+            .filter(
+                profile_id__in=profile_ids,
+                image_approved__isnull=True
+            )
+            .filter(Q(is_deleted=False) | Q(is_deleted__isnull=True))
+            .exclude(image='')
+            .only('profile_id', 'image', 'image_approved', 'is_deleted', 'uploaded_at')
+            .order_by('-uploaded_at')
+        )
+
+
+        profile_images = defaultdict(list)
+        for img in images:
+            profile_images[img.profile_id].append({
+                "image_url": request.build_absolute_uri(img.image.url),
+                "image_approved": img.image_approved,
+                "is_deleted": img.is_deleted,
+                "uploaded_at": img.uploaded_at.isoformat()
+            })
+
+        login_map = {
+            ld.ProfileId: ld
+            for ld in LoginDetails.objects
+            .filter(ProfileId__in=profile_ids)
+            .only(
+                'ProfileId', 'Profile_name', 'Mobile_no',
+                'Profile_dob', 'Gender', 'EmailId',
+                'Profile_whatsapp', 'Plan_id', 'status'
+            )
+        }
+
+        plan_map = dict(
+            PlanDetails.objects.values_list('id', 'plan_name')
+        )
+
+        profile_status_map = dict(
+            ProfileStatus.objects.values_list('status_code', 'status_name')
+        )
+        result = []
+        for pid in profile_ids:
+            ld = login_map.get(pid)
+            result.append({
+                "profile_id": pid,
+                "Profile_name": ld.Profile_name if ld else None,
+                "Profile_mobile_no": ld.Mobile_no if ld else None,
+                "Profile_dob": ld.Profile_dob.isoformat() if ld and ld.Profile_dob else None,
+                "profile_gender": ld.Gender if ld and ld.Gender else None,
+                "Profile_email": ld.EmailId if ld else None,
+                "profile_whats_app_no": ld.Profile_whatsapp if ld else None,
+                "profile_plan": plan_map.get(int(ld.Plan_id)) if ld and ld.Plan_id else None,
+                "profile_status": (
+                    profile_status_map.get(int(ld.status))
+                    if ld.status is not None
+                    else None
+                ),
+                "latest_uploaded_at": latest_upload_map.get(pid).isoformat(),
+                "images": profile_images.get(pid, [])
+            })
+
+        return paginator.get_paginated_response(result)
 
 
 #Get Profile_imagesbyId with Personal details
@@ -9964,42 +10060,34 @@ class LoginLogView(generics.ListAPIView):
     pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
-        qs = Registration1.objects.annotate(
-            login_datetime=Cast('Last_login_date', output_field=DateTimeField())
-        ).filter(login_datetime__isnull=False)
+        qs = Registration1.objects.filter(Last_login_date__isnull=False)
 
-        # Filters
         date_str = self.request.GET.get('date')
         start_date_str = self.request.GET.get('from_date')
         end_date_str = self.request.GET.get('to_date')
+        plan = self.request.GET.get('plan')
 
         if date_str:
             try:
                 date = datetime.strptime(date_str, '%Y-%m-%d').date()
-                qs = qs.filter(login_datetime__date=date)
+                qs = qs.filter(Last_login_date__date=date)
             except ValueError:
                 pass
 
         if start_date_str and end_date_str:
             try:
                 start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-                end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
-                qs = qs.filter(login_datetime__range=(start_date, end_date))
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
+                qs = qs.filter(Last_login_date__gte=start_date, Last_login_date__lt=end_date)
             except ValueError:
                 pass
+        if plan:
+            try:
+                qs = qs.filter(Plan_id=plan)
+            except Exception:
+                pass
 
-        return qs.order_by('-login_datetime')[:100]
-
-    def get(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return qs.order_by('-Last_login_date')[:100]
 
 
 class PlanSubscriptionCreateView(generics.CreateAPIView):

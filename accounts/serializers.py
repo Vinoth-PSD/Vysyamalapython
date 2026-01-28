@@ -1352,9 +1352,27 @@ class CommonProfileSearchSerializer(serializers.Serializer):
     page_number = serializers.IntegerField(default=1)
 
 class LoginLogSerializer(serializers.ModelSerializer):
+    plan_name = serializers.SerializerMethodField()
+    status_name = serializers.SerializerMethodField()
     class Meta:
         model = Registration1
-        fields = ['ProfileId', 'Profile_name', 'Last_login_date', 'EmailId', 'Mobile_no']
+        fields = ['ProfileId', 'Profile_name', 'Last_login_date', 'EmailId', 'Mobile_no','Plan_id','Status','plan_name','status_name']
+        
+    def get_plan_name(self,obj):
+        plan_id = obj.Plan_id
+        try:
+            plan = PlanDetails.objects.get(id=plan_id)
+            return plan.plan_name
+        except Exception as e:  
+            return "N/A"
+        
+    def get_status_name(self,obj):
+        status_id = obj.Status
+        try:
+            status = ProfileStatus.objects.get(status_code=status_id)
+            return status.status_name
+        except Exception as e:  
+            return "N/A"
 
 class PlanSubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
