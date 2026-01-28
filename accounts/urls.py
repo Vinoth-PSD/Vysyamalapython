@@ -256,4 +256,5 @@ urlpatterns = [
     path("marriage-report/",views.MarriageDashboard.as_view(),name="marriage-report"),
     path("delete-report/",views.DeleteDashboard.as_view(),name="delete-report"),
     path("call-management-search/",views.CallManagementSearchAPI.as_view(),name="call-management-search"),
+    path("click-to-call/",views.ClickToCallAPI.as_view(),name="call-management-search"),
 ]

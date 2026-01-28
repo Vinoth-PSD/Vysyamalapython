@@ -2873,8 +2873,7 @@ class GetProfEditDetailsAPIView(APIView):
         except ProfilePartnerPref.DoesNotExist:
             response_data['partner_pref_details'] = {}  # Return an empty object if not found
 
-        payment_detail = PlanSubscription.objects.filter(profile_id=profile_id).first()
-
+        payment_detail = PlanSubscription.objects.filter(profile_id=profile_id).order_by('-payment_date').first()
         if payment_detail:
             payment_date = payment_detail.payment_date if payment_detail.payment_date else None
             payment_mode = payment_detail.payment_mode if payment_detail.payment_mode else ''
@@ -3757,14 +3756,13 @@ class ExpressInterestView(APIView):
         for interest in express_interests:
             profile_from = profile_map.get(interest.profile_from)
             profile_to = profile_map.get(interest.profile_to)
-            from_state_id = profile_from.get('Profile_state')
-            to_state_id = profile_to.get('Profile_state')
 
             if not profile_from or not profile_to:
                 continue
 
-            if profile_from['Profile_state'] not in profile_state_list:
-                continue
+            from_state_id = profile_from.get('Profile_state')
+            to_state_id = profile_to.get('Profile_state')
+
 
             result.append({
                 'profile_from_id': profile_from['ProfileId'],
@@ -15658,3 +15656,76 @@ class CallManagementSearchAPI(APIView):
         except Exception as e:
             return Response({"status": False, "error": str(e)}, status=500)
 
+
+class ClickToCallAPI(APIView):
+    pagination_class = StandardResultsPaging
+    def get(self,request):
+        calls = Profile_callogs.objects.filter(status=1)
+        profile_ids = set()
+        for c in calls:
+            profile_ids.add(c.profile_from)
+            profile_ids.add(c.profile_to)
+
+        profiles = LoginDetails.objects.filter(ProfileId__in=profile_ids)
+        profile_map = {p.ProfileId: p for p in profiles}
+        plan_map = {
+            p.id: p.plan_name
+            for p in PlanDetails.objects.all()
+        }
+        
+        profile_status_map = {
+            ps.status_code: ps.status_name
+            for ps in ProfileStatus.objects.all()
+        }
+        
+        state_map = {
+            s.id: s.name
+            for s in State.objects.filter(is_deleted=False)
+        }
+        
+        
+        def resolve_state(profile):
+            state = profile.Profile_state
+            if isinstance(state, str) and not state.isdigit():
+                return state
+            return state_map.get(int(state)) if state else None
+        
+        result = []
+
+        for c in calls:
+            profile_from = profile_map.get(c.profile_from)
+            profile_to = profile_map.get(c.profile_to)
+
+            if not profile_from or not profile_to:
+                continue
+
+            result.append({
+                    'profile_from_id': profile_from.ProfileId,
+                    'profile_from_name': profile_from.Profile_name,
+                    'profile_from_gender': profile_from.Gender,
+                    'profile_from_city': profile_from.Profile_city,
+                    'profile_from_state': resolve_state(profile_from),
+                    'profile_from_plan': plan_map.get(int(profile_from.Plan_id)) if profile_from.Plan_id else None,
+                    'profile_from_status': profile_status_map.get(int(profile_from.status)) if profile_from.status else None,
+
+                    'profile_to_id': profile_to.ProfileId,
+                    'profile_to_name': profile_to.Profile_name,
+                    'profile_to_gender': profile_to.Gender,
+                    'profile_to_city': profile_to.Profile_city,
+                    'profile_to_state': resolve_state(profile_to),
+                    'profile_to_plan': plan_map.get(int(profile_to.Plan_id)) if profile_to.Plan_id else None,
+                    'profile_to_status': profile_status_map.get(int(profile_to.status)) if profile_to.status else None,
+
+                    'click_to_call_datetime': c.req_datetime.isoformat(),
+                })
+
+
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(result, request)
+
+        if page is not None:
+            return paginator.get_paginated_response(page)
+
+        return Response(result, status=200)
+        
+    
