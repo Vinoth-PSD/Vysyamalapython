@@ -15039,7 +15039,11 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                         dasa_year, dasa_month, dasa_day = match.group(4), match.group(5), match.group(6) 
 
                 #print(dasa_balance_str,'dasa_balance_str')
-
+                padham_str = f"{horoscope.padham}" if getattr(horoscope, "padham", None) else "" 
+                if padham_str not in [None,"",0]:
+                    star_display = f"{star_name} - {padham_str}"
+                else:
+                    star_display = f"{star_name}"
 
                 dasa_name = get_dasa_name(horoscope_data.dasa_name)
                 image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
@@ -15650,7 +15654,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                                 <p>Nalikai </p>
                                             </td>
                                             <td>
-                                                <p style="font-size:12px"><strong>{star_name}, {rasi_name}</strong></p>
+                                                <p style="font-size:12px"><strong>{star_display}, {rasi_name}</strong></p>
                                                 <p>{lagnam}/{didi}</p>
                                                 <p>{nalikai}</p>
                                             </td>
@@ -16258,7 +16262,13 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                 amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))
 
                 horoscope_data = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
-    
+
+                padham_str = f"{horoscope.padham}" if getattr(horoscope, "padham", None) else "" 
+                if padham_str not in [None,"",0]:
+                    star_display = f"{star_name} - {padham_str}"
+                else:
+                    star_display = f"{star_name}"
+
                 
                 if horoscope_data.horoscope_file_admin:
                     horoscope_image_url = horoscope_data.horoscope_file_admin.url
@@ -16868,7 +16878,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
                                                 <p>Nalikai </p>
                                             </td>
                                             <td>
-                                                <p style="font-size:12px"><strong>{star_name}/{rasi_name}</strong></p>
+                                                <p style="font-size:12px"><strong>{star_display}/{rasi_name}</strong></p>
                                                 <p>{lagnam}/{didi}</p>
                                                 <p>{nalikai}</p>
                                             </td>
@@ -17753,6 +17763,16 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
         rasi_to = models.Rasi.objects.get(id=horoscope_to.birth_rasi_name)
         highest_education_from = models.Edupref.objects.get(RowId=education_from_details.highest_education)
         highest_education_to = models.Edupref.objects.get(RowId=education_to_details.highest_education)
+        star_disp_from=None
+        star_disp_to = None
+        if horoscope_from.padham:
+            star_disp_from = f'{birth_star_from.star} - {horoscope_from.padham}'
+        else:    
+            star_disp_from = f'{birth_star_from.star}'
+        if horoscope_to.padham:
+            star_disp_to = f'{birth_star_to.star} - {horoscope_to.padham}'
+        else:    
+            star_disp_to = f'{birth_star_to.star}'
         
         field_ofstudy_id_from = education_from_details.field_ofstudy
         fieldof_study_from=" "
@@ -18136,10 +18156,10 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                 </tr>
                 <tr>
                 <td class="sub-header">
-                    <p class="profile-rasi-star"> {rasi_from.name} - {birth_star_from.star}</p>
+                    <p class="profile-rasi-star"> {rasi_from.name} - {star_disp_from}</p>
                 </td>
                 <td class="sub-header">
-                    <p class="profile-rasi-star"> {rasi_to.name} - {birth_star_to.star}</p>
+                    <p class="profile-rasi-star"> {rasi_to.name} - {star_disp_to}</p>
                 </td>
                 </tr>
             </table>
@@ -18286,7 +18306,9 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
              <table class="compatibility-page-wrapper" >
             <tr>
             <td style="text-align:center;margin:0 auto; padding:0px 20px;">
-                        
+                                 <br>
+                    
+            <br><br>   
                 
             <h2 class="report-title" >Nakshatra Porutham & Rasi Porutham</h2>
            <table class="porutham-table">
@@ -20464,6 +20486,12 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 gender = login_details.Gender
                 porutham_data = fetch_porutham_details(user_profile_id, my_profile_id)
             
+                padham_str = f"{horoscope.padham}" if getattr(horoscope, "padham", None) else "" 
+                if padham_str not in [None,"",0]:
+                    star_display = f"{star_name} - {padham_str}"
+                else:
+                    star_display = f"{star_name}"            
+
                 horo_hint = horoscope.horoscope_hints or "N/A"
                 def is_grid_data_empty(grid_data):
                     return all(cell == default_placeholder for cell in grid_data)
@@ -21305,7 +21333,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                                 <p>Nalikai </p>
                                             </td>
                                             <td>
-                                                <p style="font-size:12px"><strong>{star_name}, {rasi_name}</strong></p>
+                                                <p style="font-size:12px"><strong>{star_display}, {rasi_name}</strong></p>
                                                 <p>{lagnam}/{didi}</p>
                                                 <p>{nalikai}</p>
                                             </td>
@@ -21761,6 +21789,12 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 else :
                     
                      horoscope_content = '<h2>Get full access - upgrade your package today </h2>'
+
+                padham_str = f"{horoscope.padham}" if getattr(horoscope, "padham", None) else "" 
+                if padham_str not in [None,"",0]:
+                    star_display = f"{star_name} - {padham_str}"
+                else:
+                    star_display = f"{star_name}"
 
                 # Get matching stars data
                 birth_star_id = horoscope.birthstar_name
@@ -22584,7 +22618,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                                 <p>Nalikai </p>
                                             </td>
                                             <td>
-                                                <p style="font-size:12px"><strong>{star_name}/{rasi_name}</strong></p>
+                                                <p style="font-size:12px"><strong>{star_display}/{rasi_name}</strong></p>
                                                 <p>{lagnam}/{didi}</p>
                                                 <p>{nalikai}</p>
                                             </td>

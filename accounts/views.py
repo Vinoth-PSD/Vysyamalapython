@@ -3832,27 +3832,21 @@ class ViewedProfileByDateRangeView(APIView):
 
         profile_map = {p.ProfileId: p for p in profiles}
 
-        plan_ids = set(p.Plan_id for p in profiles if p.Plan_id)
-        mode_ids = set(p.Profile_for for p in profiles if p.Profile_for)
-        city_ids = set(
-            p.Profile_city for p in profiles
-            if p.Profile_city and str(p.Profile_city).isdigit()
-        )
 
         plan_map = {
             p.id: p.plan_name
-            for p in PlanDetails.objects.filter(id__in=plan_ids)
+            for p in PlanDetails.objects.all()
         }
 
         mode_map = {
             m.mode: m.mode_name
-            for m in Mode.objects.filter(mode__in=mode_ids)
+            for m in Mode.objects.all()
+        }
+        state_map = {
+            s.id: s.name
+            for s in State.objects.filter(is_deleted=False)
         }
 
-        city_map = {
-            c.id: c.city_name
-            for c in City.objects.filter(id__in=city_ids, is_deleted=False)
-        }
 
         view_pairs = set(
             visitors.values_list('profile_id', 'viewed_profile')
@@ -3870,32 +3864,48 @@ class ViewedProfileByDateRangeView(APIView):
             if mutual_only and not is_mutual:
                 continue
 
-            def resolve_city(profile):
-                city = profile.Profile_city
-                if isinstance(city, str) and not city.isdigit():
-                    return city
-                return city_map.get(city)
+            def resolve_plan(plan_id):
+                try:
+                    return plan_map.get(int(plan_id))
+                except (TypeError, ValueError):
+                    return None
 
+
+            def resolve_mode(profile_for):
+                try:
+                    return mode_map.get(int(profile_for))
+                except (TypeError, ValueError):
+                    return None
+
+
+            def resolve_state(profile):
+                state = profile.Profile_state
+                if isinstance(state, str) and not state.isdigit():
+                    return state  # already a name
+                try:
+                    return state_map.get(int(state))
+                except (TypeError, ValueError):
+                    return None
             result.append({
                 'profile_viewer_contentId': viewer.ContentId,
                 'profile_viewer_profileId': viewer.ProfileId,
                 'profile_viewer_name': viewer.Profile_name,
                 'profile_viewer_dob': viewer.Profile_dob.isoformat() if viewer.Profile_dob else None,
-                'profile_viewer_city': resolve_city(viewer),
+                'profile_viewer_city': viewer.Profile_city if viewer.Profile_city else None,
                 'profile_viewer_gender': viewer.Gender,
-                'profile_viewer_planid': plan_map.get(viewer.Plan_id),
-                'profile_viewer_created_by': mode_map.get(viewer.Profile_for),
-                'profile_viewer_state': None,
+                'profile_viewer_planid': resolve_plan(viewer.Plan_id),
+                'profile_viewer_created_by': resolve_mode(viewer.Profile_for),
+                'profile_viewer_state': resolve_state(viewer),
 
                 'viewed_profile_contentId': viewed.ContentId,
                 'viewed_profile_profileId': viewed.ProfileId,
                 'viewed_profile_name': viewed.Profile_name,
                 'viewed_profile_dob': viewed.Profile_dob.isoformat() if viewed.Profile_dob else None,
-                'viewed_profile_city': resolve_city(viewed),
+                'viewed_profile_city': viewed.Profile_city if viewed.Profile_city else None,
                 'viewed_profile_gender': viewed.Gender,
-                'viewed_profile_planid': plan_map.get(viewed.Plan_id),
-                'viewed_profile_created_by': mode_map.get(viewed.Profile_for),
-                'viewed_profile_state': None,
+                'viewed_profile_planid': resolve_plan(viewed.Plan_id),
+                'viewed_profile_created_by': resolve_mode(viewed.Profile_for),
+                'viewed_profile_state': resolve_state(viewed),
 
                 'datetime': v.datetime.isoformat(),
                 'status': v.status,
@@ -4234,25 +4244,23 @@ class ProfileImages(APIView):
                 .values_list('ProfileId', flat=True)
             )
 
-        image_q = Q(profile_id__in=profile_ids_qs)
+        image_filter = Q(
+            profile_id__in=profile_ids_qs,
+            image_approved__isnull=True
+        ) & (Q(is_deleted=False) | Q(is_deleted__isnull=True)) & ~Q(image='')
 
         if from_date:
-            image_q &= Q(uploaded_at__date__gte=from_date)
+            image_filter &= Q(uploaded_at__date__gte=from_date)
         if to_date:
-            image_q &= Q(uploaded_at__date__lte=to_date)
+            image_filter &= Q(uploaded_at__date__lte=to_date)
 
         latest_profiles_qs = (
-                Image_Upload.objects
-                .filter(
-                    profile_id__in=profile_ids_qs,
-                    image_approved__isnull=True
-                )
-                .filter(Q(is_deleted=False) | Q(is_deleted__isnull=True))
-                .exclude(image='')
-                .values('profile_id')
-                .annotate(latest_uploaded_at=Max('uploaded_at'))
-                .order_by('-latest_uploaded_at')
-            )
+            Image_Upload.objects
+            .filter(image_filter)
+            .values('profile_id')
+            .annotate(latest_uploaded_at=Max('uploaded_at'))
+            .order_by('-latest_uploaded_at')
+        )
 
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(latest_profiles_qs, request)
@@ -4272,12 +4280,7 @@ class ProfileImages(APIView):
 
         images = (
             Image_Upload.objects
-            .filter(
-                profile_id__in=profile_ids,
-                image_approved__isnull=True
-            )
-            .filter(Q(is_deleted=False) | Q(is_deleted__isnull=True))
-            .exclude(image='')
+            .filter(image_filter, profile_id__in=profile_ids)
             .only('profile_id', 'image', 'image_approved', 'is_deleted', 'uploaded_at')
             .order_by('-uploaded_at')
         )
@@ -10068,7 +10071,9 @@ class LoginLogView(generics.ListAPIView):
         if date_str:
             try:
                 date = datetime.strptime(date_str, '%Y-%m-%d').date()
-                qs = qs.filter(Last_login_date__date=date)
+                qs = qs.filter(
+                    Last_login_date__startswith=date.strftime('%Y-%m-%d')
+                )
             except ValueError:
                 pass
 
@@ -10342,7 +10347,7 @@ class PaymentTransactionListView(APIView):
         if not profile_id:
             return Response({"error": "profile_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        transactions = PaymentTransaction.objects.filter(profile_id=profile_id)
+        transactions = PaymentTransaction.objects.filter(profile_id=profile_id).order_by('-created_at')
         serializer = PaymentTransactionSerializer(transactions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -15660,7 +15665,35 @@ class CallManagementSearchAPI(APIView):
 class ClickToCallAPI(APIView):
     pagination_class = StandardResultsPaging
     def get(self,request):
-        calls = Profile_callogs.objects.filter(status=1)
+        
+        from_date = request.query_params.get("from_date")
+        to_date = request.query_params.get("to_date")
+        profile_id = request.query_params.get("profile_id")
+        
+        calls = Profile_callogs.objects.filter(status=1).order_by('-req_datetime')
+        
+        if from_date and to_date:
+            try:
+                from_date = datetime.strptime(from_date, "%Y-%m-%d")
+                to_date = datetime.strptime(to_date, "%Y-%m-%d")
+                to_date = to_date.replace(hour=23, minute=59, second=59)
+
+
+                calls = calls.filter(
+                req_datetime__range=(from_date, to_date)
+                )
+            except ValueError:
+                return Response(
+                {"status": False, "message": "Invalid date format. Use YYYY-MM-DD"},
+                status=400
+                )
+        
+        if profile_id:
+            calls = calls.filter(
+            Q(profile_from=profile_id) |
+            Q(profile_to=profile_id)
+            )
+        
         profile_ids = set()
         for c in calls:
             profile_ids.add(c.profile_from)
