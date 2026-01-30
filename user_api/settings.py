@@ -478,14 +478,26 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'bv-b29.yuvanetworks.in'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'vinoth@psdigitise.com'
+# EMAIL_HOST_PASSWORD = 'Vignesh@12160'
+# DEFAULT_FROM_EMAIL = 'vinoth@psdigitise.com'
+
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'bv-b29.yuvanetworks.in'
+
+EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'vinoth@psdigitise.com'
-EMAIL_HOST_PASSWORD = 'Vignesh@12160'
-DEFAULT_FROM_EMAIL = 'vinoth@psdigitise.com'
+EMAIL_USE_SSL = False
 
+EMAIL_HOST_USER = 'Info@vysyamala.com'
+EMAIL_HOST_PASSWORD = 'aussiopmcajislbs'
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
 TEMPLATES = [

@@ -14705,7 +14705,7 @@ def get_work_address(city, district, state, country):
     except Exception:
         return " "
 
-def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirthchart"):
+def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirthchart.pdf"):
 
                 # print('1234567')
   
@@ -15982,7 +15982,7 @@ def parse_data(data):
 
 
 
-def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart"):
+def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart.pdf"):
 
                 #print('1234567')
   
@@ -20168,7 +20168,7 @@ def parse_data(data):
 #             return Response({'error': str(e)}, status=400)
 
 
-def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horoscope_withbirthchart"):
+def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horoscope_withbirthchart.pdf"):
 
                 # print('1234567')
                 
@@ -21440,7 +21440,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
 
                 return response
 
-def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Horoscope_withbirthchart"):
+def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Horoscope_withbirthchart.pdf"):
 
                 #print('1234567')
   
