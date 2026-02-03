@@ -4487,9 +4487,8 @@ def get_profile_image_azure_optimized(user_profile_id, gender, no_of_image, phot
             # Get original images from DB
             images = models.Image_Upload.objects.filter(
                 profile_id=user_profile_id,
-                image_approved=1,
-                is_deleted=0
-            ).order_by('id').values_list('image', flat=True)[:10]  # Limit to 10
+                image_approved=1
+            ).exclude(is_deleted=1).order_by('id').values_list('image', flat=True)[:10]  # Limit to 10
 
             if not images:
                 return DEFAULT_IMAGES['locked'] if no_of_image == 1 else \
@@ -4527,9 +4526,8 @@ def get_profile_image_azure_optimized(user_profile_id, gender, no_of_image, phot
         if user_profile_id:
             query = models.Image_Upload.objects.filter(
                 profile_id=user_profile_id,
-                image_approved=1,
-                is_deleted=0
-            ).order_by('id')
+                image_approved=1
+            ).exclude(is_deleted=1).order_by('id')
             
             if no_of_image == 1:
                 image_name = query.values_list('image', flat=True).first()
