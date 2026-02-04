@@ -57,7 +57,7 @@ import hashlib
 import base64
 
 from django.http import HttpRequest, Http404
-
+from django.db.models import Max
 
 from xhtml2pdf import pisa
 from django.db import connection
@@ -254,8 +254,12 @@ class LoginView(APIView):
 
                 elif not partner_details_exists:
                     profile_completion=5            #Partner details not exists   
-
-                return JsonResponse({'status': 1,'token':token.key ,'profile_id':logindetails_exists.ProfileId ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till}, status=200)
+                try:
+                    dob = logindetails_exists.Profile_dob
+                    age = calculate_age(dob)
+                except Exception as e:
+                    age = 0
+                return JsonResponse({'status': 1,'token':token.key ,'profile_id':logindetails_exists.ProfileId ,'age':age,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till}, status=200)
 
             else:
             # Password is incorrect
@@ -5004,7 +5008,19 @@ class Get_prof_list_match(APIView):
                 profile_to_ids = [detail.get("ProfileId") for detail in profile_details]
                 wishlisted_ids = preload_wishlist(profile_id, profile_to_ids)
                 restricted_profile_details = []
-                
+                profile_to_ids = [detail.get("ProfileId") for detail in profile_details]
+
+                viewed_map = (
+                    models.Profile_visitors.objects
+                    .filter(profile_id=profile_id, viewed_profile__in=profile_to_ids)
+                    .values("viewed_profile")
+                    .annotate(last_viewed=Max("datetime"))
+                )
+
+                viewed_date_dict = {
+                    row["viewed_profile"]: row["last_viewed"]
+                    for row in viewed_map
+                }
                 
                 for detail in profile_details:
                     dest_star = str(detail.get("birthstar_name"))
@@ -5044,6 +5060,7 @@ class Get_prof_list_match(APIView):
                         # "wish_list":Get_wishlist(profile_id,detail.get("ProfileId")),
                         "wish_list": 1 if profile_to in wishlisted_ids else 0,
                         "verified":detail.get('Profile_verified'),
+                        "viewed_date" : viewed_date_dict.get(detail.get("ProfileId"))
                     })
                 
                 print("Execution time after loop ",datetime.now())
@@ -5686,6 +5703,7 @@ class Get_profile_det_match(APIView):
 
         # 5. Prepare Response Data (Maintaining Original Structure)
         response_data = {
+            "encrypted_profile_id":signing.dumps(user_profile_id),
             "basic_details": self._prepare_basic_details_full(my_profile, user_profile, permissions),
             "photo_protection": user_profile['Photo_protection'],
             "photo_request": self._get_photo_request_status(user_profile),
@@ -12557,7 +12575,7 @@ class FeaturedProfile(APIView):
                 OR CURDATE() BETWEEN CAST(pf.boosted_date AS DATE) AND CAST(pf.boosted_enddate AS DATE)
             )    
                 ORDER BY RAND()
-                LIMIT 15
+                LIMIT 20
             ) AS rand_ld
             JOIN logindetails ld ON ld.ProfileId = rand_ld.ProfileId
             JOIN (
@@ -14702,7 +14720,7 @@ def get_work_address(city, district, state, country):
         return "-".join(parts) if parts else "N/A"
     except Exception:
         return " "
-
+    
 def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirthchart.pdf"):
 
                 # print('1234567')

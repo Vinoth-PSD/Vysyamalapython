@@ -120,7 +120,7 @@ import pandas as pd
 import numpy as np
 from django.db.models import OuterRef, Subquery
 from django.db.models import Exists
-
+from openpyxl.utils import get_column_letter
 # User = get_user_model()
 
 
@@ -919,6 +919,155 @@ def dictfetchall(cursor):
         for row in cursor.fetchall()
     ]
 
+EXPORT_HEADER_CONFIG = {
+    ("0", ""): [
+        ("ProfileId", "Profile ID"),
+        ("DateOfJoin", "Date of Registration"),
+        ("Profile_name", "Name"),
+        ("years", "Age"),
+        ("MaritalStatus", "Marital Status"),
+        ("Gender", "Gender"),
+        ("Profile_city", "City"),
+        ("state_name", "State"),
+        ("ModeName", "Created By"),
+        ("EducationLevel", "Education Details"),
+        ("family_status_name", "Family Status"),
+        ("income", "Annual Income"),
+        ("profession", "Profession"),
+        ("username", "Profile Owner"),
+        ("Last_login_date", "Last Login"),
+    ],
+
+    ("1", ""): [
+        ("ProfileId", "Profile ID"),
+        ("DateOfJoin", "Date of Registration"),
+        ("Profile_name", "Name"),
+        ("years", "Age"),
+        ("MaritalStatus", "Marital Status"),
+        ("Gender", "Gender"),
+        ("Profile_city", "City"),
+        ("state_name", "State"),
+        ("birthstar_name", "Birth Star"),
+        ("profile_status", "Profile Status"),
+        ("plan_name", "Profile Mode"),
+        ("ModeName", "Created By"),
+        ("EducationLevel", "Education Details"),
+        ("family_status_name", "Family Status"),
+        ("income", "Annual Income"),
+        ("profession", "Profession"),
+        ("username", "Profile Owner"),
+        ("Last_login_date", "Last Login"),
+    ],
+
+    ("2", ""): [
+        ("ProfileId", "Profile ID"),
+        ("DateOfJoin", "Date of Registration"),
+        ("Profile_name", "Name"),
+        ("years", "Age"),
+        ("MaritalStatus", "Marital Status"),
+        ("Gender", "Gender"),
+        ("Profile_city", "City"),
+        ("state_name", "State"),
+        ("profile_status", "Profile Status"),
+        ("plan_name", "Profile Mode"),
+        ("ModeName", "Created By"),
+        ("EducationLevel", "Education Details"),
+        ("family_status_name", "Family Status"),
+        ("income", "Annual Income"),
+        ("profession", "Profession"),
+        ("username", "Profile Owner"),
+        ("Last_login_date", "Last Login"),
+    ],
+
+    ("1", "paid"): [
+        ("ProfileId", "Profile ID"),
+        ("DateOfJoin", "Date of Registration"),
+        ("Profile_name", "Name"),
+        ("years", "Age"),
+        ("MaritalStatus", "Marital Status"),
+        ("Gender", "Gender"),
+        ("Profile_city", "City"),
+        ("state_name", "State"),
+        ("membership_startdate", "Membership Date"),
+        ("profile_status", "Profile Status"),
+        ("plan_name", "Profile Mode"),
+        ("ModeName", "Created By"),
+        ("EducationLevel", "Education Details"),
+        ("family_status_name", "Family Status"),
+        ("income", "Annual Income"),
+        ("profession", "Profession"),
+        ("username", "Profile Owner"),
+        ("Last_login_date", "Last Login"),
+        ("has_horo", "Horoscope"),
+        ("has_photo", "Photo"),
+    ],
+
+    ("1", "prospect"): [
+        ("ProfileId", "Profile ID"),
+        ("DateOfJoin", "Date of Registration"),
+        ("Profile_name", "Name"),
+        ("years", "Age"),
+        ("MaritalStatus", "Marital Status"),
+        ("Gender", "Gender"),
+        ("Profile_city", "City"),
+        ("state_name", "State"),
+        ("profile_status", "Profile Status"),
+        ("plan_name", "Profile Mode"),
+        ("ModeName", "Created By"),
+        ("EducationLevel", "Education Details"),
+        ("family_status_name", "Family Status"),
+        ("income", "Annual Income"),
+        ("profession", "Profession"),
+        ("username", "Profile Owner"),
+        ("Last_login_date", "Last Login"),
+        ("has_horo", "Horoscope"),
+        ("has_photo", "Photo"),
+    ],
+
+    ("3", ""): [
+        ("ProfileId", "Profile ID"),
+        ("DateOfJoin", "Date of Registration"),
+        ("Profile_name", "Name"),
+        ("years", "Age"),
+        ("MaritalStatus", "Marital Status"),
+        ("Gender", "Gender"),
+        ("Profile_city", "City"),
+        ("state_name", "State"),
+        ("birthstar_name", "Birth Star"),
+        ("ModeName", "Created By"),
+        ("plan_name", "Profile Mode"),
+        ("profile_status", "Profile Status"),
+        ("EducationLevel", "Education Details"),
+        ("family_status_name", "Family Status"),
+        ("income", "Annual Income"),
+        ("profession", "Profession"),
+        ("username", "Profile Owner"),
+        ("Last_login_date", "Last Login"),
+    ],
+
+    ("4", ""): [
+        ("ProfileId", "Profile ID"),
+        ("DateOfJoin", "Date of Registration"),
+        ("Profile_name", "Name"),
+        ("years", "Age"),
+        ("MaritalStatus", "Marital Status"),
+        ("Gender", "Gender"),
+        ("Profile_city", "City"),
+        ("state_name", "State"),
+        ("birthstar_name", "Birth Star"),
+        ("ModeName", "Created By"),
+        ("plan_name", "Profile Mode"),
+        ("profile_status", "Profile Status"),
+        ("EducationLevel", "Education Details"),
+        ("family_status_name", "Family Status"),
+        ("income", "Annual Income"),
+        ("profession", "Profession"),
+        ("username", "Profile Owner"),
+        ("Last_login_date", "Last Login"),
+    ],
+}
+
+
 class Newprofile_get(generics.ListAPIView):
     serializer_class = Getnewprofiledata_new
     pagination_class = StandardResultsPaging
@@ -1054,6 +1203,183 @@ class Newprofile_get(generics.ListAPIView):
 
         # Return the rows to the serializer
         return rows
+
+class NewProfileExportAPI(APIView):
+    PAID_PLANS = {"1", "2", "3", "11", "12", "13", "14", "15"}
+
+    def get(self, request):
+        export_type = request.query_params.get("export")
+        page_name = request.query_params.get("page_name", "")
+        plan_ids = request.query_params.get("plan_ids", "")
+        search_query = request.query_params.get("search")
+
+        if export_type not in ("csv", "xlsx"):
+            return Response({"error": "Invalid export type"}, status=400)
+
+        plan_set = set(plan_ids.split(",")) if plan_ids else set()
+        export_key = ""
+
+        if page_name == "1":
+            if plan_set & self.PAID_PLANS:
+                export_key = "paid"
+            elif "8" in plan_set:
+                export_key = "prospect"
+
+        headers = EXPORT_HEADER_CONFIG.get((page_name, export_key)) \
+                  or EXPORT_HEADER_CONFIG.get((page_name, ""))
+
+        rows = self.get_export_queryset(page_name, plan_ids, search_query)
+
+        if export_type == "csv":
+            return export_csv_from_dict(rows, headers)
+
+        return export_xlsx_from_dict(rows, headers)
+
+    def get_export_queryset(self, page_id, plan_ids, search_query):
+        status_id = int(page_id or 0)
+        params = []
+
+        sql = """
+        SELECT
+            ld.ProfileId,
+            ld.Profile_name,
+            ld.Gender,
+            ld.DateOfJoin,
+            ld.Last_login_date,
+            ld.membership_startdate,
+            ld.Profile_city,
+            ms.MaritalStatus,
+            s.name AS state_name,
+            mps.status_name as profile_status,
+            pl.plan_name,
+            ld.status,
+            ou.username,
+            ped.highest_education,
+            pfd.family_status,
+            ped.anual_income,
+            mai.income,
+            mp.profession,
+            ld.Owner_id,
+            ph.birthstar_name,
+            mph.ModeName,
+            me.EducationLevel,
+            mfs.status as family_status_name,
+            TIMESTAMPDIFF(
+                YEAR,
+                STR_TO_DATE(ld.Profile_dob, '%%Y-%%m-%%d'),
+                CURDATE()) AS years,
+            IF(pi.profile_id IS NULL, 'No', 'Yes') AS has_photo,
+            IF(hi.profile_id IS NULL, 'No', 'Yes') AS has_horo
+        FROM logindetails ld
+        LEFT JOIN maritalstatusmaster ms ON ld.Profile_marital_status = ms.StatusId
+        LEFT JOIN mastercity cy ON ld.Profile_city = cy.id
+        LEFT JOIN masterstate s ON ld.Profile_state = s.id
+        LEFT JOIN plan_master pl ON ld.Plan_id = pl.id
+        LEFT JOIN users ou ON ou.id = ld.Owner_id
+        LEFT JOIN profile_edudetails ped ON ld.ProfileId = ped.profile_id
+        LEFT JOIN profile_familydetails pfd ON ld.ProfileId = pfd.profile_id
+        LEFT JOIN masterprofession mp ON ped.profession = mp.RowId
+        LEFT JOIN profile_horoscope ph ON ld.ProfileId = ph.profile_id
+        LEFT JOIN (
+            SELECT DISTINCT profile_id FROM profile_images
+            WHERE is_deleted=0 AND image IS NOT NULL AND image <> ''
+        ) pi ON pi.profile_id = ld.ProfileId
+        LEFT JOIN (
+            SELECT DISTINCT profile_id FROM profile_horoscope
+            WHERE horoscope_file IS NOT NULL OR horoscope_file_admin IS NOT NULL
+        ) hi ON hi.profile_id = ld.ProfileId
+        LEFT JOIN masterprofilestatus mps ON ld.status = mps.status_code
+        LEFT JOIN mastermode mph ON ld.Profile_for = mph.Mode
+        LEFT JOIN mastereducation me ON ped.highest_education = me.RowId
+        LEFT JOIN masterfamilystatus mfs ON pfd.family_status = mfs.id
+        LEFT JOIN masterannualincome mai ON ped.anual_income = mai.id
+        WHERE ld.status = %s
+        """
+
+        params.append(status_id)
+
+        if search_query:
+            sql += """
+            AND (
+                ld.ProfileId LIKE %s OR
+                ld.Profile_name LIKE %s OR
+                ld.EmailId LIKE %s OR
+                cy.city_name LIKE %s
+            )
+            """
+            pattern = f"%{search_query}%"
+            params.extend([pattern] * 4)
+
+        if plan_ids:
+            plan_list = [p for p in plan_ids.split(",") if p]
+            placeholders = ",".join(["%s"] * len(plan_list))
+            sql += f" AND ld.Plan_id IN ({placeholders})"
+            params.extend(plan_list)
+
+        sql += " ORDER BY ld.DateOfJoin DESC"
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            return dictfetchall(cursor)
+
+def export_csv_from_dict(rows, headers, filename="profiles.csv"):
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+
+    field_keys = [h[0] for h in headers]
+    header_titles = [h[1] for h in headers]
+
+    writer.writerow(header_titles)
+
+    for row in rows:
+        writer.writerow([row.get(k, "") for k in field_keys])
+
+    return response
+
+
+
+def export_xlsx_from_dict(rows, headers, filename="profiles.xlsx"):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Profiles"
+
+    field_keys = [h[0] for h in headers]
+    header_titles = [h[1] for h in headers]
+
+    ws.append(header_titles)
+
+    for row in rows:
+        excel_row = []
+        for key in field_keys:
+            value = row.get(key, "")
+
+            if isinstance(value, datetime):
+                value = value.date()
+            elif value is None:
+                value = ""
+            elif isinstance(value, bool):
+                value = "Yes" if value else "No"
+
+            excel_row.append(value)
+
+        ws.append(excel_row)
+
+    # Auto width
+    for i, title in enumerate(header_titles, 1):
+        ws.column_dimensions[get_column_letter(i)].width = min(len(title) + 15, 35)
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
 
 # class Newprofile_get(generics.ListAPIView):
 #     queryset = LoginDetails.objects.all()
@@ -2934,7 +3260,16 @@ class GetProfEditDetailsAPIView(APIView):
                 return value
         
         profession_name = safe_get_by_id(Profession, edu_detail.profession, 'profession')
-        qualification_name = safe_get_by_id(MasterhighestEducation, edu_detail.degree, 'degeree_name')
+        try:
+            if edu_detail:
+                if getattr(edu_detail, "degree", None) and edu_detail.degree not in [86,'86']:
+                    qualification_name = safe_get_by_id(MasterhighestEducation, edu_detail.degree, 'degeree_name')
+                else:
+                    qualification_name=edu_detail.other_degree
+            else:
+                qualification_name=""
+        except Exception as e:
+            qualification_name=""
         
         
         country_name=safe_get_by_id(Country,edu_detail.work_country,'name')
@@ -2957,13 +3292,13 @@ class GetProfEditDetailsAPIView(APIView):
             profile = {
                 "name": login_detail.Profile_name,
                 "profession": profession_name,
-                "company": edu_detail.company_name,
-                "designation": edu_detail.designation,
-                "business": edu_detail.business_name,
+                "company": getattr(edu_detail, "company_name", ""),
+                "designation": getattr(edu_detail, "designation", ""),
+                "business": getattr(edu_detail, "business_name", ""),
                 "qualification": qualification_name,
                 "location": location_name,
-                "profile_type": edu_detail.profession,
-                "nature_of_business": edu_detail.nature_of_business
+                "profile_type": getattr(edu_detail, "profession", None),
+                "nature_of_business": getattr(edu_detail, "nature_of_business", "")
             }
             myself = generate_about_myself_summary(profile)
             response_data['family_details']['about_self'] = myself
@@ -3647,16 +3982,115 @@ def export_excel_call(data, filename="call_management_export.xlsx"):
     wb.save(response)
     return response
 
+QUICK_UPLOAD_EXPORT_HEADERS = [
+    ("ProfileId", "Profile ID"),
+    ("Profile_name", "Name"),
+    ("Gender", "Gender"),
+    ("Mobile_no", "Mobile"),
+    ("EmailId", "Email"),
+    ("DateOfJoin", "Date Of Join"),
+]
+
+def export_csv_queryset(queryset, headers, filename="quick_upload.csv"):
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+    fields = [h[0] for h in headers]
+    titles = [h[1] for h in headers]
+
+    writer.writerow(titles)
+
+    for obj in queryset:
+        row = []
+        for field in fields:
+            value = getattr(obj, field, "")
+            if isinstance(value, datetime):
+                value = value.date()
+            row.append(value)
+        writer.writerow(row)
+
+    return response
+
+def export_xlsx_queryset(queryset, headers, filename="quick_upload.xlsx"):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Quick Upload"
+
+    fields = [h[0] for h in headers]
+    titles = [h[1] for h in headers]
+
+    ws.append(titles)
+
+    for obj in queryset:
+        excel_row = []
+        for field in fields:
+            value = getattr(obj, field, "")
+            if isinstance(value, datetime):
+                value = value.date()
+            excel_row.append(value)
+        ws.append(excel_row)
+
+    for i, title in enumerate(titles, 1):
+        ws.column_dimensions[get_column_letter(i)].width = min(len(title) + 15, 35)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
 class QuickUploadAPIView(generics.ListAPIView):
     serializer_class = QuickUploadSerializer
-    pagination_class = StandardResultsPaging  # Adding pagination to the view
+    pagination_class = StandardResultsPaging
 
     def get_queryset(self):
-        # Fetch data where quick_registration is set to '1'
         quick_upload_data = LoginDetails.objects.filter(quick_registration='1').order_by('-DateOfJoin')
         return quick_upload_data
 
+    def list(self, request, *args, **kwargs):
+        export_type = request.query_params.get("export")
 
+        queryset = self.get_queryset()
+
+        if export_type == "csv":
+            return export_csv_queryset(
+                queryset,
+                QUICK_UPLOAD_EXPORT_HEADERS,
+                filename="quick_upload.csv"
+            )
+
+        if export_type == "xlsx":
+            return export_xlsx_queryset(
+                queryset,
+                QUICK_UPLOAD_EXPORT_HEADERS,
+                filename="quick_upload.xlsx"
+            )
+        return super().list(request, *args, **kwargs)
+
+EXPRESS_INTEREST_EXPORT_HEADERS = [
+    ("profile_from_id", "From Profile ID"),
+    ("profile_from_name", "From Name"),
+    ("profile_from_mobile", "From Mobile"),
+    ("from_state", "From State"),
+    ("from_plan", "From Plan"),
+
+    ("profile_to_id", "To Profile ID"),
+    ("profile_to_name", "To Name"),
+    ("profile_to_mobile", "To Mobile"),
+    ("to_state", "To State"),
+    ("to_plan", "To Plan"),
+
+    ("to_express_message", "Message"),
+    ("req_datetime", "Request Date"),
+    ("response_datetime", "Response Date"),
+    ("status", "Status"),
+]
 
 
 class ExpressInterestView(APIView):
@@ -3669,6 +4103,7 @@ class ExpressInterestView(APIView):
     }
 
     def get(self, request):
+        export_type = request.query_params.get("export")
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
         profile_state = request.query_params.get('profile_state')
@@ -3733,10 +4168,12 @@ class ExpressInterestView(APIView):
         plan_ids = set()
 
         for p in profiles:
+            state_id = safe_int(p.get('Profile_state'))
+            plan_id = safe_int(p.get('Plan_id'))
             if p['Profile_state']:
-                state_ids.add(int(p['Profile_state']))
+                state_ids.add(state_id)
             if p.get('Plan_id'):
-                plan_ids.add(int(p['Plan_id']))
+                plan_ids.add(plan_id)
                 
         state_map = {
             s.id: s.name
@@ -3760,8 +4197,10 @@ class ExpressInterestView(APIView):
             if not profile_from or not profile_to:
                 continue
 
-            from_state_id = profile_from.get('Profile_state')
-            to_state_id = profile_to.get('Profile_state')
+            from_state_id = safe_int(profile_from.get('Profile_state'))
+            to_state_id = safe_int(profile_to.get('Profile_state'))
+            from_plan_id = safe_int(profile_from.get('Plan_id'))
+            to_plan_id = safe_int(profile_to.get('Plan_id'))
 
 
             result.append({
@@ -3769,13 +4208,13 @@ class ExpressInterestView(APIView):
                 'profile_from_name': profile_from['Profile_name'],
                 'profile_from_mobile': profile_from['Mobile_no'],
                 'from_state': state_map.get(int(from_state_id)) if from_state_id else None,
-                'from_plan': plan_map.get(int(profile_from['Plan_id'])) if profile_from.get('Plan_id') else None,
+                'from_plan': plan_map.get(int(from_plan_id)) if from_plan_id else None,
 
                 'profile_to_id': profile_to['ProfileId'],
                 'profile_to_name': profile_to['Profile_name'],
                 'profile_to_mobile': profile_to['Mobile_no'],
                 'to_state': state_map.get(int(to_state_id)) if to_state_id else None,
-                'to_plan': plan_map.get(int(profile_to['Plan_id'])) if profile_to.get('Plan_id') else None,
+                'to_plan': plan_map.get(int(to_plan_id)) if to_plan_id else None,
 
                 'to_express_message': interest.to_express_message,
                 'req_datetime': interest.req_datetime,
@@ -3783,7 +4222,11 @@ class ExpressInterestView(APIView):
                 'status': self.STATUS_MAP.get(str(interest.status), "Sent")
             })
 
+        if export_type == "csv":
+            return export_csv_from_dict(result, EXPRESS_INTEREST_EXPORT_HEADERS)
 
+        if export_type == "xlsx":
+            return export_xlsx_from_dict(result, EXPRESS_INTEREST_EXPORT_HEADERS)
 
         paginator = self.pagination_class()
         paginated_result = paginator.paginate_queryset(result, request)
@@ -3794,6 +4237,74 @@ class ExpressInterestView(APIView):
         return Response(result, status=200)
 
 
+def export_login_csv(filename, rows):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    rows = list(rows)
+    if not rows:
+        return response
+
+    writer = csv.writer(response)
+
+    # headers from dict keys
+    headers = rows[0].keys()
+    writer.writerow(headers)
+
+    for row in rows:
+        writer.writerow(row.values())
+
+    return response
+
+def export_login_xlsx(filename, rows):
+    rows = list(rows)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+
+    if rows:
+        ws.append(list(rows[0].keys()))
+        for row in rows:
+            ws.append(list(row.values()))
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+
+def export_view_csv(filename, headers, rows):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    writer = csv.writer(response)
+    writer.writerow(headers)
+    for row in rows:
+        writer.writerow(row)
+    return response
+
+
+def export_view_xlsx(filename, headers, rows):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Viewed Profiles"
+
+    ws.append(headers)
+
+    for row in rows:
+        ws.append(row)
+
+    # Auto column width
+    for i, col in enumerate(headers, 1):
+        ws.column_dimensions[get_column_letter(i)].width = max(len(col) + 2, 18)
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
 
 
 class ViewedProfileByDateRangeView(APIView):
@@ -3802,7 +4313,7 @@ class ViewedProfileByDateRangeView(APIView):
     def get(self, request):
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
-        
+        export_type = request.query_params.get('export')  
         mutual_only = request.query_params.get('mutual_only') == '1'
 
         if not from_date or not to_date:
@@ -3912,6 +4423,49 @@ class ViewedProfileByDateRangeView(APIView):
                 'is_mutual_viewed': is_mutual
             })
 
+        if export_type in ['csv', 'xlsx']:
+            headers = [
+                "Viewer Profile ID", "Viewer Name", "Viewer Gender", "Viewer DOB",
+                "Viewer City", "Viewer State", "Viewer Plan", "Viewer Created By",
+
+                "Viewed Profile ID", "Viewed Name", "Viewed Gender", "Viewed DOB",
+                "Viewed City", "Viewed State", "Viewed Plan", "Viewed Created By",
+
+                "Viewed DateTime", "Status", "Mutual Viewed"
+            ]
+
+            rows = []
+            for r in result:
+                rows.append([
+                    r['profile_viewer_profileId'],
+                    r['profile_viewer_name'],
+                    r['profile_viewer_gender'],
+                    r['profile_viewer_dob'],
+                    r['profile_viewer_city'],
+                    r['profile_viewer_state'],
+                    r['profile_viewer_planid'],
+                    r['profile_viewer_created_by'],
+
+                    r['viewed_profile_profileId'],
+                    r['viewed_profile_name'],
+                    r['viewed_profile_gender'],
+                    r['viewed_profile_dob'],
+                    r['viewed_profile_city'],
+                    r['viewed_profile_state'],
+                    r['viewed_profile_planid'],
+                    r['viewed_profile_created_by'],
+
+                    r['datetime'],
+                    r['status'],
+                    r['is_mutual_viewed']
+                ])
+
+            filename = f"viewed_profiles_{from_date.date()}_{to_date.date()}.{export_type}"
+
+            if export_type == 'csv':
+                return export_view_csv(filename, headers, rows)
+
+            return export_view_xlsx(filename, headers, rows)
 
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(result, request)
@@ -3931,6 +4485,7 @@ class BookmarksView(APIView):
     def get(self, request):
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
+        export_type = request.query_params.get('export')
 
         if not from_date or not to_date:
             return Response(
@@ -4031,6 +4586,47 @@ class BookmarksView(APIView):
                     'status': self.STATUS_MAP.get(str(b.status), None)
                 })
 
+        if export_type in ['csv', 'xlsx']:
+            headers = [
+                "From Profile ID", "From Name", "From Gender", "From City",
+                "From State", "From Plan", "From Status",
+
+                "To Profile ID", "To Name", "To Gender", "To City",
+                "To State", "To Plan", "To Status",
+
+                "Marked DateTime", "Bookmark Status"
+            ]
+
+            rows = []
+            for r in result:
+                rows.append([
+                    r['profile_from_id'],
+                    r['profile_from_name'],
+                    r['profile_from_gender'],
+                    r['profile_from_city'],
+                    r['profile_from_state'],
+                    r['profile_from_plan'],
+                    r['profile_from_status'],
+
+                    r['profile_to_id'],
+                    r['profile_to_name'],
+                    r['profile_to_gender'],
+                    r['profile_to_city'],
+                    r['profile_to_state'],
+                    r['profile_to_plan'],
+                    r['profile_to_status'],
+
+                    r['marked_datetime'],
+                    r['status']
+                ])
+
+            filename = f"bookmarks_{from_date.date()}_{to_date.date()}.{export_type}"
+
+            if export_type == 'csv':
+                return export_renew_csv(filename, headers, rows)
+
+            return export_renew_xlsx(filename, headers, rows)
+
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(result, request)
 
@@ -4052,6 +4648,7 @@ class PhotoRequestView(APIView):
     def get(self, request):
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
+        export_type = request.query_params.get('export')
 
         if not from_date or not to_date:
             return Response(
@@ -4129,6 +4726,7 @@ class PhotoRequestView(APIView):
 
             if not profile_from or not profile_to:
                 continue
+            
 
             result.append({
                 'profile_from_id': profile_from.ProfileId,
@@ -4137,8 +4735,8 @@ class PhotoRequestView(APIView):
                 'profile_from_gender': profile_from.Gender,
                 'profile_from_city': profile_from.Profile_city,
                 'profile_from_state': resolve_state(profile_from),
-                'profile_from_plan': plan_map.get(int(profile_from.Plan_id)) if profile_from.Plan_id else None,
-                'profile_from_status': profile_status_map.get(int(profile_from.status)) if profile_from.status else None,
+                'profile_from_plan': plan_map.get(safe_int(profile_from.Plan_id)) if profile_from.Plan_id else None,
+                'profile_from_status': profile_status_map.get(safe_int(profile_from.status)) if profile_from.status else None,
 
                 'profile_to_id': profile_to.ProfileId,
                 'profile_to_name': profile_to.Profile_name,
@@ -4146,14 +4744,20 @@ class PhotoRequestView(APIView):
                 'profile_to_gender': profile_to.Gender,
                 'profile_to_city': profile_to.Profile_city,
                 'profile_to_state': resolve_state(profile_to),
-                'profile_to_plan': plan_map.get(int(profile_to.Plan_id)) if profile_to.Plan_id else None,
-                'profile_to_status': profile_status_map.get(int(profile_to.status)) if profile_to.status else None,
+                'profile_to_plan': plan_map.get(safe_int(profile_to.Plan_id)) if profile_to.Plan_id else None,
+                'profile_to_status': profile_status_map.get(safe_int(profile_to.status)) if profile_to.status else None,
 
                 'req_datetime': r.req_datetime.isoformat() if r.req_datetime else None,
                 'response_datetime': r.response_datetime.isoformat() if r.response_datetime else None,
                 'response_message': r.response_message,
                 'status': self.STATUS_MAP.get(str(r.status), "Sent")
             })
+            
+        if export_type == "csv":
+            return export_renew_csv("photo_req_profiles", result)
+
+        if export_type == "xlsx":
+            return export_renew_xlsx("photo_req_profiles", result)
             
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(result, request)
@@ -4221,6 +4825,7 @@ class ProfileImages(APIView):
         profile_id = request.query_params.get('profile_id')
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
+        export_type = request.query_params.get('export')
 
         login_q = Q()
 
@@ -4333,6 +4938,20 @@ class ProfileImages(APIView):
                 "latest_uploaded_at": latest_upload_map.get(pid).isoformat(),
                 "images": profile_images.get(pid, [])
             })
+        def remove_keys(data, keys):
+            return [
+                {k: v for k, v in row.items() if k not in keys}
+                for row in data
+            ]
+        if export_type in ("csv", "xlsx"):
+            export_data = remove_keys(result, ["images"])
+
+            if export_type == "csv":
+                return export_renew_csv("Approve_image_profiles", export_data)
+
+            if export_type == "xlsx":
+                return export_renew_xlsx("Approve_image_profiles", export_data)
+
 
         return paginator.get_paginated_response(result)
 
@@ -10044,12 +10663,71 @@ class RenewalProfilesView(generics.ListAPIView):
         with connection.cursor() as cursor:
             cursor.execute(sql, params)
             rows = dictfetchall(cursor)  # Fetch rows as a dictionary
-        print("Final SQL:", sql)
-        print("Params:", params)
+        # print("Final SQL:", sql)
+        # print("Params:", params)
 
-        # Return the rows to the serializer
         return rows
-    
+    def list(self, request, *args, **kwargs):
+        export_type = request.query_params.get('export')
+
+        queryset = self.get_queryset()  
+
+        if export_type == 'csv':
+            return export_renew_csv("renewal_profiles", queryset)
+
+        if export_type == 'xlsx':
+            return export_renew_xlsx("renewal_profiles", queryset)
+
+        return super().list(request, *args, **kwargs)
+ 
+def export_renew_csv(filename, data):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{filename}.csv"'
+
+    writer = csv.writer(response)
+
+    if not data:
+        return response
+
+    headers = data[0].keys()
+    writer.writerow(headers)
+
+    for row in data:
+        writer.writerow([normalize_value(row[h]) for h in headers])
+
+    return response
+
+
+def export_renew_xlsx(filename, data):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Renewal Profiles"
+
+    if not data:
+        return wb
+
+    headers = list(data[0].keys())
+    ws.append(headers)
+
+    for row in data:
+        ws.append([normalize_value(row[h]) for h in headers])
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}.xlsx"'
+    wb.save(response)
+
+    return response
+ 
+def normalize_value(val):
+    if val in ("0000-00-00", "0000-00-00 00:00:00", None):
+        return ""
+    if isinstance(val, (date, datetime)):
+        return val.strftime("%Y-%m-%d")
+    return val
+
+   
 class CustomPageNumberPagination(PageNumberPagination):
     page_size = 10  # Default
     page_size_query_param = 'per_page'
@@ -10091,6 +10769,32 @@ class LoginLogView(generics.ListAPIView):
                 pass
 
         return qs.order_by('-Last_login_date')[:100]
+    
+    def get(self, request, *args, **kwargs):
+        export_type = request.query_params.get("export")
+
+        queryset = self.get_queryset()
+
+        if export_type in ("csv", "xlsx"):
+            data = queryset.values(
+                "ProfileId",
+                "Profile_name",
+                "Gender",
+                "EmailId",
+                "Mobile_no",
+                "Plan_id",
+                "Last_login_date"
+            )
+
+            filename = f"login_logs_{datetime.today().date()}.{export_type}"
+
+            if export_type == "csv":
+                return export_login_csv(filename, data)
+
+            return export_login_xlsx(filename, data)
+
+        return super().get(request, *args, **kwargs)
+
 
 
 class PlanSubscriptionCreateView(generics.CreateAPIView):
@@ -10721,6 +11425,7 @@ class FeaturedProfilesView(APIView):
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
         search = request.query_params.get('search')
+        export_type = request.query_params.get('export')
         sql = """
             SELECT pf.profile_id,ld.Profile_name,ld.Gender,masterstate.name,pl.plan_name,pf.boosted_date,pf.boosted_enddate,ms.status_name
             FROM profile_plan_feature_limits pf
@@ -10759,6 +11464,12 @@ class FeaturedProfilesView(APIView):
                 row["active"] = "Yes"
             else:
                 row["active"] = "No"
+                
+        if export_type == "csv":
+            return export_renew_csv("featured_profiles", rows)
+
+        if export_type == "xlsx":
+            return export_renew_xlsx("featured_profiles", rows)
                 
         paginator = self.pagination_class()
         paginated_data = paginator.paginate_queryset(rows, request)
@@ -15669,6 +16380,7 @@ class ClickToCallAPI(APIView):
         from_date = request.query_params.get("from_date")
         to_date = request.query_params.get("to_date")
         profile_id = request.query_params.get("profile_id")
+        export_type = request.query_params.get("export")
         
         calls = Profile_callogs.objects.filter(status=1).order_by('-req_datetime')
         
@@ -15738,20 +16450,24 @@ class ClickToCallAPI(APIView):
                     'profile_from_gender': profile_from.Gender,
                     'profile_from_city': profile_from.Profile_city,
                     'profile_from_state': resolve_state(profile_from),
-                    'profile_from_plan': plan_map.get(int(profile_from.Plan_id)) if profile_from.Plan_id else None,
-                    'profile_from_status': profile_status_map.get(int(profile_from.status)) if profile_from.status else None,
+                    'profile_from_plan': plan_map.get(safe_int(profile_from.Plan_id)) if profile_from.Plan_id else None,
+                    'profile_from_status': profile_status_map.get(safe_int(profile_from.status)) if profile_from.status else None,
 
                     'profile_to_id': profile_to.ProfileId,
                     'profile_to_name': profile_to.Profile_name,
                     'profile_to_gender': profile_to.Gender,
                     'profile_to_city': profile_to.Profile_city,
                     'profile_to_state': resolve_state(profile_to),
-                    'profile_to_plan': plan_map.get(int(profile_to.Plan_id)) if profile_to.Plan_id else None,
-                    'profile_to_status': profile_status_map.get(int(profile_to.status)) if profile_to.status else None,
+                    'profile_to_plan': plan_map.get(safe_int(profile_to.Plan_id)) if profile_to.Plan_id else None,
+                    'profile_to_status': profile_status_map.get(safe_int(profile_to.status)) if profile_to.status else None,
 
                     'click_to_call_datetime': c.req_datetime.isoformat(),
                 })
-
+        filename = f"click_to_call_logs_.{export_type}"
+        if export_type == "csv":
+            return export_login_csv(filename, result)
+        if export_type == "xlsx":
+            return export_login_xlsx(filename, result)
 
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(result, request)

@@ -257,4 +257,5 @@ urlpatterns = [
     path("delete-report/",views.DeleteDashboard.as_view(),name="delete-report"),
     path("call-management-search/",views.CallManagementSearchAPI.as_view(),name="call-management-search"),
     path("click-to-call/",views.ClickToCallAPI.as_view(),name="call-management-search"),
+    path("profiles/export/",views.NewProfileExportAPI.as_view(),name="profiles-export")
 ]
