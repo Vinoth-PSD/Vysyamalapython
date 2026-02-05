@@ -4623,9 +4623,9 @@ class BookmarksView(APIView):
             filename = f"bookmarks_{from_date.date()}_{to_date.date()}.{export_type}"
 
             if export_type == 'csv':
-                return export_renew_csv(filename, headers, rows)
+                return export_view_csv(filename, headers, rows)
 
-            return export_renew_xlsx(filename, headers, rows)
+            return export_view_xlsx(filename, headers, rows)
 
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(result, request)
@@ -4826,7 +4826,7 @@ class ProfileImages(APIView):
         from_date = request.query_params.get('from_date')
         to_date = request.query_params.get('to_date')
         export_type = request.query_params.get('export')
-
+        is_export = export_type in ("csv", "xlsx")
         login_q = Q()
 
         if search:
@@ -4868,18 +4868,24 @@ class ProfileImages(APIView):
         )
 
         paginator = self.pagination_class()
-        page = paginator.paginate_queryset(latest_profiles_qs, request)
+        if not is_export:
+            paginator = self.pagination_class()
+            page = paginator.paginate_queryset(latest_profiles_qs, request)
+            base_qs = page
+        else:
+            base_qs = latest_profiles_qs
 
-        if not page:
+
+        if not base_qs:
             return Response(
                 {"message": "No images found."},
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        profile_ids = [row['profile_id'] for row in page]
+        profile_ids = [row['profile_id'] for row in base_qs]
         latest_upload_map = {
             row['profile_id']: row['latest_uploaded_at']
-            for row in page
+            for row in base_qs
         }
 
 
@@ -4932,7 +4938,7 @@ class ProfileImages(APIView):
                 "profile_plan": plan_map.get(int(ld.Plan_id)) if ld and ld.Plan_id else None,
                 "profile_status": (
                     profile_status_map.get(int(ld.status))
-                    if ld.status is not None
+                    if ld and ld.status is not None
                     else None
                 ),
                 "latest_uploaded_at": latest_upload_map.get(pid).isoformat(),
