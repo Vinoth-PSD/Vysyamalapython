@@ -12563,32 +12563,32 @@ class FeaturedProfile(APIView):
             FROM (
                 SELECT l1.ProfileId
                 FROM logindetails l1
-                LEFT JOIN profile_plan_feature_limits pf ON pf.profile_id=l1.ProfileId
-                WHERE LOWER(Gender) = LOWER(%s)
+                LEFT JOIN profile_plan_feature_limits pf 
+                    ON pf.profile_id = l1.ProfileId
+                WHERE LOWER(l1.Gender) = LOWER(%s)
                 AND l1.Status = 1
-                AND (pf.featured_profile = '1' OR pf.featured_profile = 1)
-                AND CURDATE() BETWEEN CAST(pf.membership_fromdate AS DATE) AND CAST(pf.membership_todate AS DATE)
+                AND (pf.featured_profile = 1 OR pf.featured_profile = '1')
+                AND CURDATE() BETWEEN pf.membership_fromdate AND pf.membership_todate
                 AND (
-                -- Either membership started within last 3 months
-                 CAST(pf.membership_fromdate AS DATE) >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-                -- OR currently within boost period
-                OR CURDATE() BETWEEN CAST(pf.boosted_date AS DATE) AND CAST(pf.boosted_enddate AS DATE)
-            )    
+                        pf.membership_fromdate >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+                        OR CURDATE() BETWEEN pf.boosted_date AND pf.boosted_enddate
+                    )
+                AND (
+                        l1.Photo_protection != 1
+                        AND EXISTS (
+                            SELECT 1
+                            FROM profile_images pi
+                            WHERE pi.profile_id = l1.ProfileId
+                            AND pi.image_approved = 1
+                            AND pi.is_deleted = 0
+                        )
+                    )
                 ORDER BY RAND()
                 LIMIT 20
             ) AS rand_ld
-            JOIN logindetails ld ON ld.ProfileId = rand_ld.ProfileId
-            JOIN (
-                SELECT pi1.*
-                FROM profile_images pi1
-                INNER JOIN (
-                    SELECT profile_id, MIN(id) AS min_id
-                    FROM profile_images
-                    WHERE image_approved = 1 
-                    AND is_deleted = 0
-                    GROUP BY profile_id
-                ) AS pi2 ON pi1.id = pi2.min_id
-            ) AS i ON i.profile_id = ld.ProfileId;
+            JOIN logindetails ld 
+                ON ld.ProfileId = rand_ld.ProfileId;
+
             """
             with connection.cursor() as cursor:
                 cursor.execute(query, [normalized_gender])
@@ -12618,23 +12618,29 @@ class FeaturedProfile(APIView):
             for profile in profile_details:
                 profile_id = profile['ProfileId']
 
-                profile_img = Get_profile_image(profile_id, photo_gender, 1, profile['Photo_protection'])
-                # Skip if image is 'not found'
-                if not profile_img or profile_img in ["", None, "not_found_image_url"] or str(profile_img).endswith("not-found.jpg"):
-                    continue
-
+                profile_img = Get_profile_image(
+                    profile_id,
+                    photo_gender,
+                    1,
+                    profile['Photo_protection']
+                )
 
                 restricted_profile_details.append({
                     "profile_id": profile_id,
                     "profile_name": profile['Profile_name'],
-                    "profile_img":profile_img,
+                    "profile_img": profile_img,   
                     "profile_age": calculate_age(profile['Profile_dob']),
                     "profile_gender": profile['Gender'],
                     "height": profile['Profile_height'],
-                    "degree": degree_mapping.get(str(highest_education_mapping.get(profile_id, "")), ""),
-                    "profession": profession_mapping.get(str(profession_id_mapping.get(profile_id, "")), ""),
+                    "degree": degree_mapping.get(
+                        str(highest_education_mapping.get(profile_id, "")), ""
+                    ),
+                    "profession": profession_mapping.get(
+                        str(profession_id_mapping.get(profile_id, "")), ""
+                    ),
                     "location": profile['Profile_city']
                 })
+
 
             return JsonResponse({
                 "Status": 1,
