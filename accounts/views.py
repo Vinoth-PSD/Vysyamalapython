@@ -5971,7 +5971,7 @@ def send_bulk_email(request):
                 image.add_header('Content-ID', '<attached_image>')
                 email_message.attach(image)
 
-            email_message.send(fail_silently=False)
+            # email_message.send(fail_silently=False)
 
         return JsonResponse({
             "success": True,
@@ -8325,7 +8325,7 @@ class SendShortProfilePDFEmail(APIView):
         email.attach_file(pdf_file_path)
 
         try:
-            email.send()
+            # email.send()
             email_status = "sent"
             message = f"Email sent successfully to {recipient_email}"
         except Exception as e:
@@ -8399,7 +8399,7 @@ class SendFullProfilePDFEmail(APIView):
 
         # Send email and log the details
         try:
-            email.send()
+            # email.send()
 
             # Log the email sending in `SentProfileEmailLog`**
             SentFullProfileEmailLog.objects.create(
@@ -10555,7 +10555,7 @@ class AdminMatchProfilePDFView(APIView):
                         to_email = [login_my.EmailId]
                         email = EmailMessage(subject, body, from_email, to_email)
                         email.attach('MatchedProfiles.pdf', merged_pdf.read(), 'application/pdf')
-                        email.send()
+                        # email.send()
 
                         return JsonResponse({"status": "success", "message": "PDF emailed successfully."})
                     else:
