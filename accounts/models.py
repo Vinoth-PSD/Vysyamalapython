@@ -1816,6 +1816,7 @@ class Get_profiledata_Matching(models.Model):
                     else:
                         base_query += " AND a.Status = 1 "   #approved Only
                         pass
+                base_query += "Order by a.DateOfJoin desc"
 
             # COUNT
             with connection.cursor() as cursor:
