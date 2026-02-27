@@ -479,51 +479,51 @@ class Registrationstep2(APIView):
 
 
             
-                subject = "Welcome to Vysyamala!"
-                context = {
-                    'Profile_name': registration_data['Profile_name'],
-                    'new_profile_id':profile_id,
-                }
+                # subject = "Welcome to Vysyamala!"
+                # context = {
+                #     'Profile_name': registration_data['Profile_name'],
+                #     'new_profile_id':profile_id,
+                # }
 
-                html_content = render_to_string('user_api/authentication/welcome_email_template.html', context)
+                # html_content = render_to_string('user_api/authentication/welcome_email_template.html', context)
 
-                recipient_list = [reg.EmailId]
-                from_email = settings.DEFAULT_FROM_EMAIL
-                try:
-                    send_mail(
-                            subject,
-                            '',
-                            from_email,
-                            recipient_list,
-                            fail_silently=False,
-                            html_message=html_content
-                        )
-                except Exception:
-                    pass
+                # recipient_list = [reg.EmailId]
+                # from_email = settings.DEFAULT_FROM_EMAIL
+                # try:
+                #     send_mail(
+                #             subject,
+                #             '',
+                #             from_email,
+                #             recipient_list,
+                #             fail_silently=False,
+                #             html_message=html_content
+                #         )
+                # except Exception:
+                #     pass
 
-                glance_subject = "Vysyamala - At a Glance"
+                # glance_subject = "Vysyamala - At a Glance"
 
-                glance_context = {
-                    'ProfileName': registration_data['Profile_name'],
-                    'DashboardLink': f"https://www.vysyamala.com/login",
+                # glance_context = {
+                #     'ProfileName': registration_data['Profile_name'],
+                #     'DashboardLink': f"https://www.vysyamala.com/login",
                     
-                }
+                # }
 
-                glance_html_content = render_to_string(
-                    'user_api/authentication/Glance.html',
-                    glance_context
-                )
-                try:
-                    send_mail(
-                        glance_subject,
-                        strip_tags(glance_html_content),
-                        from_email,
-                        recipient_list,
-                        fail_silently=False,
-                        html_message=glance_html_content
-                    )
-                except Exception:
-                    pass
+                # glance_html_content = render_to_string(
+                #     'user_api/authentication/Glance.html',
+                #     glance_context
+                # )
+                # try:
+                #     send_mail(
+                #         glance_subject,
+                #         strip_tags(glance_html_content),
+                #         from_email,
+                #         recipient_list,
+                #         fail_silently=False,
+                #         html_message=glance_html_content
+                #     )
+                # except Exception:
+                #     pass
                 return JsonResponse({"Status": 1, "message": "Registration step 2 successful","profile_id":profile_id}, status=status.HTTP_201_CREATED)
             except models.Registration1.DoesNotExist:
                 return JsonResponse({"Status": 0, "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
