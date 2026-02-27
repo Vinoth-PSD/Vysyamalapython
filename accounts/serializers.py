@@ -586,8 +586,8 @@ class Getnewprofiledata_new(serializers.Serializer):
 
 
     def get_DateOfJoin(self, obj):
-        # Convert datetime to date if it's a datetime field
-        return obj['DateOfJoin'].date() if obj.get('DateOfJoin') else None
+        return obj['DateOfJoin'].strftime("%Y-%m-%d %H:%M:%S") if obj.get('DateOfJoin') else None
+
     
     def get_status(self, obj):
         try:

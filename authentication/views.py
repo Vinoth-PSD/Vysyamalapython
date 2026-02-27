@@ -96,7 +96,11 @@ from functools import lru_cache
 from django.db.models import Prefetch
 import imgkit
 from django.views.decorators.clickjacking import xframe_options_exempt
-
+from django.utils.html import strip_tags
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.conf import settings
 
 WKIMG = "/home/site/wwwroot/bin/wkhtmltoimage"
 
@@ -337,7 +341,7 @@ class Get_resend_otp(APIView):
                     "Available Credit": available_credit
                 }
             
-            models.Basic_Registration.objects.filter(ProfileId=ProfileId).update(Otp=Otp)
+            models.Registration1.objects.filter(ProfileId=ProfileId).update(Otp=Otp)
             return JsonResponse({"Status":1,"response_data":response_data,"profile_id":ProfileId,"message": "Otp resent sucessfully"}, status=status.HTTP_201_CREATED)
         else:
             return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -351,15 +355,8 @@ class Get_resend_otp(APIView):
 
 
 class Registrationstep1(APIView):
-
     def post(self, request, *args, **kwargs):
-       
         serializer = serializers.Registration1Serializer(data=request.data)
-
-        # data1 = json.loads(request.body)
-        # mobile_no = data1.get('mobile_no')
-
-        #print('Serializer ',serializer)
         mobile_country =request.data.get('mobile_country')
         if serializer.is_valid():
             serializer.save()
@@ -368,19 +365,19 @@ class Registrationstep1(APIView):
             ProfileId= serializer.validated_data.get('ProfileId')
             Gender= serializer.validated_data.get('Gender')
             EmailId= serializer.validated_data.get('EmailId')
-            #mobile_country=serializer.validated_data.get('mobile_country')
-            
-            Profile_Owner = models.Profileholder.objects.get(Mode=Profile_for)
-
             otp = serializer.validated_data.get('Otp')
-            #otp =123456
             numbers = serializer.validated_data.get('Mobile_no')
 
-                # Create an instance of SendSMS and send OTP
-
-            #comented on 30th jully to hardcode value to set
-
-            print('mobile_country',mobile_country)
+            Profile_Owner = models.Profileholder.objects.get(Mode=Profile_for)
+            insert_rowintables={
+                'profile_id': ProfileId
+            }
+            horosocope_instance = models.Horoscope.objects.create(**insert_rowintables)
+            family_instance = models.Familydetails.objects.create(**insert_rowintables)
+            education_instance = models.Edudetails.objects.create(**insert_rowintables)
+            Partner_instance = models.Partnerpref.objects.create(**insert_rowintables)
+            profile_suggestedinstance=models.ProfileSuggestedPref.objects.create(**insert_rowintables)
+            profile_profilevisibility=models.ProfileVisibility.objects.create(**insert_rowintables)
 
             if((mobile_country=='91')):
 
@@ -404,7 +401,6 @@ class Registrationstep1(APIView):
                 html_content = render_to_string('user_api/authentication/registration_otp.html', context)               
                 recipient_list = [EmailId]
 
-                # send_mail(subject,settings.DEFAULT_FROM_EMAIL,recipient_list,fail_silently=False,html_message=html_content)
                 from_email = settings.DEFAULT_FROM_EMAIL
                 
                 subject='Vysyamala Mobile otp verification'
@@ -414,9 +410,9 @@ class Registrationstep1(APIView):
                     }
                 send_mail(
                         subject,
-                        '',  # No plain text version
+                        '',
                         from_email,
-                        recipient_list,  # Recipient list should be a list
+                        recipient_list,
                         fail_silently=False,
                         html_message=html_content
                     )
@@ -428,202 +424,108 @@ class Registrationstep1(APIView):
             return JsonResponse({"Status":1,"profile_owner":Profile_Owner.ModeName,"response_data":response_data,'Gender':Gender,"Mobile_no":mobile_no,"profile_id":ProfileId,"message": "Registration successful","verify_type":verify_type}, status=status.HTTP_201_CREATED)
         
         else:
-            # return JsonResponse(serializer.errors, status=status.HTTP_200_OK)
             return JsonResponse({
-                "Status": 0,  # Adding status here to indicate failure
+                "Status": 0,
                 "errors": serializer.errors
             }, status=status.HTTP_200_OK)
 
-
-# class Registrationstep2(APIView):
-
-#     def post(self, request, *args, **kwargs):
-#         serializer = serializers.Registration2Serializer(data=request.data)
-        
-#         if serializer.is_valid():
-#             profile_id = serializer.validated_data.get('ProfileId')
-#             try:
-#                 registration = models.Registration1.objects.get(ProfileId=profile_id)
-#                 serializer.update(registration, serializer.validated_data)
-#                 return JsonResponse({"Status": 1, "message": "Registration step 2 successful"}, status=status.HTTP_200_OK)
-#             except  models.Registration1.DoesNotExist:
-#                 return JsonResponse({"Status": 0, "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
-#         else:
-#             return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class Registrationstep2(APIView):
     def post(self, request, *args, **kwargs):
         serializer = serializers.Registration2Serializer(data=request.data)
-        
         if serializer.is_valid():
             profile_id = serializer.validated_data.get('ProfileId')  
-            # print('profile_id',profile_id)     
-            
             try:
-                #print('profil id',profile_id)
-                # Check if the profile exists in Registration1 table
                 
-                registration = models.Basic_Registration.objects.get(ProfileId=profile_id,Status=0)
-                
-                try:
-                    last_record = models.Registration1.objects.latest('ContentId')
-                    last_record_id = last_record.ContentId
-                except models.Registration1.DoesNotExist:
-                     last_record_id = 0 
-                
-                numeric_part = str(last_record_id + 1).zfill(3) 
-
-                # if last_record.Gender.lower()=='male':
-                if registration.Gender.strip().lower() == 'male':
-                
-                    new_profile_id = f"VM{numeric_part}" 
-                else :
-                    new_profile_id = f"VF{numeric_part}"
-                
-                # Update or create in Registration2 table
                 registration_data = {
-                    'ProfileId': new_profile_id,
-                    'Profile_for': registration.Profile_for,
-                    'Gender': registration.Gender,
-                    'Mobile_no': registration.Mobile_no,
-                    'EmailId': registration.EmailId,
-                    'Password': registration.Password,
                     'Profile_name': serializer.validated_data.get('Profile_name'),
                     'Profile_marital_status': serializer.validated_data.get('Profile_marital_status'),
                     'Profile_dob': serializer.validated_data.get('Profile_dob'),
                     'Profile_height': serializer.validated_data.get('Profile_height'),
                     'Profile_complexion': serializer.validated_data.get('Profile_complexion'), 
-                    'DateOfJoin': timezone.now(), 
+                    
                     'Otp': 0,
                     'Status': 0,
-                    'temp_profileid':profile_id,
                     'Reset_OTP_Time':None,
-                    'Plan_id':7, #by default free plan
+                    'Plan_id':7,
                     'primary_status':0,
-                    'secondary_status':26,  #free and the newly registered
+                    'secondary_status':26, 
                     'plan_status':7
-
-                    
-                    # Add other fields as needed
                 }
 
-                #print('registration_data',registration_data)
-                
-                # Use Registration2 model serializer to create or update
-                # registration2_serializer = serializers.Registration2Serializer(data=registration_data)
-                # if registration2_serializer.is_valid():
-                #     # registration2_instance, created = models.Registration1.objects.create(
-                #     #     temp_profileid=profile_id,
-                #     #     defaults=registration_data
-                #     # )
-                #     registration2_instance = registration2_serializer.save()
-                insert_rowintables={
-                    'profile_id': new_profile_id
-                }
 
-                # insert_planrowintables={
-                #     'profile_id': new_profile_id,
-                #     'plan_id':7
-                # }
-                registration2_instance = models.Registration1.objects.create(**registration_data)
 
-                horosocope_instance = models.Horoscope.objects.create(**insert_rowintables)
-                family_instance = models.Familydetails.objects.create(**insert_rowintables)
-                education_instance = models.Edudetails.objects.create(**insert_rowintables)
-                Partner_instance = models.Partnerpref.objects.create(**insert_rowintables)
-                # profile_planinstance=models.Profile_PlanFeatureLimit.objects.create(**insert_planrowintables)
-                profile_suggestedinstance=models.ProfileSuggestedPref.objects.create(**insert_rowintables)
-                profile_profilevisibility=models.ProfileVisibility.objects.create(**insert_rowintables)
+                models.Registration1.objects.filter(ProfileId=profile_id).update(**registration_data)
+                reg = models.Registration1.objects.get(ProfileId=profile_id)
+
 
                 membership_fromdate = date.today()
                 membership_todate = membership_fromdate + timedelta(days=365)
                 
-                plan_features = models.PlanFeatureLimit.objects.filter(plan_id=7)
+                feature = models.PlanFeatureLimit.objects.get(plan_id=7)
+                models.Profile_PlanFeatureLimit.objects.update_or_create(
+                    profile_id=profile_id,
+                    defaults={
+                        **{k: v for k, v in model_to_dict(feature).items()
+                        if k not in ['id', 'plan_id']},
+                        'plan_id': feature.plan_id,
+                        'membership_fromdate': membership_fromdate,
+                        'membership_todate': membership_todate,
+                        'status': 1,
+                    }
+                )
 
-                # profile_feature_objects = [
-                #     models.Profile_PlanFeatureLimit(**{**model_to_dict(feature), 
-                #                                        'profile_id': new_profile_id,'plan_id':7,'membership_fromdate':membership_fromdate,'membership_todate':membership_todate})
-                #     for feature in plan_features
-                # ] #by default basic plan
 
-                # profile_feature_objects = [
-                #     models.PlanFeatureLimit(
-                #         **{k: v for k, v in model_to_dict(feature).items() if k != 'id'},  # Exclude 'id'
-                #         profile_id=new_profile_id,
-                #         plan_id=7,
-                #         membership_fromdate=membership_fromdate,
-                #         membership_todate=membership_todate
-                #     )
-                #     for feature in plan_features
-                # ]
-                
-                # models.Profile_PlanFeatureLimit.objects.bulk_create(profile_feature_objects)
 
-                # basic_reg = models.Basic_Registration.objects.get(ProfileId=profile_id)
-                # basic_reg.status = 1  # Update status field as needed
-                # basic_reg.save()
-
-                plan_features = models.PlanFeatureLimit.objects.filter(plan_id=7)
-
-                # print(plan_features)
-                # print('exit1234')
-
-                profile_feature_objects = [
-                    models.Profile_PlanFeatureLimit(
-                        **{k: v for k, v in model_to_dict(feature).items() if k != 'id'},  # Exclude 'id'
-                        profile_id=new_profile_id,
-                        # plan_id=7,
-                        membership_fromdate=membership_fromdate,
-                        membership_todate=membership_todate,
-                        status=1
-                    )
-                    for feature in plan_features
-                ]
-
-                models.Profile_PlanFeatureLimit.objects.bulk_create(profile_feature_objects)
-
-                basic_reg = models.Basic_Registration.objects.get(ProfileId=profile_id)
-                basic_reg.status = 1  # Update status field as needed
-                basic_reg.save()
             
                 subject = "Welcome to Vysyamala!"
                 context = {
                     'Profile_name': registration_data['Profile_name'],
-                    'new_profile_id': new_profile_id,
+                    'new_profile_id':profile_id,
                 }
 
                 html_content = render_to_string('user_api/authentication/welcome_email_template.html', context)
 
-
-
-                
-                recipient_list = [registration_data['EmailId']]
-
-                # send_mail(subject,settings.DEFAULT_FROM_EMAIL,recipient_list,fail_silently=False,html_message=html_content)
+                recipient_list = [reg.EmailId]
                 from_email = settings.DEFAULT_FROM_EMAIL
+                try:
+                    send_mail(
+                            subject,
+                            '',
+                            from_email,
+                            recipient_list,
+                            fail_silently=False,
+                            html_message=html_content
+                        )
+                except Exception:
+                    pass
 
-                #Due to yuva network ssl issue commented this email sending part 03-11-2025
-                # send_mail(
-                #         subject,
-                #         '',  # No plain text version
-                #         from_email,
-                #         recipient_list,  # Recipient list should be a list
-                #         fail_silently=False,
-                #         html_message=html_content
-                #     )
+                glance_subject = "Vysyamala - At a Glance"
 
+                glance_context = {
+                    'ProfileName': registration_data['Profile_name'],
+                    'DashboardLink': f"https://www.vysyamala.com/login",
                     
-                    
-                    #if created:
-                return JsonResponse({"Status": 1, "message": "Registration step 2 successful","profile_id":new_profile_id}, status=status.HTTP_201_CREATED)
-                    # else:
-                    #     return JsonResponse({"Status": 1, "message": "Registration step 2 updated successfully"}, status=status.HTTP_200_OK)
-                
-                # else:
-                #     return JsonResponse(registration2_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            
-            except models.Basic_Registration.DoesNotExist:
+                }
+
+                glance_html_content = render_to_string(
+                    'user_api/authentication/Glance.html',
+                    glance_context
+                )
+                try:
+                    send_mail(
+                        glance_subject,
+                        strip_tags(glance_html_content),
+                        from_email,
+                        recipient_list,
+                        fail_silently=False,
+                        html_message=glance_html_content
+                    )
+                except Exception:
+                    pass
+                return JsonResponse({"Status": 1, "message": "Registration step 2 successful","profile_id":profile_id}, status=status.HTTP_201_CREATED)
+            except models.Registration1.DoesNotExist:
                 return JsonResponse({"Status": 0, "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
         
         else:
@@ -2344,7 +2246,6 @@ class Send_profile_intrests(APIView):
         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 class Get_expresint_status(APIView):
 
     def post(self, request):
@@ -3002,6 +2903,7 @@ class Get_Gallery_lists(APIView):
                 AND pi.image_approved=1
                 AND ld.Photo_protection != 1
                 AND ld.Plan_id != 16
+                AND ld.status != 4
                 AND ld.ProfileId IN ({placeholders})
                 ORDER BY ld.DateOfJoin DESC
             )
@@ -3022,6 +2924,7 @@ class Get_Gallery_lists(APIView):
                 AND pi.image_approved=1
                 AND ld.Photo_protection != 1
                 AND ld.Plan_id != 16
+                AND ld.status != 4
                 AND ld.ProfileId IN ({placeholders})
             ) AS subquery;
             """
@@ -3172,6 +3075,7 @@ class My_intrests_list(APIView):
                         str(interest.profile_to): interest.req_datetime
                         for interest in fetch_data
                     }
+               
                     restricted_profile_details = [
                         {
                             "myint_profileid": detail.get("ProfileId"),
@@ -3191,8 +3095,13 @@ class My_intrests_list(APIView):
                             "myint_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "myint_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "myint_profile_wishlist":Get_wishlist(profile_id,detail.get("ProfileId")),
-                            
+                           "visited_marriage_check": (
+                                int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]
+                            ),
+                            "visited_marriage_badge": ( "https://vysyamat.blob.core.windows.net/vysyamala/marriage_settled.jpeg" if (int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]) else None ),
                         }
+                            
+                        
                         for detail in profile_details
                     ]
                     if sort_by == "profile_id":
@@ -3352,6 +3261,7 @@ class Get_mutual_intrests(APIView):
                                 detail.get("birth_rasi_name"),
                                 my_gender
                             ),
+                            
                             "mutint_views": count_records(models.Profile_visitors, {
                                 'status': 1,
                                 'viewed_profile': detail.get("ProfileId")
@@ -3360,7 +3270,16 @@ class Get_mutual_intrests(APIView):
                             "mutint_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "mutint_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "mutint_profile_wishlist": Get_wishlist(profile_id, detail.get("ProfileId")),
-                        })
+
+                            "visited_marriage_check": (
+                                int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]
+                            ),
+                            "visited_marriage_badge": ( "https://vysyamat.blob.core.windows.net/vysyamala/marriage_settled.jpeg" if (int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]) else None ),
+                        
+
+                        }
+                        
+                        )
                     if sort_by == "profile_id":
                         restricted_profile_details.sort(
                             key=lambda x: x["mutint_profileid"],
@@ -4184,6 +4103,13 @@ class Get_personal_notes(APIView):
                             "notes_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "notes_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "notes_profile_wishlist":Get_wishlist(profile_id,detail.get("ProfileId")),
+
+                            "visited_marriage_check": (
+                                int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]
+                            ),
+                            "visited_marriage_badge": ( "https://vysyamat.blob.core.windows.net/vysyamala/marriage_settled.jpeg" if (int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]) else None ),
+                        
+
                         }
                         for detail in profile_details
                     ]
@@ -5669,8 +5595,19 @@ class Get_profile_det_match(APIView):
         # 2. Check View Limits
         if not (can_get_viewd_profile_count(profile_id, user_profile_id) or 
             (page_id and int(page_id) != 1)):
+            try:
+                plan_id = str(from_profile.Plan_id) 
+
+                if plan_id in {'6', '7', '8', '9'}:
+                    message = "You have reached your profile viewing limit."
+                else:
+                    message = (
+                        "Today’s view limit has been reached.Please log in tomorrow to view more new profiles.You can still revisit profiles you’ve already viewed."
+                    )
+            except Exception:
+                message = "Limit has been reached."
             return JsonResponse(
-                {'status': 'failure', 'message': 'Limit Reached to view the profile'}, 
+                {'status': 'failure', 'message': message}, 
                 status=status.HTTP_201_CREATED
             )
 
@@ -5704,6 +5641,7 @@ class Get_profile_det_match(APIView):
         # 5. Prepare Response Data (Maintaining Original Structure)
         response_data = {
             "encrypted_profile_id":signing.dumps(user_profile_id),
+            "My_profile_id":signing.dumps(profile_id),
             "basic_details": self._prepare_basic_details_full(my_profile, user_profile, permissions),
             "photo_protection": user_profile['Photo_protection'],
             "photo_request": self._get_photo_request_status(user_profile),
@@ -6626,6 +6564,13 @@ class Get_photo_request_list(APIView):
                             "req_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "req_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "req_profile_wishlist":Get_wishlist(profile_id,detail.get("ProfileId")),
+
+
+                            "visited_marriage_check": (
+                                int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]
+                            ),
+                            "visited_marriage_badge": ( "https://vysyamat.blob.core.windows.net/vysyamala/marriage_settled.jpeg" if (int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]) else None ),
+                        
                         }
                         # for detail in profile_details
                         for index, detail in enumerate(profile_details)
@@ -8470,6 +8415,7 @@ def GetMarsRahuKethuDoshamDetails(raw_input):
         return mars_dosham, rahu_kethu_dosham
 
 
+
 class Save_plan_package(APIView):
     def post(self, request):
         profile_id = request.data.get('profile_id')
@@ -8479,27 +8425,38 @@ class Save_plan_package(APIView):
         order_id = request.data.get('order_id')
         gpay_online = request.data.get('gpay_online')
         description = request.data.get('description')
+        payment_datetime = timezone.now() 
+        try:
+            is_plan_purchase = bool(plan_id)
+            
+        except Exception as e:
+            is_plan_purchase = False
+        plan_name = None
+        try:
+            plan_obj = models.PlanDetails.objects.get(id=plan_id)
+            plan_name = plan_obj.plan_name
+        except models.PlanDetails.DoesNotExist:
+            plan_name = None
+
         
         if str(gpay_online) == "1":
 
             
             user, created = User.objects.get_or_create(username=profile_id)
             if created:
-                # Handle user creation logic if needed
                 pass
               
-            # Authentication successful, create token
             token, created = Token.objects.get_or_create(user=user)
             models.PaymentTransaction.objects.create(
-                profile_id=profile_id,  # Assuming you have user authentication
-                order_id="",
-                amount=total_amount,  # Save in INR
+                profile_id=profile_id,  
+                order_id=order_id if order_id else '',
+                amount=total_amount,  
                 plan_id=plan_id,
                 addon_package=addon_package_id,
                 payment_type='Gpay',
                 description=description,
                 status=1,
-                created_at=timezone.now()
+                created_at=payment_datetime
             )
 
 
@@ -8519,7 +8476,6 @@ class Save_plan_package(APIView):
         
             horodetails=models.Horoscope.objects.filter(profile_id=profile_id).first()
             
-            #get first image for the profile icon
             profile_images=models.Image_Upload.objects.filter(profile_id=profile_id).first()  
 
             
@@ -8541,7 +8497,7 @@ class Save_plan_package(APIView):
 
             if profile_images:
                 profile_image = profile_images.image.url
-            #default image icon
+
             else:
             
                 profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
@@ -8569,25 +8525,34 @@ class Save_plan_package(APIView):
             profile_planfeature = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id, status=1).first()
             valid_till = profile_planfeature.membership_todate if profile_planfeature else None
 
-            #check the address is exists for the contact s page contact us details stored in the logindetails page only
             if not logindetails_exists:
             
-                profile_completion=1     #contact details not exists   
+                profile_completion=1  
 
             elif not family_details_exists:
                 
-                profile_completion=2    #Family details not exists   
+                profile_completion=2     
 
             elif not horo_details_exists:
-                profile_completion=3    #Horo details not exists   
+                profile_completion=3    
 
             elif not education_details_exists:
-                profile_completion=4        #Edu details not exists   
+                profile_completion=4     
 
             elif not partner_details_exists:
-                profile_completion=5            #Partner details not exists             
+                profile_completion=5                 
+            try:
+                models.DataHistory.objects.create(
+                    profile_id=profile_id,
+                    owner_id=logindetails.Owner_id if logindetails.Owner_id else None,                 
+                    profile_status=logindetails.Status,
+                    plan_id=plan_id,
+                    others=f"GPay Online - success" if plan_name else "GPay Online",
+                    date_time=payment_datetime
+                )
+            except Exception as e:
+                pass
 
-            # Success response
             return JsonResponse({
                     "status": "success",
                     "message": "Plans and packages updated successfully",
@@ -8597,48 +8562,42 @@ class Save_plan_package(APIView):
         else :
         
             try:
-                # Check if request data is empty
-                if not profile_id or not plan_id:
-                    return JsonResponse({"status": "error", "message": "profile_id and plan_id are required"}, status=status.HTTP_400_BAD_REQUEST)
+                # if not profile_id or not plan_id:
+                #     return JsonResponse({"status": "error", "message": "profile_id and plan_id are required"}, status=status.HTTP_400_BAD_REQUEST)
 
 
                 if not request.data:
                     return JsonResponse({"status": "error", "message": "No data provided"}, status=status.HTTP_400_BAD_REQUEST)
 
-                # Fetch the instances by profile_id
                 registration = models.Registration1.objects.get(ProfileId=profile_id)
-                # Update the fields
+
                 
-                registration.Plan_id = plan_id if plan_id != 0 else registration.Plan_id  #if in case the plan_id come as 0 it shoult update as 0 
-                #registration.Plan_id = plan_id
-                registration.secondary_status = 30   # newly registered and the Premium
+                registration.Plan_id = plan_id if plan_id != 0 else registration.Plan_id 
+                registration.secondary_status = 5
+                registration.Status=1
                 registration.plan_status = plan_id
                 registration.Addon_package = addon_package_id
                 registration.Payment= total_amount
 
                 addon_package_ids = addon_package_id
 
-                #update vysassist in profilePlanfeatiretable
                 if addon_package_ids:
-                    # Split comma-separated string into list of ints
                     addon_package_id_list = [int(pk.strip()) for pk in addon_package_ids.split(",") if pk.strip().isdigit()]
-
-                    # Check if ID 1 is in the list
                     if 1 in addon_package_id_list:
-                        # print("Addon Package ID 1 found. Updating Profile_plan_feature...")
-
-                        # Example: update all rows (or filter if needed)
                         models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(vys_assist=1,vys_assist_count=10)
 
-                # Save the changes
+                
+                membership_fromdate = payment_datetime
+                membership_todate = membership_fromdate + timedelta(days=365)
+                if is_plan_purchase:
+                    registration.membership_startdate = membership_fromdate
+                    registration.membership_enddate = membership_todate
                 registration.save() 
 
                 user, created = User.objects.get_or_create(username=profile_id)
                 if created:
-                    # Handle user creation logic if needed
                     pass
                 
-                # Authentication successful, create token
                 token, created = Token.objects.get_or_create(user=user)
 
                 notify_count=models.Profile_notification.objects.filter(profile_id=profile_id, is_read=0).count()
@@ -8657,7 +8616,6 @@ class Save_plan_package(APIView):
             
                 horodetails=models.Horoscope.objects.filter(profile_id=profile_id).first()
                 
-                #get first image for the profile icon
                 profile_images=models.Image_Upload.objects.filter(profile_id=profile_id).first()  
 
                 plan_id = logindetails.Plan_id
@@ -8668,37 +8626,53 @@ class Save_plan_package(APIView):
                     serializer = serializers.PlanFeatureLimitSerializer(plan_limits, many=True)
                     plan_limits_json = serializer.data
 
-
-                membership_fromdate = date.today() #same date of the payment date
-                membership_todate = membership_fromdate + timedelta(days=365)
-
+                try:
+                    plan = get_object_or_404(models.PlanDetails, id=plan_id)
+                    plan_price = plan.plan_price
+                except Exception:
+                    plan_price = None
                 models.PlanSubscription.objects.create(
-                profile_id=profile_id,              # e.g., '123'
-                plan_id=plan_id,               # e.g., 7
-                paid_amount=total_amount,             # e.g., Decimal('499.99')
-                payment_mode='Razor pay',     # e.g., 'UPI'
+                profile_id=profile_id,             
+                plan_id=plan_id,               
+                paid_amount=total_amount,            
+                payment_mode='RazorPay',    
                 status=1,   
                 payment_by='user_self',                             # e.g., 1 for success, or your own logic
-                payment_date=datetime.now(),          # current timestamp
-                order_id=order_id  )
+                payment_date=payment_datetime,          # current timestamp
+                order_id=order_id ,
+                validity_startdate =membership_fromdate if is_plan_purchase else None,
+                validity_enddate = membership_todate if is_plan_purchase else None,
+                package_amount=plan_price if plan_price else None,
+                addon_package =addon_package_ids
+                )
+                
+                models.PaymentTransaction.objects.create(
+                    profile_id=profile_id,  # Assuming you have user authentication
+                    order_id=order_id if order_id else '',
+                    amount=total_amount,  # Save in INR
+                    plan_id=plan_id,
+                    addon_package=addon_package_id,
+                    payment_type='Razor pay',
+                    description=description,
+                    status=1,
+                    created_at=payment_datetime
+                )
 
-                plan_features = models.PlanFeatureLimit.objects.filter(plan_id=plan_id).values().first()
+                if is_plan_purchase:
+                    plan_features = models.PlanFeatureLimit.objects.filter(plan_id=plan_id).values().first()
 
-                if plan_features:
-                    # Remove the 'id' field if present
-                    plan_features.pop('id', None)
-                    plan_features.pop('plan_id', None)  # optional, if you don't want to override plan_id
+                    if plan_features:
+                        plan_features.pop('id', None)
+                        plan_features.pop('plan_id', None)
 
-                    # Add membership dates
-                    plan_features.update({
-                        'plan_id': plan_id,
-                        'membership_fromdate': membership_fromdate,
-                        'membership_todate': membership_todate,
-                        'status':1
-                    })
+                        plan_features.update({
+                            'plan_id': plan_id,
+                            'membership_fromdate': membership_fromdate,
+                            'membership_todate': membership_todate,
+                            'status':1
+                        })
 
-                    # Update the profile_plan_features row for profile_id
-                    models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(**plan_features)
+                        models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(**plan_features)
         
                 gender = logindetails.Gender
                 height = logindetails.Profile_height
@@ -8717,7 +8691,7 @@ class Save_plan_package(APIView):
 
                 if profile_images:
                     profile_image = profile_images.image.url
-                #default image icon
+
                 else:
                 
                     profile_icon = 'men.jpg' if gender == 'male' else 'women.jpg'
@@ -8735,10 +8709,9 @@ class Save_plan_package(APIView):
                 profile_planfeature = models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id, status=1).first()
                 valid_till = profile_planfeature.membership_todate if profile_planfeature else None
 
-                #check the address is exists for the contact s page contact us details stored in the logindetails page only
                 if not logindetails_exists:
                 
-                    profile_completion=1     #contact details not exists   
+                    profile_completion=1     
 
                 elif not family_details_exists:
                     
@@ -8753,7 +8726,18 @@ class Save_plan_package(APIView):
                 elif not partner_details_exists:
                     profile_completion=5            #Partner details not exists             
 
-                
+                try:
+                    models.DataHistory.objects.create(
+                        profile_id=profile_id,
+                        owner_id=logindetails.Owner_id if logindetails.Owner_id else None,                 
+                        profile_status=logindetails.Status,
+                        plan_id=plan_id,
+                        others=f"Razor pay - success" if plan_name else "Razor pay",
+                        date_time=payment_datetime
+                    )
+                except Exception as e:
+                    pass
+
                 # Success response
                 return JsonResponse({
                         "status": "success",
@@ -10289,7 +10273,7 @@ class GetSearchResults(APIView):
 
         # Initialize the query with the base structure
         base_query = """
-        SELECT distinct(a.ProfileId),a.ProfileId, a.Profile_name, a.Profile_marital_status, a.Profile_dob, a.Profile_height, a.Profile_city, 
+        SELECT distinct(a.ProfileId),a.ProfileId,a.status,a.secondary_status, a.Profile_name, a.Profile_marital_status, a.Profile_dob, a.Profile_height, a.Profile_city, 
                f.profession, f.highest_education,f.degree,f.other_degree, g.EducationLevel, d.star, h.income , e.birthstar_name , e.birth_rasi_name
                        ,a.Photo_protection,a.Gender ,a.DateOfJoin       FROM logindetails a 
         JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
@@ -11515,7 +11499,8 @@ def transform_data(original_data,my_profile_id,my_gender,source_rasi_id,source_s
     else:
                 # print("Execution time before blur image starts ",datetime.now())
                 image_function = lambda detail: get_profile_image_azure_optimized(original_data.get("ProfileId"), my_gender, 1,1)
-
+    print(original_data.get("status"))
+    print(original_data.get("secondary_status"))
     transformed_data = {
         "profile_id": original_data.get("ProfileId"),
         "profile_name": original_data.get("Profile_name"),
@@ -11532,9 +11517,16 @@ def transform_data(original_data,my_profile_id,my_gender,source_rasi_id,source_s
         "location": original_data.get("Profile_city"),
         "photo_protection": original_data.get("Photo_protection"),  # Default value
         "matching_score":Get_matching_score(source_star_id,source_rasi_id,original_data.get("birthstar_name"),original_data.get("birth_rasi_name"),my_gender),    # Default value
-        "wish_list": Get_wishlist(my_profile_id,original_data.get("ProfileId")),          # Default value
+        "wish_list": Get_wishlist(my_profile_id,original_data.get("ProfileId")),
+        
+        "visited_marriage_check": (
+                                int(original_data.get("status") or 0) == 4 and int(original_data.get("secondary_status") or 0) in [20,21]
+                            ),
+        "visited_marriage_badge": ( "https://vysyamat.blob.core.windows.net/vysyamala/marriage_settled.jpeg" if (int(original_data.get("status") or 0) == 4 and int(original_data.get("secondary_status") or 0) in [20,21]) else None ),
+                        }
+            
 
-    }
+    
     return transformed_data
 
 
@@ -12584,7 +12576,7 @@ class FeaturedProfile(APIView):
                         )
                     )
                 ORDER BY RAND()
-                LIMIT 20
+                LIMIT 25
             ) AS rand_ld
             JOIN logindetails ld 
                 ON ld.ProfileId = rand_ld.ProfileId;
@@ -12719,7 +12711,7 @@ class Search_byprofile_id(APIView):
 
         # Initialize the query with the base structure
         base_query = """
-        SELECT a.ProfileId, a.Profile_name, a.Profile_marital_status, a.Profile_dob, a.Profile_height, a.Profile_city, f.degree,f.other_degree,
+        SELECT a.ProfileId,a.status,a.secondary_status, a.Profile_name, a.Profile_marital_status, a.Profile_dob, a.Profile_height, a.Profile_city, f.degree,f.other_degree,
                f.profession, f.highest_education, g.EducationLevel, d.star, h.income , e.birthstar_name , e.birth_rasi_name
                        ,a.Photo_protection,a.Gender        FROM logindetails a  
         LEFT JOIN profile_partner_pref b ON a.ProfileId = b.profile_id 
@@ -13061,6 +13053,12 @@ class My_vysassist_list(APIView):
                             "vys_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "vys_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "vys_profile_wishlist":Get_wishlist(profile_id,detail.get("ProfileId")),
+
+                            "visited_marriage_check": (
+                                int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]
+                            ),
+                            "visited_marriage_badge": ( "https://vysyamat.blob.core.windows.net/vysyamala/marriage_settled.jpeg" if (int(detail.get("pstatus") or 0) == 4 and int(detail.get("secondary_status") or 0) in [20,21]) else None ),
+                        
                         }
                         for detail in profile_details
                     ]
@@ -14726,12 +14724,13 @@ def get_work_address(city, district, state, country):
         return "-".join(parts) if parts else "N/A"
     except Exception:
         return " "
-    
+
 def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirthchart.pdf"):
 
-                # print('1234567')
-  
-                # Retrieve the Horoscope object based on the provided profile_id
+                try:
+                    user_profile_id = signing.loads(user_profile_id)
+                except signing.BadSignature:
+                    return HttpResponse("Invalid profile ID", status=400) 
                 horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
                 login_details = get_object_or_404(models.Registration1, ProfileId=user_profile_id)
                 education_details = get_object_or_404(models.Edudetails, profile_id=user_profile_id)
@@ -16006,9 +16005,10 @@ def parse_data(data):
 
 def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart.pdf"):
 
-                #print('1234567')
-  
-                # Retrieve the Horoscope object based on the provided profile_id
+                try:
+                    user_profile_id = signing.loads(user_profile_id)
+                except signing.BadSignature:
+                    return HttpResponse("Invalid profile ID", status=400) 
                 horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
                 login_details = get_object_or_404(models.Registration1, ProfileId=user_profile_id)
                 education_details = get_object_or_404(models.Edudetails, profile_id=user_profile_id)
@@ -16444,7 +16444,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart.pd
 
                             .header-left img {{
                                 width: 100%;
-                                height: 300px;
+                                height: auto;
                             }}
                             .logo-text{{
                                 font-size: 18px;
@@ -17721,13 +17721,15 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
         return JsonResponse({'status': 'error', 'message': 'Only GET method is allowed'}, status=405)
 
     try:
-        # if request.content_type == 'application/json':
-        #     data = json.loads(request.body)
-        #     profile_from = data.get('profile_from')
-        #     profile_to = data.get('profile_to')
-        # else:
-        #     profile_from = request.GET.get('profile_from')
-        #     profile_to = request.GET.get('profile_to')
+        try:
+            profile_from = signing.loads(profile_from)
+        except signing.BadSignature:
+            return HttpResponse("Invalid profile ID", status=400) 
+        
+        try:
+            profile_to = signing.loads(profile_to)
+        except signing.BadSignature:
+            return HttpResponse("Invalid profile ID", status=400) 
 
         if not profile_from or not profile_to:
             return JsonResponse({'status': 'error', 'message': 'profile_from and profile_to are required'}, status=400)
@@ -18373,8 +18375,15 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
             save_logs.datetime = timezone.now()
             save_logs.save()
 
-        # Render and return PDF
-        return render_to_pdf(html_content)
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="Porutham.pdf"'
+
+        pisa_status = pisa.CreatePDF(html_content, dest=response)
+        if pisa_status.err:
+            logger.error(f"PDF generation error: {pisa_status.err}")
+            return HttpResponse('We had some errors <pre>' + html_content + '</pre>')
+
+        return response
 
     except json.JSONDecodeError:
         return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
@@ -20192,9 +20201,15 @@ def parse_data(data):
 
 def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horoscope_withbirthchart.pdf"):
 
-                # print('1234567')
+                try:
+                    user_profile_id = signing.loads(user_profile_id)
+                except signing.BadSignature:
+                    return HttpResponse("Invalid profile ID", status=400) 
                 
-                # Retrieve the Horoscope object based on the provided profile_id
+                try:
+                    my_profile_id = signing.loads(my_profile_id)
+                except signing.BadSignature:
+                    return HttpResponse("Invalid profile ID", status=400) 
 
                 attached_horoscope_enable=get_permission_limits(my_profile_id,'attached_horoscope')
                 contact_enable=get_permission_limits(my_profile_id,'contact_details')
@@ -20816,7 +20831,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                     </tr>
                                     <tr>
                                         <td>{amsa_kattam_data[11].replace('/', '<br>')}</td>
-                                        <td colspan="2" rowspan="2" class="highlight">Amsam
+                                        <td colspheight: 300px;an="2" rowspan="2" class="highlight">Amsam
                                             <p>vysyamala.com</p>
                                         </td>
                                         <td>{amsa_kattam_data[4].replace('/', '<br>')}</td>
@@ -21463,10 +21478,15 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 return response
 
 def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Horoscope_withbirthchart.pdf"):
-
-                #print('1234567')
-  
-                # Retrieve the Horoscope object based on the provided profile_id
+                try:
+                    user_profile_id = signing.loads(user_profile_id)
+                except signing.BadSignature:
+                    return HttpResponse("Invalid profile ID", status=400) 
+                
+                try:
+                    my_profile_id = signing.loads(my_profile_id)
+                except signing.BadSignature:
+                    return HttpResponse("Invalid profile ID", status=400) 
                 horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
                 login_details = get_object_or_404(models.Registration1, ProfileId=user_profile_id)
                 education_details = get_object_or_404(models.Edudetails, profile_id=user_profile_id)
@@ -22167,7 +22187,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
 
                             .header-left img {{
                                 width: 100%;
-                                height: 300px;
+                                height: auto;
                             }}
                             .logo-text{{
                                 font-size: 18px;
@@ -22846,6 +22866,16 @@ class Free_packages(APIView):
             elif not partner_details_exists:
                 profile_completion=5            #Partner details not exists            
  
+ 
+            models.DataHistory.objects.create(
+                profile_id=profile_id,
+                owner_id=logindetails.Owner_id if logindetails.Owner_id else None,
+                profile_status=logindetails.Status,
+                plan_id=plan_id,
+                others=f"Free package",
+                date_time=datetime.now()
+            )
+
             # Success response
             return JsonResponse({
                     "status": "success",
@@ -22994,3 +23024,121 @@ class Amsam_Image(APIView):
         response = HttpResponse(html_content, content_type="text/html")
         response["X-Frame-Options"] = "ALLOWALL"
         return response
+
+        
+# from django.core.mail import send_mail
+# from django.template.loader import render_to_string
+# from django.utils.html import strip_tags
+# from django.conf import settings
+# from django.utils import timezone
+
+# from .models import Registration1
+
+
+
+# def send_profile_completion_reminder():
+    
+#     users = Registration1.objects.filter(Status=1)
+
+#     sent_count = 0
+
+#     for user in users:
+#         profile_id = user.ProfileId
+
+#         result = calculate_points_and_get_empty_fields(profile_id)
+#         completion_percentage = int(result['completion_percentage'])
+
+#         if completion_percentage < 80:
+
+#             subject = "Complete Your Profile & Get More Responses 💍"
+
+#             context = {
+#                 "ProfileName": user.Profile_name,
+#                 "CompletionPercentage": completion_percentage,
+#                 "ProfileEditLink": "https://www.vysyamala.com/dashboard",
+#             }
+
+#             html_content = render_to_string(
+#                 "user_api/authentication/Completion_Percentage.html",
+#                 context
+#             )
+
+#             send_mail(
+#                 subject,
+#                 strip_tags(html_content),
+#                 settings.DEFAULT_FROM_EMAIL,
+#                 [user.EmailId],
+#                 fail_silently=True,
+#                 html_message=html_content
+#             )
+
+#             sent_count += 1
+
+#     print(f"{sent_count} reminder emails sent")
+
+
+# from django.core.mail import send_mail
+# from django.template.loader import render_to_string
+# from django.utils.html import strip_tags
+# from django.conf import settings
+# from .models import Registration1
+
+
+
+# def send_profile_completion_reminder(profile_id=None):
+
+#     if profile_id:
+#         users = Registration1.objects.filter(ProfileId=profile_id, Status=1)
+#     else:
+#         users = Registration1.objects.filter(Status=1)
+
+#     sent_count = 0
+
+#     for user in users:
+#         result = calculate_points_and_get_empty_fields(user.ProfileId)
+#         completion_percentage = int(result['completion_percentage'])
+
+#         if completion_percentage < 80:
+#             subject = "Complete Your Profile & Get More Responses 💍"
+
+#             context = {
+#                 "ProfileName": user.Profile_name,
+#                 "CompletionPercentage": completion_percentage,
+#                 "ProfileEditLink": "https://www.vysyamala.com/dashboard",
+#             }
+
+#             html_content = render_to_string(
+#                 "user_api/authentication/Completion_Percentage.html",
+#                 context
+#             )
+
+#             send_mail(
+#                 subject,
+#                 strip_tags(html_content),
+#                 settings.DEFAULT_FROM_EMAIL,
+#                 [user.EmailId],
+#                 fail_silently=False,
+#                 html_message=html_content
+#             )
+
+#             sent_count += 1
+
+#     return sent_count
+
+
+
+# from rest_framework.decorators import api_view
+# from rest_framework.response import Response
+
+
+# @api_view(['GET'])
+# def trigger_profile_completion_reminder(request):
+#     profile_id = request.GET.get('profile_id')
+#     count = send_profile_completion_reminder(profile_id)
+
+#     return Response({
+#         "status": "success",
+#         "emails_sent": count,
+#         "profile_id": profile_id
+#     })
+

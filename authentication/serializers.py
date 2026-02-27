@@ -9,7 +9,7 @@ from django.conf import settings
 from .utils import send_email_notification
 from .models import SentWithoutAddressEmailLog
 from .models import SentWithoutAddressPrintPDFLog
-
+from accounts.utils.round_robin_assign import assign_user_for_state
 
 
 
@@ -24,29 +24,23 @@ class AuthUserSerializer(serializers.ModelSerializer):
 # from .models import Registration
 
 class ResendOtpSerializers(serializers.ModelSerializer):
-    #mobile_no = serializers.CharField(write_only=True)  # Define mobile_no as write-only field
 
     class Meta:
-        model = models.Basic_Registration
-        fields = ['ProfileId']  # Include 'mobile_no' field in the fields list
+        model = models.Registration1
+        fields = ['ProfileId']
 
     def validate(self, data):
         ProfileId = data.get('ProfileId')
 
         try:
-            # Retrieve Basic_Registration instance based on ProfileId
-            basic_registration_instance = models.Basic_Registration.objects.get(ProfileId=ProfileId)
+            basic_registration_instance = models.Registration1.objects.get(ProfileId=ProfileId)
 
-            # Get the mobile number from the instance
             data['mobile_no'] = basic_registration_instance.Mobile_no
 
-            # Generate a new OTP and add it to the data
-            
-            #data['Otp'] = random.randint(100000, 999999)
             data['Otp'] = random.randint(100000, 999999)
-            # data['Otp'] = 123456
+ 
 
-        except models.Basic_Registration.DoesNotExist:
+        except models.Registration1.DoesNotExist:
             raise serializers.ValidationError({
                 'error': 'Invalid ProfileId'
             })
@@ -57,24 +51,20 @@ class ResendOtpSerializers(serializers.ModelSerializer):
 
 class OtpSerializers(serializers.ModelSerializer):
     class Meta:
-        model = models.Basic_Registration
+        model = models.Registration1
         fields = ['Otp', 'ProfileId']
 
     def validate(self, data):
         otp = data.get('Otp')
         ProfileId = data.get('ProfileId')                
-        # Debugging print statement
-        #print('Verify otp:', otp, 'for mobile number:', mobile_no)
-
         try:
-            # Check if there is a record with the provided OTP and mobile number
-            verify_otp=models.Basic_Registration.objects.get(Otp=otp, ProfileId=ProfileId)
+            verify_otp=models.Registration1.objects.get(Otp=otp, ProfileId=ProfileId)
 
-            verify_otp.Otp_verify = 1 #set Otp verify as one thats show in the admin as well
+            verify_otp.Otp_verify = 1
 
             verify_otp.save()
 
-        except models.Basic_Registration.DoesNotExist:
+        except models.Registration1.DoesNotExist:
              raise serializers.ValidationError({
                 'error': 'Invalid OTP number'
             })
@@ -83,9 +73,11 @@ class OtpSerializers(serializers.ModelSerializer):
 
 
 class Registration1Serializer(serializers.ModelSerializer):
+    Profile_country=serializers.CharField(required=False, allow_blank=True)
+    Profile_state=serializers.CharField(required=False, allow_blank=True)
     class Meta:
-        model = models.Basic_Registration
-        fields = ('Profile_for', 'Gender', 'Mobile_no', 'EmailId', 'Password')
+        model = models.Registration1
+        fields = ('Profile_for', 'Gender', 'Mobile_no', 'EmailId', 'Password','Profile_country','Profile_state','DateOfJoin')
 
     def validate_EmailId(self, EmailId):
         print('EmailId',EmailId)
@@ -99,21 +91,31 @@ class Registration1Serializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This mobile number is already registered.")
         return Mobile_no
     def validate(self, data):
-     
-     #data['Otp']='142024'
-    #  data['Password']=make_password(data['Password'])
-     data['Password']=data['Password']
-     #key = generate_key()
-     #print('ferkey',key.decode())
-     #data['Password']=encrypt_password(data['Password'])
-     data['ProfileId']=''.join(random.choices('0123456789', k=6))
-    #  data['Otp'] = random.randint(100000, 999999)
-     otp =random.randint(100000, 999999)
-    #  print('otp',otp)
-     data['Otp'] = otp
-     data['Status']=0
+        data['Password']=data['Password']
+        if data.get('Profile_country'):
+            data['Profile_country']=data['Profile_country']
+        if not data.get('Profile_country'):
+            data['Owner_id'] = 25
+        if data.get('Profile_state'):
+            data['Profile_state']=data['Profile_state']
+            owner_id = assign_user_for_state(data['Profile_state']) 
+            data['Owner_id'] = owner_id.id
+        last = models.Registration1.objects.order_by('-ContentId').first()
+        next_id = (last.ContentId + 1) if last else 1
+        numeric = str(next_id).zfill(3)
 
-     return data
+        gender = data['Gender'].strip().lower()
+        profile_id = f"VM{numeric}" if gender == 'male' else f"VF{numeric}"
+
+
+        data['ProfileId']=profile_id
+        otp =random.randint(100000, 999999)
+ 
+        data['Otp'] = otp
+        data['DateOfJoin']= timezone.now()
+        data['Status']=0
+
+        return data
 
 
      

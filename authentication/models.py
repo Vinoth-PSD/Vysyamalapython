@@ -90,9 +90,9 @@ class Registration1(models.Model):
     PaymentType = models.CharField(max_length=255)  # Changed from CharField to TextField
 
 
-    Profile_name = models.CharField(max_length=255,null=True, blank=True) 
+    Profile_name = models.CharField(max_length=255,null=True, blank=True,default='') 
     Profile_marital_status = models.CharField(max_length=255) 
-    Profile_dob = models.CharField(max_length=255) 
+    Profile_dob = models.CharField(max_length=255, blank=True,default=None) 
     Profile_height = models.CharField(max_length=255) 
     Profile_complexion = models.CharField(max_length=255)
 
@@ -138,9 +138,11 @@ class Registration1(models.Model):
     secondary_status = models.IntegerField() 
     plan_status = models.IntegerField() 
     allow_visit = models.IntegerField(default=0)
+    membership_startdate = models.DateTimeField(max_length=15,blank=True, null=True)
+    membership_enddate = models.DateTimeField(max_length=15,blank=True, null=True) 
     #Profile_idproof= models.TextField()
     
-
+    Owner_id = models.CharField(max_length=50, blank=True, null=True)
     Status = models.IntegerField(null=True, blank=True) 
 
 
@@ -2462,7 +2464,10 @@ class PlanSubscription(models.Model):
     payment_by= models.CharField(max_length=150)
     admin_user= models.CharField(max_length=150)
     order_id= models.CharField(max_length=150)
-
+    validity_startdate = models.DateTimeField(null=True,blank=True)
+    validity_enddate = models.DateTimeField(null=True,blank=True)
+    package_amount = models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
+    addon_package = models.CharField(max_length=100,null=True,blank=True)
     class Meta:
         managed = False  
         db_table = 'plan_subscription'  
@@ -2611,3 +2616,22 @@ class ProfileSuggestedPref(models.Model):
     # pref_marital_status = models.CharField(max_length=100)
     class Meta:
         db_table = 'profile_suggested_pref'
+        
+        
+class DataHistory(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=255)
+    owner_id = models.IntegerField(blank=True, null=True)
+    date_time = models.DateTimeField(default=timezone.now)
+    profile_status = models.IntegerField(default=0)
+    plan_id = models.IntegerField(blank=True, null=True)
+    others =  models.CharField(max_length=255,blank=True, null=True)
+    pending_others = models.CharField(max_length=255,blank=True, null=True)
+    hide_others = models.CharField(max_length=255,blank=True, null=True)
+    delete_others = models.CharField(max_length=255,blank=True, null=True)
+    
+    class Meta:
+        managed = False  
+        db_table = 'datahistory'
+  
+  
