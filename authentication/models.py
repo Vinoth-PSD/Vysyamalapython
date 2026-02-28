@@ -847,7 +847,7 @@ class Familydetails(models.Model):
     eye_wear = models.CharField(max_length=100, null=True)
     body_type = models.CharField(max_length=100, null=True)
     no_of_children = models.IntegerField(max_length=10 , null=True)
-    madulamn = models.CharField(max_length=10 ,null=True,blank=True)
+    madulamn = models.CharField(max_length=20 ,null=True,blank=True)
     father_alive = models.CharField(max_length=10 ,null=True,blank=True)
     mother_alive = models.CharField(max_length=10 ,null=True,blank=True)
     Physically_challenged_details = models.TextField(null=True,blank=True)
