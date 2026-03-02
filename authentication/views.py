@@ -12543,29 +12543,33 @@ class FeaturedProfile(APIView):
         #     oposi_gender='male'
 
         try:
-            # Raw SQL query to fetch random profiles
-            query = """SELECT 
-                ld.ProfileId, 
-                ld.Profile_name,  
-                ld.Gender,  
-                ld.Profile_dob, 
-                ld.Profile_height, 
-                ld.Profile_city, 
-                ld.Photo_protection 
-            FROM (
-                SELECT l1.ProfileId
-                FROM logindetails l1
-                LEFT JOIN profile_plan_feature_limits pf 
-                    ON pf.profile_id = l1.ProfileId
-                WHERE LOWER(l1.Gender) = LOWER(%s)
-                AND l1.Status = 1
-                AND (pf.featured_profile = 1 OR pf.featured_profile = '1')
-                AND CURDATE() BETWEEN pf.membership_fromdate AND pf.membership_todate
-                AND (
+
+            query = """
+                SELECT 
+                    ld.ProfileId, 
+                    ld.Profile_name,  
+                    ld.Gender,  
+                    ld.Profile_dob, 
+                    ld.Profile_height, 
+                    ld.Profile_city, 
+                    ld.Photo_protection
+                FROM (
+                    SELECT 
+                        l1.ProfileId,
+                        pf.boosted_date
+                    FROM logindetails l1
+                    INNER JOIN profile_plan_feature_limits pf 
+                        ON pf.profile_id = l1.ProfileId
+                    WHERE LOWER(l1.Gender) = LOWER(%s)
+                    AND l1.Status = 1
+                    AND pf.featured_profile = 1
+                    AND pf.Plan_id != 16
+                    AND CURDATE() BETWEEN pf.membership_fromdate AND pf.membership_todate
+                    AND (
                         pf.membership_fromdate >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
                         OR CURDATE() BETWEEN pf.boosted_date AND pf.boosted_enddate
                     )
-                AND (
+                    AND (
                         l1.Photo_protection != 1
                         AND EXISTS (
                             SELECT 1
@@ -12575,13 +12579,14 @@ class FeaturedProfile(APIView):
                             AND pi.is_deleted = 0
                         )
                     )
-                ORDER BY RAND()
-                LIMIT 25
-            ) AS rand_ld
-            JOIN logindetails ld 
-                ON ld.ProfileId = rand_ld.ProfileId;
-
-            """
+                    ORDER BY pf.boosted_date DESC
+                    LIMIT 25
+                ) AS featured_ids
+                JOIN logindetails ld 
+                    ON ld.ProfileId = featured_ids.ProfileId
+                ORDER BY featured_ids.boosted_date DESC
+                """
+           
             with connection.cursor() as cursor:
                 cursor.execute(query, [normalized_gender])
                 columns = [col[0] for col in cursor.description]
@@ -23036,7 +23041,7 @@ class Amsam_Image(APIView):
 
 
 
-# def send_profile_completion_reminder():
+# def senFeaturedProfiled_profile_completion_reminder():
     
 #     users = Registration1.objects.filter(Status=1)
 

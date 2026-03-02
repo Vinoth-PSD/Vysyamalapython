@@ -11434,14 +11434,38 @@ class FeaturedProfilesView(APIView):
         search = request.query_params.get('search')
         export_type = request.query_params.get('export')
         sql = """
-            SELECT pf.profile_id,ld.Profile_name,ld.Gender,masterstate.name,pl.plan_name,pf.boosted_date,pf.boosted_enddate,ms.status_name
+            SELECT 
+                pf.profile_id,
+                ld.Profile_name,
+                ld.Gender,
+                masterstate.name,
+                pl.plan_name,
+                pf.boosted_date,
+                pf.boosted_enddate,
+                ms.status_name
             FROM profile_plan_feature_limits pf
             LEFT JOIN logindetails ld ON pf.profile_id = ld.ProfileId
             LEFT JOIN plan_master pl ON pf.Plan_id = pl.id
             LEFT JOIN masterstate ON ld.Profile_state = masterstate.id
             LEFT JOIN masterprofilestatus ms ON ld.status = ms.status_code
-            Where pf.featured_profile = 1 AND ld.status = 1 
-            
+            WHERE pf.featured_profile = 1
+            AND ld.status = 1
+            And ld.Plan_id != 16
+            AND CURDATE() BETWEEN pf.membership_fromdate AND pf.membership_todate
+            AND (
+                    pf.membership_fromdate >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+                    OR CURDATE() BETWEEN pf.boosted_date AND pf.boosted_enddate
+                )
+            AND (
+                    ld.Photo_protection != 1
+                    AND EXISTS (
+                        SELECT 1
+                        FROM profile_images pi
+                        WHERE pi.profile_id = ld.ProfileId
+                        AND pi.image_approved = 1
+                        AND pi.is_deleted = 0
+                    )
+                )
         """
         params = []
 
