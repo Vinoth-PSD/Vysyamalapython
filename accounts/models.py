@@ -13,6 +13,7 @@ from collections import defaultdict
 from authentication.models import Get_profiledata as gpt
 from dateutil.relativedelta import relativedelta
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.db.models import Q
 
 
 
@@ -643,12 +644,7 @@ class Image_Upload(models.Model):
         db_table = 'profile_images'
         
     def get_image_status(profile_id):
-        approved_images_exist = Image_Upload.objects.filter(
-            profile_id=profile_id,
-            image_approved=1,
-            is_deleted__in=[None, 0]
-        ).exists()
-    
+        approved_images_exist = Image_Upload.objects.filter( profile_id=profile_id, image_approved=True ).filter(Q(is_deleted=False) | Q(is_deleted__isnull=True)).exists()
         return "Yes" if approved_images_exist else "No"
 # class LoginDetails_1(models.Model):
 #     ContentId = models.AutoField(primary_key=True)
