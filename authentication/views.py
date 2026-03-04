@@ -19371,7 +19371,7 @@ class WithoutAddressSendEmailAPI(APIView):
             email.attach(*attachment)
 
         try:
-            # email.send()
+            email.send()
             email_status = "sent"
             response_msg = {"message": "Email sent successfully to the recipient!"}
             if missing_profiles:

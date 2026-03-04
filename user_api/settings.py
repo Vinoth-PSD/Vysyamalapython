@@ -487,17 +487,30 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # DEFAULT_FROM_EMAIL = 'vinoth@psdigitise.com'
 
 
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_USE_SSL = False
+
+# EMAIL_HOST_USER = 'Info@vysyamala.com'
+# EMAIL_HOST_PASSWORD = 'aussiopmcajislbs'
+
+# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 
-EMAIL_HOST_USER = 'Info@vysyamala.com'
-EMAIL_HOST_PASSWORD = 'aussiopmcajislbs'
+EMAIL_HOST_USER = 'apikey'
+EMAIL_HOST_PASSWORD = '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'
 
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL = 'Info@vysyamala.com'
+
 
 
 TEMPLATES = [
