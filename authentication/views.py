@@ -8571,13 +8571,13 @@ class Save_plan_package(APIView):
 
                 registration = models.Registration1.objects.get(ProfileId=profile_id)
 
-                
-                registration.Plan_id = plan_id if plan_id != 0 else registration.Plan_id 
-                registration.secondary_status = 5
-                registration.Status=1
-                registration.plan_status = plan_id
-                registration.Addon_package = addon_package_id
-                registration.Payment= total_amount
+                if registration.Status ==1:
+                    registration.Plan_id = plan_id if plan_id != 0 else registration.Plan_id 
+                    registration.secondary_status = 5
+                    registration.Status=1
+                    registration.plan_status = plan_id
+                    registration.Addon_package = addon_package_id
+                    registration.Payment= total_amount
 
                 addon_package_ids = addon_package_id
 
@@ -8589,10 +8589,11 @@ class Save_plan_package(APIView):
                 
                 membership_fromdate = payment_datetime
                 membership_todate = membership_fromdate + timedelta(days=365)
-                if is_plan_purchase:
-                    registration.membership_startdate = membership_fromdate
-                    registration.membership_enddate = membership_todate
-                registration.save() 
+                if registration.Status == 1:
+                    if is_plan_purchase:
+                        registration.membership_startdate = membership_fromdate
+                        registration.membership_enddate = membership_todate
+                    registration.save() 
 
                 user, created = User.objects.get_or_create(username=profile_id)
                 if created:
@@ -8657,23 +8658,23 @@ class Save_plan_package(APIView):
                     status=1,
                     created_at=payment_datetime
                 )
+                if registration.Status ==1:
+                    if is_plan_purchase:
+                        plan_features = models.PlanFeatureLimit.objects.filter(plan_id=plan_id).values().first()
 
-                if is_plan_purchase:
-                    plan_features = models.PlanFeatureLimit.objects.filter(plan_id=plan_id).values().first()
+                        if plan_features:
+                            plan_features.pop('id', None)
+                            plan_features.pop('plan_id', None)
 
-                    if plan_features:
-                        plan_features.pop('id', None)
-                        plan_features.pop('plan_id', None)
+                            plan_features.update({
+                                'plan_id': plan_id,
+                                'membership_fromdate': membership_fromdate,
+                                'membership_todate': membership_todate,
+                                'status':1
+                            })
 
-                        plan_features.update({
-                            'plan_id': plan_id,
-                            'membership_fromdate': membership_fromdate,
-                            'membership_todate': membership_todate,
-                            'status':1
-                        })
-
-                        models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(**plan_features)
-        
+                            models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(**plan_features)
+            
                 gender = logindetails.Gender
                 height = logindetails.Profile_height
                 marital_status=logindetails.Profile_marital_status
@@ -13553,7 +13554,7 @@ class ActiveProfilesAndHappyCustomersAPIView(APIView):
 
 class JustRegisteredAPIView(APIView):
     def post(self, request):
-        recent_users = models.Registration1.objects.all().order_by('-DateOfJoin')[:10]
+        recent_users = models.Registration1.objects.filter(Profile_dob__isnull=False).order_by('-DateOfJoin')[:10]
         active_profiles_count = models.Registration1.objects.filter(Status=1).count()
         happy_customers_count = 56555
  
