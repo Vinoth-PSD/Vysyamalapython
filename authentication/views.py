@@ -4682,7 +4682,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
                 # print('no_of_image','1')
 
-                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()           
+                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1).exclude(is_deleted=1).first()           
             
                 if get_entry:
                         # Serialize the single instance
