@@ -12464,13 +12464,13 @@ class EditProfileWithPermissionAPIView(APIView):
                 # print('inside profile common data update',profile_common_data.get("primary_status"))
                 # Only include the common data keys that are available in the request
                 plan_status = profile_common_data.get("secondary_status")
-                querier = profile_common_data.get("querier")
+                # querier = profile_common_data.get("querier")
 
-                if str(plan_status) == "2" and querier is None:
-                    return Response(
-                        {"error": "Querier option (Yes/No) must be selected when plan_status = 2"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+                # if str(plan_status) == "2" and querier is None:
+                #     return Response(
+                #         {"error": "Querier option (Yes/No) must be selected when plan_status = 2"},
+                #         status=status.HTTP_400_BAD_REQUEST
+                #     )
                 if edit_mem ==3:
                     login_detail = LoginDetails.objects.get(ProfileId=profile_id)
                     get_plan_status = profile_common_data.get("secondary_status")
@@ -12556,7 +12556,7 @@ class EditProfileWithPermissionAPIView(APIView):
                     "Plan_id": str(profile_common_data.get("secondary_status")),
                     "Otp_verify":profile_common_data.get("mobile_otp_verify"),
                     "Owner_id":profile_common_data.get("profile_owner_id"),
-                    "querier": profile_common_data.get("querier")
+                    # "querier": profile_common_data.get("querier")
                 })
                 family_common_data=clean_none_fields({
                     "family_status":profile_common_data.get("family_status")
