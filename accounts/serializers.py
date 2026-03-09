@@ -1229,7 +1229,7 @@ class MarriageSettleDetailsSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate(self, data):
-        required_fields = ['profile_id', 'owner_id']
+        required_fields = ['profile_id']
         for field in required_fields:
             if not data.get(field):
                 raise serializers.ValidationError({field: "This field is required."})
@@ -1465,6 +1465,7 @@ class PaymentTransactionListSerializer(serializers.Serializer):
     profile_status = serializers.SerializerMethodField()
     a_status = serializers.CharField()
     action_log = serializers.ListField(child=serializers.DictField(), required=False)
+    addon_packages = serializers.CharField()
     
     def get_Profile_state(self,obj):
         state_id = obj.get('Profile_state')

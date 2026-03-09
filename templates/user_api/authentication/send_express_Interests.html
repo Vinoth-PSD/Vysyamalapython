@@ -1,71 +1,87 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Express Interest Notification</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .header {
-            background-color: #4CAF50;
-            padding: 10px 0;
-            text-align: center;
-            color: white;
-        }
-        .content {
-            padding: 20px;
-            font-size: 16px;
-            line-height: 1.5;
-            color: #333;
-        }
-        .button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            border-radius: 4px;
-            margin-top: 20px;
-        }
-        .footer {
-            margin-top: 20px;
-            text-align: center;
-            color: #888;
-            font-size: 12px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Express Interest Alert - Vysyamala</title>
+<style>
+  body{margin:0;background:#fff5f7;font-family:Arial,Helvetica,sans-serif}
+  .wrapper{width:100%;table-layout:fixed;background:#fff5f7;padding:20px 0}
+  .main{background:#ffffff;margin:0 auto;width:100%;max-width:600px;border-radius:14px;overflow:hidden;box-shadow:0 8px 25px rgba(0,0,0,.08)}
+  .header{text-align:center;padding:18px}
+  .header img{max-width:220px}
+  .hero{background:linear-gradient(135deg,#e51b3f,#ff4d6d);color:#fff;text-align:center;padding:30px 20px}
+  .hero h1{margin:0;font-size:24px}
+  .hero p{margin-top:8px;font-size:15px}
+  .content{padding:25px;color:#444;font-size:15px;line-height:1.6}
+  .profile{background:#fff5f7;border:1px solid #ffd3db;padding:18px;border-radius:10px;margin:18px 0}
+  .label{color:#888}
+  .value{font-weight:bold;color:#333}
+  .btn{display:inline-block;background:#e51b3f;color:#fff;text-decoration:none;padding:14px 22px;border-radius:8px;margin-top:12px;font-weight:bold}
+  .center{text-align:center}
+  .divider{height:1px;background:#eee;margin:25px 0}
+  .blessing{background:#fff9e6;border:1px solid #ffe08a;padding:14px;border-radius:10px;margin-top:15px}
+  .footer{font-size:12px;color:#777;text-align:center;padding:20px}
+  a{color:#e51b3f}
+</style>
 </head>
+
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>You’ve Received an Express Interest</h1>
+<center class="wrapper">
+  <table class="main" role="presentation">
+    <tr>
+      <td class="header">
+        <img src="https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png" alt="Vysyamala">
+      </td>
+    </tr>
+
+    <tr>
+      <td class="hero">
+        <h1>💌 Express Interest Alert!</h1>
+        <p>Someone is interested in your profile</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td class="content">
+        <p>Dear <b>{{recipient_name}}</b>,</p>
+        <p>Greetings from <b>Vysyamala</b>! A member has shown interest in your profile. You may review the details below and respond.</p>
+
+        <div class="profile">
+          <div><span class="label">Profile ID:</span> <span class="value">{{from_profile_id}}</span></div>
+          <div><span class="label">Name:</span> <span class="value">{{profile_name}}</span></div>
+          <div><span class="label">Age:</span> <span class="value">{{Age}}</span></div>
+          <div><span class="label">Star:</span> <span class="value">{{Star}}</span></div>
+          <div><span class="label">Education:</span> <span class="value">{{education}}</span></div>
         </div>
-        <div class="content">
-            <p>Dear {{ recipient_name }},</p>
-            <p>We are excited to inform you that profile ID <strong>{{ from_profile_id }}</strong> has shown interest in connecting with you!</p>
-            <p>To view this profile and respond, simply click the button below:</p>
-            <p><a href="{{ profile_link }}" class="button">View Profile</a></p>
-            <p>We recommend reviewing the profile and expressing your interest back if you find it suitable. Don’t miss out on this opportunity to connect!</p>
-            <p>Best regards,<br>The Matrimony Team</p>
+
+        <div class="center">
+          <a href="https://www.vysyamala.com/Dashboard" class="btn">View & Respond</a>
         </div>
-        <div class="footer">
-            <p>If you wish to stop receiving these notifications, please update your alert settings in your profile.</p>
+
+        <div class="divider"></div>
+
+        <p>Please login to Vysyamala and check your inbox for further action. Your quick response helps build a meaningful connection.</p>
+
+        <div class="blessing">
+          Our prayers to Goddess Sri Vasavi Kanyaka Parameswari bless you to find a perfect life partner at the earliest. Best wishes!
         </div>
-    </div>
+
+        <p style="margin-top:18px">If your marriage is fixed through Vysyamala, we do not collect any additional brokerage. Kindly mention <b>Vysyamala</b> in your wedding invitation.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td class="footer">
+        Warm Regards,<br>
+        <b>Team Vysyamala</b><br><br>
+        Helpline: +91 9944851550<br>
+        Email: info@vysyamala.com<br>
+        Website: www.vysyamala.com<br><br>
+        You are receiving this email because you are a registered member of Vysyamala. <a href="www.vysyamala.com/Unsubscribe">Unsubscribe</a>
+      </td>
+    </tr>
+  </table>
+</center>
 </body>
 </html>

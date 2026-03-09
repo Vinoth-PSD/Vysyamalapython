@@ -845,15 +845,16 @@ class Update_ExpressintrSerializer(serializers.ModelSerializer):
             #if the status is 3 the request is rejected if the status is 2 the request is accepted
 
             if(status==3):
-        
                    int_mesage='Your express interests was rejected from profile ID '+validated_data.get('profile_from')
                    cta='NULL'
                    message_titile=validated_data.get('profile_from')+' has rejected your express intrest'
+                   notification_type='express_interests_update_fail'
             if(status==2):
         
                    int_mesage='Your express interests was Accepted from profile ID '+validated_data.get('profile_from')
                    cta='Message'
                    message_titile=validated_data.get('profile_from')+' has accepted your express intrest'
+                   notification_type='express_interests_update'
 
             print(message_titile,'message_titile')
             profile_from=validated_data.get('profile_from')
@@ -865,12 +866,13 @@ class Update_ExpressintrSerializer(serializers.ModelSerializer):
                     
             from_profile=models.Registration1.objects.get(ProfileId=profile_to)
             from_profile_name=from_profile.Profile_name
-                    
-            choosen_medium=from_profile.Notifcation_enabled
-                                
-                                
+            city =from_profile.Profile_city
+            contact=from_profile.Mobile_no
+   
+            choosen_medium=to_profile.Notifcation_enabled
+                                                   
             if(choosen_medium):
-                                                            
+                        print("test1")                               
                         chosen_alert_types = [int(alert_type) for alert_type in choosen_medium.split(',')]
                                         
                         # Fetch alert settings based on chosen_alert_types
@@ -880,8 +882,8 @@ class Update_ExpressintrSerializer(serializers.ModelSerializer):
                         
                         send_email = False
                         send_sms = False
-                        notification_type='express_interests_update'
-
+                        
+                        print("test2")                               
                         for alert_setting in alert_settings:
                             if alert_setting.alert_type == 1:  # Assuming '1' is for email
                                 send_email = True
@@ -892,7 +894,8 @@ class Update_ExpressintrSerializer(serializers.ModelSerializer):
                         # print('send_sms',send_sms)
 
                         if send_email:
-                            send_email_notification(profile_from,from_profile_name,to_profile_name,to_profile_email, message_titile, int_mesage,notification_type)
+                            print("test3")                               
+                            send_email_notification(profile_from,from_profile_name,to_profile_name,to_profile_email, message_titile, int_mesage,notification_type,city=city,contact=contact)
 
                         print('send email success')
 

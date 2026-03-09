@@ -585,6 +585,7 @@ class LoginDetails(models.Model):
     Profile_emailid= models.CharField(max_length=50, blank=True, null=True)
     facebook = models.CharField(max_length=255, blank=True, null=True)
     linkedin = models.CharField(max_length=255, blank=True, null=True)
+    querier = models.BooleanField(null=True, blank=True)  # Yes/No option
     class Meta:
         db_table = 'logindetails'
 
@@ -646,6 +647,7 @@ class Image_Upload(models.Model):
     def get_image_status(profile_id):
         approved_images_exist = Image_Upload.objects.filter( profile_id=profile_id, image_approved=True ).filter(Q(is_deleted=False) | Q(is_deleted__isnull=True)).exists()
         return "Yes" if approved_images_exist else "No"
+ 
 # class LoginDetails_1(models.Model):
 #     ContentId = models.AutoField(primary_key=True)
 #     ProfileId = models.CharField(max_length=50, unique=True)
@@ -1812,7 +1814,6 @@ class Get_profiledata_Matching(models.Model):
                     else:
                         base_query += " AND a.Status = 1 "   #approved Only
                         pass
-                base_query += "Order by a.DateOfJoin desc"
 
             # COUNT
             with connection.cursor() as cursor:
@@ -3348,7 +3349,7 @@ class Get_profiledata_Matching(models.Model):
                 a.ProfileId, a.Gender, a.Photo_protection, a.Profile_city, a.Profile_verified,
                         a.Profile_name, a.Profile_dob, a.Profile_height,
                         e.birthstar_name, e.birth_rasi_name,
-                        f.degree,f.other_degree, f.profession, g.EducationLevel, 
+                        f.degree,f.other_degree, f.profession,g.EducationLevel,ps.plan_name,mps.status_name,mfs.status as family_status_name,k.ModeName,ms.name as state_name,
                         h.income
                 FROM logindetails a
                 LEFT JOIN profile_horoscope e ON a.ProfileId = e.profile_id
@@ -3358,6 +3359,11 @@ class Get_profiledata_Matching(models.Model):
                 LEFT JOIN masterannualincome h ON f.anual_income = h.id
                 LEFT JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
                 LEFT JOIN marriage_settled j ON a.ProfileId = j.profile_id
+                LEFT JOIN mastermode k ON a.Profile_for = k.Mode
+                LEFT JOIN masterstate ms on a.Profile_state = ms.id
+                LEFT JOIN plan_master ps on a.Plan_id = ps.id
+                LEFT JOIN masterprofilestatus mps on a.status = mps.status_code
+                LEFT JOIN masterfamilystatus mfs on c.family_status = mfs.id
                 WHERE 1
                 """
             else:
@@ -3365,8 +3371,8 @@ class Get_profiledata_Matching(models.Model):
                 base_query = """
                     SELECT DISTINCT a.ProfileId, a.Gender, a.Photo_protection, a.Profile_city, a.Profile_verified,
                         a.Profile_name, a.Profile_dob, a.Profile_height,
-                        e.birthstar_name, e.birth_rasi_name,
-                        f.degree,f.other_degree, f.profession, g.EducationLevel, 
+                        e.birthstar_name, e.birth_rasi_name,ps.plan_name,mps.status_name,mfs.status as family_status_name,
+                        f.degree,f.other_degree, f.profession, g.EducationLevel,k.ModeName,ms.name as state_name,
                         h.income, (SELECT image FROM profile_images WHERE profile_id = a.ProfileId LIMIT 1) as image
                     FROM logindetails a
                     LEFT JOIN profile_horoscope e ON a.ProfileId = e.profile_id
@@ -3377,6 +3383,11 @@ class Get_profiledata_Matching(models.Model):
                     LEFT JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
                     LEFT JOIN profile_images i ON i.profile_id=a.ProfileId
                     LEFT JOIN marriage_settled j ON a.ProfileId = j.profile_id
+                    LEFT JOIN mastermode k ON a.Profile_for = k.Mode
+                    LEFT JOIN masterstate ms on a.Profile_state = ms.id
+                    LEFT JOIN plan_master ps on a.Plan_id = ps.id
+                    LEFT JOIN masterprofilestatus mps on a.status = mps.status_code
+                    LEFT JOIN masterfamilystatus mfs on c.family_status = mfs.id
                     WHERE 1 
                 """
 
@@ -3505,7 +3516,10 @@ class Get_profiledata_Matching(models.Model):
                     query_params.append(tad)
                 except Exception:
                     pass
-                
+
+
+
+                            
             if business_name:
                 base_query += " AND lower(f.business_name) LIKE %s"
                 query_params.append(f"%{business_name.lower()}%")
@@ -3843,11 +3857,58 @@ class Get_profiledata_Matching(models.Model):
             with connection.cursor() as cursor:
                 cursor.execute(base_query, query_params)
                 rows = cursor.fetchall()
+
                 columns = [col[0] for col in cursor.description]
                 results = [dict(zip(columns, row)) for row in rows]
 
+                # ---------------- TEMP TABLE FILTER ----------------
+                if from_last_action_date or to_last_action_date:
+
+                    with connection.cursor() as cursor:
+
+                        cursor.execute("DROP TEMPORARY TABLE IF EXISTS temp_profiles")
+
+                        cursor.execute("""
+                            CREATE TEMPORARY TABLE temp_profiles (
+                                profile_id VARCHAR(50) PRIMARY KEY
+                            )
+                        """)
+
+                        insert_values = [(r["ProfileId"],) for r in results]
+
+                        cursor.executemany(
+                            "INSERT INTO temp_profiles (profile_id) VALUES (%s)",
+                            insert_values
+                        )
+
+                        history_query = """
+                            SELECT DISTINCT profile_id
+                            FROM datahistory
+                            WHERE profile_id IN (SELECT profile_id FROM temp_profiles)
+                        """
+
+                        history_params = []
+
+                        if from_last_action_date:
+                            history_query += " AND DATE(date_time) >= %s"
+                            history_params.append(from_last_action_date)
+
+                        if to_last_action_date:
+                            history_query += " AND DATE(date_time) <= %s"
+                            history_params.append(to_last_action_date)
+
+                        cursor.execute(history_query, history_params)
+
+                        filtered_profiles = [row[0] for row in cursor.fetchall()]
+
+                        results = [r for r in results if r["ProfileId"] in filtered_profiles]
+
+                # -------- PROFILE INDEX --------
                 all_profile_ids = [row["ProfileId"] for row in results]
-                profile_with_indices = {str(i + 1): pid for i, pid in enumerate(all_profile_ids)}
+
+                profile_with_indices = {
+                    str(i + 1): pid for i, pid in enumerate(all_profile_ids)
+                }
 
                 return results, total_count, profile_with_indices
 
@@ -4312,7 +4373,7 @@ class ProfileCallManagement(models.Model):
 
 class MarriageSettleDetails(models.Model):
     profile_id = models.CharField(max_length=255,primary_key=True)
-    owner_id = models.IntegerField()
+    owner_id = models.IntegerField(null=True , blank=True)
 
     marriage_date = models.DateField(null=True, blank=True)
     groombridefathername = models.CharField(max_length=255, null=True, blank=True)

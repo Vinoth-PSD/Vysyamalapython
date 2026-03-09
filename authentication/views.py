@@ -396,7 +396,10 @@ class Registrationstep1(APIView):
             else:
                 
                 context={
-                        "otp":otp
+                        "otp":otp, 
+                        "ExpiryMinutes": 10,
+                        "ProfileName": ProfileId,
+
                     }
                 html_content = render_to_string('user_api/authentication/registration_otp.html', context)               
                 recipient_list = [EmailId]
@@ -479,51 +482,46 @@ class Registrationstep2(APIView):
 
 
             
-                # subject = "Welcome to Vysyamala!"
-                # context = {
-                #     'Profile_name': registration_data['Profile_name'],
-                #     'new_profile_id':profile_id,
-                # }
+                subject = "Welcome to Vysyamala!"
+                context = {
+                    'Profile_name': registration_data['Profile_name'],
+                    'new_profile_id':profile_id,
+                }
 
-                # html_content = render_to_string('user_api/authentication/welcome_email_template.html', context)
+                html_content = render_to_string('user_api/authentication/welcome_email_template.html', context)
 
-                # recipient_list = [reg.EmailId]
-                # from_email = settings.DEFAULT_FROM_EMAIL
-                # try:
-                #     send_mail(
-                #             subject,
-                #             '',
-                #             from_email,
-                #             recipient_list,
-                #             fail_silently=False,
-                #             html_message=html_content
-                #         )
-                # except Exception:
-                #     pass
+                recipient_list = [reg.EmailId]
+                from_email = settings.DEFAULT_FROM_EMAIL
+                send_mail(
+                        subject,
+                        '',
+                        from_email,
+                        recipient_list,
+                        fail_silently=False,
+                        html_message=html_content
+                    )
 
-                # glance_subject = "Vysyamala - At a Glance"
+                glance_subject = "Vysyamala - At a Glance"
 
-                # glance_context = {
-                #     'ProfileName': registration_data['Profile_name'],
-                #     'DashboardLink': f"https://www.vysyamala.com/login",
+                glance_context = {
+                    'ProfileName': registration_data['Profile_name'],
+                    'DashboardLink': f"https://www.vysyamala.com/login",
                     
-                # }
+                }
 
-                # glance_html_content = render_to_string(
-                #     'user_api/authentication/Glance.html',
-                #     glance_context
-                # )
-                # try:
-                #     send_mail(
-                #         glance_subject,
-                #         strip_tags(glance_html_content),
-                #         from_email,
-                #         recipient_list,
-                #         fail_silently=False,
-                #         html_message=glance_html_content
-                #     )
-                # except Exception:
-                #     pass
+                glance_html_content = render_to_string(
+                    'user_api/authentication/Glance.html',
+                    glance_context
+                )
+
+                send_mail(
+                    glance_subject,
+                    strip_tags(glance_html_content),
+                    from_email,
+                    recipient_list,
+                    fail_silently=False,
+                    html_message=glance_html_content
+                )
                 return JsonResponse({"Status": 1, "message": "Registration step 2 successful","profile_id":profile_id}, status=status.HTTP_201_CREATED)
             except models.Registration1.DoesNotExist:
                 return JsonResponse({"Status": 0, "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -2204,10 +2202,47 @@ class Send_profile_intrests(APIView):
                         is_read=0,
                         created_at=timezone.now()
                     )
-
+                  
                     from_profile=models.Registration1.objects.get(ProfileId=profile_from)
                     from_profile_name=from_profile.Profile_name
-                    
+                    try:
+                        age=calculate_age(from_profile.Profile_dob)
+                    except Exception:
+                        age=None
+                    try:
+                        star = models.Horoscope.objects.get(profile_id=profile_from)
+                        if star and star.birthstar_name:
+                            try:
+                                star_obj= models.Birthstar.objects.get(id=int(star.birthstar_name))
+                                star_name = star_obj.star
+                                print(star_name)
+                            except Exception as e:
+                                star_name = None
+                        else:
+                            star_name = None
+                    except Exception as e:
+                        star = None
+                        star_name = None
+
+
+
+                    try:
+                        edu = models.Edudetails.objects.get(profile_id=profile_from)
+                        if edu and edu.degree:
+                            try:
+                                degree_obj = models.Profileedu_degree.objects.get(id=int(edu.degree))
+                                degree = degree_obj.degeree_name
+                                print(degree)
+                            except Exception as e:
+                                degree = None
+                        else:
+                            degree = None
+                    except Exception as e:
+                        print(f"ERROR fetching Edudetails: {str(e)}")
+                        edu = None
+                        degree = None
+
+
                     to_profile=models.Registration1.objects.get(ProfileId=profile_to)
                     to_profile_name=to_profile.Profile_name
                     
@@ -2237,7 +2272,8 @@ class Send_profile_intrests(APIView):
                         # print('send_sms',send_sms)
 
                         if send_email:
-                            send_email_notification(profile_from,from_profile_name,to_profile_name,to_profile.EmailId, message_title, to_message,notification_type)
+                            print("test1",degree)
+                            send_email_notification(profile_from,from_profile_name,to_profile_name,to_profile.EmailId, message_title, to_message,notification_type,age,degree,star_name)
 
                 return JsonResponse({"Status": 1, "message": "Express interests sent successfully"}, status=status.HTTP_200_OK)
             else:
@@ -6468,6 +6504,44 @@ class Send_photo_request(APIView):
                         created_at=timezone.now()
                     )
 
+                    # ------------------ SEND PHOTO REQUEST EMAIL ------------------
+
+                    from_profile_obj = models.Registration1.objects.get(ProfileId=profile_from)
+                    to_profile_obj = models.Registration1.objects.get(ProfileId=profile_to)
+
+                    subject = "📷 Someone Requested Your Photo - Vysyamala"
+
+                    context = {
+                        "ProfileName": to_profile_obj.Profile_name,
+                        "RequesterName": from_profile_obj.Profile_name,
+                        "UpdatePhotoLink": f"https://www.vysyamala.com/dashboard",
+                       
+                    }
+
+                    html_content = render_to_string(
+                        "user_api/authentication/Photo_Request.html",
+                        context
+                    )
+                    send_mail(
+                        subject,
+                        strip_tags(html_content),
+                        settings.DEFAULT_FROM_EMAIL,
+                        [to_profile_obj.EmailId],
+                        fail_silently=False,
+                        html_message=html_content
+                    )
+                  
+                    return JsonResponse(
+                        {"Status": 1, "message": "Photo interests sent successfully"},
+                        status=status.HTTP_200_OK
+                    )
+
+
+                 
+                
+
+
+
                     return JsonResponse({"Status": 1, "message": "Photo interests sent successfully"}, status=status.HTTP_200_OK)
             
             else:
@@ -8415,7 +8489,6 @@ def GetMarsRahuKethuDoshamDetails(raw_input):
         return mars_dosham, rahu_kethu_dosham
 
 
-
 class Save_plan_package(APIView):
     def post(self, request):
         profile_id = request.data.get('profile_id')
@@ -8658,23 +8731,79 @@ class Save_plan_package(APIView):
                     status=1,
                     created_at=payment_datetime
                 )
-                if registration.Status ==1:
-                    if is_plan_purchase:
-                        plan_features = models.PlanFeatureLimit.objects.filter(plan_id=plan_id).values().first()
-
-                        if plan_features:
-                            plan_features.pop('id', None)
-                            plan_features.pop('plan_id', None)
-
-                            plan_features.update({
-                                'plan_id': plan_id,
-                                'membership_fromdate': membership_fromdate,
-                                'membership_todate': membership_todate,
-                                'status':1
-                            })
-
-                            models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(**plan_features)
+               
+              
+                payment_datetime = timezone.now() 
             
+
+                if registration.Status == 1:
+
+                        addon_package_ids = request.data.get('addon_package_id')
+                        print(addon_package_ids)
+                        addon_package_id_list = [
+                            int(pk.strip()) for pk in addon_package_ids.split(",") if pk.strip().isdigit()
+                        ] if addon_package_ids else []
+
+                        if is_plan_purchase:
+
+                            plan_features = models.PlanFeatureLimit.objects.filter(plan_id=plan_id).values().first()
+                            print("333")
+                            if plan_features:
+                                plan_features.pop('id', None)
+                                plan_features.pop('plan_id', None)
+
+                                plan_features.update({
+                                    'plan_id': plan_id,
+                                    'membership_fromdate': membership_fromdate,
+                                    'membership_todate': membership_todate,
+                                    'status': 1
+                                })
+                                profile_feature= models.Profile_PlanFeatureLimit.objects.get(
+                                    profile_id=profile_id
+                                )
+                                print("2111",plan_id)
+                                if int(plan_id)==2:
+                                    if not profile_feature.boosted_date and not profile_feature.boosted_enddate:
+                                        profile_feature.boosted_date = payment_datetime
+                                        profile_feature.boosted_enddate = payment_datetime + timedelta(days=90)
+                                        profile_feature.featured_profile = 1
+                                        profile_feature.save()
+
+                                print("test1")    
+                                if not created:
+                                    models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(**plan_features)
+
+                        else:
+                            
+                            profile_feature = models.Profile_PlanFeatureLimit.objects.filter(
+                            profile_id=profile_id
+                        ).first()
+
+                        try:
+
+                            addon_package_ids = request.data.get('addon_package_id')
+                            print(22,addon_package_ids)
+                            addon_package_id_list = [
+                                int(pk.strip()) for pk in addon_package_ids.split(",") if pk.strip().isdigit()
+                            ] if addon_package_ids else []
+
+                            print("Addon List:", addon_package_id_list)
+
+                            if profile_feature and 3 in addon_package_id_list:
+
+                                if not profile_feature.boosted_date and not profile_feature.boosted_enddate:
+
+                                    profile_feature.boosted_date = payment_datetime
+                                    profile_feature.boosted_enddate = payment_datetime + timedelta(days=90)
+                                    profile_feature.featured_profile = 1
+                                    profile_feature.save()
+
+                                    print("Booster activated")
+
+                        except Exception as e:
+                            print("Booster update error:", str(e))
+
+        
                 gender = logindetails.Gender
                 height = logindetails.Profile_height
                 marital_status=logindetails.Profile_marital_status
@@ -8750,6 +8879,10 @@ class Save_plan_package(APIView):
             except models.Registration1.DoesNotExist:
                 return JsonResponse({"status": "error", "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
                       
+
+
+
+
 
 # def GetMarsRahuKethuDoshamDetails(raw_input):
 #     # def post(self, request):
@@ -12544,50 +12677,34 @@ class FeaturedProfile(APIView):
         #     oposi_gender='male'
 
         try:
-
+            # Raw SQL query to fetch random profiles
             query = """
                 SELECT 
-                    ld.ProfileId, 
-                    ld.Profile_name,  
-                    ld.Gender,  
-                    ld.Profile_dob, 
-                    ld.Profile_height, 
-                    ld.Profile_city, 
-                    ld.Photo_protection
-                FROM (
-                    SELECT 
-                        l1.ProfileId,
-                        pf.boosted_date
-                    FROM logindetails l1
-                    INNER JOIN profile_plan_feature_limits pf 
-                        ON pf.profile_id = l1.ProfileId
-                    WHERE LOWER(l1.Gender) = LOWER(%s)
-                    AND l1.Status = 1
-                    AND pf.featured_profile = 1
-                    AND pf.Plan_id != 16
-                    AND CURDATE() BETWEEN pf.membership_fromdate AND pf.membership_todate
-                    AND (
-                        pf.membership_fromdate >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-                        OR CURDATE() BETWEEN pf.boosted_date AND pf.boosted_enddate
-                    )
-                    AND (
-                        l1.Photo_protection != 1
-                        AND EXISTS (
-                            SELECT 1
-                            FROM profile_images pi
-                            WHERE pi.profile_id = l1.ProfileId
-                            AND pi.image_approved = 1
-                            AND pi.is_deleted = 0
-                        )
-                    )
-                    ORDER BY pf.boosted_date DESC
-                    LIMIT 25
-                ) AS featured_ids
-                JOIN logindetails ld 
-                    ON ld.ProfileId = featured_ids.ProfileId
-                ORDER BY featured_ids.boosted_date DESC
+                    l1.ProfileId, 
+                    l1.Profile_name,  
+                    l1.Gender,  
+                    l1.Profile_dob, 
+                    l1.Profile_height, 
+                    l1.Profile_city, 
+                    l1.Photo_protection 
+                FROM logindetails l1
+                INNER JOIN profile_plan_feature_limits pf 
+                    ON pf.profile_id = l1.ProfileId
+                WHERE LOWER(l1.Gender) = LOWER(%s)
+                AND l1.Status = 1
+                AND CURDATE() BETWEEN pf.membership_fromdate AND pf.membership_todate
+                AND CURDATE() BETWEEN pf.boosted_date AND pf.boosted_enddate
+                AND l1.Photo_protection != 1
+                AND EXISTS (
+                    SELECT 1
+                    FROM profile_images pi
+                    WHERE pi.profile_id = l1.ProfileId
+                    AND pi.image_approved = 1
+                    AND pi.is_deleted = 0
+                )
+                ORDER BY pf.boosted_date DESC
+                LIMIT 25
                 """
-           
             with connection.cursor() as cursor:
                 cursor.execute(query, [normalized_gender])
                 columns = [col[0] for col in cursor.description]
@@ -13551,7 +13668,6 @@ class ActiveProfilesAndHappyCustomersAPIView(APIView):
         })
         
         
-
 class JustRegisteredAPIView(APIView):
     def post(self, request):
         recent_users = models.Registration1.objects.filter(Profile_dob__isnull=False).order_by('-DateOfJoin')[:10]
@@ -13607,9 +13723,8 @@ class JustRegisteredAPIView(APIView):
             "active_profiles_count": active_profiles_count,
             "happy_customers_count": happy_customers_count
         })
-        
-    
-        
+     
+   
         
         
 class GetFooterView(APIView):
@@ -23030,121 +23145,113 @@ class Amsam_Image(APIView):
         response = HttpResponse(html_content, content_type="text/html")
         response["X-Frame-Options"] = "ALLOWALL"
         return response
-
-        
-# from django.core.mail import send_mail
-# from django.template.loader import render_to_string
-# from django.utils.html import strip_tags
-# from django.conf import settings
-# from django.utils import timezone
-
-# from .models import Registration1
-
-
-
-# def senFeaturedProfiled_profile_completion_reminder():
     
-#     users = Registration1.objects.filter(Status=1)
+import os
+import uuid
+from django.conf import settings
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 
-#     sent_count = 0
+class UploadProfileImage(APIView):
 
-#     for user in users:
-#         profile_id = user.ProfileId
+    def post(self, request):
+        profile_id = request.data.get("profile_id")
+        image = request.FILES.get("image")
 
-#         result = calculate_points_and_get_empty_fields(profile_id)
-#         completion_percentage = int(result['completion_percentage'])
+        if not profile_id or not image:
+            return Response(
+                {"status": 0, "message": "profile_id and image required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-#         if completion_percentage < 80:
+        try:
+            # Create profile folder inside local directory
+            folder_path = os.path.join(
+                settings.LOCAL_PROFILE_IMAGE_ROOT,
+                str(profile_id)
+            )
 
-#             subject = "Complete Your Profile & Get More Responses 💍"
+            os.makedirs(folder_path, exist_ok=True)
 
-#             context = {
-#                 "ProfileName": user.Profile_name,
-#                 "CompletionPercentage": completion_percentage,
-#                 "ProfileEditLink": "https://www.vysyamala.com/dashboard",
-#             }
+            # Rename file to avoid overwrite
+            file_extension = image.name.split('.')[-1]
+            file_name = f"{uuid.uuid4()}.{file_extension}"
 
-#             html_content = render_to_string(
-#                 "user_api/authentication/Completion_Percentage.html",
-#                 context
-#             )
+            file_path = os.path.join(folder_path, file_name)
 
-#             send_mail(
-#                 subject,
-#                 strip_tags(html_content),
-#                 settings.DEFAULT_FROM_EMAIL,
-#                 [user.EmailId],
-#                 fail_silently=True,
-#                 html_message=html_content
-#             )
+            with open(file_path, "wb+") as destination:
+                for chunk in image.chunks():
+                    destination.write(chunk)
 
-#             sent_count += 1
+            return Response({
+                "status": 1,
+                "message": "Image saved locally",
+                "file_url": f"{settings.LOCAL_PROFILE_IMAGE_URL}{profile_id}/{file_name}"
+            })
 
-#     print(f"{sent_count} reminder emails sent")
-
-
-# from django.core.mail import send_mail
-# from django.template.loader import render_to_string
-# from django.utils.html import strip_tags
-# from django.conf import settings
-# from .models import Registration1
-
-
-
-# def send_profile_completion_reminder(profile_id=None):
-
-#     if profile_id:
-#         users = Registration1.objects.filter(ProfileId=profile_id, Status=1)
-#     else:
-#         users = Registration1.objects.filter(Status=1)
-
-#     sent_count = 0
-
-#     for user in users:
-#         result = calculate_points_and_get_empty_fields(user.ProfileId)
-#         completion_percentage = int(result['completion_percentage'])
-
-#         if completion_percentage < 80:
-#             subject = "Complete Your Profile & Get More Responses 💍"
-
-#             context = {
-#                 "ProfileName": user.Profile_name,
-#                 "CompletionPercentage": completion_percentage,
-#                 "ProfileEditLink": "https://www.vysyamala.com/dashboard",
-#             }
-
-#             html_content = render_to_string(
-#                 "user_api/authentication/Completion_Percentage.html",
-#                 context
-#             )
-
-#             send_mail(
-#                 subject,
-#                 strip_tags(html_content),
-#                 settings.DEFAULT_FROM_EMAIL,
-#                 [user.EmailId],
-#                 fail_silently=False,
-#                 html_message=html_content
-#             )
-
-#             sent_count += 1
-
-#     return sent_count
+        except Exception as e:
+            return Response(
+                {"status": 0, "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.db import connection, transaction
+from django.utils import timezone
 
-# from rest_framework.decorators import api_view
-# from rest_framework.response import Response
 
+class UnsubscribeAPIView(APIView):
 
-# @api_view(['GET'])
-# def trigger_profile_completion_reminder(request):
-#     profile_id = request.GET.get('profile_id')
-#     count = send_profile_completion_reminder(profile_id)
+    def post(self, request):
+        profile_id = request.data.get("profile_id")
+        message = request.data.get("message")
 
-#     return Response({
-#         "status": "success",
-#         "emails_sent": count,
-#         "profile_id": profile_id
-#     })
+        # ✅ 1. Basic Validation
+        if not profile_id or not message:
+            return Response({
+                "Status": 0,
+                "message": "profile_id and message are required"
+            })
 
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+
+                    # ✅ 2. Check if Profile Exists
+                    cursor.execute("""
+                        SELECT 1 FROM logindetails WHERE ProfileId = %s
+                    """, [profile_id])
+
+                    if not cursor.fetchone():
+                        return Response({
+                            "Status": 0,
+                            "message": "Profile not found"
+                        })
+
+                    # ✅ 3. Insert Unsubscribe Record
+                    cursor.execute("""
+                        INSERT INTO unsubscribe_details 
+                        (profile_id, message, created_at)
+                        VALUES (%s, %s, %s)
+                    """, [profile_id, message, timezone.now()])
+
+                    # ✅ 4. Enable All Notifications
+                    cursor.execute("""
+                        UPDATE logindetails
+                        SET Notifcation_enabled = %s
+                        WHERE ProfileId = %s
+                    """, [None, profile_id])
+
+            return Response({
+                "Status": 1,
+                "message": "Unsubscribed successfully & notifications enabled"
+            })
+
+        except Exception as e:
+            return Response({
+                "Status": 0,
+                "message": str(e)
+            })

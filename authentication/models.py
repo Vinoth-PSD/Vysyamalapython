@@ -551,9 +551,8 @@ class Image_Upload(models.Model):
     
     def get_image_status(profile_id):
         approved_images_exist = Image_Upload.objects.filter( profile_id=profile_id, image_approved=True ).filter(Q(is_deleted=False) | Q(is_deleted__isnull=True)).exists()
-    
         return "Yes" if approved_images_exist else "No"
-  
+    
 
 
 # class profile_images(models.Model):
@@ -2526,6 +2525,8 @@ class Profile_PlanFeatureLimit(models.Model):
     membership_fromdate = models.DateTimeField(null=True, blank=True)
     membership_todate = models.DateTimeField(null=True, blank=True)
     status = models.IntegerField(null=True, blank=True)
+    boosted_date = models.DateField(null=True, blank=True)
+    boosted_enddate = models.DateField(null=True, blank=True)
 
     class Meta:
         managed = False
@@ -2632,4 +2633,18 @@ class DataHistory(models.Model):
         managed = False  
         db_table = 'datahistory'
   
-  
+
+
+
+
+class UnsubscribeDetails(models.Model):
+    id = models.AutoField(primary_key=True)
+    profile_id = models.CharField(max_length=50)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "unsubscribe_details"
+
+    def __str__(self):
+        return self.profile_id

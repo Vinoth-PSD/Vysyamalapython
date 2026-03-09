@@ -103,7 +103,8 @@ from django.core import signing
 
 
 
-
+from django.core.mail import EmailMultiAlternatives
+from django.conf import settings
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import get_user_model
@@ -112,7 +113,6 @@ from rest_framework.authtoken.models import Token
 
 from .models import Role, RolePermission , User
 from .serializers import UserSerializer,DashboardSerializer
-
 from django.db.models import F, Value
 from django.db.models.functions import Concat
 
@@ -3160,7 +3160,6 @@ class GetProfEditDetailsAPIView(APIView):
             response_data['login_details'] = LoginDetailsSerializer(login_detail).data           
         except LoginDetails.DoesNotExist:
             return Response({'error': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
-
         # Step 2: Fetch ProfileFamilyDetails
         try:
             family_detail = ProfileFamilyDetails.objects.get(profile_id=profile_id)
@@ -9530,7 +9529,13 @@ class CommonProfileSearchAPIView(APIView):
                     "location": detail["Profile_city"],
                     "photo_protection": detail["Photo_protection"],
                     "verified": detail.get('Profile_verified'),
-                    "star": star_name
+                    "star": star_name,
+                    "Created_by": detail['ModeName'],
+                    "state":detail['state_name'],
+                    "mode":detail['plan_name'],
+                    "status":detail['status_name'],
+                    "family_status":detail['family_status_name']
+
                 })
         print("fdsgvdfg")
         if export_type:
@@ -9549,10 +9554,13 @@ class CommonProfileSearchAPIView(APIView):
                 "Height": d.get("Profile_height"),
                 "City": d.get("Profile_city"),
                 "Profession": getprofession_fast(d.get("profession"), profession_map),
-                "Education": degree_fast(d.get("degree"), d.get("other_degree"), degree_map),
-                "Mobile": d.get("mobile_no"),
-                "Email": d.get("email_id")
-               }
+                "Education":degree_fast(d.get("degree"), d.get("other_degree"), degree_map),
+                "plan_name": d.get("plan_name"),
+                "status_name":d.get("status_name"),
+                "family_status_name":d.get("family_status_name"),
+                "ModeName":d.get("ModeName"),
+                "state_name":d.get("state_name")    
+                }
                 for d in profile_details
             ]
             print("itha")
@@ -9597,6 +9605,7 @@ class CommonProfileSearchAPIView(APIView):
 
 
 def generate_pdf_from_template(template_name, context, filename):
+
     html_string = render_to_string(template_name, context)  # Removed "templates/"
     pdf_file = io.BytesIO()
     pisa_status = pisa.CreatePDF(io.StringIO(html_string), dest=pdf_file)
@@ -11208,6 +11217,12 @@ class TransactionHistoryView(generics.ListAPIView):
                     {table_alias}.payment_id, {table_alias}.{amount_field} AS amount, {table_alias}.{discount_field} AS discount_amont,
                     {table_alias}.{payment_type_field} AS payment_type, {table_alias}.{admin_field} AS admin_status,
                     {table_alias}.{ref_field} AS payment_refno,
+                      (
+                        SELECT GROUP_CONCAT(mp.name SEPARATOR ', ')
+                        FROM masteradonpackages mp
+                        WHERE FIND_IN_SET(mp.package_id, {table_alias}.addon_package)
+                    ) AS addon_packages,
+
                     '{source}' AS source
                 FROM {source} {table_alias}
                 LEFT JOIN plan_master pl ON {table_alias}.plan_id = pl.id
@@ -11353,6 +11368,7 @@ class TransactionHistoryView(generics.ListAPIView):
             profile_plan_id = row.get("profile_plan_id")
             # print("tran_id:",transaction_plan_id, profile_plan_id)
             row["a_status"] = "active" if transaction_plan_id == profile_plan_id else "inactive" 
+            row["addon_packages"] = row.get("addon_packages")
 
         if a_status in ["0", "1"]:
             status_label = "active" if a_status == "1" else "inactive"
@@ -11438,38 +11454,30 @@ class FeaturedProfilesView(APIView):
                 pf.profile_id,
                 ld.Profile_name,
                 ld.Gender,
-                masterstate.name,
+                masterstate.name AS state_name,
                 pl.plan_name,
                 pf.boosted_date,
                 pf.boosted_enddate,
-                ms.status_name
+                ms.status_name,
+                CASE 
+                    WHEN CURDATE() BETWEEN pf.boosted_date AND pf.boosted_enddate 
+                    THEN 'Yes'
+                    ELSE 'No'
+                END AS active
             FROM profile_plan_feature_limits pf
             LEFT JOIN logindetails ld ON pf.profile_id = ld.ProfileId
             LEFT JOIN plan_master pl ON pf.Plan_id = pl.id
             LEFT JOIN masterstate ON ld.Profile_state = masterstate.id
             LEFT JOIN masterprofilestatus ms ON ld.status = ms.status_code
-            WHERE pf.featured_profile = 1
-            AND ld.status = 1
-            And ld.Plan_id != 16
-            AND CURDATE() BETWEEN pf.membership_fromdate AND pf.membership_todate
-            AND (
-                    pf.membership_fromdate >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-                    OR CURDATE() BETWEEN pf.boosted_date AND pf.boosted_enddate
-                )
-            AND (
-                    ld.Photo_protection != 1
-                    AND EXISTS (
-                        SELECT 1
-                        FROM profile_images pi
-                        WHERE pi.profile_id = ld.ProfileId
-                        AND pi.image_approved = 1
-                        AND pi.is_deleted = 0
-                    )
-                )
-        """
+            WHERE CURDATE() BETWEEN pf.membership_fromdate AND pf.membership_todate
+            AND CURDATE() BETWEEN pf.boosted_date AND pf.boosted_enddate
+            AND ld.status = 1 
+            AND pf.boosted_date IS NOT NULL
+            AND pf.boosted_enddate IS NOT NULL
+            """
         params = []
 
-        if from_date and to_date:
+        if from_date and to_date:   
             try:
                 start_date = datetime.strptime(from_date, "%Y-%m-%d").date()
                 end_date = datetime.strptime(to_date, "%Y-%m-%d").date()
@@ -11488,11 +11496,19 @@ class FeaturedProfilesView(APIView):
             cursor.execute(sql, params)
             rows = dictfetchall(cursor)
             
-        three_months_ago = datetime.today().date() - timedelta(days=90)
+        
+
+        today = timezone.now().date()
+
         for row in rows:
             boosted_date = row.get("boosted_date")
-            if boosted_date and boosted_date >= three_months_ago:
-                row["active"] = "Yes"
+            boosted_enddate = row.get("boosted_enddate")
+
+            if boosted_date and boosted_enddate:
+                if boosted_date <= today <= boosted_enddate:
+                    row["active"] = "Yes"
+                else:
+                    row["active"] = "No"
             else:
                 row["active"] = "No"
                 
@@ -11728,37 +11744,124 @@ class SendInvoicePDF(APIView):
             return Response({"error": "Error generating PDF"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         email_body = """
-Dear Mrs. {CustomerName}, 🙏
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Invoice - Vysyamala</title>
+<style>
+body{{margin:0;background:#fff5f7;font-family:Arial,Helvetica,sans-serif}}
+.wrapper{{width:100%;padding:20px 0;background:#fff5f7}}
+.main{{max-width:600px;margin:auto;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 8px 25px rgba(0,0,0,.08)}}
+.header{{text-align:center;padding:20px}}
+.header img{{max-width:220px}}
+.hero{{background:linear-gradient(135deg,#e51b3f,#ff4d6d);color:#fff;text-align:center;padding:30px 20px}}
+.hero h1{{margin:0;font-size:24px}}
+.content{{padding:25px;color:#444;font-size:15px;line-height:1.6}}
+.footer{{font-size:12px;color:#777;text-align:center;padding:20px}}
+</style>
+</head>
+<body>
+<center class="wrapper">
+<table class="main" role="presentation">
+<tr>
+<td class="header">
+<img src="https://vysyamat.blob.core.windows.net/vysyamala/newvysyamalalogo2.png" alt="Vysyamala">
+</td>
+</tr>
 
-Thank you for choosing Vysyamala and opting for the {MembershipPlan} membership.
+<tr>
+<td class="hero">
+<h1>{MembershipPlan} Membership Activated 💐</h1>
+<p>Thank you for choosing Vysyamala</p>
+</td>
+</tr>
 
-Your invoice is attached for your reference ✅  
-For any assistance, kindly contact our support: 99448 51550.
+<tr>
+<td class="content">
 
-With the blessings of Goddess Sri Kannika Parameswari,  
+<p>Dear <b>{CustomerName}</b>,</p>
+
+<p>
+Thank you for choosing <b>Vysyamala</b> and upgrading to the 
+<b>{MembershipPlan}</b> membership.
+</p>
+
+<p>
+Your payment has been successfully received and your 
+<b>{MembershipPlan}</b> membership services are now activated.
+</p>
+
+<p style="margin-top:18px">
+Your invoice is attached for your reference ✅
+</p>
+
+<p>
+For any assistance, kindly contact our support: 
+<b>99448 51550</b>.
+</p>
+
+<p>
+With the blessings of <b>Goddess Sri Kanyaka Parameswari</b>, 
 we wish you a happy and blessed journey towards finding your life partner 🌸
+</p>
 
-Team Vysyamala  
-www.vysyamala.com
-        """.format(
-            CustomerName=customer_name or "Customer",
-            MembershipPlan=plan_name or ""
-        )
+</td>
+</tr>
+
+<tr>
+<td class="footer">
+Warm Regards,<br>
+<b>Team Vysyamala</b><br><br>
+Helpline: +91 9944851550<br>
+Email: info@vysyamala.com<br>
+Website: www.vysyamala.com
+</td>
+</tr>
+
+</table>
+</center>
+</body>
+</html>
+""".format(
+    CustomerName=customer_name or "Customer",
+    MembershipPlan=plan_name or "Membership"
+)   
         if recipient_email:
-            email = EmailMessage(
-                subject=f"Invoice V{subscription.id} from Vysyamala",
-                body=email_body,
-                to=[recipient_email],
-                cc=["vysyamala@gmail.com"]
+
+                email = EmailMultiAlternatives(
+                    subject=f"Invoice V{subscription.id} from Vysyamala",
+                    body="Your membership invoice is attached.",  # Plain text fallback
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[recipient_email],
+                    cc=["vysyamala@gmail.com"]
+                )
+
+                # Attach HTML version
+                email.attach_alternative(email_body, "text/html")
+
+                # Attach PDF
+                email.attach(
+                    f"invoice_{subscription.id}.pdf",
+                    pdf_buffer.getvalue(),
+                    "application/pdf"
+                )
+
+                try:
+                    email.send()
+                    subscription.is_sent_email = True
+                    subscription.save()
+
+                    return Response(
+                        {"success": "Email sent successfully!"},
+                        status=status.HTTP_200_OK
+                    )
+
+                except Exception as e:
+                    return Response(
+                        {"error": f"Failed to send email: {str(e)}"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-            email.attach(f"invoice_{subscription.id}.pdf", pdf_buffer.getvalue(), "application/pdf")
-            try:
-                email.send()
-                subscription.is_sent_email = True
-                subscription.save()
-                return Response({"success": "Email sent successfully!"}, status=status.HTTP_200_OK)
-            except Exception as e:
-                return Response({"error": f"Failed to send email: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             return Response({"error": "Recipient email not found"}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -12174,7 +12277,7 @@ class EditProfileWithPermissionAPIView(APIView):
             user = User.objects.get(id=owner_id)
         except Exception:
             user = None
-             
+        edit_mem=None 
         if user:
             role = user.role
             permissions = RolePermission.objects.filter(role=role).select_related('action')
@@ -12360,6 +12463,14 @@ class EditProfileWithPermissionAPIView(APIView):
                 owner = profile_common_data.get("profile_owner_id")
                 # print('inside profile common data update',profile_common_data.get("primary_status"))
                 # Only include the common data keys that are available in the request
+                plan_status = profile_common_data.get("secondary_status")
+                querier = profile_common_data.get("querier")
+
+                if str(plan_status) == "2" and querier is None:
+                    return Response(
+                        {"error": "Querier option (Yes/No) must be selected when plan_status = 2"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
                 if edit_mem ==3:
                     login_detail = LoginDetails.objects.get(ProfileId=profile_id)
                     get_plan_status = profile_common_data.get("secondary_status")
@@ -12445,6 +12556,7 @@ class EditProfileWithPermissionAPIView(APIView):
                     "Plan_id": str(profile_common_data.get("secondary_status")),
                     "Otp_verify":profile_common_data.get("mobile_otp_verify"),
                     "Owner_id":profile_common_data.get("profile_owner_id"),
+                    "querier": profile_common_data.get("querier")
                 })
                 family_common_data=clean_none_fields({
                     "family_status":profile_common_data.get("family_status")
@@ -12563,6 +12675,16 @@ class EditProfileWithPermissionAPIView(APIView):
             login_serializer = LoginEditSerializer(instance=login_detail, data=login_common_data, partial=True)
             if login_serializer.is_valid():
                 login_serializer.save()
+                try:
+                    updated_login = LoginDetails.objects.get(ProfileId=profile_id)
+                    print("test2")
+                    if int(updated_login.status) == 4 and int(updated_login.secondary_status) == 20:
+                        print("test3")
+                        send_marriage_congratulations_email(profile_id)
+                except Exception:
+                    print("test1")
+                    pass
+
             else:
                 return Response({'error': login_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -12602,6 +12724,50 @@ class EditProfileWithPermissionAPIView(APIView):
                 # Update the profile_plan_features row for profile_id
                 models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(**plan_features)
                 # print(pro_plan,'profile plan feature updated')
+            from django.utils import timezone
+            from datetime import timedelta
+
+            try:
+                    profile_feature = Profile_PlanFeatureLimit.objects.filter(
+                        profile_id=profile_id,
+                        status=1
+                    ).first()
+
+                    addon_package_ids = profile_common_data.get("Addon_package", "")
+
+                    if addon_package_ids:
+                        # Convert comma separated string to list
+                        addon_package_id_list = [
+                            int(pk.strip()) for pk in addon_package_ids.split(",") if pk.strip().isdigit()
+                        ]
+
+                        # Check if addon package 3 exists
+                        if 3 in addon_package_id_list or plan_id==2:
+
+                            today = timezone.now()
+
+                            # Only update if booster not already set
+                            if not profile_feature.boosted_date and not profile_feature.boosted_enddate:
+                                profile_feature.boosted_date = today
+                                profile_feature.boosted_enddate = today + timedelta(days=90)
+                                profile_feature.featured_profile = 1
+                                profile_feature.save()
+
+                    elif plan_id==2:
+                            today = timezone.now()
+
+                            # Only update if booster not already set
+                            if not profile_feature.boosted_date and not profile_feature.boosted_enddate:
+                                profile_feature.boosted_date = today
+                                profile_feature.boosted_enddate = today + timedelta(days=90)
+                                profile_feature.featured_profile = 1
+                                profile_feature.save()
+
+                    
+
+            except Exception as e:
+                    print("Booster update error:", str(e))
+
                 
             # # Update profileplan Details
             profileplan_detail = Profile_PlanFeatureLimit.objects.get(profile_id=profile_id,status=1)
@@ -16460,3 +16626,132 @@ class ClickToCallAPI(APIView):
         return Response(result, status=200)
         
     
+
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.conf import settings
+from accounts.models import Registration1
+
+
+def send_marriage_congratulations_email(profile_id):
+    try:
+        user = LoginDetails.objects.get(
+            ProfileId=profile_id,
+            status=4,
+            secondary_status=20
+        )
+
+        if not user.EmailId:
+            return
+
+        subject = "💐 Congratulations on Your Wedding!"
+        context = {
+            "BrideGroomName": user.Profile_name or user.ProfileId,
+            "UploadLink": "https://vysyamala.com/success-story/upload/",
+            "UnsubscribeLink": "https://vysyamala.com/unsubscribe/",
+        }
+
+        html_content = render_to_string(
+            "user_api/authentication/marriage_reminder.html",
+            context
+        )
+        text_content = strip_tags(html_content)
+
+        msg = EmailMultiAlternatives(
+            subject,
+            text_content,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.EmailId],
+        )
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
+
+    except Exception as e:
+        print("Mail error:", str(e))
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.db import connection
+from datetime import datetime
+
+class ProfileVysAssistList(APIView):
+
+    def get(self, request):
+
+        profile_from = request.query_params.get("profile_from")
+        from_date = request.query_params.get("from_date")
+        to_date = request.query_params.get("to_date")
+
+        sql = """
+            SELECT 
+                pv.id AS vysassist_id,
+                pv.profile_from,
+                lf.Profile_name AS from_name,
+                lf.Mobile_no AS from_mobile,
+                pv.profile_to,
+                lt.Profile_name AS to_name,
+                lt.Mobile_no AS to_mobile,
+                pv.to_message AS message,
+                pv.req_datetime,
+                pv.response_datetime,
+                pv.status
+          
+            FROM profile_vys_assist pv
+
+            LEFT JOIN logindetails lf 
+                ON pv.profile_from = lf.ProfileId
+
+            LEFT JOIN logindetails lt 
+                ON pv.profile_to = lt.ProfileId
+
+            
+            WHERE pv.profile_from = %s
+        """
+
+        params = [profile_from]
+
+        # Filter by profile_from
+   
+
+        # Date Filter
+        if from_date and to_date:
+            try:
+                start_date = datetime.strptime(from_date, "%Y-%m-%d").date()
+                end_date = datetime.strptime(to_date, "%Y-%m-%d").date()
+
+                sql += """
+                    AND DATE(
+                        STR_TO_DATE(pv.req_datetime, '%Y-%m-%d %H:%i:%s')
+                    ) BETWEEN %s AND %s
+                """
+                params.extend([start_date, end_date])
+
+            except ValueError:
+                return Response(
+                    {"status": 0, "message": "Invalid date format (YYYY-MM-DD required)"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        sql += " ORDER BY pv.id DESC"
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(sql, params)
+                columns = [col[0] for col in cursor.description]
+                rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+            return Response({
+                "status": 1,
+                "count": len(rows),
+                "data": rows
+            })
+
+        except Exception as e:
+            return Response(
+                {"status": 0, "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

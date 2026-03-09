@@ -2,6 +2,9 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from django.conf.urls.static import static
+from .views import UploadProfileImage
+from .views import UnsubscribeAPIView
 from . import views 
 # from .views import WithoutAddressSendEmailAPI,HoroscopeKattamAPI
 
@@ -247,15 +250,19 @@ urlpatterns = [
 
     path('rasi-image/',views.Rasi_Image.as_view(),name="rasi-image"),
     path('amsa-image/',views.Amsam_Image.as_view(),name="amsa-image"),
+    path("upload-profile-image/", UploadProfileImage.as_view()),
+    path("unsubscribe/", UnsubscribeAPIView.as_view(), name="unsubscribe"),
+
+    
 
       #  path('get_blurred_image/', views.get_blurred_image.as_view(), name='get_blurred_image'),
      path('', views.home, name='home'),
      path('<str:room>/', views.room, name='room'),
      path('checkview', views.checkview, name='checkview'),
      path('send', views.send, name='send'),
-     
+    # # path('cron/profile-completion-reminder/', send_profile_completion_reminder),
+    # path('cron/profile-completion-reminder/', trigger_profile_completion_reminder),
     #  path('getMessages/<str:room>/', views.getMessages, name='getMessages'),
     
-
-
+   
 ]
