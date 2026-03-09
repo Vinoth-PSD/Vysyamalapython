@@ -12700,7 +12700,7 @@ class FeaturedProfile(APIView):
                     FROM profile_images pi
                     WHERE pi.profile_id = l1.ProfileId
                     AND pi.image_approved = 1
-                    AND pi.is_deleted = 0
+                   AND (pi.is_deleted = 0 or pi.is_deleted is null)
                 )
                 ORDER BY pf.boosted_date DESC
                 LIMIT 25
