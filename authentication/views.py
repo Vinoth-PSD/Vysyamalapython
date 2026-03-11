@@ -144,7 +144,7 @@ class LoginView(APIView):
             #auth_user = models.Registration1.objects.get(ProfileId=username, Password__iexact=password)
             #ency_password=encrypt_password(password)
             # print('ency_password', ency_password)
-            auth_user = models.Registration1.objects.get(ProfileId=username, Status__in=[0,1,2,3])
+            auth_user = models.Registration1.objects.get(ProfileId=username, Status__in=[0,1])
                       
             # if check_password(password,auth_user.Password):
             if password == auth_user.Password:
@@ -5651,10 +5651,10 @@ class Get_profile_det_match(APIView):
         my_profile = self._get_cached_profile(profile_id)
         user_profile = self._get_cached_profile(user_profile_id)
         
-        if user_profile['pstatus']==4:
+        if user_profile['pstatus'] in [2, 3, 4]:
             # print('profile Deleted')
             return JsonResponse(
-                {'status': 'failure', 'message': 'The Profile is Deleted'},
+                {'status': 'failure', 'message': 'This profile is currently not available.'},
                 status=status.HTTP_200_OK
             )
         
