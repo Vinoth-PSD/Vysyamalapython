@@ -21,6 +21,7 @@ from .models import Invoice
 from .models import MasterhighestEducation
 from .models import PlanSubscription,Addonpackages
 from django.contrib.auth.hashers import make_password
+from .models import Profile_vysassist
 
 # from django.contrib.auth import get_user_model
 from .models import Roles , User ,RolePermission
@@ -1726,3 +1727,12 @@ class DashboardSerializer(serializers.Serializer):
             ).count()
         except Exception:
             return None
+
+
+class VysassistReceivedSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Profile_vysassist
+        fields = ['id','profile_from','profile_to','to_message','req_datetime','status']
+
+
