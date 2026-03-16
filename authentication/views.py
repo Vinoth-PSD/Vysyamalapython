@@ -101,7 +101,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
-from accounts.models import AdminNotification
+
 WKIMG = "/home/site/wwwroot/bin/wkhtmltoimage"
 
 imgconfig = imgkit.config(wkhtmltoimage=WKIMG)
@@ -140,22 +140,11 @@ class LoginView(APIView):
 
         
         try:
-            auth_user = models.Registration1.objects.get(ProfileId=username)
-
-            # BLOCK LOGIN FOR THESE STATUSES
-            if auth_user.Status in [2, 3, 4]:
-
-                if auth_user.Status == 2:
-                    status_text = "Pending"
-                elif auth_user.Status == 3:
-                    status_text = "Hidden"
-                elif auth_user.Status == 4:
-                    status_text = "Deleted"
-
-                return JsonResponse({
-                    'status': 0,
-                    'message': f'Your profile is currently {status_text}. For assistance, please contact our support team. 9944851550'
-                })
+            # auth_user = models.Registration1.objects.get(ProfileId=username,Password=password)
+            #auth_user = models.Registration1.objects.get(ProfileId=username, Password__iexact=password)
+            #ency_password=encrypt_password(password)
+            # print('ency_password', ency_password)
+            auth_user = models.Registration1.objects.get(ProfileId=username, Status__in=[0,1])
                       
             # if check_password(password,auth_user.Password):
             if password == auth_user.Password:
@@ -12440,14 +12429,14 @@ def calculate_profile_completion(profile_id):
     # Define field weights
     field_weights = {
         'logindetails': {'Profile_idproof': 15},  # ID Proof Upload - 15%
-        'profile_images': {'image': 20},  # Photo Upload - 20%
-        'profile_horoscope': {'horoscope_file': 20},  # Horoscope Upload - 20%
+        'profile_images': {'image': 15},  # Photo Upload - 15%
+        'profile_horoscope': {'horoscope_file': 15},  # Horoscope Upload - 15%
         'logindetails_additional': {'EmailId': 5},  # Email Verification - 5%
         'profile_familydetails': {'property_worth': 5},  # Property Worth - 5%
         'about_myself': {'about_self': 10},  # About Myself - 10%
         'about_my_family': {'about_family': 10},  # About My Family - 10%
-        'profile_edudetails': {'career_plans': 5, 'anual_income': 5},  # Career Plan (5%), Annual Income (5%)
-        'profile_videos': {'Video_url': 5},  # Videos - 5%
+        'profile_edudetails': {'career_plans': 10, 'anual_income': 5},  # Career Plan (10%), Annual Income (5%)
+        'profile_videos': {'Video_url': 10},  # Videos - 10%
     }
 
     # 1. ID Proof Upload
@@ -12536,14 +12525,14 @@ def calculate_points_and_get_empty_fields(profile_id):
     # Define field weights
     field_weights = {
         'logindetails': {'Profile_idproof': 15},  # ID Proof Upload - 15%
-        'profile_images': {'image': 20},  # Photo Upload - 20%
-        'profile_horoscope': {'horoscope_file': 20},  # Horoscope Upload - 15%
+        'profile_images': {'image': 15},  # Photo Upload - 15%
+        'profile_horoscope': {'horoscope_file': 15},  # Horoscope Upload - 15%
         'logindetails_additional': {'EmailId': 5},  # Email Verification - 5%
         'profile_familydetails': {'property_worth': 5},  # Property Worth - 5%
         'about_myself': {'about_self': 10},  # About Myself - 10%
         'about_my_family': {'about_family': 10},  # About My Family - 10%
-        'profile_edudetails': {'career_plans': 5, 'anual_income': 5},  # Career Plan (10%), Annual Income (5%)
-        'profile_videos': {'Video_url': 5},  # Videos - 5%
+        'profile_edudetails': {'career_plans': 10, 'anual_income': 5},  # Career Plan (10%), Annual Income (5%)
+        'profile_videos': {'Video_url': 10},  # Videos - 10%
     }
 
     # 1. ID Proof Upload
@@ -12706,7 +12695,6 @@ class FeaturedProfile(APIView):
                 AND CURDATE() BETWEEN pf.membership_fromdate AND pf.membership_todate
                 AND CURDATE() BETWEEN pf.boosted_date AND pf.boosted_enddate
                 AND l1.Photo_protection != 1
-                AND pf.featured_profile = 1
                 AND EXISTS (
                     SELECT 1
                     FROM profile_images pi
@@ -13003,253 +12991,60 @@ class Search_byprofile_id(APIView):
 #Vysassists list
 
 
-# class Send_vysassist_request(APIView):
-#     def post(self, request):
-
-#         serializer = serializers.VysassistrequestSerializer(data=request.data)
-
-#         if serializer.is_valid():
-
-#             profile_from = serializer.validated_data.get('profile_id')
-#             profile_to = serializer.validated_data.get('profile_to')
-#             int_status = serializer.validated_data.get('status')
-#             to_message = serializer.validated_data.get('to_message')
-
-#             get_limits = can_get_vysassist_profile(profile_from)
-
-#             if get_limits is True:
-
-#                 # Check existing request
-#                 existing_entry = models.Profile_vysassist.objects.filter(
-#                     profile_from=profile_from,
-#                     profile_to=profile_to
-#                 ).first()
-
-#                 if existing_entry:
-
-#                     existing_entry.status = int_status
-#                     existing_entry.req_datetime = timezone.now()
-#                     existing_entry.save()
-
-#                     return JsonResponse(
-#                         {"Status": 0, "message": "Vysassist updated"},
-#                         status=status.HTTP_200_OK
-#                     )
-
-#                 else:
-                    
-#                     # Save new request
-#                     serializer.save(status=1)
-#                     plan_limit = models.Profile_PlanFeatureLimit.objects.filter(
-#                         profile_id=profile_from
-#                     ).first()
-
-#                     used_count = models.Profile_vysassist.objects.filter(
-#                         profile_from=profile_from,
-#                         status=1
-#                     ).count()   
-
-#                     if plan_limit:
-#                         vys_assist_count = plan_limit.vys_assist_count - used_count
-#                     else:
-#                         vys_assist_count = 0
-
-#                     # Create notification for requested profile
-#                     models.Profile_notification.objects.create(
-#                         profile_id=profile_from,
-#                         from_profile_id=profile_to,
-#                         notification_type='Vys_assists',
-#                         to_message=to_message,
-#                         is_read=0,
-#                         created_at=timezone.now()
-#                     )
-
-#                     try:
-#                         AdminNotification.objects.create(
-#                         notification_type="VysAssist",
-#                         from_profile=profile_from,
-#                         message=f"New VysAssist request sent from {profile_from} to {profile_to}"
-#                         )
-                    
-#                     except:
-#                         pass
-#                     # -----------------------------
-#                     # EMAIL FUNCTION (LOGIN USER)
-#                     # -----------------------------
-
-#                     try:
-
-#                         login_user = models.Registration1.objects.get(ProfileId=profile_from)
-
-#                         login_user_email = login_user.EmailId
-#                         login_user_name = login_user.Profile_name
-
-#                         subject = "Vysassist Request Sent"
-
-#                         message = f"""
-#                             Hello {login_user_name},
-
-#                             Your Vysassist request has been sent successfully.
-
-#                             Requested Profile : {profile_to}
-
-#                             Message : {to_message}
-
-#                             Thank you.
-#                             """
-
-#                         from django.core.mail import send_mail
-#                         from django.conf import settings
-
-#                         send_mail(
-#                             subject,
-#                             message,
-#                             settings.DEFAULT_FROM_EMAIL,
-#                             [login_user_email],
-#                             fail_silently=False,
-#                         )
-
-#                     except Exception as e:
-#                         print("MAIL ERROR:", e)
-#                     return JsonResponse(
-#                             {
-#                                 "Status": 1,
-#                                 "message": "Vysassist sent successfully",
-#                                 "vys_assist_count": vys_assist_count
-#                             },
-#                             status=status.HTTP_200_OK
-#                         )
-
-#             else:
-
-#                 return JsonResponse(
-#                     {"Status": 0, "message": "No access to Vysassist request"},
-#                     status=status.HTTP_200_OK
-#                 )
-
-#         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-
 
 class Send_vysassist_request(APIView):
     def post(self, request):
-
         serializer = serializers.VysassistrequestSerializer(data=request.data)
 
+        # print('serializer',serializer)
+        
         if serializer.is_valid():
-
             profile_from = serializer.validated_data.get('profile_id')
             profile_to = serializer.validated_data.get('profile_to')
             int_status = serializer.validated_data.get('status')
             to_message = serializer.validated_data.get('to_message')
 
-            get_limits = can_get_vysassist_profile(profile_from)
+            get_limits=can_get_vysassist_profile(profile_from)
 
-            if get_limits is True:
+            # print('get_limits',get_limits)
 
-                # Check existing request
-                existing_entry = models.Profile_vysassist.objects.filter(
-                    profile_from=profile_from,
-                    profile_to=profile_to
-                ).first()
+            if get_limits is True: 
+        
 
+                # print('profile_from',profile_from)
+                # print('profile_to',profile_to)
+                
+                # Check if an entry with the same profile_from and profile_to already exists
+                existing_entry = models.Profile_vysassist.objects.filter(profile_from=profile_from, profile_to=profile_to).first()
+                
                 if existing_entry:
-
+                    # Update the status to 0 if the entry already exists
+                    #existing_entry.status = 0
                     existing_entry.status = int_status
                     existing_entry.req_datetime = timezone.now()
-                    existing_entry.save()
+                    existing_entry.save() 
 
-                    return JsonResponse(
-                        {"Status": 0, "message": "Vysassist updated"},
-                        status=status.HTTP_200_OK
-                    )
-
+                    return JsonResponse({"Status": 0, "message": "Vysassist updated"}, status=status.HTTP_200_OK)
+                
+                
                 else:
-                    
-                    # Save new request
+                    # Create a new entry with status 1
                     serializer.save(status=1)
-                    plan_limit = models.Profile_PlanFeatureLimit.objects.filter(
-                        profile_id=profile_from
-                    ).first()
-
-                    used_count = models.Profile_vysassist.objects.filter(
-                        profile_from=profile_from,
-                        status=1
-                    ).count()   
-
-                    if plan_limit:
-                        vys_assist_count = plan_limit.vys_assist_count - used_count
-                    else:
-                        vys_assist_count = 0
-
-                    # Create notification for requested profile
+                    
                     models.Profile_notification.objects.create(
-                        profile_id=profile_from,
-                        from_profile_id=profile_to,
+                        profile_id=profile_to,
+                        from_profile_id=profile_from,
                         notification_type='Vys_assists',
                         to_message=to_message,
                         is_read=0,
                         created_at=timezone.now()
                     )
 
-                    # -----------------------------
-                    # EMAIL FUNCTION (LOGIN USER)
-                    # -----------------------------
-
-                    try:
-
-                        login_user = models.Registration1.objects.get(ProfileId=profile_from)
-
-                        login_user_email = login_user.EmailId
-                        login_user_name = login_user.Profile_name
-
-                        subject = "Vysassist Request Sent"
-
-                        message = f"""
-                            Hello {login_user_name},
-
-                            Your Vysassist request has been sent successfully.
-
-                            Requested Profile : {profile_to}
-
-                            Message : {to_message}
-
-                            Thank you.
-                            """
-
-                        from django.core.mail import send_mail
-                        from django.conf import settings
-
-                        send_mail(
-                            subject,
-                            message,
-                            settings.DEFAULT_FROM_EMAIL,
-                            [login_user_email],
-                            fail_silently=False,
-                        )
-
-                    except Exception as e:
-                        print("MAIL ERROR:", e)
-                    return JsonResponse(
-                            {
-                                "Status": 1,
-                                "message": "Vysassist sent successfully",
-                                "vys_assist_count": vys_assist_count
-                            },
-                            status=status.HTTP_200_OK
-                        )
-
+                    return JsonResponse({"Status": 1, "message": "Vysassist sent successfully"}, status=status.HTTP_200_OK)
             else:
-
-                return JsonResponse(
-                    {"Status": 0, "message": "No access to Vysassist request"},
-                    status=status.HTTP_200_OK
-                )
-
-        return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return JsonResponse({"Status": 0, "message": "No access to Vysyassis request"}, status=status.HTTP_200_OK)
+            
+        return JsonResponse(serializer.errors, status=status.HTTP_200_OK)
 
 
 class Click_call_request(APIView):
@@ -23460,25 +23255,3 @@ class UnsubscribeAPIView(APIView):
                 "Status": 0,
                 "message": str(e)
             })
-
-
-
-class Get_Vysassist_Requests(APIView):
-
-    def get(self, request, profile_id):
-
-        requests = models.Profile_vysassist.objects.filter(
-            profile_to=profile_id,
-            status=1
-        ).order_by('-req_datetime')
-
-        serializer = serializers.VysassistReceivedSerializer(requests, many=True)
-
-        return JsonResponse(
-            {
-                "Status": 1,
-                "message": "Vysassist requests fetched",
-                "data": serializer.data
-            },
-            safe=False
-        )

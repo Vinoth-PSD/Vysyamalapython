@@ -252,12 +252,6 @@ urlpatterns = [
     path('amsa-image/',views.Amsam_Image.as_view(),name="amsa-image"),
     path("upload-profile-image/", UploadProfileImage.as_view()),
     path("unsubscribe/", UnsubscribeAPIView.as_view(), name="unsubscribe"),
-        path(
-    'get_vysassist_requests/<str:profile_id>/',
-    views.Get_Vysassist_Requests.as_view(),
-    name='get_vysassist_requests'
-),
-
 
     
 

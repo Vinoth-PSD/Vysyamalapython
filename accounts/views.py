@@ -3347,7 +3347,6 @@ class GetProfEditDetailsAPIView(APIView):
     ).values_list("name", flat=True)
 ),
                 "mobile_otp_verify":login_detail.Otp_verify,
-                "querier":login_detail.querier,
                 "profile_owner_id":login_detail.Owner_id,
                 "profile_owner":get_owner_name(login_detail.Owner_id),
                 "membership_status":get_mem_status(login_detail.ProfileId),
@@ -3667,14 +3666,14 @@ def calculate_points_and_get_empty_fields(profile_id):
     # Define field weights
     field_weights = {
         'logindetails': {'Profile_idproof': 15},  # ID Proof Upload - 15%
-        'profile_images': {'image': 20},  # Photo Upload - 20%
-        'profile_horoscope': {'horoscope_file': 20},  # Horoscope Upload - 15%
+        'profile_images': {'image': 15},  # Photo Upload - 15%
+        'profile_horoscope': {'horoscope_file': 15},  # Horoscope Upload - 15%
         'logindetails_additional': {'EmailId': 5},  # Email Verification - 5%
         'profile_familydetails': {'property_worth': 5},  # Property Worth - 5%
         'about_myself': {'about_self': 10},  # About Myself - 10%
         'about_my_family': {'about_family': 10},  # About My Family - 10%
-        'profile_edudetails': {'career_plans': 5, 'anual_income': 5},  # Career Plan (10%), Annual Income (5%)
-        'profile_videos': {'Video_url': 5},  # Videos - 5%
+        'profile_edudetails': {'career_plans': 10, 'anual_income': 5},  # Career Plan (10%), Annual Income (5%)
+        'profile_videos': {'Video_url': 10},  # Videos - 10%
     }
 
     # 1. ID Proof Upload
@@ -6616,9 +6615,7 @@ class My_profiles_vistors(APIView):
 
             try:
                 # Initialize the base queryset to filter by profile_id
-                # all_profiles = Profile_visitors.objects.filter(profile_id=profile_id)
-                all_profiles = Profile_visitors.objects.filter(viewed_profile=profile_id)
-
+                all_profiles = Profile_visitors.objects.filter(profile_id=profile_id)
 
                 # Apply date filters if from_date and to_date are provided
                 if from_date:
@@ -6630,8 +6627,7 @@ class My_profiles_vistors(APIView):
                     all_profiles = all_profiles.filter(datetime__date__lte=to_date)
 
                 # Get all profile IDs in the filtered queryset
-                # all_profile_ids = {str(index + 1): profile_to for index, profile_to in enumerate(all_profiles.values_list('viewed_profile', flat=True))}
-                all_profile_ids = {str(index + 1): profile_from for index, profile_from in enumerate(all_profiles.values_list('profile_id', flat=True))}
+                all_profile_ids = {str(index + 1): profile_to for index, profile_to in enumerate(all_profiles.values_list('viewed_profile', flat=True))}
 
                 total_records = all_profiles.count()
 
@@ -6642,9 +6638,7 @@ class My_profiles_vistors(APIView):
                 fetch_data = all_profiles[start:end]
 
                 if fetch_data.exists():
-                    # profile_ids = fetch_data.values_list('viewed_profile', flat=True)
-                    profile_ids = fetch_data.values_list('profile_id', flat=True)
-
+                    profile_ids = fetch_data.values_list('viewed_profile', flat=True)
                     profile_details = get_profile_details(profile_ids)
 
                     profile_data = Registration1.objects.get(ProfileId=profile_id)
@@ -12472,10 +12466,11 @@ class EditProfileWithPermissionAPIView(APIView):
                 plan_status = profile_common_data.get("secondary_status")
                 # querier = profile_common_data.get("querier")
 
-                if str(plan_status) == "2" and querier is None:
-                    return Response(
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+                # if str(plan_status) == "2" and querier is None:
+                #     return Response(
+                #         {"error": "Querier option (Yes/No) must be selected when plan_status = 2"},
+                #         status=status.HTTP_400_BAD_REQUEST
+                #     )
                 if edit_mem ==3:
                     login_detail = LoginDetails.objects.get(ProfileId=profile_id)
                     get_plan_status = profile_common_data.get("secondary_status")
@@ -15205,7 +15200,6 @@ class PremiumDashboard(APIView):
         yesterday_express_sent = 0
         yesterday_express_received = 0
         yesterday_bookmark = 0
-        querier_count = 0
 
 
 
@@ -15387,9 +15381,6 @@ class PremiumDashboard(APIView):
             if safe_int(x.get("yesterday_bookmark")) == 1:
                 yesterday_bookmark += 1
 
-            if safe_int(x.get("querier")) == 1:
-                querier_count += 1
-
 
 
         # ---------------- EXTRA COUNTS ----------------
@@ -15429,7 +15420,7 @@ class PremiumDashboard(APIView):
             "female":female_count,
             "total_profiles": total,
             "cur_month_registrations":current_month_registration,
-            "querier_count": querier_count,
+
             "today_login": today_login,
             "yesterday_login": yesterday_login,
             "today_birthday": today_birthday,
@@ -16764,150 +16755,3 @@ class ProfileVysAssistList(APIView):
                 {"status": 0, "message": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-
-class AdminVysassistNotifications(APIView):
-
-    def get(self, request):
-
-        notifications = models.AdminNotification.objects.filter(
-            notification_type="VysAssist"
-        ).order_by('-created_at')
-
-        data = []
-
-        for n in notifications:
-            data.append({
-                "id": n.id,
-                "from_profile": n.from_profile,
-                "message": n.message,
-                "created_at": n.created_at,
-                "is_read": n.is_read
-            })
-
-        return Response({
-            "Status": 1,
-            "message": "Admin notifications fetched",
-            "data": data
-        })
-
-
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from accounts.models import AdminNotification
-
-
-class MarkNotificationRead(APIView):
-
-    def post(self, request):
-
-        notification_id = request.data.get("notification_id")
-
-        if not notification_id:
-            return Response({
-                "Status": 0,
-                "message": "notification_id required"
-            })
-
-        try:
-            notification = AdminNotification.objects.get(id=notification_id)
-            notification.is_read = 1
-            notification.save()
-
-            return Response({
-                "Status": 1,
-                "message": "Notification marked as read"
-            })
-
-        except AdminNotification.DoesNotExist:
-            return Response({
-                "Status": 0,
-                "message": "Notification not found"
-            })
-
-
-
-class ClearSingleAdminNotification(APIView):
-
-    def post(self, request):
-
-        notification_id = request.data.get("notification_id")
-
-        if not notification_id:
-            return Response({
-                "Status": 0,
-                "message": "notification_id required"
-            })
-
-        try:
-            AdminNotification.objects.filter(
-                id=notification_id
-            ).update(is_cleared=1)
-
-            return Response({
-                "Status": 1,
-                "message": "Notification cleared successfully"
-            })
-
-        except Exception as e:
-            return Response({
-                "Status": 0,
-                "message": str(e)
-            }) 
-
-
-
-
-class ClearAllAdminNotifications(APIView):
-
-    def post(self, request):
-
-        try:
-            AdminNotification.objects.filter(
-                notification_type="VysAssist",
-                is_cleared=0
-            ).update(is_cleared=1)
-
-            return Response({
-                "Status": 1,
-                "message": "All notifications cleared successfully"
-            })
-
-        except Exception as e:
-            return Response({
-                "Status": 0,
-                "message": str(e)
-            })
-
-
-
-          
-class DeleteFeaturedProfile(APIView):
-
-    def post(self, request):
-
-        profile_id = request.data.get("profile_id")
-
-        if not profile_id:
-            return Response({
-                "Status": 0,
-                "message": "profile_id required"
-            })
-
-        try:
-            Profile_PlanFeatureLimit.objects.filter(
-                profile_id=profile_id
-            ).update(featured_profile=0)
-
-            return Response({
-                "Status": 1,
-                "message": "Featured profile removed successfully"
-            })
-
-        except Exception as e:
-            return Response({
-                "Status": 0,
-                "message": str(e)
-            })
-
