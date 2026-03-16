@@ -1726,3 +1726,12 @@ class DashboardSerializer(serializers.Serializer):
             ).count()
         except Exception:
             return None
+
+
+class VysassistReceivedSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Profile_vysassist
+        fields = ['id','profile_from','profile_to','to_message','req_datetime','status']
+
+

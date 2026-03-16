@@ -259,5 +259,34 @@ urlpatterns = [
     path("click-to-call/",views.ClickToCallAPI.as_view(),name="call-management-search"),
     path("profiles/export/",views.NewProfileExportAPI.as_view(),name="profiles-export"),
     path("admin/vysassist/",views.ProfileVysAssistList.as_view(),name="admin-vysassist-list"),
+        path(
+    'get_vysassist_notifications/',
+    views.AdminVysassistNotifications.as_view(),
+    name='admin_vysassist_notifications'
+),
+
+    path(
+    "mark_notification_read/",
+    views.MarkNotificationRead.as_view(),
+    name="mark_notification_read"
+),
+   path(
+    'delete-featured-profile/',
+    views.DeleteFeaturedProfile.as_view(),
+    name='delete-featured-profile'
+),
+
+path(
+    "clear_all_notifications/",
+    views.ClearAllAdminNotifications.as_view(),
+    name="clear_all_notifications"
+),
+
+path(
+    "clear_single_notification/",
+    views.ClearSingleAdminNotification.as_view(),
+    name="clear_single_notification"
+),
+    
     
 ]

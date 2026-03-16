@@ -5005,3 +5005,14 @@ class StateRoundRobin(models.Model):
     class Meta:
         db_table = "state_round_robin"
         managed = False  # Set to True only if Django should manage the table
+
+class AdminNotification(models.Model):
+    id = models.AutoField(primary_key=True)
+    notification_type = models.CharField(max_length=50)
+    message = models.TextField()
+    from_profile = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'admin_notifications'
