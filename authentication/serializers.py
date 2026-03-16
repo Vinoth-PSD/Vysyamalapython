@@ -1711,3 +1711,11 @@ class SentWithoutAddressPrintPDFLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = SentWithoutAddressPrintPDFLog
         fields = '__all__'  # Includes all fields
+
+
+class VysassistReceivedSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Profile_vysassist
+        fields = ['id','profile_from','profile_to','to_message','req_datetime','status']
+
