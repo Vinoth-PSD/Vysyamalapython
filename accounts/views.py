@@ -12562,7 +12562,7 @@ class EditProfileWithPermissionAPIView(APIView):
                     "Plan_id": str(profile_common_data.get("secondary_status")),
                     "Otp_verify":profile_common_data.get("mobile_otp_verify"),
                     "Owner_id":profile_common_data.get("profile_owner_id"),
-                    # "querier": profile_common_data.get("querier")
+                    "querier": profile_common_data.get("querier")
                 })
                 family_common_data=clean_none_fields({
                     "family_status":profile_common_data.get("family_status")
