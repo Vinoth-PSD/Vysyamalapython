@@ -5013,6 +5013,7 @@ class AdminNotification(models.Model):
     from_profile = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.IntegerField(default=0)
+    is_cleared = models.IntegerField(default=0)
 
     class Meta:
         db_table = 'admin_notifications'
