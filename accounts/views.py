@@ -11480,6 +11480,7 @@ class FeaturedProfilesView(APIView):
             AND ld.status = 1 
             AND pf.boosted_date IS NOT NULL
             AND pf.boosted_enddate IS NOT NULL
+            AND pf.featured_profile = 1
             """
         params = []
 
@@ -12470,7 +12471,7 @@ class EditProfileWithPermissionAPIView(APIView):
                 # print('inside profile common data update',profile_common_data.get("primary_status"))
                 # Only include the common data keys that are available in the request
                 plan_status = profile_common_data.get("secondary_status")
-                # querier = profile_common_data.get("querier")
+                querier = profile_common_data.get("querier")
 
                 if str(plan_status) == "2" and querier is None:
                     return Response(
