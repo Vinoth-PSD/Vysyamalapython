@@ -13003,137 +13003,6 @@ class Search_byprofile_id(APIView):
 #Vysassists list
 
 
-# class Send_vysassist_request(APIView):
-#     def post(self, request):
-
-#         serializer = serializers.VysassistrequestSerializer(data=request.data)
-
-#         if serializer.is_valid():
-
-#             profile_from = serializer.validated_data.get('profile_id')
-#             profile_to = serializer.validated_data.get('profile_to')
-#             int_status = serializer.validated_data.get('status')
-#             to_message = serializer.validated_data.get('to_message')
-
-#             get_limits = can_get_vysassist_profile(profile_from)
-
-#             if get_limits is True:
-
-#                 # Check existing request
-#                 existing_entry = models.Profile_vysassist.objects.filter(
-#                     profile_from=profile_from,
-#                     profile_to=profile_to
-#                 ).first()
-
-#                 if existing_entry:
-
-#                     existing_entry.status = int_status
-#                     existing_entry.req_datetime = timezone.now()
-#                     existing_entry.save()
-
-#                     return JsonResponse(
-#                         {"Status": 0, "message": "Vysassist updated"},
-#                         status=status.HTTP_200_OK
-#                     )
-
-#                 else:
-                    
-#                     # Save new request
-#                     serializer.save(status=1)
-#                     plan_limit = models.Profile_PlanFeatureLimit.objects.filter(
-#                         profile_id=profile_from
-#                     ).first()
-
-#                     used_count = models.Profile_vysassist.objects.filter(
-#                         profile_from=profile_from,
-#                         status=1
-#                     ).count()   
-
-#                     if plan_limit:
-#                         vys_assist_count = plan_limit.vys_assist_count - used_count
-#                     else:
-#                         vys_assist_count = 0
-
-#                     # Create notification for requested profile
-#                     models.Profile_notification.objects.create(
-#                         profile_id=profile_from,
-#                         from_profile_id=profile_to,
-#                         notification_type='Vys_assists',
-#                         to_message=to_message,
-#                         is_read=0,
-#                         created_at=timezone.now()
-#                     )
-
-#                     try:
-#                         AdminNotification.objects.create(
-#                         notification_type="VysAssist",
-#                         from_profile=profile_from,
-#                         message=f"New VysAssist request sent from {profile_from} to {profile_to}"
-#                         )
-                    
-#                     except:
-#                         pass
-#                     # -----------------------------
-#                     # EMAIL FUNCTION (LOGIN USER)
-#                     # -----------------------------
-
-#                     try:
-
-#                         login_user = models.Registration1.objects.get(ProfileId=profile_from)
-
-#                         login_user_email = login_user.EmailId
-#                         login_user_name = login_user.Profile_name
-
-#                         subject = "Vysassist Request Sent"
-
-#                         message = f"""
-#                             Hello {login_user_name},
-
-#                             Your Vysassist request has been sent successfully.
-
-#                             Requested Profile : {profile_to}
-
-#                             Message : {to_message}
-
-#                             Thank you.
-#                             """
-
-#                         from django.core.mail import send_mail
-#                         from django.conf import settings
-
-#                         send_mail(
-#                             subject,
-#                             message,
-#                             settings.DEFAULT_FROM_EMAIL,
-#                             [login_user_email],
-#                             fail_silently=False,
-#                         )
-
-#                     except Exception as e:
-#                         print("MAIL ERROR:", e)
-#                     return JsonResponse(
-#                             {
-#                                 "Status": 1,
-#                                 "message": "Vysassist sent successfully",
-#                                 "vys_assist_count": vys_assist_count
-#                             },
-#                             status=status.HTTP_200_OK
-#                         )
-
-#             else:
-
-#                 return JsonResponse(
-#                     {"Status": 0, "message": "No access to Vysassist request"},
-#                     status=status.HTTP_200_OK
-#                 )
-
-#         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-
-
 class Send_vysassist_request(APIView):
     def post(self, request):
 
@@ -13195,6 +13064,15 @@ class Send_vysassist_request(APIView):
                         created_at=timezone.now()
                     )
 
+                    try:
+                        AdminNotification.objects.create(
+                        notification_type="VysAssist",
+                        from_profile=profile_from,
+                        message=f"New VysAssist request sent from {profile_from} to {profile_to}"
+                        )
+                    
+                    except:
+                        pass
                     # -----------------------------
                     # EMAIL FUNCTION (LOGIN USER)
                     # -----------------------------
@@ -13220,7 +13098,7 @@ class Send_vysassist_request(APIView):
                             Thank you.
                             """
 
-                        from django.core.mail import send_mail
+                        
                         from django.conf import settings
 
                         send_mail(
@@ -13250,6 +13128,128 @@ class Send_vysassist_request(APIView):
                 )
 
         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
+# class Send_vysassist_request(APIView):
+#     def post(self, request):
+
+#         serializer = serializers.VysassistrequestSerializer(data=request.data)
+
+#         if serializer.is_valid():
+
+#             profile_from = serializer.validated_data.get('profile_id')
+#             profile_to = serializer.validated_data.get('profile_to')
+#             int_status = serializer.validated_data.get('status')
+#             to_message = serializer.validated_data.get('to_message')
+
+#             get_limits = can_get_vysassist_profile(profile_from)
+
+#             if get_limits is True:
+
+#                 # Check existing request
+#                 existing_entry = models.Profile_vysassist.objects.filter(
+#                     profile_from=profile_from,
+#                     profile_to=profile_to
+#                 ).first()
+
+#                 if existing_entry:
+
+#                     existing_entry.status = int_status
+#                     existing_entry.req_datetime = timezone.now()
+#                     existing_entry.save()
+
+#                     return JsonResponse(
+#                         {"Status": 0, "message": "Vysassist updated"},
+#                         status=status.HTTP_200_OK
+#                     )
+
+#                 else:
+                    
+#                     # Save new request
+#                     serializer.save(status=1)
+#                     plan_limit = models.Profile_PlanFeatureLimit.objects.filter(
+#                         profile_id=profile_from
+#                     ).first()
+
+#                     used_count = models.Profile_vysassist.objects.filter(
+#                         profile_from=profile_from,
+#                         status=1
+#                     ).count()   
+
+#                     if plan_limit:
+#                         vys_assist_count = plan_limit.vys_assist_count - used_count
+#                     else:
+#                         vys_assist_count = 0
+
+#                     # Create notification for requested profile
+#                     models.Profile_notification.objects.create(
+#                         profile_id=profile_from,
+#                         from_profile_id=profile_to,
+#                         notification_type='Vys_assists',
+#                         to_message=to_message,
+#                         is_read=0,
+#                         created_at=timezone.now()
+#                     )
+
+#                     # -----------------------------
+#                     # EMAIL FUNCTION (LOGIN USER)
+#                     # -----------------------------
+
+#                     try:
+
+#                         login_user = models.Registration1.objects.get(ProfileId=profile_from)
+
+#                         login_user_email = login_user.EmailId
+#                         login_user_name = login_user.Profile_name
+
+#                         subject = "Vysassist Request Sent"
+
+#                         message = f"""
+#                             Hello {login_user_name},
+
+#                             Your Vysassist request has been sent successfully.
+
+#                             Requested Profile : {profile_to}
+
+#                             Message : {to_message}
+
+#                             Thank you.
+#                             """
+
+#                         from django.core.mail import send_mail
+#                         from django.conf import settings
+
+#                         send_mail(
+#                             subject,
+#                             message,
+#                             settings.DEFAULT_FROM_EMAIL,
+#                             [login_user_email],
+#                             fail_silently=False,
+#                         )
+
+#                     except Exception as e:
+#                         print("MAIL ERROR:", e)
+#                     return JsonResponse(
+#                             {
+#                                 "Status": 1,
+#                                 "message": "Vysassist sent successfully",
+#                                 "vys_assist_count": vys_assist_count
+#                             },
+#                             status=status.HTTP_200_OK
+#                         )
+
+#             else:
+
+#                 return JsonResponse(
+#                     {"Status": 0, "message": "No access to Vysassist request"},
+#                     status=status.HTTP_200_OK
+#                 )
+
+#         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class Click_call_request(APIView):
