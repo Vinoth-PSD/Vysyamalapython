@@ -16772,7 +16772,8 @@ class AdminVysassistNotifications(APIView):
     def get(self, request):
 
         notifications = models.AdminNotification.objects.filter(
-            notification_type="VysAssist"
+            notification_type="VysAssist",
+            is_cleared=0
         ).order_by('-created_at')
 
         data = []
