@@ -6,6 +6,7 @@ from django.conf.urls.static import static
 from .views import UploadProfileImage
 from .views import UnsubscribeAPIView
 from . import views 
+from .views import get_success_story_images
 # from .views import WithoutAddressSendEmailAPI,HoroscopeKattamAPI
 
 
@@ -257,6 +258,8 @@ urlpatterns = [
     views.Get_Vysassist_Requests.as_view(),
     name='get_vysassist_requests'
 ),
+
+    path('success-story-images/', get_success_story_images),
 
 
     

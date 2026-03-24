@@ -23482,3 +23482,45 @@ class Get_Vysassist_Requests(APIView):
             },
             safe=False
         )
+
+
+from azure.storage.blob import BlobServiceClient
+from django.conf import settings
+from django.http import JsonResponse
+
+def get_success_story_images(request):
+    # 👉 Get page params
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 10))
+
+    blob_service_client = BlobServiceClient.from_connection_string(
+        settings.AZURE_CONNECTION_STRING
+    )
+
+    container_client = blob_service_client.get_container_client(
+        settings.AZURE_CONTAINER
+    )
+
+    blob_list = list(container_client.list_blobs(
+        name_starts_with="success_stories/photos/"
+    ))
+
+    base_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{settings.AZURE_CONTAINER}/"
+
+    image_urls = [base_url + blob.name for blob in blob_list]
+
+    # 👉 Pagination logic
+    total_count = len(image_urls)
+    start = (page - 1) * page_size
+    end = start + page_size
+
+    paginated_images = image_urls[start:end]
+
+    return JsonResponse({
+        "status": "success",
+        "count": total_count,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total_count + page_size - 1) // page_size,
+        "images": paginated_images
+    })
