@@ -507,9 +507,9 @@ EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 
 EMAIL_HOST_USER = 'apikey'
-EMAIL_HOST_PASSWORD = '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'
+EMAIL_HOST_PASSWORD = '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'
 
-DEFAULT_FROM_EMAIL = 'Info@vysyamala.com'
+DEFAULT_FROM_EMAIL = 'info@vysyamala.com'
 
 
 
