@@ -586,6 +586,14 @@ class LoginDetails(models.Model):
     facebook = models.CharField(max_length=255, blank=True, null=True)
     linkedin = models.CharField(max_length=255, blank=True, null=True)
     querier = models.BooleanField(null=True, blank=True)  # Yes/No option
+    body_type = models.CharField(max_length=50, null=True, blank=True)
+    look_lifestyle = models.CharField(max_length=50, null=True, blank=True)
+    face_appeal = models.CharField(max_length=50, null=True, blank=True)
+    smile_expression = models.CharField(max_length=50, null=True, blank=True)
+    personality_impression = models.CharField(max_length=50, null=True, blank=True)
+    overall_impression = models.CharField(max_length=50, null=True, blank=True)
+    photo_rating = models.IntegerField(null=True, blank=True)
+
     class Meta:
         db_table = 'logindetails'
 
@@ -1298,7 +1306,14 @@ class Get_profiledata_Matching(models.Model):
         height_from=None, height_to=None,
         matching_stars=None, min_anual_income=None, max_anual_income=None, membership=None,ragu=None, chev=None,
         father_alive=None, mother_alive=None,marital_status=None,family_status=None,whatsapp_field=None,field_of_study=None,
-        degree=None,from_date=None,to_date=None ,action_type=None , status=None,search=None ,except_viewed=None , except_visitor=None
+        degree=None,from_date=None,to_date=None ,action_type=None , status=None,search=None ,except_viewed=None , except_visitor=None,
+        body_type=None,
+        look_lifestyle=None,
+        face_appeal=None,
+        smile_expression=None,
+        personality_impression=None,
+        overall_impression=None,
+        photo_rating=None
     ):
 
         # print('action_type 123',action_type,'status 123',status)
@@ -1356,7 +1371,14 @@ class Get_profiledata_Matching(models.Model):
                         a.Profile_height, a.Status ,e.birthstar_name, e.birth_rasi_name, f.degree,f.other_degree,
                         f.profession, f.highest_education,f.actual_income,f.anual_income,f.work_city,
                         f.work_state,f.work_country,f.designation,f.company_name,f.business_name,f.nature_of_business,g.EducationLevel, d.star, h.income,
-                        v.viewed_profile,
+                        v.viewed_profile,a.body_type,
+                        a.look_lifestyle,
+                        a.face_appeal,
+                        a.smile_expression,
+                        a.personality_impression,
+                        a.overall_impression, 
+                        a.Profile_complexion, 
+                        a.photo_rating,
                         pi.first_image_id AS has_image ,pi.image as profile_image ,TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) AS profile_age ,
                         (SELECT sp.sent_date 
                         FROM admin_sentprofiles sp 
@@ -1490,7 +1512,7 @@ class Get_profiledata_Matching(models.Model):
 
 
                     
-                    base_query += " ORDER BY CASE WHEN sent_date IS NULL THEN 1 ELSE 0 END, sent_date DESC"
+                    # base_query += " ORDER BY CASE WHEN sent_date IS NULL THEN 1 ELSE 0 END, sent_date DESC"
             
             
             
@@ -1740,6 +1762,61 @@ class Get_profiledata_Matching(models.Model):
                 #     """)
 
                 # Strict dosham filters — only apply fallback if primary is missing
+                 # Body Type
+
+                if body_type not in [None, ""]:
+                    body_list = [b.strip() for b in body_type.split(',') if b.strip()]
+                    if body_list:
+                        placeholders = ','.join(['%s'] * len(body_list))
+                        base_query += f" AND a.body_type IN ({placeholders})"
+                        query_params.extend(body_list)
+
+                # Look / Lifestyle Appearance
+                if look_lifestyle not in [None, ""]:
+                    life_list = [l.strip() for l in look_lifestyle.split(',') if l.strip().isdigit()]
+                    if life_list:
+                        conditions = [f"FIND_IN_SET({val}, REPLACE(a.look_lifestyle, ' ', ''))" for val in life_list]
+                        base_query += " AND (" + " OR ".join(conditions) + ")"
+                # Face Appeal
+                if face_appeal not in [None, ""]:
+                    face_list = [f.strip() for f in face_appeal.split(',') if f.strip()]
+                    if face_list:
+                        placeholders = ','.join(['%s'] * len(face_list))
+                        base_query += f" AND a.face_appeal IN ({placeholders})"
+                        query_params.extend(face_list)
+
+                # Smile / Expression
+                if smile_expression not in [None, ""]:
+                    smile_list = [s.strip() for s in smile_expression.split(',') if s.strip()]
+                    if smile_list:
+                        placeholders = ','.join(['%s'] * len(smile_list))
+                        base_query += f" AND a.smile_expression IN ({placeholders})"
+                        query_params.extend(smile_list)
+                        
+                # Personality Impression
+                if personality_impression not in [None, ""]:
+                    pers_list = [p.strip() for p in personality_impression.split(',') if p.strip()]
+                    if pers_list:
+                        placeholders = ','.join(['%s'] * len(pers_list))
+                        base_query += f" AND a.personality_impression IN ({placeholders})"
+                        query_params.extend(pers_list)
+
+                # Overall Impression
+                if overall_impression not in [None, ""]:
+                    overall_list = [o.strip() for o in overall_impression.split(',') if o.strip()]
+                    if overall_list:
+                        placeholders = ','.join(['%s'] * len(overall_list))
+                        base_query += f" AND a.overall_impression IN ({placeholders})"
+                        query_params.extend(overall_list)
+
+                # Photo Rating
+                if photo_rating not in [None, ""]:
+                    rating_list = [r.strip() for r in photo_rating.split(',') if r.strip().isdigit()]
+                    if rating_list:
+                        placeholders = ','.join(['%s'] * len(rating_list))
+                        base_query += f" AND a.photo_rating IN ({placeholders})"
+                        query_params.extend(rating_list)
+                        
                 strict_conditions = []
                 # if not ragu or chev:
                 if ragukethu and ragukethu.lower() == 'yes':
@@ -1814,6 +1891,15 @@ class Get_profiledata_Matching(models.Model):
                     else:
                         base_query += " AND a.Status = 1 "   #approved Only
                         pass
+                # FINAL ORDERING (IMPORTANT FIX)
+                if status == "sent":
+                    base_query += """
+                    ORDER BY 
+                        CASE WHEN sent_date IS NULL THEN 1 ELSE 0 END,
+                        sent_date DESC
+                    """
+                else:
+                    base_query += " ORDER BY a.DateOfJoin DESC"
 
             # COUNT
             with connection.cursor() as cursor:

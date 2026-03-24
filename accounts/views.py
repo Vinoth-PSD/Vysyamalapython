@@ -5362,7 +5362,14 @@ class Get_prof_list_match(APIView):
             status=request.data.get('status'),
             search = request.data.get('search'),
             except_viewed = request.data.get('except_viewed'),
-            except_visitor = request.data.get('except_visitor')
+            except_visitor = request.data.get('except_visitor'),
+            body_type=request.data.get('body_type'),
+            look_lifestyle=request.data.get('look_lifestyle'),
+            face_appeal=request.data.get('face_appeal'),
+            smile_expression=request.data.get('smile_expression'),
+            personality_impression=request.data.get('personality_impression'),
+            overall_impression=request.data.get('overall_impression'),
+            photo_rating=request.data.get('photo_rating'),
         )
 
         if not profile_details:
@@ -5452,6 +5459,14 @@ class Get_prof_list_match(APIView):
                 # get_action_log(profile_id,detail.get("ProfileId"))
                 "dateofjoin": detail.get("DateOfJoin") if detail.get("DateOfJoin") else None,
                 "profile_status":detail.get("Status"),
+                "body_type": detail.get("body_type"),
+                "look_lifestyle": detail.get("look_lifestyle"),
+                "face_appeal": detail.get("face_appeal"),
+                "smile_expression": detail.get("smile_expression"),
+                "personality_impression": detail.get("personality_impression"),
+                "overall_impression": detail.get("overall_impression"),
+                "profile_complexion": detail.get("Profile_complexion"),
+                "photo_rating": detail.get("photo_rating"),
             })
 
         return JsonResponse({
@@ -9134,7 +9149,16 @@ def GetPhotoProofDetails(request):
                     'profile_images': image_list,
                     'profile_martial_status': login.Profile_marital_status,
                     'Profile_name':login.Profile_name,
-                    'photo_protection':login.Photo_protection
+                    'photo_protection':login.Photo_protection,
+                    'body_type': login.body_type,
+                    'look_lifestyle': login.look_lifestyle,
+                    'face_appeal': login.face_appeal,
+                    'smile_expression': login.smile_expression,
+                    'personality_impression': login.personality_impression,
+                    'overall_impression': login.overall_impression,
+                    'complexion': login.Profile_complexion,
+                    'photo_rating':login.photo_rating,
+
                 }
             })
 
@@ -9150,6 +9174,15 @@ def GetPhotoProofDetails(request):
         image_approved_csv = request.POST.get('image_approved')
         photo_password = request.POST.get('photo_password')
         photo_protection = request.POST.get('photo_protection')
+          # NEW PHOTO REVIEW FIELDS
+        body_type = request.POST.get('body_type')
+        look_lifestyle = request.POST.get('look_lifestyle')
+        face_appeal = request.POST.get('face_appeal')
+        smile_expression = request.POST.get('smile_expression')
+        personality_impression = request.POST.get('personality_impression')
+        overall_impression = request.POST.get('overall_impression')
+        complexion = request.POST.get('complexion')
+        photo_rating = request.POST.get('photo_rating')
         owner_id = request.POST.get('admin_user_id')
         try:
             owner_id = int(owner_id)
@@ -9281,6 +9314,27 @@ def GetPhotoProofDetails(request):
                 login.save()
             except Exception:
                 pass
+             # SAVE PHOTO REVIEW DATA
+            if body_type or look_lifestyle or face_appeal or smile_expression or personality_impression or overall_impression or photo_rating:
+
+                    try:
+                        login = LoginDetails.objects.get(ProfileId=profile_id)
+
+                        login.body_type = body_type
+                        login.look_lifestyle = look_lifestyle
+                        login.face_appeal = face_appeal
+                        login.smile_expression = smile_expression
+                        login.personality_impression = personality_impression
+                        login.overall_impression = overall_impression
+                        login.Profile_complexion = complexion
+                        login.photo_rating = photo_rating
+                        login.save()
+
+                        update_summary['photo_review'] = "updated"
+
+                    except LoginDetails.DoesNotExist:
+                        update_summary['photo_review'] = "login details not found"
+
     
             if not update_summary:
                 return JsonResponse({'status': 'error', 'message': 'No update data provided'}, status=400)
@@ -12473,8 +12527,9 @@ class EditProfileWithPermissionAPIView(APIView):
                 plan_status = profile_common_data.get("secondary_status")
                 querier = profile_common_data.get("querier")
 
-                if str(plan_status) == "2" and querier is None:
+                if str(plan_status) in ["1", "2", "3", "4", "5", "6", "7"] and querier is None:
                     return Response(
+                        
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 if edit_mem ==3:
