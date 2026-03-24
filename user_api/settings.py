@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 import os
+from decouple import config
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -507,7 +508,7 @@ EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 
 EMAIL_HOST_USER = 'apikey'
-EMAIL_HOST_PASSWORD = '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'
+EMAIL_HOST_PASSWORD = config('SENDGRID_API_KEY', default='') # this key added in the azure environment variables
 
 DEFAULT_FROM_EMAIL = 'info@vysyamala.com'
 
