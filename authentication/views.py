@@ -427,7 +427,7 @@ class Registrationstep1(APIView):
                         '',
                         from_email,
                         recipient_list,
-                        fail_silently=False,
+                        fail_silently=True,
                         html_message=html_content
                     )
                 verify_type='Email Otp'
@@ -508,7 +508,7 @@ class Registrationstep2(APIView):
                         '',
                         from_email,
                         recipient_list,
-                        fail_silently=False,
+                        fail_silently=True,
                         html_message=html_content
                     )
 
@@ -530,7 +530,7 @@ class Registrationstep2(APIView):
                     strip_tags(glance_html_content),
                     from_email,
                     recipient_list,
-                    fail_silently=False,
+                    fail_silently=True,
                     html_message=glance_html_content
                 )
                 return JsonResponse({"Status": 1, "message": "Registration step 2 successful","profile_id":profile_id}, status=status.HTTP_201_CREATED)
@@ -6538,7 +6538,7 @@ class Send_photo_request(APIView):
                         strip_tags(html_content),
                         settings.DEFAULT_FROM_EMAIL,
                         [to_profile_obj.EmailId],
-                        fail_silently=False,
+                        fail_silently=True,
                         html_message=html_content
                     )
                   
@@ -13106,7 +13106,7 @@ class Send_vysassist_request(APIView):
                             message,
                             settings.DEFAULT_FROM_EMAIL,
                             [login_user_email],
-                            fail_silently=False,
+                            fail_silently=True,
                         )
 
                     except Exception as e:
