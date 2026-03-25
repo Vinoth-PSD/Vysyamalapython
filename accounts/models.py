@@ -3412,7 +3412,6 @@ class Get_profiledata_Matching(models.Model):
         return result
 
 
-
     @staticmethod
     def get_common_profile_list(start, per_page, 
                                 search_profile_id=None, order_by=None,chevvai_dosham=None, ragu_dosham=None,
@@ -3917,7 +3916,25 @@ class Get_profiledata_Matching(models.Model):
                         base_query += " ORDER BY a.DateOfJoin DESC"
                 except:
                     pass
+            
+            # ✅ LAST ACTION DATE FILTER (MOVE HERE)
+            if from_last_action_date or to_last_action_date:
+                base_query += """
+                    AND EXISTS (
+                        SELECT 1 FROM datahistory dh
+                        WHERE dh.profile_id = a.ProfileId
+                """
 
+                if from_last_action_date:
+                    base_query += " AND dh.date_time >= %s"
+                    query_params.append(from_last_action_date + " 00:00:00")
+
+                if to_last_action_date:
+                    next_day = datetime.strptime(to_last_action_date, "%Y-%m-%d") + timedelta(days=1)
+                    base_query += " AND dh.date_time < %s"
+                    query_params.append(next_day.strftime("%Y-%m-%d") + " 00:00:00")
+
+                base_query += ")"
        
 
             # print("MySQL Executable Query:", format_sql_for_debug_new(base_query, query_params))
@@ -3948,46 +3965,46 @@ class Get_profiledata_Matching(models.Model):
                 results = [dict(zip(columns, row)) for row in rows]
 
                 # ---------------- TEMP TABLE FILTER ----------------
-                if from_last_action_date or to_last_action_date:
+                # if from_last_action_date or to_last_action_date:
 
-                    with connection.cursor() as cursor:
+                #     with connection.cursor() as cursor:
 
-                        cursor.execute("DROP TEMPORARY TABLE IF EXISTS temp_profiles")
+                #         cursor.execute("DROP TEMPORARY TABLE IF EXISTS temp_profiles")
 
-                        cursor.execute("""
-                            CREATE TEMPORARY TABLE temp_profiles (
-                                profile_id VARCHAR(50) PRIMARY KEY
-                            )
-                        """)
+                #         cursor.execute("""
+                #             CREATE TEMPORARY TABLE temp_profiles (
+                #                 profile_id VARCHAR(50) PRIMARY KEY
+                #             )
+                #         """)
 
-                        insert_values = [(r["ProfileId"],) for r in results]
+                #         insert_values = [(r["ProfileId"],) for r in results]
 
-                        cursor.executemany(
-                            "INSERT INTO temp_profiles (profile_id) VALUES (%s)",
-                            insert_values
-                        )
+                #         cursor.executemany(
+                #             "INSERT INTO temp_profiles (profile_id) VALUES (%s)",
+                #             insert_values
+                #         )
 
-                        history_query = """
-                            SELECT DISTINCT profile_id
-                            FROM datahistory
-                            WHERE profile_id IN (SELECT profile_id FROM temp_profiles)
-                        """
+                #         history_query = """
+                #             SELECT DISTINCT profile_id
+                #             FROM datahistory
+                #             WHERE profile_id IN (SELECT profile_id FROM temp_profiles)
+                #         """
 
-                        history_params = []
+                #         history_params = []
 
-                        if from_last_action_date:
-                            history_query += " AND DATE(date_time) >= %s"
-                            history_params.append(from_last_action_date)
+                #         if from_last_action_date:
+                #             history_query += " AND DATE(date_time) >= %s"
+                #             history_params.append(from_last_action_date)
 
-                        if to_last_action_date:
-                            history_query += " AND DATE(date_time) <= %s"
-                            history_params.append(to_last_action_date)
+                #         if to_last_action_date:
+                #             history_query += " AND DATE(date_time) <= %s"
+                #             history_params.append(to_last_action_date)
 
-                        cursor.execute(history_query, history_params)
+                #         cursor.execute(history_query, history_params)
 
-                        filtered_profiles = [row[0] for row in cursor.fetchall()]
+                #         filtered_profiles = [row[0] for row in cursor.fetchall()]
 
-                        results = [r for r in results if r["ProfileId"] in filtered_profiles]
+                #         results = [r for r in results if r["ProfileId"] in filtered_profiles]
 
                 # -------- PROFILE INDEX --------
                 all_profile_ids = [row["ProfileId"] for row in results]
@@ -4001,7 +4018,6 @@ class Get_profiledata_Matching(models.Model):
         except Exception as ex:
             print(f"[get_common_profile_list] ERROR: {str(ex)}")
             return [], 0, {}
-
 
 
 
