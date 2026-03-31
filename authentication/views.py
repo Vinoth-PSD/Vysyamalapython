@@ -8510,6 +8510,9 @@ class Save_plan_package(APIView):
         gpay_online = request.data.get('gpay_online')
         description = request.data.get('description')
         payment_datetime = timezone.now() 
+        login_detail_before =models.Registration1.objects.get(ProfileId=profile_id)
+        old_plan_id_boost        = login_detail_before.Plan_id
+        old_membership_end_boost = login_detail_before.membership_enddate
         try:
             is_plan_purchase = bool(plan_id)
             
@@ -8731,17 +8734,17 @@ class Save_plan_package(APIView):
                 addon_package =addon_package_ids
                 )
                 
-                models.PaymentTransaction.objects.create(
-                    profile_id=profile_id,  # Assuming you have user authentication
-                    order_id=order_id if order_id else '',
-                    amount=total_amount,  # Save in INR
-                    plan_id=plan_id,
-                    addon_package=addon_package_id,
-                    payment_type='Razor pay',
-                    description=description,
-                    status=1,
-                    created_at=payment_datetime
-                )
+                # models.PaymentTransaction.objects.create(
+                #     profile_id=profile_id,  # Assuming you have user authentication
+                #     order_id=order_id if order_id else '',
+                #     amount=total_amount,  # Save in INR
+                #     plan_id=plan_id,
+                #     addon_package=addon_package_id,
+                #     payment_type='Razor pay',
+                #     description=description,
+                #     status=1,
+                #     created_at=payment_datetime
+                # )
                
               
                 payment_datetime = timezone.now() 
@@ -8791,26 +8794,70 @@ class Save_plan_package(APIView):
                         ).first()
 
                         try:
-
-                            addon_package_ids = request.data.get('addon_package_id')
-                            print(22,addon_package_ids)
-                            addon_package_id_list = [
-                                int(pk.strip()) for pk in addon_package_ids.split(",") if pk.strip().isdigit()
-                            ] if addon_package_ids else []
-
-                            print("Addon List:", addon_package_id_list)
-
-                            if profile_feature and 3 in addon_package_id_list:
-
-                                if not profile_feature.boosted_date and not profile_feature.boosted_enddate:
-
-                                    profile_feature.boosted_date = payment_datetime
-                                    profile_feature.boosted_enddate = payment_datetime + timedelta(days=90)
-                                    profile_feature.featured_profile = 1
-                                    profile_feature.save()
-
-                                    print("Booster activated")
-
+                            profile_feature = models.Profile_PlanFeatureLimit.objects.filter(
+                                profile_id=profile_id,
+                                status=1
+                            ).first()
+            
+                            if profile_feature:
+            
+                                today = timezone.now()
+            
+                                # Check if qualifies for boost
+                                qualifies_for_boost = False
+                                is_addon_boost      = False
+                                print('test1',is_addon_boost )
+                                if addon_package_ids:
+                                    addon_package_id_list = [
+                                        int(pk.strip()) for pk in str(addon_package_ids).split(",")
+                                        if pk.strip().isdigit()
+                                    ]
+                                    if 3 in addon_package_id_list:
+                                        qualifies_for_boost = True
+                                        is_addon_boost      = True
+                                print("test2",is_addon_boost )
+                                if plan_id is not None and str(plan_id).isdigit() and int(plan_id) == 2:
+                                    qualifies_for_boost = True
+            
+                                if qualifies_for_boost:
+            
+                                    # Check if plan changed
+                                    new_plan_id   = plan_id
+                                    plan_changed  = (
+                                        old_plan_id_boost is not None and
+                                        new_plan_id is not None and
+                                        int(old_plan_id_boost) != int(new_plan_id)
+                                    )
+            
+                                    # Check if membership renewed (new end date set)
+                                    membership_renewed = (
+                                        old_membership_end_boost is not None and
+                                        membership_todate is not None and
+                                        old_membership_end_boost != membership_todate
+                                    )
+            
+                                    # ✅ Only update boost when plan changed, renewed, or addon 3 added
+                                    should_update_boost = plan_changed or membership_renewed or is_addon_boost
+ 
+                                    if should_update_boost:
+            
+                                        # Case 1: No boost date set at all → set fresh
+                                        if not profile_feature.boosted_date:
+                                            profile_feature.boosted_date     = today
+                                            profile_feature.boosted_enddate  = today + timedelta(days=90)
+                                            profile_feature.featured_profile = 1
+                                            profile_feature.update_type      =  "user_payment_update" 
+                                            profile_feature.save()
+            
+                                        # Case 2: Boost end date expired → reset
+                                        elif profile_feature.boosted_enddate and profile_feature.boosted_enddate < today:
+                                            profile_feature.boosted_date     = today
+                                            profile_feature.boosted_enddate  = today + timedelta(days=90)
+                                            profile_feature.featured_profile = 1
+                                            profile_feature.update_type      = "user_payment_update" 
+                                            profile_feature.save()
+            
+            
                         except Exception as e:
                             print("Booster update error:", str(e))
 

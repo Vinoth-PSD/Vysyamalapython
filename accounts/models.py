@@ -1100,6 +1100,8 @@ class Profile_PlanFeatureLimit(models.Model):
     membership_todate = models.DateTimeField(null=True, blank=True)
     boosted_date = models.DateField(null=True, blank=True)
     boosted_enddate = models.DateField(null=True, blank=True)
+    update_type = models.CharField(max_length=100, null=True, blank=True)
+
 
     class Meta:
         managed = False

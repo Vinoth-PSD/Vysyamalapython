@@ -11620,6 +11620,7 @@ class FeaturedProfileAddView(APIView):
                 "message": "profile_id, boosted_startdate, and boosted_enddate are required"
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        owner_name = user.username if user else "unknown" 
         try:
             profile = Registration1.objects.filter(ProfileId=profile_id).first()
             if not profile:
@@ -11632,6 +11633,8 @@ class FeaturedProfileAddView(APIView):
             pf.featured_profile = 1
             pf.boosted_date = boosted_date
             pf.boosted_enddate = boosted_enddate
+            pf.update_type = f"featured_updated_{owner_name}"
+
 
             pf.save()
 
@@ -12323,6 +12326,10 @@ class EditProfileWithPermissionAPIView(APIView):
         profile_common_data = request.data.get('profile_common_details', {})
         profile_visibility_data=request.data.get('profile_visibility_details', {})
         owner_id = request.data.get('admin_user_id')
+        login_detail_before = LoginDetails.objects.get(ProfileId=profile_id)
+        old_plan_id_boost        = login_detail_before.Plan_id
+        old_membership_end_boost = login_detail_before.membership_enddate
+
 
         profile_owner_id = request.data.get('profile_owner_id')
         
@@ -12785,49 +12792,127 @@ class EditProfileWithPermissionAPIView(APIView):
                 # Update the profile_plan_features row for profile_id
                 models.Profile_PlanFeatureLimit.objects.filter(profile_id=profile_id).update(**plan_features)
                 # print(pro_plan,'profile plan feature updated')
+            # from django.utils import timezone
+            # from datetime import timedelta
+
+            # try:
+            #         profile_feature = Profile_PlanFeatureLimit.objects.filter(
+            #             profile_id=profile_id,
+            #             status=1
+            #         ).first()
+
+            #         addon_package_ids = profile_common_data.get("Addon_package", "")
+
+            #         if addon_package_ids:
+            #             # Convert comma separated string to list
+            #             addon_package_id_list = [
+            #                 int(pk.strip()) for pk in addon_package_ids.split(",") if pk.strip().isdigit()
+            #             ]
+
+            #             # Check if addon package 3 exists
+            #             if 3 in addon_package_id_list or plan_id==2:
+
+            #                 today = timezone.now()
+
+            #                 # Only update if booster not already set
+            #                 if not profile_feature.boosted_date and not profile_feature.boosted_enddate:
+            #                     profile_feature.boosted_date = today
+            #                     profile_feature.boosted_enddate = today + timedelta(days=90)
+            #                     profile_feature.featured_profile = 1
+            #                     profile_feature.save()
+
+            #         elif plan_id==2:
+            #                 today = timezone.now()
+
+            #                 # Only update if booster not already set
+            #                 if not profile_feature.boosted_date and not profile_feature.boosted_enddate:
+            #                     profile_feature.boosted_date = today
+            #                     profile_feature.boosted_enddate = today + timedelta(days=90)
+            #                     profile_feature.featured_profile = 1
+            #                     profile_feature.save()
+
+                    
+
+            # except Exception as e:
+            #         print("Booster update error:", str(e))
+
+
+
             from django.utils import timezone
             from datetime import timedelta
 
             try:
-                    profile_feature = Profile_PlanFeatureLimit.objects.filter(
-                        profile_id=profile_id,
-                        status=1
-                    ).first()
+                profile_feature = Profile_PlanFeatureLimit.objects.filter(
+                    profile_id=profile_id,
+                    status=1
+                ).first()
 
-                    addon_package_ids = profile_common_data.get("Addon_package", "")
+                if profile_feature:
 
-                    if addon_package_ids:
-                        # Convert comma separated string to list
-                        addon_package_id_list = [
-                            int(pk.strip()) for pk in addon_package_ids.split(",") if pk.strip().isdigit()
-                        ]
+                    addon_package_ids = profile_common_data.get("Addon_package") or ""
 
-                        # Check if addon package 3 exists
-                        if 3 in addon_package_id_list or plan_id==2:
-
-                            today = timezone.now()
-
-                            # Only update if booster not already set
-                            if not profile_feature.boosted_date and not profile_feature.boosted_enddate:
-                                profile_feature.boosted_date = today
-                                profile_feature.boosted_enddate = today + timedelta(days=90)
-                                profile_feature.featured_profile = 1
-                                profile_feature.save()
-
-                    elif plan_id==2:
-                            today = timezone.now()
-
-                            # Only update if booster not already set
-                            if not profile_feature.boosted_date and not profile_feature.boosted_enddate:
-                                profile_feature.boosted_date = today
-                                profile_feature.boosted_enddate = today + timedelta(days=90)
-                                profile_feature.featured_profile = 1
-                                profile_feature.save()
-
+                    # Check qualification
+                    qualifies_for_boost = False
+                    Addon_package= False
                     
+                    print("1")
+                    if addon_package_ids:
+                        addon_package_id_list = [
+                            int(pk.strip()) for pk in addon_package_ids.split(",")
+                            if pk.strip().isdigit()
+                        ]
+                        if 3 in addon_package_id_list:
+                            qualifies_for_boost = True
+                            Addon_package = True
+                    elif plan_id == 2:
+                        qualifies_for_boost = True
+                    print("3")
+                    if qualifies_for_boost:
+
+                        today = timezone.now()
+                        print("4")
+                        old_membership_end = getattr(login_detail, 'membership_enddate', None)
+                        new_membership_end = parse_membership_date(profile_common_data.get("membership_todate"))
+
+                        membership_renewed = (
+                            old_membership_end_boost is not None and
+                            new_membership_end is not None and
+                            old_membership_end_boost != new_membership_end
+                        )
+                        print("5",old_membership_end_boost, new_membership_end)
+                        should_update_boost = plan_changed or membership_renewed or Addon_package
+                        print(should_update_boost ,plan_changed,membership_renewed)
+                        
+                        owner_id = owner
+
+                        owner_name = None
+                        if owner_id:
+                            owner_obj = User.objects.filter(id=owner_id).first()
+                            if owner_obj:
+                                owner_name = owner_obj.username 
+
+                        # fallback if not found
+                        owner_name = owner_name or "unknown"
+
+                        
+                        if should_update_boost: 
+                            if not profile_feature.boosted_date :
+                                profile_feature.boosted_date    = today
+                                profile_feature.boosted_enddate = today + timedelta(days=90)
+                                profile_feature.featured_profile = 1
+                                profile_feature.update_type      = f"profile_update_{owner_name}"
+                                profile_feature.save()
+                                print("6")
+                            elif profile_feature.boosted_enddate and profile_feature.boosted_enddate < today:
+                                profile_feature.boosted_date    = today
+                                profile_feature.boosted_enddate = today + timedelta(days=90)
+                                profile_feature.featured_profile = 1
+                                profile_feature.update_type      = f"profile_update_{owner_name}"
+                                profile_feature.save()
+
 
             except Exception as e:
-                    print("Booster update error:", str(e))
+                print("Booster update error:", str(e))
 
                 
             # # Update profileplan Details
