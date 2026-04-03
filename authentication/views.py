@@ -13922,7 +13922,7 @@ class ActiveProfilesAndHappyCustomersAPIView(APIView):
         
 class JustRegisteredAPIView(APIView):
     def post(self, request):
-        recent_users = models.Registration1.objects.filter(Profile_dob__isnull=False).order_by('-DateOfJoin')[:10]
+        recent_users = models.Registration1.objects.filter(Profile_dob__isnull=False).exclude(Plan_id=16).order_by('-DateOfJoin')[:10]
         active_profiles_count = models.Registration1.objects.filter(Status=1).count()
         happy_customers_count = models.Registration1.objects.aggregate(
         max_id=Max('ContentId')
