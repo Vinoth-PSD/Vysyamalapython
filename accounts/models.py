@@ -2628,7 +2628,8 @@ class Get_profiledata_Matching(models.Model):
                 if degrees:
                     placeholders = ','.join(['%s'] * len(degrees))
                     # base_query += f" AND f.degree IN ({placeholders})"
-                    base_query += f" AND f.degree IN ({placeholders}) OR f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"
+                    # base_query += f" AND f.degree IN ({placeholders}) OR f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"
+                    base_query += f" AND (f.degree IN ({placeholders}) OR f.degree IN (0,'86') OR f.degree IS NULL OR f.degree='')"
                     params.extend(degrees)
 
             if partner_pref_profess:
@@ -5838,7 +5839,6 @@ class PrintDashboard(models.Model):
         (STATUS_PENDING,   'Pending'),
         (STATUS_COMPLETED, 'Completed'),
     ]
-    
  
     # Auto-incremented PK is fine
     date        = models.DateField(auto_now_add=True)
