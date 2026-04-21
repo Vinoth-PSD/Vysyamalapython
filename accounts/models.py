@@ -1483,7 +1483,8 @@ class Get_profiledata_Matching(models.Model):
                         )
                         OR 
                         -- If opposite profile is not Platinum → skip pv.* checks
-                        (a.Plan_id NOT IN (3,16,17))
+                        # (a.Plan_id NOT IN (3,16,17))
+                        (a.Plan_id NOT IN (3,16,17) OR (a.Plan_id = 16 AND a.allow_visit = 1 AND l1_from.Plan_id = 16))
                     )
                         AND a.ProfileId != %s
                         AND a.Profile_dob BETWEEN %s AND %s """
@@ -1926,8 +1927,8 @@ class Get_profiledata_Matching(models.Model):
                         sent_date DESC
                     """
                 else:
-                    base_query += " ORDER BY a.DateOfJoin DESC"
-
+                    # base_query += " ORDER BY a.DateOfJoin DESC"
+                    base_query += " AND a.Status = 1 ORDER BY a.DateOfJoin DESC"
             # COUNT
             with connection.cursor() as cursor:
                 cursor.execute(base_query, query_params)
@@ -1954,8 +1955,11 @@ class Get_profiledata_Matching(models.Model):
             # print("MySQL Executable Query:")
             # print(format_sql_for_debug(base_query, query_params))
 
+            paginated_query = base_query + " LIMIT %s OFFSET %s"
+            paginated_params = query_params + [per_page, start]
+
             with connection.cursor() as cursor:
-                cursor.execute(base_query, query_params)
+                cursor.execute(paginated_query, paginated_params)
                 rows = cursor.fetchall()
 
                 if rows:
