@@ -17,6 +17,13 @@ from .views import MarriageSettleDetailsCreateView, MarriageSettleDetailsListVie
 from .views import PaymentTransactionCreateView, PaymentTransactionListView
 from .views import GenerateInvoicePDF
 from . import views
+from .views import (
+    PrintDashboardCreateView,
+    PrintDashboardMarkCompletedView,
+    PrintDashboardListView,
+    PrintEnvelopeView,
+)
+from accounts.views import PrintDashboardClearCompletedView
 from .views import CommonProfileSearchAPIView,PlanSubscriptionCreateView,PlanSubscriptionListView,PlanSubscriptionUpdateView
 
 router = DefaultRouter()
@@ -259,7 +266,7 @@ urlpatterns = [
     path("click-to-call/",views.ClickToCallAPI.as_view(),name="call-management-search"),
     path("profiles/export/",views.NewProfileExportAPI.as_view(),name="profiles-export"),
     path("admin/vysassist/",views.ProfileVysAssistList.as_view(),name="admin-vysassist-list"),
-        path(
+    path(
     'get_vysassist_notifications/',
     views.AdminVysassistNotifications.as_view(),
     name='admin_vysassist_notifications'
@@ -270,7 +277,8 @@ urlpatterns = [
     views.MarkNotificationRead.as_view(),
     name="mark_notification_read"
 ),
-   path(
+
+path(
     'delete-featured-profile/',
     views.DeleteFeaturedProfile.as_view(),
     name='delete-featured-profile'
@@ -287,6 +295,77 @@ path(
     views.ClearSingleAdminNotification.as_view(),
     name="clear_single_notification"
 ),
-    
-    
+
+ path('get-prof-list-match-download/',views.Get_prof_list_match_download.as_view()),
+
+
+   path(
+        'print-dashboard/create/',
+        PrintDashboardCreateView.as_view(),
+        name='print-dashboard-create'
+    ),
+ 
+    # List / filter all print jobs
+    path(
+        'print-dashboard/list/',
+        PrintDashboardListView.as_view(),
+        name='print-dashboard-list'
+    ),
+ 
+    # Mark one job as completed (called when URL is opened)
+    path(
+        'print-dashboard/<int:pk>/mark-completed/',
+        PrintDashboardMarkCompletedView.as_view(),
+        name='print-dashboard-mark-completed'
+    ),
+ 
+    # Download envelope PDF for one job
+    path(
+        'print-dashboard/<int:pk>/envelope/',
+        PrintEnvelopeView.as_view(),
+        name='print-dashboard-envelope'
+    ),
+
+    path(
+        'print-dashboard/clear-completed/',
+        PrintDashboardClearCompletedView.as_view(),
+        name='print-dashboard-clear-completed'
+    ),
+
+     path(
+        'print-envelope-json/<int:pk>/',
+        views.PrintEnvelopeJsonView.as_view(),
+        name='print-envelope-json'
+    ),
+
+    path('staff-dashboard/', views.StaffDashboardView.as_view(), name='staff-dashboard'),
+
+    path('gothram-names-single/', views.GothramNamesSingleListView.as_view(), name='gothram-names-single'),
+
+    path('envelope-word/<int:pk>/', views.PrintEnvelopeWordView.as_view()),
+    path('star-rasi-dashboard/', views.StarRasiDashboardView.as_view(), name='star-rasi-dashboard'),
+    path('geographical-report/', views.GeographicalReportView.as_view(), name='geographical-report'),
+    path(
+    'get_interest_notifications/',
+    views.AdminInterestNotifications.as_view(),
+    name='admin_interest_notifications'
+    ),
+    path(
+        'get_transaction_notifications/',
+        views.AdminTransactionNotifications.as_view(),
+        name='admin_transaction_notifications'
+    ),
+
+    path(
+        'get_hide_profile_notifications/',
+        views.AdminHideProfileNotifications.as_view(),
+        name='admin_hide_profile_notifications'
+    ),
+
+    path(
+    "website-performance-report/",
+    views.WebsitePerformanceReport.as_view(),
+    name="website-performance-report"
+    ),
+
 ]
