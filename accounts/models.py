@@ -585,7 +585,7 @@ class LoginDetails(models.Model):
     Profile_emailid= models.CharField(max_length=50, blank=True, null=True)
     facebook = models.CharField(max_length=255, blank=True, null=True)
     linkedin = models.CharField(max_length=255, blank=True, null=True)
-    querier = models.BooleanField(null=True, blank=True)  
+    querier = models.BooleanField(null=True, blank=True)  # Yes/No option
     body_type = models.CharField(max_length=50, null=True, blank=True)
     look_lifestyle = models.CharField(max_length=50, null=True, blank=True)
     face_appeal = models.CharField(max_length=50, null=True, blank=True)
@@ -593,7 +593,7 @@ class LoginDetails(models.Model):
     personality_impression = models.CharField(max_length=50, null=True, blank=True)
     overall_impression = models.CharField(max_length=50, null=True, blank=True)
     photo_rating = models.IntegerField(null=True, blank=True)
-    
+
     class Meta:
         db_table = 'logindetails'
 
@@ -1102,6 +1102,7 @@ class Profile_PlanFeatureLimit(models.Model):
     boosted_enddate = models.DateField(null=True, blank=True)
     update_type = models.CharField(max_length=100, null=True, blank=True)
 
+
     class Meta:
         managed = False
         db_table = 'profile_plan_feature_limits'
@@ -1365,132 +1366,124 @@ class Get_profiledata_Matching(models.Model):
 
             # Base query
             base_query = """
-                    SELECT DISTINCT 
-                            a.ProfileId, a.Plan_id, a.DateOfJoin, a.Photo_protection,
-                            a.Profile_city,a.Profile_state,a.Profile_country, a.Profile_verified, a.Profile_name, a.Profile_dob,
-                            c.family_status,c.father_occupation,c.suya_gothram,e.calc_chevvai_dhosham,e.calc_raguketu_dhosham,
-                            a.Profile_height, a.Status ,e.birthstar_name, e.birth_rasi_name, f.degree,f.other_degree,
-                            f.profession, f.highest_education,f.actual_income,f.anual_income,f.work_city,
-                            f.work_state,f.work_country,f.designation,f.company_name,f.business_name,f.nature_of_business,g.EducationLevel, d.star, h.income,
-                            v.viewed_profile,a.body_type,
-                            a.look_lifestyle,
-                            a.face_appeal,
-                            a.smile_expression,
-                            a.personality_impression,
-                            a.overall_impression, 
-                            a.Profile_complexion, 
-                            a.photo_rating,
-                            pi.first_image_id AS has_image ,pi.image as profile_image ,TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) AS profile_age ,
-                            (SELECT sp.sent_date 
-                            FROM admin_sentprofiles sp 
-                            WHERE sp.profile_id = %s AND sp.sentprofile_id = a.ProfileId 
-                            LIMIT 1) AS sent_date
-                        FROM logindetails a
-                        JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
-                        JOIN profile_horoscope e ON a.ProfileId = e.profile_id
-                        JOIN masterbirthstar d ON d.id = e.birthstar_name
-                        JOIN profile_edudetails f ON a.ProfileId = f.profile_id
-                        LEFT JOIN mastereducation g ON f.highest_education = g.RowId
-                        LEFT JOIN masterannualincome h ON h.id = f.anual_income
-                        JOIN profile_familydetails c ON a.ProfileId = c.profile_id
-                        LEFT JOIN masterprofession prof ON f.profession = prof.RowId
-                        LEFT JOIN vw_profile_images pi ON a.ProfileId = pi.profile_id
-                        LEFT JOIN profile_visibility pv ON pv.profile_id = a.ProfileId
-                        LEFT JOIN profile_visit_logs v
-                            ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
+                SELECT DISTINCT 
+                        a.ProfileId, a.Plan_id, a.DateOfJoin, a.Photo_protection,
+                        a.Profile_city,a.Profile_state,a.Profile_country, a.Profile_verified, a.Profile_name, a.Profile_dob,
+                        c.family_status,c.father_occupation,c.suya_gothram,e.calc_chevvai_dhosham,e.calc_raguketu_dhosham,
+                        a.Profile_height, a.Status ,e.birthstar_name, e.birth_rasi_name, f.degree,f.other_degree,
+                        f.profession, f.highest_education,f.actual_income,f.anual_income,f.work_city,
+                        f.work_state,f.work_country,f.designation,f.company_name,f.business_name,f.nature_of_business,g.EducationLevel, d.star, h.income,
+                        v.viewed_profile,a.body_type,
+                        a.look_lifestyle,
+                        a.face_appeal,
+                        a.smile_expression,
+                        a.personality_impression,
+                        a.overall_impression, 
+                        a.Profile_complexion, 
+                        a.photo_rating,
+                        pi.first_image_id AS has_image ,pi.image as profile_image ,TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) AS profile_age ,
+                        (SELECT sp.sent_date 
+                        FROM admin_sentprofiles sp 
+                        WHERE sp.profile_id = %s AND sp.sentprofile_id = a.ProfileId 
+                        LIMIT 1) AS sent_date
+                    FROM logindetails a
+                    JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
+                    JOIN profile_horoscope e ON a.ProfileId = e.profile_id
+                    JOIN masterbirthstar d ON d.id = e.birthstar_name
+                    JOIN profile_edudetails f ON a.ProfileId = f.profile_id
+                    LEFT JOIN mastereducation g ON f.highest_education = g.RowId
+                    LEFT JOIN masterannualincome h ON h.id = f.anual_income
+                    JOIN profile_familydetails c ON a.ProfileId = c.profile_id
+                    LEFT JOIN masterprofession prof ON f.profession = prof.RowId
+                    LEFT JOIN vw_profile_images pi ON a.ProfileId = pi.profile_id
+                    LEFT JOIN profile_visibility pv ON pv.profile_id = a.ProfileId
+                    LEFT JOIN profile_visit_logs v
+                        ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
 
-                        JOIN profile_edudetails f_from ON f_from.profile_id = %s
-                        JOIN profile_familydetails f1_from ON f1_from.profile_id = %s
-                        JOIN profile_horoscope h1_from ON h1_from.profile_id = %s
-                        JOIN logindetails l1_from ON l1_from.ProfileId = %s
-                        LEFT JOIN masterannualincome h_from ON h_from.id = f_from.anual_income
-
-                        -- Resolve suya_gothram_admin child → parent for CANDIDATE profile
-                        LEFT JOIN mastergothram_names_single mgs_candidate
-                            ON mgs_candidate.id = c.suya_gothram_admin
-
-                        -- Resolve suya_gothram_admin child → parent for FROM profile
-                        LEFT JOIN mastergothram_names_single mgs_from_gothram
-                            ON mgs_from_gothram.id = f1_from.suya_gothram_admin
-                                                
+                    JOIN profile_edudetails f_from ON f_from.profile_id = %s
+                    JOIN profile_familydetails f1_from ON f1_from.profile_id = %s
+                    JOIN profile_horoscope h1_from ON h1_from.profile_id = %s
+                    JOIN logindetails l1_from ON l1_from.ProfileId = %s
+                    LEFT JOIN masterannualincome h_from ON h_from.id = f_from.anual_income
+                    
 
 
-                        WHERE a.gender != %s 
+                    WHERE a.gender != %s 
 
+                    AND (
+                        -- If the opposite profile is Platinum, apply pv only when set
+                        (
+                            a.Plan_id IN (3,17)
                         AND (
-                            -- If the opposite profile is Platinum, apply pv only when set
-                            (
-                                a.Plan_id IN (3,17)
-                            AND (
-                                (%s = 'male' 
-                                    AND (pv.visibility_age_from IS NULL OR pv.visibility_age_from = '' 
-                                        OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= pv.visibility_age_from)
-                                    AND (pv.visibility_age_to IS NULL OR pv.visibility_age_to = '' 
-                                        OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= pv.visibility_age_to)
-                                    AND a.Profile_dob > %s -- viewer must be older than candidate
-                                )
-                                OR
-                                (%s = 'female' 
-                                    AND (pv.visibility_age_from IS NULL OR pv.visibility_age_from = '' 
-                                        OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= pv.visibility_age_from)
-                                    AND (pv.visibility_age_to IS NULL OR pv.visibility_age_to = '' 
-                                        OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= pv.visibility_age_to)
-                                    AND a.Profile_dob < %s -- viewer must be younger than candidate
-                                )
+                            (%s = 'male' 
+                                AND (pv.visibility_age_from IS NULL OR pv.visibility_age_from = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= pv.visibility_age_from)
+                                AND (pv.visibility_age_to IS NULL OR pv.visibility_age_to = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= pv.visibility_age_to)
+                                AND a.Profile_dob > %s -- viewer must be older than candidate
                             )
-                            AND (pv.visibility_height_from IS NULL OR pv.visibility_height_from = '' OR l1_from.Profile_height >= pv.visibility_height_from)
-                            AND (pv.visibility_height_to IS NULL OR pv.visibility_height_to = '' OR l1_from.Profile_height <= pv.visibility_height_to)
-                            AND (pv.visibility_profession IS NULL OR pv.visibility_profession = '' OR FIND_IN_SET(f_from.profession, pv.visibility_profession) > 0)
-                            AND (pv.visibility_education IS NULL OR pv.visibility_education = '' OR FIND_IN_SET(f_from.highest_education, pv.visibility_education) > 0)
-                            AND (pv.visibility_anual_income IS NULL OR pv.visibility_anual_income = '' 
-                            OR h_from.id >= pv.visibility_anual_income)
-                            AND (pv.visibility_anual_income_max IS NULL OR pv.visibility_anual_income_max = '' 
-                            OR h_from.id <= pv.visibility_anual_income_max)
-
-                            AND (pv.degree IS NULL OR pv.degree = '' OR FIND_IN_SET(f_from.degree, pv.degree) > 0)
-                            AND (pv.visibility_field_of_study IS NULL OR pv.visibility_field_of_study = '' OR FIND_IN_SET(f_from.field_ofstudy, pv.visibility_field_of_study) > 0)
-                            AND (pv.visibility_family_status IS NULL OR pv.visibility_family_status = '' OR FIND_IN_SET(f1_from.family_status, pv.visibility_family_status) > 0)
-                            -- Chevvai visibility
-                            AND (
-                                pv.visibility_chevvai IS NULL OR pv.visibility_chevvai = '' OR LOWER(pv.visibility_chevvai) = 'both'
-                                OR (
-                                    (LOWER(pv.visibility_chevvai) IN ('yes','true','1') 
-                                        AND (LOWER(h1_from.calc_chevvai_dhosham) = 'yes' OR LOWER(h1_from.calc_chevvai_dhosham) = 'true' 
-                                            OR h1_from.calc_chevvai_dhosham = '1' OR h1_from.calc_chevvai_dhosham = 1 
-                                            OR h1_from.calc_chevvai_dhosham IS NULL OR h1_from.calc_chevvai_dhosham =''))
-                                    OR
-                                    (LOWER(pv.visibility_chevvai) IN ('no','false','2') 
-                                        AND (LOWER(h1_from.calc_chevvai_dhosham) = 'no' OR LOWER(h1_from.calc_chevvai_dhosham) = 'false' 
-                                            OR h1_from.calc_chevvai_dhosham = '2' OR h1_from.calc_chevvai_dhosham = 2 
-                                            OR h1_from.calc_chevvai_dhosham IS NULL OR h1_from.calc_chevvai_dhosham =''))
-                                )
-                            )
-                            -- Ragukethu visibility
-                            AND (
-                                pv.visibility_ragukethu IS NULL OR pv.visibility_ragukethu = '' OR LOWER(pv.visibility_ragukethu) = 'both'
-                                OR (
-                                    (LOWER(pv.visibility_ragukethu) IN ('yes','true','1') 
-                                        AND (LOWER(h1_from.calc_raguketu_dhosham) = 'yes' OR LOWER(h1_from.calc_raguketu_dhosham) = 'true' 
-                                            OR h1_from.calc_raguketu_dhosham = '1' OR h1_from.calc_raguketu_dhosham = 1 
-                                            OR h1_from.calc_raguketu_dhosham IS NULL OR h1_from.calc_raguketu_dhosham =''))
-                                    OR
-                                    (LOWER(pv.visibility_ragukethu) IN ('no','false','2') 
-                                        AND (LOWER(h1_from.calc_raguketu_dhosham) = 'no' OR LOWER(h1_from.calc_raguketu_dhosham) = 'false' 
-                                            OR h1_from.calc_raguketu_dhosham = '2' OR h1_from.calc_raguketu_dhosham = 2 
-                                            OR h1_from.calc_raguketu_dhosham IS NULL OR h1_from.calc_raguketu_dhosham =''))
-                                )
+                            OR
+                            (%s = 'female' 
+                                AND (pv.visibility_age_from IS NULL OR pv.visibility_age_from = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) >= pv.visibility_age_from)
+                                AND (pv.visibility_age_to IS NULL OR pv.visibility_age_to = '' 
+                                    OR TIMESTAMPDIFF(YEAR, a.Profile_dob, CURDATE()) <= pv.visibility_age_to)
+                                AND a.Profile_dob < %s -- viewer must be younger than candidate
                             )
                         )
-                        OR 
-                        -- If opposite profile is not Platinum → skip pv.* checks
-                        (a.Plan_id NOT IN (3,16,17))
+                        AND (pv.visibility_height_from IS NULL OR pv.visibility_height_from = '' OR l1_from.Profile_height >= pv.visibility_height_from)
+                        AND (pv.visibility_height_to IS NULL OR pv.visibility_height_to = '' OR l1_from.Profile_height <= pv.visibility_height_to)
+                        AND (pv.visibility_profession IS NULL OR pv.visibility_profession = '' OR FIND_IN_SET(f_from.profession, pv.visibility_profession) > 0)
+                        AND (pv.visibility_education IS NULL OR pv.visibility_education = '' OR FIND_IN_SET(f_from.highest_education, pv.visibility_education) > 0)
+                        AND (pv.visibility_anual_income IS NULL OR pv.visibility_anual_income = '' 
+                        OR h_from.id >= pv.visibility_anual_income)
+                        AND (pv.visibility_anual_income_max IS NULL OR pv.visibility_anual_income_max = '' 
+                        OR h_from.id <= pv.visibility_anual_income_max)
+
+                        AND (pv.degree IS NULL OR pv.degree = '' OR FIND_IN_SET(f_from.degree, pv.degree) > 0)
+                        AND (pv.visibility_field_of_study IS NULL OR pv.visibility_field_of_study = '' OR FIND_IN_SET(f_from.field_ofstudy, pv.visibility_field_of_study) > 0)
+                        AND (pv.visibility_family_status IS NULL OR pv.visibility_family_status = '' OR FIND_IN_SET(f1_from.family_status, pv.visibility_family_status) > 0)
+                        -- Chevvai visibility
+                        AND (
+                            pv.visibility_chevvai IS NULL OR pv.visibility_chevvai = '' OR LOWER(pv.visibility_chevvai) = 'both'
+                            OR (
+                                (LOWER(pv.visibility_chevvai) IN ('yes','true','1') 
+                                    AND (LOWER(h1_from.calc_chevvai_dhosham) = 'yes' OR LOWER(h1_from.calc_chevvai_dhosham) = 'true' 
+                                        OR h1_from.calc_chevvai_dhosham = '1' OR h1_from.calc_chevvai_dhosham = 1 
+                                        OR h1_from.calc_chevvai_dhosham IS NULL OR h1_from.calc_chevvai_dhosham =''))
+                                OR
+                                (LOWER(pv.visibility_chevvai) IN ('no','false','2') 
+                                    AND (LOWER(h1_from.calc_chevvai_dhosham) = 'no' OR LOWER(h1_from.calc_chevvai_dhosham) = 'false' 
+                                        OR h1_from.calc_chevvai_dhosham = '2' OR h1_from.calc_chevvai_dhosham = 2 
+                                        OR h1_from.calc_chevvai_dhosham IS NULL OR h1_from.calc_chevvai_dhosham =''))
+                            )
+                        )
+                        -- Ragukethu visibility
+                        AND (
+                            pv.visibility_ragukethu IS NULL OR pv.visibility_ragukethu = '' OR LOWER(pv.visibility_ragukethu) = 'both'
+                            OR (
+                                (LOWER(pv.visibility_ragukethu) IN ('yes','true','1') 
+                                    AND (LOWER(h1_from.calc_raguketu_dhosham) = 'yes' OR LOWER(h1_from.calc_raguketu_dhosham) = 'true' 
+                                        OR h1_from.calc_raguketu_dhosham = '1' OR h1_from.calc_raguketu_dhosham = 1 
+                                        OR h1_from.calc_raguketu_dhosham IS NULL OR h1_from.calc_raguketu_dhosham =''))
+                                OR
+                                (LOWER(pv.visibility_ragukethu) IN ('no','false','2') 
+                                    AND (LOWER(h1_from.calc_raguketu_dhosham) = 'no' OR LOWER(h1_from.calc_raguketu_dhosham) = 'false' 
+                                        OR h1_from.calc_raguketu_dhosham = '2' OR h1_from.calc_raguketu_dhosham = 2 
+                                        OR h1_from.calc_raguketu_dhosham IS NULL OR h1_from.calc_raguketu_dhosham =''))
+                            )
+                        )
                     )
-                        AND a.ProfileId != %s
-                        AND a.Profile_dob BETWEEN %s AND %s """
+                    OR 
+                    -- If opposite profile is not Platinum → skip pv.* checks
+                    (a.Plan_id NOT IN (3,16,17))
+                )
+                    AND a.ProfileId != %s
+                    AND a.Profile_dob BETWEEN %s AND %s """
 
             query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,profile_id,gender,gender,profile.Profile_dob,gender,profile.Profile_dob, profile_id,min_dob, max_dob]
-                
-                
+            
+            
             if status == "sent":
                     # print('status is sent')
                     base_query += " AND a.Status != 0 " #Shows the deleted profiles also if it is already sent but deleted later
@@ -1562,29 +1555,12 @@ class Get_profiledata_Matching(models.Model):
                     base_query += "AND ((f.anual_income BETWEEN %s AND %s ) OR (f.anual_income IS NULL) OR (f.anual_income = ''))"
                     query_params.extend([int(annual_income_min),int(annual_income_max)])
 
-                # if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
-                #     base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"
-                #     query_params.append(str(my_suya_gothram_admin))
-                # if my_suya_gothram and str(my_suya_gothram).strip() != "":
-                #     base_query += " AND (c.suya_gothram IS NULL OR c.suya_gothram = '' OR c.suya_gothram != %s )"
-                #     query_params.append(my_suya_gothram)
-
                 if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
-                    if str(my_suya_gothram_admin).strip() != '103':
-                        base_query += """
-                        AND (
-                            c.suya_gothram_admin IS NULL
-                            OR c.suya_gothram_admin = ''
-                            OR mgs_candidate.gothram_id IS NULL
-                            OR c.suya_gothram_admin = '334'
-                            OR mgs_from_gothram.gothram_id IS NULL
-                            OR mgs_candidate.gothram_id != mgs_from_gothram.gothram_id
-                        )
-                        """
-                else:
-                    if my_suya_gothram and str(my_suya_gothram).strip() != "":
-                        base_query += " AND (c.suya_gothram IS NULL OR c.suya_gothram = '' OR c.suya_gothram != %s)"
-                        query_params.append(my_suya_gothram)
+                    base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"
+                    query_params.append(str(my_suya_gothram_admin))
+                if my_suya_gothram and str(my_suya_gothram).strip() != "":
+                    base_query += " AND (c.suya_gothram IS NULL OR c.suya_gothram = '' OR c.suya_gothram != %s )"
+                    query_params.append(my_suya_gothram)
 
                 family_status_conditions = []
 
@@ -1788,7 +1764,7 @@ class Get_profiledata_Matching(models.Model):
                 #     """)
 
                 # Strict dosham filters — only apply fallback if primary is missing
-                # Body Type
+                 # Body Type
 
                 if body_type not in [None, ""]:
                     body_list = [b.strip() for b in body_type.split(',') if b.strip()]
@@ -1842,8 +1818,7 @@ class Get_profiledata_Matching(models.Model):
                         placeholders = ','.join(['%s'] * len(rating_list))
                         base_query += f" AND a.photo_rating IN ({placeholders})"
                         query_params.extend(rating_list)
-
-
+                        
                 strict_conditions = []
                 # if not ragu or chev:
                 if ragukethu and ragukethu.lower() == 'yes':
@@ -1910,7 +1885,7 @@ class Get_profiledata_Matching(models.Model):
                             {action_filter}
                         ) """.format(action_filter=action_filter)
 
-                       
+                        # base_query += " ORDER BY asp.sent_date DESC "
                         
                         query_params.append(profile_id)
                         if action_type != "all":
@@ -1918,7 +1893,7 @@ class Get_profiledata_Matching(models.Model):
                     else:
                         base_query += " AND a.Status = 1 "   #approved Only
                         pass
-                                # FINAL ORDERING (IMPORTANT FIX)
+                # FINAL ORDERING (IMPORTANT FIX)
                 if status == "sent":
                     base_query += """
                     ORDER BY 
@@ -1998,9 +1973,6 @@ class Get_profiledata_Matching(models.Model):
             
             field_of_study = field_of_study or partner_pref.pref_fieldof_study
             degree = degree or partner_pref.degree
-            my_family = get_object_or_404(ProfileFamilyDetails, profile_id=profile_id)
-            my_suya_gothram = my_family.suya_gothram
-            my_suya_gothram_admin = my_family.suya_gothram_admin
 
             if search_age and search_age.strip().isdigit() and int(search_age) > 0:
                 age_diff = int(search_age)
@@ -2044,17 +2016,10 @@ class Get_profiledata_Matching(models.Model):
                 JOIN mastereducation g ON f.highest_education = g.RowId 
                 JOIN masterannualincome h ON h.id = f.anual_income
                 LEFT JOIN vw_profile_images pi ON a.ProfileId = pi.profile_id
-                JOIN profile_familydetails f1_from ON f1_from.profile_id = %s
-                LEFT JOIN mastergothram_names_single mgs_candidate
-                ON mgs_candidate.id = c.suya_gothram_admin
-                LEFT JOIN mastergothram_names_single mgs_from_gothram
-                ON mgs_from_gothram.id = f1_from.suya_gothram_admin
                 WHERE a.Status=1 AND a.Plan_id NOT IN (0,16, 17, 3) AND a.gender != %s AND a.ProfileId != %s
                 AND a.Profile_dob BETWEEN %s AND %s"""
                 
-            # query_params = [gender, profile_id, min_dob, max_dob]
-            query_params = [gender, profile_id, min_dob, max_dob, profile_id]
-
+            query_params = [gender, profile_id, min_dob, max_dob]
 
 
             # Education
@@ -2067,22 +2032,8 @@ class Get_profiledata_Matching(models.Model):
             if partner_pref_education:
                 base_query += " AND FIND_IN_SET(g.RowId, %s) > 0"
                 query_params.append(partner_pref_education)
-            if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
-                if str(my_suya_gothram_admin).strip() != '103':
-                    base_query += """
-                    AND (
-                    c.suya_gothram_admin IS NULL
-                    OR c.suya_gothram_admin = ''
-                    OR mgs_candidate.gothram_id IS NULL
-                    OR c.suya_gothram_admin = '334'
-                    OR mgs_from_gothram.gothram_id IS NULL
-                    OR mgs_candidate.gothram_id != mgs_from_gothram.gothram_id
-                    )"""
-                elif my_suya_gothram and str(my_suya_gothram).strip() != "":
-                    base_query += " AND (c.suya_gothram IS NULL OR c.suya_gothram = '' OR c.suya_gothram != %s)"
-                    query_params.append(my_suya_gothram)
             if exclude_profile_ids:
-                exclude_ids = [pid for pid in exclude_profile_ids if pid]   
+                exclude_ids = [pid for pid in exclude_profile_ids if pid]
                 if exclude_ids:
                     placeholders = ','.join(['%s'] * len(exclude_ids))
                     base_query += f" AND a.ProfileId NOT IN ({placeholders})"
@@ -2459,12 +2410,6 @@ class Get_profiledata_Matching(models.Model):
                 JOIN profile_horoscope h1_from ON h1_from.profile_id = %s
                 JOIN logindetails l1_from ON l1_from.ProfileId = %s
                 LEFT JOIN masterannualincome h_from ON h_from.id = f_from.anual_income
-
-                LEFT JOIN mastergothram_names_single mgs_candidate
-                    ON mgs_candidate.id = c.suya_gothram_admin
-
-                LEFT JOIN mastergothram_names_single mgs_from_gothram
-                    ON mgs_from_gothram.id = f1_from.suya_gothram_admin
                 
                 
                 WHERE a.Status = 1 
@@ -2549,29 +2494,12 @@ class Get_profiledata_Matching(models.Model):
                 base_query += "AND ((f.anual_income BETWEEN %s AND %s ) OR (f.anual_income IS NULL) OR (f.anual_income = '')) "
                 params.extend([int(pref_annual_income),int(pref_annual_income_max)])
             # Gothram filter
-            # if my_suya_gothram_admin and my_suya_gothram_admin != '0':
-            #     base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"
-            #     params.append(str(my_suya_gothram_admin))
-            # if my_suya_gothram:
-            #     base_query += " AND (c.suya_gothram IS NULL OR c.suya_gothram = '' OR c.suya_gothram != %s )"
-            #     params.append(my_suya_gothram)
-
-            if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
-                if str(my_suya_gothram_admin).strip() != '103':
-                    base_query += """
-                    AND (
-                        c.suya_gothram_admin IS NULL
-                        OR c.suya_gothram_admin = ''
-                        OR mgs_candidate.gothram_id IS NULL
-                        OR c.suya_gothram_admin = '334'
-                        OR mgs_from_gothram.gothram_id IS NULL
-                        OR mgs_candidate.gothram_id != mgs_from_gothram.gothram_id
-                    )
-                    """
-            else:
-                if my_suya_gothram and str(my_suya_gothram).strip() != "":
-                    base_query += " AND (c.suya_gothram IS NULL OR c.suya_gothram = '' OR c.suya_gothram != %s)"
-                    params.append(my_suya_gothram)
+            if my_suya_gothram_admin and my_suya_gothram_admin != '0':
+                base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"
+                params.append(str(my_suya_gothram_admin))
+            if my_suya_gothram:
+                base_query += " AND (c.suya_gothram IS NULL OR c.suya_gothram = '' OR c.suya_gothram != %s )"
+                params.append(my_suya_gothram)
 
             # Family status
             if partner_pref_familysts:
@@ -2752,12 +2680,6 @@ class Get_profiledata_Matching(models.Model):
                 JOIN masterannualincome h ON h.id = f.anual_income
                 JOIN profile_familydetails c ON a.ProfileId = c.profile_id
                 LEFT JOIN profile_images pi ON a.ProfileId = pi.profile_id
-                LEFT JOIN mastergothram_names_single mgs_candidate
-                    ON mgs_candidate.id = c.suya_gothram_admin
-
-                LEFT JOIN mastergothram_names_single mgs_from_gothram
-                    ON mgs_from_gothram.id = c.suya_gothram_admin
-
                 WHERE a.Status = 1
                 AND a.Plan_id NOT IN (0, 3, 16, 17)
                 AND a.gender != %s
@@ -3134,38 +3056,16 @@ class Get_profiledata_Matching(models.Model):
 
             
             # Check suya_gothram_admin first (ID stored as string in DB)
-            # if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
-
-            #         base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"
-            #         query_params.append(str(my_suya_gothram_admin))
-            # if my_suya_gothram and str(my_suya_gothram).strip() != "":
-
-            #         base_query += " AND (c.suya_gothram IS NULL OR c.suya_gothram = '' OR c.suya_gothram != %s )"
-            #         query_params.append(my_suya_gothram)
-            
-            # First add to SQL JOINs:
-            # JOIN profile_familydetails f1_from ON f1_from.profile_id = <profile_id param>
-            # LEFT JOIN mastergothram_names_single mgs_candidate ON mgs_candidate.id = c.suya_gothram_admin
-            # LEFT JOIN mastergothram_names_single mgs_from_gothram ON mgs_from_gothram.id = f1_from.suya_gothram_admin
-
             if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
-                if str(my_suya_gothram_admin).strip() != '103':
-                    base_query += """
-                    AND (
-                        c.suya_gothram_admin IS NULL
-                        OR c.suya_gothram_admin = ''
-                        OR mgs_candidate.gothram_id IS NULL
-                        OR c.suya_gothram_admin = '334'
-                        OR mgs_from_gothram.gothram_id IS NULL
-                        OR mgs_candidate.gothram_id != mgs_from_gothram.gothram_id
-                    )
-                    """
-            else:
-                if my_suya_gothram and str(my_suya_gothram).strip() != "":
-                    base_query += " AND (c.suya_gothram IS NULL OR c.suya_gothram = '' OR c.suya_gothram != %s)"
+
+                    base_query += " AND (c.suya_gothram_admin IS NULL OR c.suya_gothram_admin = '' OR c.suya_gothram_admin != %s)"
+                    query_params.append(str(my_suya_gothram_admin))
+            if my_suya_gothram and str(my_suya_gothram).strip() != "":
+
+                    base_query += " AND (c.suya_gothram IS NULL OR c.suya_gothram = '' OR c.suya_gothram != %s )"
                     query_params.append(my_suya_gothram)
-
-
+            
+            
             if partner_pref_ragukethu:
                 if partner_pref_ragukethu.lower() == 'yes':
                     base_query += " AND (LOWER(e.calc_raguketu_dhosham) IN ('yes','true') OR e.calc_raguketu_dhosham IN ('1',1,'','NULL'))"
@@ -3512,597 +3412,6 @@ class Get_profiledata_Matching(models.Model):
             ]
         #print("Query result:", result)
         return result
-
-
-
-    # @staticmethod
-    # def get_common_profile_list(start, per_page, 
-    #                             search_profile_id=None, order_by=None,chevvai_dosham=None, ragu_dosham=None,
-    #                             search_profession=None, age_from=None,age_to=None, search_location=None,
-    #                             complexion=None, city=None, state=None, education=None,
-    #                             foreign_intrest=None, has_photos=None, height_from=None, height_to=None,
-    #                             matching_stars=None, min_anual_income=None, max_anual_income=None,
-    #                             membership=None,profile_name=None,father_alive=None,mother_alive=None,martial_status=None,
-    #                             mobile_no=None, profile_dob=None,status=None,dob_date=None,dob_month=None,dob_year=None,family_status=None,
-    #                             email_id=None,gender=None,father_name=None,father_occupation=None,mother_name=None,mother_occupation=None,
-    #                             business_name=None,company_name=None,from_last_action_date=None,to_last_action_date=None,from_doj=None,to_doj=None,created_by=None,
-    #                             delete_status=None,address=None,admin_comments=None,marriage_from=None,marriage_to=None,
-    #                             engagement_from=None,engagement_to=None,field_of_study=None,degree=None,is_export=False
-    #                             ):
-
-    #     try:
-    #         if is_export:
-    #             base_query = """
-    #             SELECT
-    #             a.ProfileId, a.Gender, a.Photo_protection, a.Profile_city, a.Profile_verified,
-    #                     a.Profile_name, a.Profile_dob, a.Profile_height,
-    #                     e.birthstar_name, e.birth_rasi_name,
-    #                     f.degree,f.other_degree, f.profession,g.EducationLevel,ps.plan_name,mps.status_name,mfs.status as family_status_name,k.ModeName,ms.name as state_name,
-    #                     h.income
-    #             FROM logindetails a
-    #             LEFT JOIN profile_horoscope e ON a.ProfileId = e.profile_id
-    #             LEFT JOIN profile_familydetails c ON a.ProfileId = c.profile_id
-    #             LEFT JOIN profile_edudetails f ON a.ProfileId = f.profile_id
-    #             LEFT JOIN mastereducation g ON f.highest_education = g.RowId
-    #             LEFT JOIN masterannualincome h ON f.anual_income = h.id
-    #             LEFT JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
-    #             LEFT JOIN marriage_settled j ON a.ProfileId = j.profile_id
-    #             LEFT JOIN mastermode k ON a.Profile_for = k.Mode
-    #             LEFT JOIN masterstate ms on a.Profile_state = ms.id
-    #             LEFT JOIN plan_master ps on a.Plan_id = ps.id
-    #             LEFT JOIN masterprofilestatus mps on a.status = mps.status_code
-    #             LEFT JOIN masterfamilystatus mfs on c.family_status = mfs.id
-    #             WHERE 1
-    #             """
-    #         else:
-            
-    #             base_query = """
-    #                 SELECT DISTINCT a.ProfileId, a.Gender, a.Photo_protection, a.Profile_city, a.Profile_verified,
-    #                     a.Profile_name, a.Profile_dob, a.Profile_height,
-    #                     e.birthstar_name, e.birth_rasi_name,ps.plan_name,mps.status_name,mfs.status as family_status_name,
-    #                     f.degree,f.other_degree, f.profession, g.EducationLevel,k.ModeName,ms.name as state_name,
-    #                     h.income, (SELECT image FROM profile_images WHERE profile_id = a.ProfileId LIMIT 1) as image
-    #                 FROM logindetails a
-    #                 LEFT JOIN profile_horoscope e ON a.ProfileId = e.profile_id
-    #                 LEFT JOIN profile_familydetails c ON a.ProfileId = c.profile_id
-    #                 LEFT JOIN profile_edudetails f ON a.ProfileId = f.profile_id
-    #                 LEFT JOIN mastereducation g ON f.highest_education = g.RowId
-    #                 LEFT JOIN masterannualincome h ON f.anual_income = h.id
-    #                 LEFT JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
-    #                 LEFT JOIN profile_images i ON i.profile_id=a.ProfileId
-    #                 LEFT JOIN marriage_settled j ON a.ProfileId = j.profile_id
-    #                 LEFT JOIN mastermode k ON a.Profile_for = k.Mode
-    #                 LEFT JOIN masterstate ms on a.Profile_state = ms.id
-    #                 LEFT JOIN plan_master ps on a.Plan_id = ps.id
-    #                 LEFT JOIN masterprofilestatus mps on a.status = mps.status_code
-    #                 LEFT JOIN masterfamilystatus mfs on c.family_status = mfs.id
-    #                 WHERE 1 
-    #             """
-
-    #         query_params = []
-
-            
-    #         if field_of_study:
-    #             base_query += " AND f.field_ofstudy = %s"
-    #             query_params.append(field_of_study)
-
-    #         if degree:
-    #             base_query += " AND f.degree = %s"
-    #             query_params.append(degree)
-
-    #         if engagement_from and engagement_to:
-    #             try:
-    #                 ef = datetime.strptime(engagement_from, '%Y-%m-%d').date()
-    #                 et = datetime.strptime(engagement_to, '%Y-%m-%d').date()
-    #                 base_query += " AND j.engagement_date BETWEEN %s AND %s"
-    #                 query_params.extend([ef, et])
-    #             except Exception:
-    #                 pass
-    #         elif engagement_from:  
-    #             try:
-    #                 ef = datetime.strptime(engagement_from, '%Y-%m-%d').date()
-    #                 base_query += " AND j.engagement_date >= %s"
-    #                 query_params.append(ef)
-    #             except Exception:
-    #                 pass
-    #         elif engagement_to:
-    #             try:
-    #                 et = datetime.strptime(engagement_to, '%Y-%m-%d').date()
-    #                 base_query += " AND j.engagement_date <= %s"
-    #                 query_params.append(et)
-    #             except Exception:
-    #                 pass
-            
-    #         if marriage_from and marriage_to:
-    #             try:
-    #                 mf = datetime.strptime(marriage_from, '%Y-%m-%d').date()
-    #                 mt = datetime.strptime(marriage_to, '%Y-%m-%d').date()
-    #                 base_query += " AND j.marriage_date BETWEEN %s AND %s"
-    #                 query_params.extend([mf, mt])
-    #             except Exception:
-    #                 pass
-    #         elif marriage_from:
-    #             try:
-    #                 mf = datetime.strptime(marriage_from, '%Y-%m-%d').date()
-    #                 base_query += " AND j.marriage_date >= %s"
-    #                 query_params.append(mf)
-    #             except Exception:
-    #                 pass
-    #         elif marriage_to:
-    #             try:
-    #                 mt = datetime.strptime(marriage_to, '%Y-%m-%d').date()
-    #                 base_query += " AND j.marriage_date <= %s"
-    #                 query_params.append(mt)
-    #             except Exception:
-    #                 pass
-            
-    #         if admin_comments:
-    #             base_query += " AND lower(a.Admin_comments) LIKE %s"
-    #             query_params.append(f"%{admin_comments.lower()}%")
-            
-    #         if address:
-    #             base_query += " AND lower(a.Profile_address) LIKE %s"
-    #             query_params.append(f"%{address.lower()}%")
-            
-    #         if delete_status:
-    #             delete_status_list = [s.strip() for s in delete_status.split(',') if s.strip()]
-
-    #             if len(delete_status_list) == 1:
-    #                 base_query += " AND a.secondary_status = %s"
-    #                 query_params.append(delete_status_list[0])
-    #             elif len(delete_status_list) > 1:
-    #                 placeholders = ','.join(['%s'] * len(delete_status_list))
-    #                 base_query += f" AND a.secondary_status IN ({placeholders})"
-    #                 query_params.extend(delete_status_list)
-            
-    #         if created_by:
-    #             base_query += " AND a.Profile_for = %s"
-    #             query_params.append(created_by)
-            
-    #         if from_doj and to_doj:
-    #             try:
-    #                 fd = datetime.strptime(from_doj, '%Y-%m-%d').date()
-    #                 td = datetime.strptime(to_doj, '%Y-%m-%d').date()
-    #                 base_query += " AND a.DateOfJoin BETWEEN %s AND %s"
-    #                 query_params.extend([fd, td])
-    #             except Exception:
-    #                 pass
-    #         elif from_doj:
-    #             try:
-    #                 fd = datetime.strptime(from_doj, '%Y-%m-%d').date()
-    #                 base_query += " AND a.DateOfJoin >= %s"
-    #                 query_params.append(fd)
-    #             except Exception:
-    #                 pass
-    #         elif to_doj:
-    #             try:
-    #                 td = datetime.strptime(to_doj, '%Y-%m-%d').date()
-    #                 base_query += " AND a.DateOfJoin <= %s"
-    #                 query_params.append(td)
-    #             except Exception:
-    #                 pass
-            
-    #         if from_last_action_date and to_last_action_date:
-    #             try:
-    #                 lad = datetime.strptime(from_last_action_date, '%Y-%m-%d').date()
-    #                 tad = datetime.strptime(to_last_action_date, '%Y-%m-%d').date()
-    #                 base_query += " AND a.Last_login_date BETWEEN %s AND %s"
-    #                 query_params.extend([lad, tad])
-    #             except Exception:
-    #                 pass
-    #         elif from_last_action_date:
-    #             try:
-    #                 lad = datetime.strptime(from_last_action_date, '%Y-%m-%d').date()
-    #                 base_query += " AND a.Last_login_date >= %s"
-    #                 query_params.append(lad)
-    #             except Exception:
-    #                 pass
-    #         elif to_last_action_date:
-    #             try:
-    #                 tad = datetime.strptime(to_last_action_date, '%Y-%m-%d').date()
-    #                 base_query += " AND a.Last_login_date <= %s"
-    #                 query_params.append(tad)
-    #             except Exception:
-    #                 pass
-
-
-
-                            
-    #         if business_name:
-    #             base_query += " AND lower(f.business_name) LIKE %s"
-    #             query_params.append(f"%{business_name.lower()}%")
-                
-    #         if company_name:
-    #             base_query += " AND lower(f.company_name) LIKE %s"
-    #             query_params.append(f"%{company_name.lower()}%")
-            
-    #         if father_name:
-    #             base_query += " AND lower(c.father_name) LIKE %s"
-    #             query_params.append(f"%{father_name.lower()}%")
-                
-    #         if father_occupation:
-    #             base_query += " AND lower(c.father_occupation) LIKE %s"
-    #             query_params.append(f"%{father_occupation.lower()}%")
-                
-    #         if mother_name:
-    #             base_query += " AND lower(c.mother_name) LIKE %s"
-    #             query_params.append(f"%{mother_name.lower()}%")
-                
-    #         if mother_occupation:
-    #             base_query += " AND lower(c.mother_occupation) LIKE %s"
-    #             query_params.append(f"%{mother_occupation.lower()}%")
-            
-    #         if email_id:
-    #             base_query += " AND a.EmailId LIKE %s"
-    #             query_params.append(f"%{email_id}%")
-
-    #         if gender:
-    #             gender_list = [g.strip().lower() for g in gender.split(',') if g.strip()]
-                
-    #             if len(gender_list) == 1:
-    #                 base_query += " AND lower(a.Gender) = %s"
-    #                 query_params.append(gender_list[0])
-    #             else:
-    #                 placeholders = ','.join(['%s'] * len(gender_list))
-    #                 base_query += f" AND lower(a.Gender) IN ({placeholders})"
-    #                 query_params.extend(gender_list)
-
-    #         if family_status and family_status != "0":
-    #             family_status_list = [c.strip() for c in family_status.split(',') if c.strip()]
-    #             placeholders = ', '.join(['%s'] * len(family_status_list))
-    #             base_query += f" AND c.family_status IN ({placeholders})"
-    #             query_params.extend(family_status_list)
-
-    #         if dob_year:
-    #             try:
-    #                 dob_year = int(dob_year)
-    #                 base_query += " AND EXTRACT(YEAR FROM a.Profile_dob) = %s"
-    #                 query_params.append(dob_year)
-    #             except ValueError:
-    #                 pass
-
-    #         if dob_month:
-    #             try:
-    #                 dob_month = int(dob_month)
-    #                 base_query += " AND EXTRACT(MONTH FROM a.Profile_dob) = %s"
-    #                 query_params.append(dob_month)
-    #             except ValueError:
-    #                 pass
-
-    #         if dob_date:
-    #             try:
-    #                 dob_date = int(dob_date)
-    #                 base_query += " AND EXTRACT(DAY FROM a.Profile_dob) = %s"
-    #                 query_params.append(dob_date)
-    #             except ValueError:
-    #                 pass
-
-    #         if status is not None and status != '':
-    #             status_list = []
-    #             for s in status.split(','):
-    #                 s = s.strip()
-    #                 if s.isdigit():
-    #                     status_list.append(int(s))
-
-    #             if len(status_list) == 1:
-    #                 base_query += " AND a.Status = %s"
-    #                 query_params.append(status_list[0])
-
-    #             elif len(status_list) > 1:
-    #                 placeholders = ','.join(['%s'] * len(status_list))
-    #                 base_query += f" AND a.Status IN ({placeholders})"
-    #                 query_params.extend(status_list)
-        
-    #         # profile_id and name search
-    #         if search_profile_id:
-    #             base_query += " AND (a.ProfileId = %s OR a.Profile_name LIKE %s)"
-    #             query_params.append(search_profile_id)
-    #             query_params.append(f"%{search_profile_id}%")
-
-    #         # Profession filter (multiple IDs support)
-    #         if search_profession:
-    #             try:
-    #                 profession_ids = tuple(map(int, search_profession.split(',')))
-    #                 if profession_ids:
-    #                     base_query += " AND f.profession IN %s"
-    #                     query_params.append(profession_ids)
-    #             except:
-    #                 pass
-
-    #         # Age filter
-    #         today = date.today()
-
-    #         if 'age_from' in locals() or 'age_to' in locals():
-    #             if age_from and age_to:
-    #                 age_from = int(age_from)  # Cast string to int
-    #                 age_to = int(age_to)
-    #                 dob_from = today - timedelta(days=(age_to * 365.25))  # older date
-    #                 dob_to = today - timedelta(days=(age_from * 365.25))  # newer date
-    #                 base_query += " AND a.Profile_dob BETWEEN %s AND %s"
-    #                 query_params.extend([dob_from, dob_to])
-    #             elif age_from:
-    #                 age_from = int(age_from)
-    #                 dob_to = today - timedelta(days=(age_from * 365.25))
-    #                 base_query += " AND a.Profile_dob <= %s"
-    #                 query_params.append(dob_to)
-    #             elif age_to:
-    #                 age_to = int(age_to)
-    #                 dob_from = today - timedelta(days=(age_to * 365.25))
-    #                 base_query += " AND a.Profile_dob >= %s"
-    #                 query_params.append(dob_from)
-
-    #         # Location filter (if separate from state)
-    #         if search_location:
-    #             base_query += " AND a.Profile_state = %s"
-    #             query_params.append(search_location)
-
-    #         # Complexion
-    #         if complexion and complexion != "0":
-    #             complexion_list = [c.strip() for c in complexion.split(',') if c.strip()]
-    #             placeholders = ', '.join(['%s'] * len(complexion_list))
-    #             base_query += f" AND a.Profile_complexion IN ({placeholders})"
-    #             query_params.extend(complexion_list)
-
-    #         if martial_status and martial_status != "0":
-    #             martial_status_list = [c.strip() for c in martial_status.split(',') if c.strip()]
-    #             placeholders = ', '.join(['%s'] * len(martial_status_list))
-    #             base_query += f" AND a.Profile_marital_status IN ({placeholders})"
-    #             query_params.extend(martial_status_list)
-    #         if profile_name:
-    #             base_query += " AND a.Profile_name LIKE %s"
-    #             query_params.append(f"%{profile_name}%")
-            
-    #         # City
-    #         if city and city != "":
-    #             base_query += "AND LOWER(TRIM(a.Profile_city)) LIKE LOWER(%s)"
-    #             query_params.append(f"%{city}%")
-
-    #         # State
-    #         if state and state != "0":
-    #             state_list = [s.strip() for s in state.split(',') if s.strip()]
-                
-    #             if len(state_list) == 1:
-    #                 base_query += " AND a.Profile_state = %s"
-    #                 query_params.append(state_list[0])
-    #             else:
-    #                 placeholders = ','.join(['%s'] * len(state_list))
-    #                 base_query += f" AND a.Profile_state IN ({placeholders})"
-    #                 query_params.extend(state_list)
-
-
-    #         # Education (multi IDs)
-    #         if education:
-    #             try:
-    #                 education_ids = tuple(map(int, education.split(',')))
-    #                 if education_ids:
-    #                     base_query += " AND g.RowId IN %s"
-    #                     query_params.append(education_ids)
-    #             except:
-    #                 pass
-
-    #         # Matching stars (as comma-separated star-rasi strings)
-    #         if matching_stars:
-    #             matching_stars = matching_stars.strip()
-    #             if matching_stars and matching_stars != "0":
-    #                 try:
-    #                     star_ids = tuple(map(int, matching_stars.split(',')))
-    #                     if star_ids:
-    #                         base_query += " AND e.birthstar_name IN %s"
-    #                         query_params.append(star_ids)
-    #                 except ValueError:
-    #                     pass
-
-    #         if foreign_intrest:
-    #             foreign_intrest_val = foreign_intrest.strip().lower()
-
-    #             if foreign_intrest_val == "yes":
-    #                 base_query += """
-    #                     AND (
-    #                         a.Profile_country != 1 
-    #                         OR (f.work_country != 1 AND f.work_country IS NOT NULL AND f.work_country != 0)
-    #                     )
-    #                 """
-    #             elif foreign_intrest_val == "no":
-    #                 base_query += """
-    #                     AND (a.Profile_country = 1 AND (f.work_country = 1 OR f.work_country IS NULL))
-    #                 """
-
-    #         # Has photos
-    #         if has_photos and has_photos.lower() == "yes":
-    #             base_query += " AND i.image IS NOT NULL"
-
-    #         # Membership plan filter
-    #         if membership:
-    #             memberships = [m.strip() for m in membership.split(",") if m.strip()]
-    #             placeholders = ", ".join(["%s"] * len(memberships))
-    #             base_query += f" AND a.Plan_id IN ({placeholders})"
-    #             query_params.extend(memberships)
-            
-    #         conditions = []
-
-    #         if chevvai_dosham and chevvai_dosham.lower() == 'yes':
-    #             conditions.append("""
-    #                 (
-    #                     LOWER(e.calc_chevvai_dhosham) IN ('yes', 'true')
-    #                     OR e.calc_chevvai_dhosham IN ('1', 1)
-    #                     OR e.calc_chevvai_dhosham IS NULL
-    #                 )
-    #             """)
-
-    #         if ragu_dosham and ragu_dosham.lower() == 'yes':
-    #             conditions.append("""
-    #                 (
-    #                     LOWER(e.calc_raguketu_dhosham) IN ('yes', 'true')
-    #                     OR e.calc_raguketu_dhosham IN ('1', 1)
-    #                     OR e.calc_raguketu_dhosham IS NULL
-    #                 )
-    #             """)
-
-    #         if conditions:
-    #             base_query += f"\nAND ({' OR '.join(conditions)})"
-
-    #         if min_anual_income and max_anual_income:
-    #             try:
-    #                 with connection.cursor() as cursor:
-    #                     cursor.execute("""
-    #                         SELECT income_amount 
-    #                         FROM masterannualincome 
-    #                         WHERE id IN (%s, %s)
-    #                         ORDER BY id
-    #                     """, [min_anual_income, max_anual_income])
-    #                     income_rows = cursor.fetchall()
-
-    #                     amounts = [row[0] for row in income_rows if row[0] is not None]
-
-    #                     if len(amounts) >= 2:
-    #                         income_min = min(amounts)
-    #                         income_max = max(amounts)
-    #                         base_query += " AND h.income_amount BETWEEN %s AND %s"
-    #                         query_params.extend([income_min, income_max])
-    #                     elif len(amounts) == 1:
-    #                         base_query += " AND h.income_amount >= %s"
-    #                         query_params.append(amounts[0])
-    #             except Exception as e:
-    #                 print("[Income Filter Error]", str(e))
-
-    #         if height_from and height_to:
-    #             if height_from > height_to:
-    #                 height_from, height_to = height_to, height_from
-    #             base_query += " AND a.Profile_height BETWEEN %s AND %s"
-    #             query_params.extend([height_from, height_to])
-    #         elif height_from:
-    #             base_query += " AND a.Profile_height >= %s"
-    #             query_params.append(height_from)
-    #         elif height_to:
-    #             base_query += " AND a.Profile_height <= %s"
-    #             query_params.append(height_to)
-
-    #         if father_alive and father_alive.strip().lower() in ['yes', 'no']:
-    #             base_query += " AND c.father_alive = %s"
-    #             query_params.append(father_alive.strip().lower())
-
-    #         if mother_alive and mother_alive.strip().lower() in ['yes', 'no']:
-    #             base_query += " AND c.mother_alive = %s"
-    #             query_params.append(mother_alive.strip().lower())
-            
-    #         if mobile_no:
-    #                 cleaned_mobile = ''.join(filter(str.isdigit, mobile_no))
-                    
-    #                 if cleaned_mobile:
-    #                     base_query += """
-    #                         AND (a.Mobile_no LIKE %s 
-    #                             OR a.Profile_alternate_mobile LIKE %s 
-    #                             OR a.Profile_mobile_no LIKE %s
-    #                             OR a.Profile_whatsapp LIKE %s
-    #                             )
-    #                     """
-    #                     like_pattern = f'%{cleaned_mobile}%'
-    #                     query_params.extend([like_pattern, like_pattern, like_pattern, like_pattern]) 
-
-    #         if profile_dob:
-    #             try:
-    #                 dob = datetime.strptime(profile_dob, '%Y-%m-%d').date()
-    #                 base_query += " AND YEAR(a.Profile_dob) = %s AND MONTH(a.Profile_dob) = %s AND DAY(a.Profile_dob) = %s"
-    #                 query_params.append(dob.year)
-    #                 query_params.append(dob.month)
-    #                 query_params.append(dob.day)
-    #             except Exception:
-    #                 pass
-            
-    #         # Order by clause
-    #         if order_by:
-    #             try:
-    #                 order_by = int(order_by)
-    #                 if order_by == 1:
-    #                     base_query += " ORDER BY a.DateOfJoin ASC"
-    #                 elif order_by == 2:
-    #                     base_query += " ORDER BY a.DateOfJoin DESC"
-    #             except:
-    #                 pass
-
-       
-
-    #         # print("MySQL Executable Query:", format_sql_for_debug_new(base_query, query_params))
-
-    #         # Count total
-    #         # count_query = f"""SELECT COUNT(*) FROM ({base_query}) AS total"""
-    #         # with connection.cursor() as cursor:
-    #         #     cursor.execute(count_query, query_params)
-    #         #     total_count = cursor.fetchone()[0]
-    #         if not is_export:
-    #             count_query = f"SELECT COUNT(*) FROM ({base_query}) AS total"
-    #             with connection.cursor() as cursor:
-    #                 cursor.execute(count_query, query_params)
-    #                 total_count = cursor.fetchone()[0]
-    #         else:
-    #             total_count = None
-
-    #         # Limit and offset
-    #         base_query += " LIMIT %s OFFSET %s"
-    #         query_params.extend([per_page, start])
-
-    #         # Execute final query
-    #         with connection.cursor() as cursor:
-    #             cursor.execute(base_query, query_params)
-    #             rows = cursor.fetchall()
-
-    #             columns = [col[0] for col in cursor.description]
-    #             results = [dict(zip(columns, row)) for row in rows]
-
-    #             # ---------------- TEMP TABLE FILTER ----------------
-    #             if from_last_action_date or to_last_action_date:
-
-    #                 with connection.cursor() as cursor:
-
-    #                     cursor.execute("DROP TEMPORARY TABLE IF EXISTS temp_profiles")
-
-    #                     cursor.execute("""
-    #                         CREATE TEMPORARY TABLE temp_profiles (
-    #                             profile_id VARCHAR(50) PRIMARY KEY
-    #                         )
-    #                     """)
-
-    #                     insert_values = [(r["ProfileId"],) for r in results]
-
-    #                     cursor.executemany(
-    #                         "INSERT INTO temp_profiles (profile_id) VALUES (%s)",
-    #                         insert_values
-    #                     )
-
-    #                     history_query = """
-    #                         SELECT DISTINCT profile_id
-    #                         FROM datahistory
-    #                         WHERE profile_id IN (SELECT profile_id FROM temp_profiles)
-    #                     """
-
-    #                     history_params = []
-
-    #                     if from_last_action_date:
-    #                         history_query += " AND DATE(date_time) >= %s"
-    #                         history_params.append(from_last_action_date)
-
-    #                     if to_last_action_date:
-    #                         history_query += " AND DATE(date_time) <= %s"
-    #                         history_params.append(to_last_action_date)
-
-    #                     cursor.execute(history_query, history_params)
-
-    #                     filtered_profiles = [row[0] for row in cursor.fetchall()]
-
-    #                     results = [r for r in results if r["ProfileId"] in filtered_profiles]
-
-    #             # -------- PROFILE INDEX --------
-    #             all_profile_ids = [row["ProfileId"] for row in results]
-
-    #             profile_with_indices = {
-    #                 str(i + 1): pid for i, pid in enumerate(all_profile_ids)
-    #             }
-
-    #             return results, total_count, profile_with_indices
-
-    #     except Exception as ex:
-    #         print(f"[get_common_profile_list] ERROR: {str(ex)}")
-    #         return [], 0, {}
 
 
     @staticmethod
@@ -4714,8 +4023,6 @@ class Get_profiledata_Matching(models.Model):
 
 
 
-
-
 def format_sql_for_debug_new(query, params):
                 def escape(value):
                     if isinstance(value, str):
@@ -4862,13 +4169,6 @@ class Partnerpref(models.Model):
     status = models.IntegerField()   # Changed from CharField to TextField
     degree = models.CharField(max_length=255, blank=True, null=True) 
     pref_fieldof_study = models.CharField(max_length=255, blank=True, null=True)
-    body_type = models.IntegerField(null=True, blank=True)
-    look_lifestyle = models.CharField(max_length=50, null=True, blank=True)
-    face_appeal = models.IntegerField(null=True, blank=True)
-    smile_expression = models.IntegerField(null=True, blank=True)
-    personality_impression = models.IntegerField(null=True, blank=True)
-    overall_impression = models.IntegerField(null=True, blank=True)
-    complexion = models.IntegerField(null=True, blank=True)
     class Meta:
         managed = False  # This tells Django not to handle database table creation/migration for this model
         db_table = 'profile_partner_pref'  # Name of the table in your database
@@ -5199,7 +4499,6 @@ class MarriageSettleDetails(models.Model):
     marriage_location = models.CharField(max_length=255, null=True, blank=True)
     wish_card_accept = models.CharField(max_length=255, null=True, blank=True)
     instagram_accept = models.CharField(max_length=255, null=True, blank=True)
-    marriage_settled_comment = models.TextField(null=True, blank=True) 
 
     class Meta:
         managed = False  # This table already exists in the DB
@@ -5811,7 +5110,6 @@ class StateRoundRobin(models.Model):
         db_table = "state_round_robin"
         managed = False  # Set to True only if Django should manage the table
 
-
 class AdminNotification(models.Model):
     id = models.AutoField(primary_key=True)
     notification_type = models.CharField(max_length=50)
@@ -5820,59 +5118,6 @@ class AdminNotification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.IntegerField(default=0)
     is_cleared = models.IntegerField(default=0)
-    
 
     class Meta:
         db_table = 'admin_notifications'
-
-
-class PrintDashboard(models.Model):
-    """
-    Stores each 'Send Selected (Print)' action from the matching profiles page.
-    One record = one print job (may contain multiple profile IDs).
-    """
- 
-    STATUS_PENDING   = 'pending'
-    STATUS_COMPLETED = 'completed'
-    STATUS_CHOICES   = [
-        (STATUS_PENDING,   'Pending'),
-        (STATUS_COMPLETED, 'Completed'),
-    ]
- 
-    # Auto-incremented PK is fine
-    date        = models.DateField(auto_now_add=True)
-    profile_id  = models.CharField(max_length=50)           # "profile_to" – the owner/VM id
-    owner_name  = models.CharField(max_length=255, blank=True, null=True)
-    mode        = models.CharField(max_length=50, blank=True, null=True)   # Manual / Auto
-    match_count = models.PositiveIntegerField(default=0)    # number of profile_ids in the batch
-    print_url   = models.TextField()                        # full URL generated for this print job
-    pdf_format  = models.CharField(max_length=100, blank=True, null=True)  # match_full_profile, color, etc.
-    profile_ids = models.TextField()                        # comma-separated selected profile IDs
-    status      = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING
-    )
-    created_by  = models.CharField(max_length=100, blank=True, null=True)  # admin user who triggered
-    created_at  = models.DateTimeField(auto_now_add=True)
-    updated_at  = models.DateTimeField(auto_now=True)
-    is_deleted = models.BooleanField(default=False)
- 
-    class Meta:
-        db_table = 'print_dashboard'
-        ordering = ['-created_at']
- 
-    def __str__(self):
-        return f"{self.profile_id} | {self.date} | {self.status}"
-
-
-class GothramNamesSingle(models.Model):
-    id         = models.AutoField(primary_key=True)
-    gothram_id = models.IntegerField()
-    name       = models.CharField(max_length=255)
-    is_deleted = models.BooleanField(default=False)
- 
-    class Meta:
-        managed  = False
-        db_table = 'mastergothram_names_single'
- 
-    def __str__(self):
-        return self.name

@@ -76,28 +76,3 @@ def assign_user_for_state(state_id):
     rr_obj.save()
 
     return next_user
-
-
-from django.utils import timezone
-from accounts.models import PrintDashboard
-
-
-def clear_completed_print_dashboard():
-    today = timezone.localdate()
-
-    today_start = timezone.make_aware(
-        timezone.datetime.combine(today, timezone.datetime.min.time())
-    )
-
-    qs = PrintDashboard.objects.filter(
-        status=PrintDashboard.STATUS_COMPLETED,
-        is_deleted=False,
-        updated_at__lt=today_start
-    )
-
-    count = qs.count()
-
-    if count > 0:
-        qs.update(is_deleted=True)
-
-    return count

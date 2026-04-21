@@ -1186,15 +1186,15 @@ class Get_profiledata(models.Model):
 
                 query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,gender, profile.Profile_dob,gender, profile.Profile_dob,gender, profile_id, min_dob, max_dob]
 
-                # # Check suya_gothram_admin first (ID stored as string in DB)
-                # if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
+                # Check suya_gothram_admin first (ID stored as string in DB)
+                if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
 
-                #     base_query += " AND (f1.suya_gothram_admin IS NULL OR f1.suya_gothram_admin = '' OR f1.suya_gothram_admin != %s)"
-                #     query_params.append(str(my_suya_gothram_admin))
-                # if my_suya_gothram and str(my_suya_gothram).strip() != "":
+                    base_query += " AND (f1.suya_gothram_admin IS NULL OR f1.suya_gothram_admin = '' OR f1.suya_gothram_admin != %s)"
+                    query_params.append(str(my_suya_gothram_admin))
+                if my_suya_gothram and str(my_suya_gothram).strip() != "":
 
-                #     base_query += " AND (f1.suya_gothram IS NULL OR f1.suya_gothram = '' OR f1.suya_gothram != %s )"
-                #     query_params.append(my_suya_gothram)
+                    base_query += " AND (f1.suya_gothram IS NULL OR f1.suya_gothram = '' OR f1.suya_gothram != %s )"
+                    query_params.append(my_suya_gothram)
 
 
                 # if min_income and max_income:

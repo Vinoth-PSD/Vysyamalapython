@@ -100,6 +100,9 @@ from rest_framework import viewsets, permissions
 
 from accounts.utils.round_robin_assign import assign_user_for_state
 from django.core import signing
+
+
+
 from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 
@@ -109,32 +112,15 @@ from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 
 from .models import Role, RolePermission , User
-import urllib.parse
-from .models import PrintDashboard
 from .serializers import UserSerializer,DashboardSerializer
 from django.db.models import F, Value
 from django.db.models.functions import Concat
-from .models import GothramNamesSingle
+
 import pandas as pd
 import numpy as np
 from django.db.models import OuterRef, Subquery
 from django.db.models import Exists
 from openpyxl.utils import get_column_letter
-
-# def normalize_date(d):        # ← ADD THIS FUNCTION HERE
-#     if d is None:
-#         return None
-#     if hasattr(d, 'date'):
-#         return d.date()
-#     if isinstance(d, str):
-#         try:
-#             from datetime import date
-#             return date.fromisoformat(d)
-#         except:
-#             return d
-#     return d
-
-
 # User = get_user_model()
 
 
@@ -153,61 +139,22 @@ from openpyxl.utils import get_column_letter
 #         instance.save()
 #         return Response({"status": "deleted"})
 
-from django.utils import timezone
-from django.db.models import Subquery
+
 class DashboardcountView(APIView):
       def get(self, request):
 
         try:
             # Counts based on assumptions
             new_profiles = LoginDetails.objects.filter(status=0).count()
-            # approved_profiles = LoginDetails.objects.filter(status=1).count()
-            approved_profiles = LoginDetails.objects.filter(status=1,secondary_status=5).count()
+            approved_profiles = LoginDetails.objects.filter(status=1).count()
             pending_profiles = LoginDetails.objects.filter(status=2).count()
             hidden_profiles = LoginDetails.objects.filter(status=3).count()
             photo_request_count = Image_Upload.objects.filter(image_approved=0,is_deleted=0).count()
             quick_upload_count = LoginDetails.objects.filter(quick_registration=1).count()
-            # paidprofiles_count = LoginDetails.objects.filter(~Q(Plan_id__in=[6, 7, 8, 9, 11, 12, 13])).count()
-            paidprofiles_count = LoginDetails.objects.filter(status=1,secondary_status=5).count()
+            paidprofiles_count = LoginDetails.objects.filter(~Q(Plan_id__in=[6, 7, 8, 9, 11, 12, 13])).count()
             prospect_profiles = LoginDetails.objects.filter(Plan_id=8).exclude(status__in=[0, 3, 4]).count()
             featured_profiles = LoginDetails.objects.filter(Plan_id__in=[3, 4]).exclude(status__in=[0, 3, 4]).count()
             deletedprofiles = LoginDetails.objects.filter(status=4).count()
-            tamil_nadu_count = LoginDetails.objects.filter(Profile_state='2',status=1 ).count()
-            andhra_count = LoginDetails.objects.filter(Profile_state='1',status=1).count()
-            karnataka_count = LoginDetails.objects.filter(Profile_state='4',status=1).count()
-            kerala_count = LoginDetails.objects.filter(Profile_state='5',status=1).count()
-            pondicherry_count = LoginDetails.objects.filter(Profile_state='7',status=1).count()
-            telangana_count = LoginDetails.objects.filter(Profile_state='3',status=1).count()
-            telangana_count = LoginDetails.objects.filter(Profile_state='3',status=1).count()
-            foreign_working_count = LoginDetails.objects.filter(
-                Profile_country='1',
-                status=1,
-                ProfileId__in=ProfileEduDetails.objects.filter(
-                    ~Q(work_country='1'),
-                    ~Q(work_country=''),
-                    ~Q(work_country='0'),
-                    work_country__isnull=False
-                ).values('profile_id')
-            ).count()
-
-            # Others (exclude above states)
-            others_count = LoginDetails.objects.filter(
-                status=1
-            ).exclude(
-                Profile_state__in=['1', '2', '4', '5', '7']
-            ).count()
-
-            male_count = LoginDetails.objects.filter(status=1, Gender__iexact='Male').count()
-            female_count = LoginDetails.objects.filter(status=1, Gender__iexact='Female').count()
-            renewal_members_count = LoginDetails.objects.filter(status=1,secondary_status=5,plan_status__in=[14, 15, 17,22]).count()
-            
-            today = timezone.now()
-
-            expired_premium_count = LoginDetails.objects.filter(
-                status=1,
-                secondary_status=5,
-                membership_enddate__lt=today
-            ).count()
 
             return Response({
                 "new_profiles": new_profiles,
@@ -219,31 +166,11 @@ class DashboardcountView(APIView):
                 "paidprofiles_count":paidprofiles_count,
                 "prospect_profiles":prospect_profiles,
                 "featured_profiles":featured_profiles,
-                "deletedprofiles":deletedprofiles,
-                "male_count":male_count,
-                "female_count":female_count,
-                "renewal_members": renewal_members_count,
-
-
-
-
-                "state_counts": {
-                    "tamil_nadu": tamil_nadu_count,
-                    "andhra_pradesh": andhra_count,
-                    "karnataka": karnataka_count,
-                    "kerala": kerala_count,
-                    "pondicherry": pondicherry_count,
-                    "telangana_count":telangana_count,
-                    "others": others_count,
-                    "foreign_working_profiles": foreign_working_count,
-                },
-                "expired_premium_profiles": expired_premium_count,
+                "deletedprofiles":deletedprofiles
             })
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)  
-
-
 
 
 class GetMasterStatus(APIView):
@@ -1140,25 +1067,6 @@ EXPORT_HEADER_CONFIG = {
     ],
 }
 
-def print_full_sql(sql, params):
-        """
-        Prints the raw SQL query with parameters substituted.
-        Useful for debugging.
-        """
-        from django.db import connection
-        # Use connection.ops.quote_name if needed for identifiers
-        query = sql
-        for p in params:
-            if isinstance(p, str):
-                value = f"'{p}'"
-            elif p is None:
-                value = "NULL"
-            else:
-                value = str(p)
-            query = query.replace("%s", value, 1)
-        print("\n--- Final SQL ---\n")
-        print(query)
-        print("\n-----------------\n")
 
 class Newprofile_get(generics.ListAPIView):
     serializer_class = Getnewprofiledata_new
@@ -1166,18 +1074,18 @@ class Newprofile_get(generics.ListAPIView):
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['ProfileId', 'Gender', 'EmailId', 'Profile_dob', 'Profile_city']
 
+
     def get_queryset(self):
         search_query = self.request.query_params.get('search', None)
         page_id=self.request.query_params.get('page_name', None)
         plan_ids=self.request.query_params.get('plan_ids', None)
-        numeric_page_id = int(page_id) if page_id and page_id.isdigit() else None
         plan_id_list_new = [] 
         if plan_ids: 
             plan_id_list_new = [int(pid.strip()) for pid in plan_ids.split(',') if pid.strip().isdigit()]
-        if page_id and page_id.isdigit():
-            status_id = int(page_id)
+        if page_id is None:
+            status_id = 0  # Default status to 0 when page_id is '1'
         else:
-            status_id = 1 # Otherwise, set the status as the page_id
+            status_id = page_id  # Otherwise, set the status as the page_id
         
         # Base SQL query with JOINs
         # sql = """
@@ -1228,8 +1136,7 @@ class Newprofile_get(generics.ListAPIView):
             WHERE (horoscope_file IS NOT NULL AND horoscope_file <> '') OR (horoscope_file_admin IS NOT NULL AND horoscope_file_admin <> '') ) hi 
             ON hi.profile_id = ld.ProfileId
             """
-        # if int(page_id) == 4 or int(page_id) == 3 or int(page_id) == 2 or (int(page_id) == 1 and plan_ids in [None,'']):
-        if numeric_page_id in [4, 3, 2] or (numeric_page_id == 1 and plan_ids in [None, '']):
+        if int(page_id) == 4 or int(page_id) == 3 or int(page_id) == 2 or (int(page_id) == 1 and plan_ids in [None,'']):
             print("Inside page_id 4 block")
             sql += """
             LEFT JOIN (
@@ -1272,79 +1179,30 @@ class Newprofile_get(generics.ListAPIView):
             sql += "WHERE ld.status = %s"
             params = [status_id]
 
-     
-  
-        
-
-        # ✅ ADD HERE
-        from django.utils import timezone
-        today = timezone.now()
-
-        # State filters
-        if page_id == "tamil_nadu":
-            sql += " AND ld.Profile_state = '2'"
-
-        elif page_id == "andhra":
-            sql += " AND ld.Profile_state = '1'"
-
-        elif page_id == "karnataka":
-            sql += " AND ld.Profile_state = '4'"
-
-        elif page_id == "kerala":
-            sql += " AND ld.Profile_state = '5'"
-
-        elif page_id == "pondicherry":
-            sql += " AND ld.Profile_state = '7'"
-
-        elif page_id == "telangana":
-            sql += " AND ld.Profile_state = '3'"
-
-        elif page_id == "foreign_working":
-            sql += " AND ld.Profile_country = '1' AND ped.work_country != '1' And ped.work_country != '' And ped.work_country is not null AND ped.work_country != '0' "
-
-        elif page_id == "others_state":
-            sql += " AND ld.Profile_state NOT IN ('1','2','4','5','7')"
-
-        # Gender filters
-        elif page_id == "male":
-            sql += " AND ld.status = 1 AND LOWER(ld.Gender) = 'male'"
-
-        elif page_id == "female":
-            sql += " AND ld.status = 1 AND LOWER(ld.Gender) = 'female'"
-
-        # Renewal
-        elif page_id == "renewal":
-            sql += " AND ld.status = 1 AND ld.secondary_status = 5 AND ld.plan_status IN (14,15,17)"
-
-        # Expired premium
-        elif page_id == "expired":
-            sql += " AND ld.status = 1 AND ld.secondary_status = 5 AND ld.membership_enddate < NOW()"
-
         if plan_ids is not None:
             plan_id_list = [pid.strip() for pid in plan_ids.split(',') if pid.strip()]
             if plan_id_list:
                 placeholders = ','.join(['%s'] * len(plan_id_list))
                 sql += f" AND ld.Plan_id IN ({placeholders})"
                 params.extend(plan_id_list)
-        if numeric_page_id in [4, 3, 2] or (numeric_page_id == 1 and plan_ids in [None, '']):
+        if int(page_id) == 4 or int(page_id) == 3 or int(page_id) == 2 or (int(page_id) == 1 and plan_ids in [None,'']):
             sql += " ORDER BY dh.deleted_date DESC"
-        elif numeric_page_id == 1 and 8 in plan_id_list_new:
+        elif int(page_id) == 1 and 8 in plan_id_list_new:
             sql += " ORDER BY ld.DateOfJoin DESC"
-        elif numeric_page_id == 1:
+        elif int(page_id) == 1:
             sql += " ORDER BY ld.membership_startdate DESC"
-        elif numeric_page_id == 0:
+        elif int(page_id) == 0:
             sql += " ORDER BY ld.DateOfJoin DESC"
         else:
-            sql += " ORDER BY ld.ContentId DESC"  
-        print_full_sql(sql, params)   
+            sql += " ORDER BY ld.ContentId DESC"
+        
+
         with connection.cursor() as cursor:
             cursor.execute(sql, params)
             rows = dictfetchall(cursor)  # Fetch rows as a dictionary
 
         # Return the rows to the serializer
         return rows
-
-
 
 class NewProfileExportAPI(APIView):
     PAID_PLANS = {"1", "2", "3", "11", "12", "13", "14", "15"}
@@ -2155,7 +2013,7 @@ class SuccessStoryViewSet(viewsets.ModelViewSet):
 
 
 class SuccessStoryListViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = SuccessStory.objects.filter(deleted=False).order_by('-id')
+    queryset = SuccessStory.objects.filter(deleted=False)
     serializer_class = SuccessStoryListSerializer
 
 class SuccessStoryEditView(APIView):
@@ -2696,8 +2554,7 @@ class SubmitProfileAPIView(APIView):
             return Response({"error": "You can upload a maximum of 10 images."}, status=status.HTTP_400_BAD_REQUEST)
 
         for image in images:
-            # Image_Upload.objects.create(profile_id=profile_id, image=image)
-            Image_Upload.objects.create(profile_id=profile_id, image=image, is_deleted=False)
+            Image_Upload.objects.create(profile_id=profile_id, image=image)
 
         # Return errors if any exist
         if errors:
@@ -3402,6 +3259,7 @@ class GetProfEditDetailsAPIView(APIView):
                     return {0: "Unknown", 1: "Yes", 2: "No"}.get(value, value)
                 
                 return value
+        
         profession_name = safe_get_by_id(Profession, edu_detail.profession, 'profession')
         try:
             if edu_detail:
@@ -3590,8 +3448,6 @@ class GetProfEditDetailsAPIView(APIView):
             response_data['profile_visibility_error'] = str(e)
 
         return Response(response_data, status=status.HTTP_200_OK)
-
-
 
 # def safe_get_by_id(model, pk_value, return_field):
 #     if not pk_value:
@@ -5514,9 +5370,6 @@ class Get_prof_list_match(APIView):
             personality_impression=request.data.get('personality_impression'),
             overall_impression=request.data.get('overall_impression'),
             photo_rating=request.data.get('photo_rating'),
-            
-           
-
         )
 
         if not profile_details:
@@ -5568,15 +5421,13 @@ class Get_prof_list_match(APIView):
 
 
             # image_function = lambda detail: get_profile_image_azure_optimized(detail.get("ProfileId"), gender, 1,0)
-            print("test",gender)
+
             pid = detail.get("ProfileId")
             result_profiles.append({
                 "profile_id": detail.get("ProfileId"),
                 "profile_name": detail.get("Profile_name"),
                 # "profile_img":image_function(detail),
-                # "profile_img": base_url + (detail.get("profile_image") or "default_img.png"),
-                # "profile_img": Get_profile_image(detail.get("ProfileId"), detail.get("gender"), 1, 0),
-                "profile_img": Get_profile_image(detail.get("ProfileId"), "Female" if gender.lower() == "male" else "Male", 1, 0),
+                "profile_img": base_url + (detail.get("profile_image") or "default_img.png"),
                 "profile_age": detail.get("profile_age"),
                 # "plan": get_plan(detail.get("Plan_id")),
                 "plan": plans.get(int(detail.get("Plan_id")) if detail.get("Plan_id") else "N/A"),
@@ -5616,8 +5467,6 @@ class Get_prof_list_match(APIView):
                 "overall_impression": detail.get("overall_impression"),
                 "profile_complexion": detail.get("Profile_complexion"),
                 "photo_rating": detail.get("photo_rating"),
-
-                
             })
 
         return JsonResponse({
@@ -6137,7 +5986,7 @@ def send_bulk_email(request):
                 image.add_header('Content-ID', '<attached_image>')
                 email_message.attach(image)
 
-            # email_message.send(fail_silently=False)
+            email_message.send(fail_silently=False)
 
         return JsonResponse({
             "success": True,
@@ -6584,7 +6433,6 @@ def delete_profile(request, profile_id):
         return JsonResponse({'error': 'Invalid request method'}, status=400)
     
 #Viewed Profiles    
-
 class My_viewed_profiles(APIView):
     def post(self, request):
         serializer = Profile_idValidationSerializer(data=request.data)
@@ -6600,19 +6448,16 @@ class My_viewed_profiles(APIView):
 
             try:
                 # Initialize the base queryset to filter by profile_id
-                all_profiles = Profile_visitors.objects.filter(profile_id=profile_id).order_by('-datetime')
+                all_profiles = Profile_visitors.objects.filter(profile_id=profile_id)
 
                 # Apply date filters if from_date and to_date are provided
                 if from_date:
-                    from_date = datetime.strptime(from_date, '%Y-%m-%d').date()
-                    from_datetime = datetime.combine(from_date, datetime.min.time())
-                    all_profiles = all_profiles.filter(datetime__gte=from_datetime)
- 
+                    from_date = datetime.strptime(from_date, '%Y-%m-%d').date()  # Convert to date
+                    all_profiles = all_profiles.filter(datetime__date__gte=from_date)
+
                 if to_date:
-                    to_date = datetime.strptime(to_date, '%Y-%m-%d').date()
-                    to_datetime = datetime.combine(to_date, datetime.max.time())
-                    all_profiles = all_profiles.filter(datetime__lte=to_datetime)
- 
+                    to_date = datetime.strptime(to_date, '%Y-%m-%d').date()  # Convert to date
+                    all_profiles = all_profiles.filter(datetime__date__lte=to_date)
 
                 # Get all profile IDs in the filtered queryset
                 all_profile_ids = {str(index + 1): profile_id for index, profile_id in enumerate(all_profiles.values_list('viewed_profile', flat=True))}
@@ -6641,18 +6486,6 @@ class My_viewed_profiles(APIView):
                     my_rasi_id = horo_data.birth_rasi_name
                     my_gender = profile_data.Gender
 
-                    ordered_ids = list(fetch_data.values_list('viewed_profile', flat=True))
-
-                    profile_details_dict = {
-                        detail["ProfileId"]: detail for detail in profile_details
-                    }
-
-                    ordered_profile_details = [
-                        profile_details_dict[pid]
-                        for pid in ordered_ids
-                        if pid in profile_details_dict
-                    ]
-
                     restricted_profile_details = [
                         {
                             "visited_profileid": detail.get("ProfileId"),
@@ -6672,8 +6505,7 @@ class My_viewed_profiles(APIView):
                             "visited_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "visited_profile_wishlist": Get_wishlist(profile_id, detail.get("ProfileId")),
                         }
-                        # for detail in profile_details
-                        for detail in ordered_profile_details
+                        for detail in profile_details
                     ]
 
                     combined_data = {
@@ -6687,10 +6519,8 @@ class My_viewed_profiles(APIView):
 
                     return JsonResponse({"Status": 1, "message": "Fetched viewed profile lists successfully", "data": combined_data, "viewed_profile_count": total_records}, status=status.HTTP_200_OK)
                 else:
-                    print("test2")
                     return JsonResponse({"Status": 0, "message": "No viewed profiles found for the given profile ID"}, status=status.HTTP_200_OK)
             except Profile_visitors.DoesNotExist:
-                print("test3")
                 return JsonResponse({"Status": 0, "message": "No viewed profiles found for the given profile ID"}, status=status.HTTP_200_OK)
         else:
             return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -6801,26 +6631,23 @@ class My_profiles_vistors(APIView):
 
             try:
                 # Initialize the base queryset to filter by profile_id
-                # all_profiles = Profile_visitors.objects.filter(profile_id=profile_id) 
-                all_profiles = Profile_visitors.objects.filter(viewed_profile=profile_id).order_by('-datetime')
-                print("sar1")
+                # all_profiles = Profile_visitors.objects.filter(profile_id=profile_id)
+                all_profiles = Profile_visitors.objects.filter(viewed_profile=profile_id)
+
+
                 # Apply date filters if from_date and to_date are provided
                 if from_date:
-                    from_date = datetime.strptime(from_date, '%Y-%m-%d').date()
-                    # ✅ FIX: use datetime range instead of __date lookup
-                    from_datetime = datetime.combine(from_date, datetime.min.time())
-                    all_profiles = all_profiles.filter(datetime__gte=from_datetime)
- 
+                    from_date = datetime.strptime(from_date, '%Y-%m-%d').date()  # Convert to date
+                    all_profiles = all_profiles.filter(datetime__date__gte=from_date)
+
                 if to_date:
-                    to_date = datetime.strptime(to_date, '%Y-%m-%d').date()
-                    # ✅ FIX: use datetime range instead of __date lookup
-                    to_datetime = datetime.combine(to_date, datetime.max.time())
-                    all_profiles = all_profiles.filter(datetime__lte=to_datetime)
- 
+                    to_date = datetime.strptime(to_date, '%Y-%m-%d').date()  # Convert to date
+                    all_profiles = all_profiles.filter(datetime__date__lte=to_date)
 
                 # Get all profile IDs in the filtered queryset
                 # all_profile_ids = {str(index + 1): profile_to for index, profile_to in enumerate(all_profiles.values_list('viewed_profile', flat=True))}
                 all_profile_ids = {str(index + 1): profile_from for index, profile_from in enumerate(all_profiles.values_list('profile_id', flat=True))}
+
                 total_records = all_profiles.count()
 
                 start = (page - 1) * per_page
@@ -6832,31 +6659,15 @@ class My_profiles_vistors(APIView):
                 if fetch_data.exists():
                     # profile_ids = fetch_data.values_list('viewed_profile', flat=True)
                     profile_ids = fetch_data.values_list('profile_id', flat=True)
+
                     profile_details = get_profile_details(profile_ids)
-                    profile_datetime_map = {
-                        record.profile_id: (
-                            record.datetime.strftime("%Y-%m-%d %H:%M:%S") if record.datetime else None
-                        )
-                        for record in fetch_data
-                    }
-                    print("sar3")
+
                     profile_data = Registration1.objects.get(ProfileId=profile_id)
                     horo_data = ProfileHoroscope.objects.get(profile_id=profile_id)
 
                     my_star_id = horo_data.birthstar_name
                     my_rasi_id = horo_data.birth_rasi_name
                     my_gender = profile_data.Gender
-                    ordered_ids = list(fetch_data.values_list('profile_id', flat=True))
-
-                    profile_details_dict = {
-                        detail["ProfileId"]: detail for detail in profile_details
-                    }
-
-                    ordered_profile_details = [
-                        profile_details_dict[pid]
-                        for pid in ordered_ids
-                        if pid in profile_details_dict
-                    ]
 
                     restricted_profile_details = [
                         {
@@ -6872,14 +6683,12 @@ class My_profiles_vistors(APIView):
                             "visited_degree": " ",
                             "visited_match_score": Get_matching_score(my_star_id, my_rasi_id, detail.get("birthstar_name"), detail.get("birth_rasi_name"), my_gender),
                             "visited_views": count_records(Profile_visitors, {'status': 1, 'viewed_profile': detail.get("ProfileId")}),
-                            # "visited_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
-                            "visited_lastvisit": profile_datetime_map.get(detail.get("ProfileId")),
+                            "visited_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
                             "visited_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "visited_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "visited_profile_wishlist": Get_wishlist(profile_id, detail.get("ProfileId")),
                         }
-                        # for detail in profile_details
-                        for detail in ordered_profile_details
+                        for detail in profile_details
                     ]
 
                     combined_data = {
@@ -6893,10 +6702,8 @@ class My_profiles_vistors(APIView):
 
                     return JsonResponse({"Status": 1, "message": "Fetched viewed profile lists successfully", "data": combined_data, "viewed_profile_count": total_records}, status=status.HTTP_200_OK)
                 else:
-                    print("test3")
                     return JsonResponse({"Status": 0, "message": "No viewed profiles found for the given profile ID"}, status=status.HTTP_200_OK)
             except Profile_visitors.DoesNotExist:
-                print("test2")
                 return JsonResponse({"Status": 0, "message": "No viewed profiles found for the given profile ID"}, status=status.HTTP_200_OK)
         else:
             return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -8196,18 +8003,18 @@ from django.template.loader import render_to_string
 #     "10": "Lagnam",
 # }
 
-# planet_mapping = {
-#     "1": "Sun",
-#     "2": "Moo",
-#     "3": "Rahu",
-#     "4": "Kethu",
-#     "5": "Mar",
-#     "6": "Ven",
-#     "7": "Jup",
-#     "8": "Mer",
-#     "9": "Sat",
-#     "10": "Lagnam",
-# }
+planet_mapping = {
+    "1": "Sun",
+    "2": "Moo",
+    "3": "Rahu",
+    "4": "Kethu",
+    "5": "Mar",
+    "6": "Ven",
+    "7": "Jup",
+    "8": "Mer",
+    "9": "Sat",
+    "10": "Lagnam",
+}
 
 
 # Define a default placeholder for empty values
@@ -8328,9 +8135,6 @@ def parse_data(data):
             values = default_placeholder
         parsed_items.append(values)
     return parsed_items
-
-
-
 
 
 class ShortProfilePDFView(APIView):
@@ -8541,7 +8345,7 @@ class SendShortProfilePDFEmail(APIView):
         email.attach_file(pdf_file_path)
 
         try:
-            # email.send()
+            email.send()
             email_status = "sent"
             message = f"Email sent successfully to {recipient_email}"
         except Exception as e:
@@ -8615,7 +8419,7 @@ class SendFullProfilePDFEmail(APIView):
 
         # Send email and log the details
         try:
-            # email.send()
+            email.send()
 
             # Log the email sending in `SentProfileEmailLog`**
             SentFullProfileEmailLog.objects.create(
@@ -9316,8 +9120,6 @@ def GetPhotoProofDetails(request):
         try:
             login = LoginDetails.objects.get(ProfileId=profile_id)
             horoscope = Horoscope.objects.get(profile_id=profile_id)
-            # NEW PHOTO REVIEW DETAILS
-            # pref = Partnerpref.objects.filter(profile_id=profile_id).first()
             profile_images = Image_Upload.objects.filter(
                     profile_id=profile_id
                 ).filter(
@@ -9372,7 +9174,7 @@ def GetPhotoProofDetails(request):
         image_approved_csv = request.POST.get('image_approved')
         photo_password = request.POST.get('photo_password')
         photo_protection = request.POST.get('photo_protection')
-        # NEW PHOTO REVIEW FIELDS
+          # NEW PHOTO REVIEW FIELDS
         body_type = request.POST.get('body_type')
         look_lifestyle = request.POST.get('look_lifestyle')
         face_appeal = request.POST.get('face_appeal')
@@ -9512,7 +9314,7 @@ def GetPhotoProofDetails(request):
                 login.save()
             except Exception:
                 pass
-                    # SAVE PHOTO REVIEW DATA
+             # SAVE PHOTO REVIEW DATA
             if body_type or look_lifestyle or face_appeal or smile_expression or personality_impression or overall_impression or photo_rating:
 
                     try:
@@ -9533,7 +9335,7 @@ def GetPhotoProofDetails(request):
                     except LoginDetails.DoesNotExist:
                         update_summary['photo_review'] = "login details not found"
 
-
+    
             if not update_summary:
                 return JsonResponse({'status': 'error', 'message': 'No update data provided'}, status=400)
     
@@ -9987,10 +9789,7 @@ def is_valid_file(url):
         return response.status_code == 200
     except requests.RequestException:
         return False
-    
-import os
-from django.conf import settings
-from authentication.models import Planet
+
 class AdminProfilePDFView(APIView):
     def get(self, request, profile_id=None, pdf_format=None):
         profile_id = profile_id or request.query_params.get('profile_id')
@@ -10184,43 +9983,6 @@ class AdminProfilePDFView(APIView):
         age = calculate_age(dob) if dob else "N/A"
 
         birth_time=format_time_am_pm(horoscope_data.time_of_birth)
-
-        # ✅ ADD THIS BLOCK HERE (exact place)
-
-        LANG = request.GET.get("lang", "english").lower()
-
-        planets = Planet.objects.values('code', 'planet_english', 'planet_tamil')
-
-        planet_mapping = {
-            str(p['code']): p['planet_tamil'] if LANG == 'tamil' else p['planet_english']
-            for p in planets
-        }
-
-        default_placeholder = "-"
-
-        def parse_data(data):
-                    items = data.strip('{}').split(', ')
-                    parsed_items = []
-
-                    for item in items:
-                        parts = item.split(':')
-                        if len(parts) > 1:
-                            values = parts[-1].strip()
-
-                            if ',' in values:
-                                values = '/'.join(
-                                    planet_mapping.get(str(v.strip()), default_placeholder)
-                                    for v in values.split(',')
-                                )
-                            else:
-                                values = planet_mapping.get(str(values), default_placeholder)
-                        else:
-                            values = default_placeholder
-
-                        parsed_items.append(values)
-
-                    return parsed_items
-
         image_status = models.Image_Upload.get_image_status(profile_id=profile_id)
         horo_hint = horoscope_data.horoscope_hints or "N/A"
         # Prepare the Porutham sections for the PDF
@@ -10325,8 +10087,7 @@ class AdminProfilePDFView(APIView):
                 ("6", format_star_names(porutham_data.get("6 Poruthams"))),
                 ("5", format_star_names(porutham_data.get("5 Poruthams"))),
             ]),
-            "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}",
-         "font_path": "file:///home/ubuntu/Documents/vysya_staging/vyspython-staging/fonts/NotoSansTamil.ttf"
+            "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}"
         }
 
 
@@ -10353,16 +10114,13 @@ class AdminProfilePDFView(APIView):
             print(f"error{str(e)}")
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
-
-
 class AdminMatchProfilePDFView(APIView):
-    def get(self, request, profile_ids=None, pdf_format=None, profile_to=None,action_type=None,username=None):
+    def get(self, request, profile_ids=None, pdf_format=None, profile_to=None,action_type=None):
         # Prefer path params; fall back to query params for flexibility
         profile_ids = profile_ids or request.query_params.get('profile_ids')
         format_type = pdf_format or request.query_params.get('pdf_format')  
         profile_to = profile_to or request.query_params.get('profile_to')
         action = action_type or request.query_params.get('action_type')
-        username = username or request.query_params.get('username')
         if format_type == "whatsapp_link_profile" or format_type == "whatsapp_link_profile_img":
             
             print('whatapp link profiles')
@@ -10375,7 +10133,6 @@ class AdminMatchProfilePDFView(APIView):
         profile_ids_list = [pid.strip() for pid in profile_ids.split(',') if pid.strip()]
         pdf_merger = PdfMerger()
         errors = []
-        
 
         for profile_id in profile_ids_list:
             try:
@@ -10617,7 +10374,7 @@ class AdminMatchProfilePDFView(APIView):
                     if not poruthams:
                         return "N/A"
                     return ', '.join([item['matching_starname'] for item in poruthams])
-                default_placeholder = "-"
+
                 if horoscope_data.rasi_kattam or horoscope_data.amsa_kattam:
                     rasi_kattam_data = parse_data(horoscope_data.rasi_kattam)
                     amsa_kattam_data = parse_data(horoscope_data.amsa_kattam)
@@ -10841,43 +10598,6 @@ class AdminMatchProfilePDFView(APIView):
         pdf_merger.write(merged_pdf)
         pdf_merger.close()
         merged_pdf.seek(0)
-
-        if action == 'print' and format_type not in ("whatsapp_link_profile", "whatsapp_link_profile_img"):
-            try:
-                encoded_ids = urllib.parse.quote(profile_ids, safe='')
-                generated_url = (
-                    f"https://app.vysyamala.com/api/admin-match-pdf-with-format/"
-                    f"?action_type=print"
-                    f"&pdf_format={urllib.parse.quote(format_type)}"
-                    f"&profile_ids={encoded_ids}"
-                    f"&profile_to={urllib.parse.quote(profile_to)}"
-                )
- 
-                owner_name = None
-                try:
-                    owner_login = models.LoginDetails.objects.filter(ProfileId=profile_to).first()
-                    if owner_login:
-                        owner_name = owner_login.Profile_name
-                except Exception:
-                    pass
- 
-                PrintDashboard.objects.create(
-                    profile_id  = profile_to,
-                    owner_name  = username,
-                    mode        = 'Manual',
-                    match_count = len(profile_ids_list),
-                    print_url   = generated_url,
-                    pdf_format  = format_type,
-                    profile_ids = profile_ids,          # e.g. "VF56969,VF56875,VF56751"
-                    status      = PrintDashboard.STATUS_PENDING,
-                )
-            except Exception as e:
-                # Non-blocking — dashboard save failure must never break PDF delivery
-                print(f"[PrintDashboard] Failed to save: {str(e)}")
-        # ── End PrintDashboard save ────────────────────────────────
- 
- 
-
         if format_type == "whatsapp_link_profile" or format_type == "whatsapp_link_profile_img" :
 
             return render(request, "whatsapp_profile.html", {"profiles": whatsapp_profiles})
@@ -10904,7 +10624,7 @@ class AdminMatchProfilePDFView(APIView):
                         to_email = [login_my.EmailId]
                         email = EmailMessage(subject, body, from_email, to_email)
                         email.attach('MatchedProfiles.pdf', merged_pdf.read(), 'application/pdf')
-                        # email.send()
+                        email.send()
 
                         return JsonResponse({"status": "success", "message": "PDF emailed successfully."})
                     else:
@@ -10918,10 +10638,6 @@ class AdminMatchProfilePDFView(APIView):
                 return response
         else:
             return JsonResponse({"status": "error", "message": f"PDF generated with errors for: {', '.join(errors)}"}, status=206)
-
-
-
-
 
 class RenewalProfilesView(generics.ListAPIView):
     serializer_class = Renewalprofiledata
@@ -11813,10 +11529,12 @@ class FeaturedProfilesView(APIView):
             LEFT JOIN plan_master pl ON pf.Plan_id = pl.id
             LEFT JOIN masterstate ON ld.Profile_state = masterstate.id
             LEFT JOIN masterprofilestatus ms ON ld.status = ms.status_code
-            WHERE pf.featured_profile = 1 
+            WHERE CURDATE() BETWEEN pf.membership_fromdate AND pf.membership_todate
+            AND CURDATE() BETWEEN pf.boosted_date AND pf.boosted_enddate
             AND ld.status = 1 
             AND pf.boosted_date IS NOT NULL
             AND pf.boosted_enddate IS NOT NULL
+            AND pf.featured_profile = 1
             """
         params = []
 
@@ -11878,7 +11596,7 @@ class FeaturedProfileAddView(APIView):
             user = User.objects.get(id=owner_id)
         except Exception:
             user = None
-         
+             
         if user:
             role = user.role
             permissions = RolePermission.objects.filter(role=role).select_related('action')
@@ -11901,7 +11619,7 @@ class FeaturedProfileAddView(APIView):
                 "status": "error",
                 "message": "profile_id, boosted_startdate, and boosted_enddate are required"
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         owner_name = user.username if user else "unknown" 
         try:
             profile = Registration1.objects.filter(ProfileId=profile_id).first()
@@ -11916,6 +11634,7 @@ class FeaturedProfileAddView(APIView):
             pf.boosted_date = boosted_date
             pf.boosted_enddate = boosted_enddate
             pf.update_type = f"featured_updated_{owner_name}"
+
 
             pf.save()
 
@@ -12611,6 +12330,7 @@ class EditProfileWithPermissionAPIView(APIView):
         old_plan_id_boost        = login_detail_before.Plan_id
         old_membership_end_boost = login_detail_before.membership_enddate
 
+
         profile_owner_id = request.data.get('profile_owner_id')
         
 
@@ -13117,61 +12837,6 @@ class EditProfileWithPermissionAPIView(APIView):
             #         print("Booster update error:", str(e))
 
 
-            # from django.utils import timezone
-            # from datetime import timedelta
-
-            # try:
-            #     profile_feature = Profile_PlanFeatureLimit.objects.filter(
-            #         profile_id=profile_id,
-            #         status=1
-            #     ).first()
-
-            #     if not profile_feature:
-            #         raise Exception("Profile feature record not found")
-
-            #     #  Geting addon data 
-            #     addon_package_ids = profile_common_data.get("Addon_package") or ""
-
-            #     addon_package_id_list = []
-            #     if addon_package_ids.strip():
-            #         addon_package_id_list = [
-            #             int(pk.strip())
-            #             for pk in addon_package_ids.split(",")
-            #             if pk.strip().isdigit()
-            #         ]
-
-            #     today = timezone.now()
-
-            #     # condition
-            #     qualifies_for_boost = (
-            #         3 in addon_package_id_list
-            #         or plan_id == 2
-            #     )
-
-            #     if qualifies_for_boost:
-
-            #         #  First boost
-            #         if not profile_feature.boosted_date and not profile_feature.boosted_enddate:
-            #             profile_feature.boosted_date = today
-            #             profile_feature.boosted_enddate = today + timedelta(days=90)
-            #             profile_feature.featured_profile = 1
-            #             profile_feature.save()
-
-            #         #  Expired boost
-            #         elif profile_feature.boosted_enddate and profile_feature.boosted_enddate < today:
-            #             profile_feature.boosted_date = today
-            #             profile_feature.boosted_enddate = today + timedelta(days=90)
-            #             profile_feature.featured_profile = 1
-            #             profile_feature.save()
-
-            #         else:
-            #             pass
-
-            # except Exception as e:
-            #     print("Booster update error:", str(e))
-
-            # ============================================================
-            # ============================================================
 
             from django.utils import timezone
             from datetime import timedelta
@@ -13213,7 +12878,6 @@ class EditProfileWithPermissionAPIView(APIView):
                             old_membership_end_boost is not None and
                             new_membership_end is not None and
                             old_membership_end_boost != new_membership_end
-                            # normalize_date(old_membership_end_boost) != normalize_date(new_membership_end)
                         )
                         print("5",old_membership_end_boost, new_membership_end)
                         should_update_boost = plan_changed or membership_renewed or Addon_package
@@ -13249,7 +12913,6 @@ class EditProfileWithPermissionAPIView(APIView):
 
             except Exception as e:
                 print("Booster update error:", str(e))
-    
 
                 
             # # Update profileplan Details
@@ -13280,8 +12943,6 @@ class EditProfileWithPermissionAPIView(APIView):
 
         # Success response
         return Response({"status": "success", "message": "Profile updated successfully."}, status=status.HTTP_200_OK)
-
-
 
 class DashboardAPIView(APIView):
     def get(self, request, *args, **kwargs):
@@ -17307,6 +16968,8 @@ class MarkNotificationRead(APIView):
                 "message": "Notification not found"
             })
 
+
+
 class ClearSingleAdminNotification(APIView):
 
     def post(self, request):
@@ -17338,41 +17001,30 @@ class ClearSingleAdminNotification(APIView):
 
 
 
-# class ClearAllAdminNotifications(APIView):
-
-#     def post(self, request):
-
-#         try:
-#             AdminNotification.objects.filter(
-#                 notification_type="VysAssist",
-#                 is_cleared=0
-#             ).update(is_cleared=1)
-
-#             return Response({
-#                 "Status": 1,
-#                 "message": "All notifications cleared successfully"
-#             })
-
-#         except Exception as e:
-#             return Response({
-#                 "Status": 0,
-#                 "message": str(e)
-#             })
-
 class ClearAllAdminNotifications(APIView):
 
     def post(self, request):
+
         try:
-            notification_type = request.data.get("notification_type", "VysAssist")  # ← only change
             AdminNotification.objects.filter(
-                notification_type=notification_type,
+                notification_type="VysAssist",
                 is_cleared=0
             ).update(is_cleared=1)
-            return Response({"Status": 1, "message": "All notifications cleared successfully"})
+
+            return Response({
+                "Status": 1,
+                "message": "All notifications cleared successfully"
+            })
+
         except Exception as e:
-            return Response({"Status": 0, "message": str(e)})
+            return Response({
+                "Status": 0,
+                "message": str(e)
+            })
 
 
+
+          
 class DeleteFeaturedProfile(APIView):
 
     def post(self, request):
@@ -17401,3190 +17053,3 @@ class DeleteFeaturedProfile(APIView):
                 "message": str(e)
             })
 
-# from django.http import HttpResponse, JsonResponse
-# from rest_framework.views import APIView
-# from openpyxl import Workbook
-# import csv
-
-# class Get_prof_list_match_download(APIView):
-
-#     def get(self, request):
-
-#         profile_id = request.GET.get('profile_id')
-#         if not profile_id:
-#             return JsonResponse({"Status": 0, "message": "profile_id is required"}, status=400)
-
-#         try:
-#             profile_data = Registration1.objects.get(ProfileId=profile_id)
-#         except Registration1.DoesNotExist:
-#             return JsonResponse({"Status": 0, "message": "Profile not found"}, status=404)
-
-#         gender = profile_data.Gender
-
-#         # Pagination (optional for export)
-#         per_page = int(request.GET.get("per_page", 1000))
-#         page_number = int(request.GET.get("page_number", 1))
-#         start = (page_number - 1) * per_page
-
-#         # ✅ SAME WORKING METHOD
-#         profile_details, total_count, profile_with_indices = Get_profiledata_Matching.get_profile_list(
-#             gender=gender,
-#             profile_id=profile_id,
-#             start=start,
-#             per_page=per_page,
-#             search_profile_id=request.GET.get('search_profile_id'),
-#             order_by=request.GET.get('order_by'),
-#             search_profession=request.GET.get('search_profession'),
-#             search_age=request.GET.get('search_age'),
-#             search_location=request.GET.get('search_location'),
-#             complexion=request.GET.get('complexion'),
-#             city=request.GET.get('city'),
-#             state=request.GET.get('state'),
-#             education=request.GET.get('education'),
-#             foreign_intrest=request.GET.get('foreign_intrest'),
-#             has_photos=request.GET.get('has_photos'),
-#             height_from=request.GET.get('height_from'),
-#             height_to=request.GET.get('height_to'),
-#             matching_stars=request.GET.get('matching_stars'),
-#             min_anual_income=request.GET.get('min_anual_income'),
-#             max_anual_income=request.GET.get('max_anual_income'),
-#             membership=request.GET.get('membership'),
-#             ragu=request.GET.get('ragu'),
-#             chev=request.GET.get('chev'),
-#             father_alive=request.GET.get('father_alive'),
-#             mother_alive=request.GET.get('mother_alive'),
-#             marital_status=request.GET.get('marital_status'),
-#             family_status=request.GET.get('family_status'),
-#             whatsapp_field=request.GET.get('whatsapp_field'),
-#             field_of_study=request.GET.get('pref_fieldof_study'),
-#             degree=request.GET.get('degree'),
-#             from_date=request.GET.get('from_dateofjoin'),
-#             to_date=request.GET.get('to_dateofjoin'),
-#             action_type=request.GET.get('action_type'),
-#             status=request.GET.get('status'),
-#             search=request.GET.get('search'),
-#             except_viewed=request.GET.get('except_viewed'),
-#             except_visitor=request.GET.get('except_visitor'),
-#             body_type=request.GET.get('body_type'),
-#             look_lifestyle=request.GET.get('look_lifestyle'),
-#             face_appeal=request.GET.get('face_appeal'),
-#             smile_expression=request.GET.get('smile_expression'),
-#             personality_impression=request.GET.get('personality_impression'),
-#             overall_impression=request.GET.get('overall_impression'),
-#             photo_rating=request.GET.get('photo_rating'),
-#         )
-
-#         if not profile_details:
-#             return JsonResponse({"Status": 0, "message": "No matching records"}, status=200)
-
-#         # 🔹 Common Data Prep
-#         plans = {p.id: p.plan_name for p in PlanDetails.objects.all()}
-#         family_statuses = {f.id: f.status for f in FamilyStatus.objects.all()}
-#         professions = {p.row_id: p.profession for p in Profession.objects.all()}
-#         states = {s.id: s.name for s in State.objects.all()}
-#         anualincomes = {i.id: i.income for i in AnnualIncome.objects.all()}
-
-#         my_profile_details = get_profile_details([profile_id])[0]
-#         my_star_id = str(my_profile_details['birthstar_name'])
-#         my_rasi_id = str(my_profile_details['birth_rasi_name'])
-
-#         preload_matching_scores()
-#         score_map = cache.get("matching_score_map", {})
-
-#         # 🔹 Format selection
-#         file_type = request.GET.get("format", "excel")  # excel / csv
-
-     
-
-#         # =========================
-#         # ✅ EXCEL DOWNLOAD (DEFAULT)
-#         # =========================
-#         wb = Workbook()
-#         ws = wb.active
-#         ws.title = "Matching Profiles"
-
-#         # ✅ Your required columns
-#         ws.append([
-#             "Profile ID",
-#             "Work Place",
-#             "Mode",
-#             "Name",
-#             "Age",
-#             "Star",
-#             "Degree",
-#             "Profession",
-#             "Company / Business",
-#             "Designation / Nature",
-#             "Annual Income",
-#             "State",
-#             "City",
-#             "Family Status",
-#             "Father Business",
-#             "Suya Gothram",
-#             "Admin Chevvai",
-#             "Admin Raghu/Kethu",
-#             "Reg Date",
-#             "Status",
-#             "Matching Score"
-#         ])
-
-#         for detail in profile_details:
-
-#             dest_star = str(detail.get("birthstar_name"))
-#             dest_rasi = str(detail.get("birth_rasi_name"))
-
-#             key = (my_star_id, my_rasi_id, dest_star, dest_rasi, gender.lower())
-#             match_count = score_map.get(key, 0)
-#             matching_score = 100 if match_count == 15 else match_count * 10
-
-#             pid = detail.get("ProfileId")
-
-#             ws.append([
-#                 detail.get("ProfileId"),
-
-#                 # Work Place
-#                 get_location_new(detail.get("work_city"), detail.get("work_state"), detail.get("work_country")),
-
-#                 # Mode (Plan)
-#                 plans.get(int(detail.get("Plan_id")) if detail.get("Plan_id") else None),
-
-#                 detail.get("Profile_name"),
-#                 detail.get("profile_age"),
-#                 detail.get("star"),
-
-#                 # Degree
-#                 degree(detail.get("degree"), detail.get("other_degree")),
-
-#                 # Profession
-#                 professions.get(int(detail.get("profession")) if detail.get("profession") else None),
-
-#                 # Company / Business
-#                 get_company_or_business_new(detail.get("company_name"), detail.get("business_name")),
-
-#                 # Designation / Nature
-#                 get_designation_or_nature_new(detail.get("designation"), detail.get("nature_of_business")),
-
-#                 # Annual Income
-#                 detail.get("actual_income") if detail.get("actual_income") not in [None, "", "0"]
-#                 else anualincomes.get(int(detail.get("anual_income"))) if detail.get("anual_income") else None,
-
-#                 # State
-#                 states.get(int(detail.get("Profile_state")) if detail.get("Profile_state") else None),
-
-#                 # City
-#                 detail.get("Profile_city"),
-
-#                 # Family Status
-#                 family_statuses.get(int(detail.get("family_status")) if detail.get("family_status") else None),
-
-#                 # Father Business
-#                 detail.get("father_occupation"),
-
-#                 # Suya Gothram
-#                 detail.get("suya_gothram"),
-
-#                 # Admin Chevvai
-#                 get_dhosham_new(detail.get("calc_chevvai_dhosham")),
-
-#                 # Admin Raghu/Kethu
-#                 get_dhosham_new(detail.get("calc_raguketu_dhosham")),
-
-#                 # Reg Date
-#                 detail.get("DateOfJoin"),
-
-#                 # Status
-#                 detail.get("Status"),
-
-#                 # Matching Score
-#                 matching_score,
-
-
-#             ])
-
-#         response = HttpResponse(
-#             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-#         )
-#         response['Content-Disposition'] = 'attachment; filename=matching_profiles.xlsx'
-
-#         wb.save(response)
-#         return response
-
-
-from django.http import HttpResponse, JsonResponse
-from rest_framework.views import APIView
-from openpyxl import Workbook
-from io import BytesIO
-
-class Get_prof_list_match_download(APIView):
-
-    def get(self, request):
-
-        profile_id = request.GET.get('profile_id')
-        if not profile_id:
-            return JsonResponse({"Status": 0, "message": "profile_id is required"}, status=400)
-
-        try:
-            profile_data = Registration1.objects.get(ProfileId=profile_id)
-        except Registration1.DoesNotExist:
-            return JsonResponse({"Status": 0, "message": "Profile not found"}, status=404)
-
-        gender = profile_data.Gender
-
-        per_page = int(request.GET.get("per_page", 1000))
-        page_number = int(request.GET.get("page_number", 1))
-        start = (page_number - 1) * per_page
-
-        profile_details, total_count, profile_with_indices = Get_profiledata_Matching.get_profile_list(
-            gender=gender,
-            profile_id=profile_id,
-            start=start,
-            per_page=per_page,
-            search_profile_id=request.GET.get('search_profile_id'),
-            order_by=request.GET.get('order_by'),
-            search_profession=request.GET.get('search_profession'),
-            search_age=request.GET.get('search_age'),
-            search_location=request.GET.get('search_location'),
-            complexion=request.GET.get('complexion'),
-            city=request.GET.get('city'),
-            state=request.GET.get('state'),
-            education=request.GET.get('education'),
-            foreign_intrest=request.GET.get('foreign_intrest'),
-            has_photos=request.GET.get('has_photos'),
-            height_from=request.GET.get('height_from'),
-            height_to=request.GET.get('height_to'),
-            matching_stars=request.GET.get('matching_stars'),
-            min_anual_income=request.GET.get('min_anual_income'),
-            max_anual_income=request.GET.get('max_anual_income'),
-            membership=request.GET.get('membership'),
-            ragu=request.GET.get('ragu'),
-            chev=request.GET.get('chev'),
-            father_alive=request.GET.get('father_alive'),
-            mother_alive=request.GET.get('mother_alive'),
-            marital_status=request.GET.get('marital_status'),
-            family_status=request.GET.get('family_status'),
-            whatsapp_field=request.GET.get('whatsapp_field'),
-            field_of_study=request.GET.get('pref_fieldof_study'),
-            degree=request.GET.get('degree'),
-            from_date=request.GET.get('from_dateofjoin'),
-            to_date=request.GET.get('to_dateofjoin'),
-            action_type=request.GET.get('action_type'),
-            status=request.GET.get('status'),
-            search=request.GET.get('search'),
-            except_viewed=request.GET.get('except_viewed'),
-            except_visitor=request.GET.get('except_visitor'),
-            body_type=request.GET.get('body_type'),
-            look_lifestyle=request.GET.get('look_lifestyle'),
-            face_appeal=request.GET.get('face_appeal'),
-            smile_expression=request.GET.get('smile_expression'),
-            personality_impression=request.GET.get('personality_impression'),
-            overall_impression=request.GET.get('overall_impression'),
-            photo_rating=request.GET.get('photo_rating'),
-        )
-
-        if not profile_details:
-            return JsonResponse({"Status": 0, "message": "No matching records"}, status=200)
-
-        # 🔹 Mappings
-        plans = {p.id: p.plan_name for p in PlanDetails.objects.all()}
-        family_statuses = {f.id: f.status for f in FamilyStatus.objects.all()}
-        professions = {p.row_id: p.profession for p in Profession.objects.all()}
-        states = {s.id: s.name for s in State.objects.all()}
-        anualincomes = {i.id: i.income for i in AnnualIncome.objects.all()}
-
-        my_profile_details = get_profile_details([profile_id])[0]
-        my_star_id = str(my_profile_details['birthstar_name'])
-        my_rasi_id = str(my_profile_details['birth_rasi_name'])
-
-        preload_matching_scores()
-        score_map = cache.get("matching_score_map", {})
-
-        # =========================
-        # ✅ Excel Creation
-        # =========================
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Matching Profiles"
-
-        ws.append([
-            "Profile ID","Work Place","Mode","Name","Age","Star","Degree",
-            "Profession","Company / Business","Designation / Nature",
-            "Annual Income","State","City","Family Status",
-            "Father Business","Suya Gothram","Admin Chevvai",
-            "Admin Raghu/Kethu","Reg Date","Status","Matching Score"
-        ])
-
-        for detail in profile_details:
-
-            dest_star = str(detail.get("birthstar_name"))
-            dest_rasi = str(detail.get("birth_rasi_name"))
-
-            key = (my_star_id, my_rasi_id, dest_star, dest_rasi, gender.lower())
-            match_count = score_map.get(key, 0)
-            matching_score = 100 if match_count == 15 else match_count * 10
-
-            ws.append([
-                detail.get("ProfileId"),
-                get_location_new(detail.get("work_city"), detail.get("work_state"), detail.get("work_country")),
-                plans.get(int(detail.get("Plan_id")) if detail.get("Plan_id") else None),
-                detail.get("Profile_name"),
-                detail.get("profile_age"),
-                detail.get("star"),
-                degree(detail.get("degree"), detail.get("other_degree")),
-                professions.get(int(detail.get("profession")) if detail.get("profession") else None),
-                get_company_or_business_new(detail.get("company_name"), detail.get("business_name")),
-                get_designation_or_nature_new(detail.get("designation"), detail.get("nature_of_business")),
-                detail.get("actual_income") or anualincomes.get(int(detail.get("anual_income"))) if detail.get("anual_income") else None,
-                states.get(int(detail.get("Profile_state")) if detail.get("Profile_state") else None),
-                detail.get("Profile_city"),
-                family_statuses.get(int(detail.get("family_status")) if detail.get("family_status") else None),
-                detail.get("father_occupation"),
-                detail.get("suya_gothram"),
-                get_dhosham_new(detail.get("calc_chevvai_dhosham")),
-                get_dhosham_new(detail.get("calc_raguketu_dhosham")),
-                detail.get("DateOfJoin"),
-                detail.get("Status"),
-                matching_score
-            ])
-
-        # =========================
-        # ✅ FIX: Use BytesIO
-        # =========================
-        output = BytesIO()
-        wb.save(output)
-        output.seek(0)
-
-        response = HttpResponse(
-            output,
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        response['Content-Disposition'] = 'attachment; filename="matching_profiles.xlsx"'
-
-        return response
-
-# ============================================================
-# ADD THESE VIEWS TO: accounts/accounts/views.py
-# ============================================================
-#
-# Imports needed (add if not already present):
-#
-#   from .models import PrintDashboard
-#   from .serializers import PrintDashboardSerializer
-#   from django.db.models import Q
-#   from rest_framework.views import APIView
-#   from django.http import JsonResponse, HttpResponse
-#   import urllib.parse, datetime, io
-#   from reportlab.pdfgen import canvas          # pip install reportlab
-#   from reportlab.lib.pagesizes import A4, landscape
-#   from reportlab.lib.units import mm
-# ============================================================
-
-
-import urllib.parse
-import io
-
-from reportlab.pdfgen   import canvas
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units    import mm
-
-from .models      import PrintDashboard, LoginDetails
-from .serializers import PrintDashboardSerializer
-
-
-# ------------------------------------------------------------------
-# 1.  CREATE  –  called when admin presses "Send Selected (Print)"
-# ------------------------------------------------------------------
-class PrintDashboardCreateView(APIView):
-
-
-    def post(self, request):
-        profile_to  = request.data.get('profile_to', '').strip()
-        profile_ids = request.data.get('profile_ids', '').strip()
-        pdf_format  = request.data.get('pdf_format', '').strip()
-        mode        = request.data.get('mode', '').strip()
-
-        if not profile_to:
-            return JsonResponse({'status': 'error', 'message': 'profile_to is required'}, status=400)
-        if not profile_ids:
-            return JsonResponse({'status': 'error', 'message': 'profile_ids is required'}, status=400)
-        if not pdf_format:
-            return JsonResponse({'status': 'error', 'message': 'pdf_format is required'}, status=400)
-
-        # Build the same URL that the existing view already handles
-        encoded_ids = urllib.parse.quote(profile_ids, safe='')
-        print_url = (
-            f"https://app.vysyamala.com/api/admin-match-pdf-with-format/"
-            f"?action_type=print"
-            f"&pdf_format={urllib.parse.quote(pdf_format)}"
-            f"&profile_ids={encoded_ids}"
-            f"&profile_to={urllib.parse.quote(profile_to)}"
-        )
-
-        # Resolve owner name from LoginDetails
-        owner_name = None
-        try:
-            owner = LoginDetails.objects.filter(ProfileId=profile_to).first()
-            if owner:
-                owner_name = owner.Profile_name
-        except Exception:
-            pass
-
-        ids_list    = [p.strip() for p in profile_ids.split(',') if p.strip()]
-        match_count = len(ids_list)
-
-        record = PrintDashboard.objects.create(
-            profile_id  = profile_to,
-            owner_name  = owner_name,
-            mode        = mode,
-            match_count = match_count,
-            print_url   = print_url,
-            pdf_format  = pdf_format,
-            profile_ids = profile_ids,
-            status      = PrintDashboard.STATUS_PENDING,
-            created_by  = getattr(request.user, 'username', None),
-        )
-
-        return JsonResponse({
-            'status'  : 'success',
-            'message' : 'Print job created',
-            'data'    : PrintDashboardSerializer(record).data,
-        }, status=201)
-
-
-# ------------------------------------------------------------------
-# 2.  MARK COMPLETED  –  called when admin clicks the URL / "Open"
-# ------------------------------------------------------------------
-class PrintDashboardMarkCompletedView(APIView):
-
-
-    def patch(self, request, pk):
-        try:
-            record = PrintDashboard.objects.get(pk=pk)
-        except PrintDashboard.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Record not found'}, status=404)
-
-        record.status = PrintDashboard.STATUS_COMPLETED
-        record.save(update_fields=['status', 'updated_at'])
-
-        return JsonResponse({
-            'status'    : 'success',
-            'message'   : 'Status updated to completed',
-            'print_url' : record.print_url,
-            'data'      : PrintDashboardSerializer(record).data,
-        })
-
-
-# ------------------------------------------------------------------
-# 3.  LIST  –  filterable dashboard list
-# ----------------------------------------------------------------
-class PrintDashboardListView(APIView):
-    def get(self, request):
-        qs = PrintDashboard.objects.filter(is_deleted=False)
-        date_from  = request.query_params.get('date_from')
-        date_to    = request.query_params.get('date_to')
-        profile_id = request.query_params.get('profile_id')
-        owner_id   = request.query_params.get('username')  # frontend sends user ID
-        status_f   = request.query_params.get('status')
-        import datetime
-        if date_from:
-            try:
-                qs = qs.filter(date__gte=datetime.date.fromisoformat(date_from))
-            except ValueError:
-                pass
-        if date_to:
-            try:
-                qs = qs.filter(date__lte=datetime.date.fromisoformat(date_to))
-            except ValueError:
-                pass
-        if profile_id:
-            qs = qs.filter(profile_id__icontains=profile_id)
-        if owner_id:
-            try:
-                uid  = int(owner_id)
-                user = User.objects.filter(id=uid).first()
-                if user:
-                    owner_name_val = user.username
-                else:
-                    admin = AdminUser.objects.filter(id=uid).first()
-                    owner_name_val = (
-                        f"{admin.first_name or ''} {admin.last_name or ''}".strip()
-                        or admin.username
-                    ) if admin else None
-                if owner_name_val:
-                    qs = qs.filter(owner_name__icontains=owner_name_val)
-                else:
-                    qs = qs.none()
-            except (ValueError, TypeError):
-                pass
-        if status_f in (PrintDashboard.STATUS_PENDING, PrintDashboard.STATUS_COMPLETED):
-            qs = qs.filter(status=status_f)
-        # Pagination
-        try:
-            page      = max(int(request.query_params.get('page', 1)), 1)
-            page_size = min(int(request.query_params.get('page_size', 20)), 100)
-        except ValueError:
-            page, page_size = 1, 20
-        total   = qs.count()
-        offset  = (page - 1) * page_size
-        records = qs[offset: offset + page_size]
-        return JsonResponse({
-            'status'   : 'success',
-            'total'    : total,
-            'page'     : page,
-            'page_size': page_size,
-            'data'     : PrintDashboardSerializer(records, many=True).data,
-        })
-
-
-from .models import PrintDashboard, LoginDetails, State, District, City
-# ------------------------------------------------------------------
-# 4.  ENVELOPE PDF AND WORD  –  download printable envelope for one record
-# ------------------------------------------------------------------
-
-
-
-from django.http import HttpResponse, JsonResponse
-from rest_framework.views import APIView
-
-
-class PrintEnvelopeView(APIView):
-
-    def get(self, request, pk):
-        try:
-            record = PrintDashboard.objects.get(pk=pk)
-        except PrintDashboard.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Record not found'}, status=404)
-
-        # ── Default values ─────────────────────────
-        profile_id    = record.profile_id or ''
-        owner_name    = ''
-        father_name   = ''
-        mobile_no     = ''
-        address_line1 = ''
-        address_line2 = ''
-        district      = ''
-        city          = ''
-        city_state    = ''
-        pincode       = ''
-
-        owner = LoginDetails.objects.filter(ProfileId=record.profile_id).first()
-
-        if owner:
-            owner_name    = owner.Profile_name or ''
-            mobile_no     = owner.Profile_mobile_no or owner.Mobile_no or ''
-            address_line1 = owner.Profile_address or ''
-            pincode       = owner.Profile_pincode or ''
-
-            # CITY
-            if owner.Profile_city:
-                if str(owner.Profile_city).isdigit():
-                    city_obj = City.objects.filter(id=int(owner.Profile_city)).first()
-                    city = city_obj.city_name if city_obj else ''
-                else:
-                    city = str(owner.Profile_city)
-
-            # DISTRICT
-            if owner.Profile_district:
-                if str(owner.Profile_district).isdigit():
-                    district_obj = District.objects.filter(id=int(owner.Profile_district)).first()
-                    district = district_obj.name if district_obj else ''
-                else:
-                    district = str(owner.Profile_district)
-
-            # STATE
-            if owner.Profile_state:
-                if str(owner.Profile_state).isdigit():
-                    state_obj = State.objects.filter(id=int(owner.Profile_state)).first()
-                    city_state = state_obj.name if state_obj else ''
-                else:
-                    city_state = str(owner.Profile_state)
-
-        # Father Name
-        family = ProfileFamilyDetails.objects.filter(profile_id=record.profile_id).first()
-        if family:
-            father_name = family.father_name or ''
-
-        # ── HTML TEMPLATE ─────────────────────────
-        html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Envelope</title>
-            <style>
-                body {{
-                    margin: 0;
-                    font-family: Arial, sans-serif;
-                }}
-
-                @page {{
-                    size: A5 landscape; 
-                    margin: 0;
-                }}
-
-
-                @media print {{
-                    html, body 
-                    width: 200mm;
-                    height: 140mm;
-                    margin: 0;
-                    padding: 0;
-                    overflow: hidden;
-                }}
-
-                /* A4 Half Size */
-                .envelope {{
-                    width: 200mm;
-                    height: 140mm;
-                    margin: auto;
-                    position: relative;
-                    overflow: hidden; 
-                }}
-
-                .left {{
-                    position: absolute;
-                    top: 60mm;
-                    left: 15mm;
-                    font-weight: bold;
-                    font-size: 14px;
-                }}
-
-                .right {{
-                    position: absolute;
-                    top: 60mm;
-                    left: 130mm;
-                    font-size: 14px;
-                    line-height: 1.6;
-                }}
-
-                .bold {{
-                    font-weight: bold;
-                }}
-
-                /* Editable without underline */
-                .editable {{
-                    outline: none;
-                    border: none;
-                    padding-left:30px 
-                    
-                }}
-
-                .editables {{
-                    outline: none;
-                    border: none;
-                    padding-left:0px 
-                    
-                }}
-
-                /* Remove any browser default input styles */
-                input {{
-                    border: none;
-                    outline: none;
-                    font-size: 14px;
-                    width: auto;
-                }}
-
-                /* Print settings */
-                @media print {{
-                    body {{
-                        margin: 0;
-                    }}
-                }}
-
-                .editable:empty {{
-                    display: none;
-                }}
-
-                .editable {{
-    outline: none;
-    border: none;
-    padding-left:30px;
-}}
-
-/* ADD THIS */
-.editable:empty {{
-    display: none;
-}}
-            </style>
-        </head>
-
-        <body>
-
-        <div class="envelope">
-
-            <!-- LEFT -->
-            <div class="left">
-                Profile ID : 
-                <span contenteditable="true" class="editables">{profile_id}</span>
-            </div>
-
-            <!-- RIGHT -->
-            <div class="right">
-
-                <div class="bold">To,</div>
-                <div contenteditable="true" class="editable bold">{owner_name}</div>
-                <div contenteditable="true" class="editable">Father Name: {father_name}</div>
-                <div contenteditable="true" class="editable">{address_line1}</div>
-                <div contenteditable="true" class="editable">{district}</div>
-                <div contenteditable="true" class="editable">{city}</div>
-                <div contenteditable="true" class="editable">{city_state}</div>
-                <div contenteditable="true" class="editable">PIN: {pincode}</div>
-                <div contenteditable="true" class="editable">Mobile: {mobile_no}</div>
-
-            </div>
-        </div>       
-        </body>
-        </html>
-        """
-
-
-        return HttpResponse(html)
-
-
-from rest_framework.views import APIView
-
-from django.http import HttpResponse, JsonResponse
-from docx import Document
-from docx.shared import Mm, Pt
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
-import io
-
-
-def add_tab_stop(paragraph, position_mm):
-    """Add a left tab stop at the given position in mm."""
-    pPr = paragraph._p.get_or_add_pPr()
-    tabs = OxmlElement('w:tabs')
-    tab = OxmlElement('w:tab')
-    tab.set(qn('w:val'), 'left')
-    tab.set(qn('w:pos'), str(int(position_mm * 56.69)))
-    tabs.append(tab)
-    pPr.append(tabs)
-
-
-def make_row(doc, left_text=None, right_text=None,
-             left_bold=False, right_bold=False,
-             font_size=11, right_indent_mm=83,
-             space_after=Pt(2)):
-
-    p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(0)
-    p.paragraph_format.space_after = space_after
-
-    add_tab_stop(p, right_indent_mm)
-
-    if left_text:
-        run_l = p.add_run(left_text)
-        run_l.bold = left_bold
-        run_l.font.size = Pt(font_size)
-
-    p.add_run('\t')
-
-    if right_text:
-        run_r = p.add_run(right_text)
-        run_r.bold = right_bold
-        run_r.font.size = Pt(font_size)
-
-    return p
-
-
-def make_right_only(doc, text, bold=False,
-                    font_size=11, right_indent_mm=83,
-                    space_after=Pt(2)):
-
-    return make_row(
-        doc,
-        left_text=None,
-        right_text=text,
-        right_bold=bold,
-        font_size=font_size,
-        right_indent_mm=right_indent_mm,
-        space_after=space_after,
-    )
-
-
-def blank_row(doc, space_after=Pt(0)):
-    p = doc.add_paragraph('')
-    p.paragraph_format.space_before = Pt(0)
-    p.paragraph_format.space_after = space_after
-    return p
-
-
-class PrintEnvelopeWordView(APIView):
-
-    def get(self, request, pk):
-        try:
-            record = PrintDashboard.objects.get(pk=pk)
-        except PrintDashboard.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Record not found'}, status=404)
-
-        # ── Default values ────────────────────────────────────────
-        profile_id    = record.profile_id or ''
-        owner_name    = ''
-        father_name   = ''
-        mobile_no     = ''
-        address_line1 = ''
-        address_line2 = ''
-        district      = ''
-        city          = ''
-        city_state    = ''
-        pincode       = ''
-
-        # ── Fetch Login Details ───────────────────────────────────
-        owner = LoginDetails.objects.filter(ProfileId=record.profile_id).first()
-        if owner:
-            owner_name    = owner.Profile_name or ''
-            mobile_no     = owner.Profile_mobile_no or owner.Mobile_no or ''
-            address_line1 = owner.Profile_address or ''
-            pincode       = owner.Profile_pincode or ''
-
-            if owner.Profile_state:
-                state_obj = State.objects.filter(id=owner.Profile_state).first()
-                city_state = state_obj.name if state_obj else ''
-
-            if owner.Profile_district:
-                district_obj = District.objects.filter(id=owner.Profile_district).first()
-                district = district_obj.name if district_obj else ''
-
-            if owner.Profile_city:
-                city = str(owner.Profile_city)
-
-        # ── Fetch Father Name ─────────────────────────────────────
-        family = ProfileFamilyDetails.objects.filter(profile_id=record.profile_id).first()
-        if family:
-            father_name = family.father_name or ''
-
-        # ── Query Overrides ───────────────────────────────────────
-        profile_id    = request.query_params.get('profile_id', profile_id)
-        owner_name    = request.query_params.get('owner_name', owner_name)
-        father_name   = request.query_params.get('father_name', father_name)
-        mobile_no     = request.query_params.get('mobile_no', mobile_no)
-        address_line1 = request.query_params.get('address_line1', address_line1)
-        address_line2 = request.query_params.get('address_line2', address_line2)
-        district      = request.query_params.get('district', district)
-        city          = request.query_params.get('city', city)
-        city_state    = request.query_params.get('city_state', city_state)
-        pincode       = request.query_params.get('pincode', pincode)
-
-        # ── Create Document ───────────────────────────────────────
-        doc = Document()
-
-        section = doc.sections[0]
-        section.page_width = Mm(210)
-        section.page_height = Mm(148.5)
-        section.top_margin = Mm(10)
-        section.bottom_margin = Mm(10)
-        section.left_margin = Mm(12)
-        section.right_margin = Mm(12)
-
-        RIGHT_COL_MM = 110  # KEEP SAME (To stays same)
-
-        # ── Spacer ────────────────────────────────────────────────
-        for _ in range(10):
-            blank_row(doc)
-
-        # ── Profile ID + To ───────────────────────────────────────
-        make_row(
-            doc,
-            left_text=f"Profile ID : {profile_id}",
-            right_text="To,",
-            left_bold=True,
-            right_bold=True,
-            right_indent_mm=RIGHT_COL_MM,
-        )
-
-        # ── Address Lines (Indented) ──────────────────────────────
-        lines = [
-            (owner_name, True),
-            (f"Father Name: {father_name}", False),
-            (address_line1, False),
-        ]
-
-        if address_line2:
-            lines.append((address_line2, False))
-
-        lines += [
-            (district, False),
-            (city, False),
-            (city_state, False),
-            (f"PIN: {pincode}", False),
-            (f"Mobile: {mobile_no}", False),
-        ]
-
-        for text, bold in lines:
-            if text:
-                make_right_only(
-                    doc,
-                    text="    " + text,  # 👈 INDENT CONTENT ONLY
-                    bold=bold,
-                    right_indent_mm=RIGHT_COL_MM,
-                )
-
-        # ── Return Response ───────────────────────────────────────
-        buffer = io.BytesIO()
-        doc.save(buffer)
-        buffer.seek(0)
-
-        response = HttpResponse(
-            buffer,
-            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        )
-        response['Content-Disposition'] = f'inline; filename="envelope_{profile_id}.docx"'
-
-        return response
-
-
-
-class PrintDashboardClearCompletedView(APIView):
- def post(self, request):
-        try:
-            today = timezone.localdate()
- 
-            # Convert today to datetime range for safe timezone comparison
-            today_start = timezone.make_aware(
-                timezone.datetime.combine(today, timezone.datetime.min.time())
-            )
- 
-            qs = PrintDashboard.objects.filter(
-                status=PrintDashboard.STATUS_COMPLETED,
-                is_deleted=False,
-                updated_at__lt=today_start    # updated_at < today 00:00:00
-            )
- 
-            count = qs.count()
- 
-            if count == 0:
-                return JsonResponse({
-                    "status"       : "success",
-                    "deleted_count": 0,
-                    "message"      : "No records eligible for auto cleanup."
-                })
- 
-            qs.update(is_deleted=True)
- 
-            return JsonResponse({
-                "status"       : "success",
-                "deleted_count": count,
-                "message"      : f"Auto cleanup done. {count} record(s) soft deleted."
-            })
- 
-        except Exception as e:
-            return JsonResponse({
-                "status" : "error",
-                "message": str(e)
-            }, status=500)
-
-
-from django.http import JsonResponse
-from rest_framework.views import APIView
-from .utils.round_robin_assign import clear_completed_print_dashboard
-
-class PrintDashboardClearCompletedView(APIView):
-    def post(self, request):
-        try:
-            count = clear_completed_print_dashboard()
-
-            return JsonResponse({
-                "status": "success",
-                "deleted_count": count,
-                "message": f"Auto cleanup done. {count} record(s) soft deleted."
-            })
-
-        except Exception as e:
-            return JsonResponse({
-                "status": "error",
-                "message": str(e)
-            }, status=500)
-
-
-
-from django.utils.timezone import now
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from .models import (
-    CallLog, CallManagement,
-    ActionLog, ActionPointMaster,
-    CallTypeMaster, ParticularsMaster, CallStatusMaster,
-    LoginDetails, DataHistory, User, PlanDetails,
-    CallLog_New, CallManagement_New   # ✅ add these
-)
-
-
-class StaffDashboardView(APIView):
-    """
-    Staff Dashboard API.
-
-    GET params:
-        staff      : username     (optional — filters all data to one staff)
-        card       : total_calls | hot_leads | approved | premium | renewal | actions
-                     | attended_calls | unattended_calls | general_calls   ← new
-        date_from  : YYYY-MM-DD   (optional)
-        date_to    : YYYY-MM-DD   (optional)
-
-    Field mapping notes:
-        CallLog.call_owner      → CharField storing User.id as string
-        CallLog.particulars     → FK to ParticularsMaster → particulars_id
-        ActionLog.action_owner  → CharField storing User.id as string
-        ActionLog.action_point  → FK to ActionPointMaster → action_point_id
-        LoginDetails.status     → CharField ('1' = approved)
-        DataHistory.owner_id    → IntegerField → User.id → User.username
-        DataHistory.profile_status = 1 → approved event record
-
-        CallLog_New.call_owner  → CharField storing User.id as string
-        CallLog_New.comments    → starts with 'RNR' = unattended call
-        CallLog_New.call_type   → FK to CallTypeMaster  → call_type (CharField)
-        CallLog_New.call_status → FK to CallStatusMaster → status (CharField)
-        CallLog_New.particulars → FK to ParticularsMaster → particulars (CharField)
-    """
-
-    # ── Master data (matches your master tables exactly) ─────────────────────
-
-    CALL_TYPES = {
-        1: "Inbound call",
-        2: "Outbound call",
-        3: "In missed call",
-    }
-
-    CALL_STATUSES = {
-        1: "Hot - 3 days",
-        2: "Warm - 7 days",
-        3: "Cold - 30 days",
-        4: "Not interested",
-        5: "In Progress",
-        6: "Completed",
-    }
-
-    CALL_PARTICULARS = {
-        1 : "Validation",
-        2 : "Prospect",
-        3 : "Offer",
-        4 : "SOSP - Next call date",
-        5 : "Vys - Assist",
-        6 : "Horo Updation",
-        7 : "Photo Updation",
-        8 : "Id Proof Updation",
-        9 : "Feedback",
-        10: "Followup",
-        11: "Offer",
-        12: "Others",
-        13: "New Customer",
-        14: "Marriage Settled",
-        15: "Marriage Date Collection",
-        16: "Duplicate",
-        17: "Enquiry",
-        18: "Marriage Photo Collection",
-        19: "Wishes Cards",
-    }
-
-    ACTION_POINTS = {
-        1 : "Invoice",
-        2 : "PSP",
-        3 : "Weekly profile update",
-        4 : "Priority Circulation",
-        5 : "Compatability Report",
-        6 : "Express interest",
-        7 : "Horo updation",
-        8 : "Photo updation",
-        9 : "Id proof updation",
-        10: "Matching profile",
-        11: "Intimation",
-    }
-
-    # ── helpers ───────────────────────────────────────────────────────────────
-
-    @staticmethod
-    def _resolve_staff_ids(staff_name):
-        """Username → list of User.id (int)"""
-        if not staff_name:
-            return []
-        return list(
-            User.objects.filter(username=staff_name).values_list('id', flat=True)
-        )
-
-    def _call_splits(self, call_qs):
-        """
-        Returns split counts for a CallLog queryset.
-        All known IDs pre-seeded with 0 so every entry always appears.
-
-            call.call_type_id   → CALL_TYPES
-            call.call_status_id → CALL_STATUSES
-            call.particulars_id → CALL_PARTICULARS
-        """
-        by_type        = {v: 0 for v in self.CALL_TYPES.values()}
-        by_status      = {v: 0 for v in self.CALL_STATUSES.values()}
-        by_particulars = {v: 0 for v in self.CALL_PARTICULARS.values()}
-
-        for call in call_qs.only('call_type_id', 'call_status_id', 'particulars_id'):
-
-            ct_id = call.call_type_id
-            ct    = self.CALL_TYPES.get(ct_id, f"Unknown({ct_id})")
-            by_type[ct] = by_type.get(ct, 0) + 1
-
-            cs_id = call.call_status_id
-            cs    = self.CALL_STATUSES.get(cs_id, f"Unknown({cs_id})")
-            by_status[cs] = by_status.get(cs, 0) + 1
-
-            cp_id = call.particulars_id
-            cp    = self.CALL_PARTICULARS.get(cp_id, f"Unknown({cp_id})")
-            by_particulars[cp] = by_particulars.get(cp, 0) + 1
-
-        return {
-            "by_type"       : by_type,
-            "by_status"     : by_status,
-            "by_particulars": by_particulars,
-        }
-
-    def _call_new_splits(self, call_new_qs):
-        """
-        Returns split counts for a CallLog_New queryset.
-        Uses FK field names from models.py:
-            call_type   → CallTypeMaster  → call_type   (CharField)
-            call_status → CallStatusMaster → status     (CharField)
-            particulars → ParticularsMaster → particulars (CharField)
-        """
-        by_type        = {}
-        by_status      = {}
-        by_particulars = {}
-
-        for call in call_new_qs.only(
-            'call_type_id', 'call_status_id', 'particulars_id'
-        ):
-            # ── Call Type (CallTypeMaster.call_type) ──────────────────────
-            ct_id = call.call_type_id
-            if ct_id:
-                try:
-                    label = CallTypeMaster.objects.filter(
-                        id=ct_id
-                    ).values('call_type').first()
-                    ct = label['call_type'] if label else f"Unknown({ct_id})"
-                except Exception:
-                    ct = f"Unknown({ct_id})"
-            else:
-                ct = "N/A"
-            by_type[ct] = by_type.get(ct, 0) + 1
-
-            # ── Call Status (CallStatusMaster.status) ─────────────────────
-            cs_id = call.call_status_id
-            if cs_id:
-                try:
-                    label = CallStatusMaster.objects.filter(
-                        id=cs_id
-                    ).values('status').first()
-                    cs = label['status'] if label else f"Unknown({cs_id})"
-                except Exception:
-                    cs = f"Unknown({cs_id})"
-            else:
-                cs = "N/A"
-            by_status[cs] = by_status.get(cs, 0) + 1
-
-            # ── Particulars (ParticularsMaster.particulars) ───────────────
-            cp_id = call.particulars_id
-            if cp_id:
-                try:
-                    label = ParticularsMaster.objects.filter(
-                        id=cp_id
-                    ).values('particulars').first()
-                    cp = label['particulars'] if label else f"Unknown({cp_id})"
-                except Exception:
-                    cp = f"Unknown({cp_id})"
-            else:
-                cp = "N/A"
-            by_particulars[cp] = by_particulars.get(cp, 0) + 1
-
-        return {
-            "by_type"       : by_type,
-            "by_status"     : by_status,
-            "by_particulars": by_particulars,
-        }
-
-    @staticmethod
-    def _approved_date_from_datahistory(profile_id):
-        """
-        Earliest DataHistory record where profile_status = 1 → date_time.
-        """
-        dh = (
-            DataHistory.objects
-            .filter(profile_id=profile_id, profile_status=1)
-            .order_by('date_time')
-            .values('date_time')
-            .first()
-        )
-        if dh and dh['date_time']:
-            return dh['date_time'].strftime('%Y-%m-%d')
-        return "N/A"
-
-    # ── main handler ──────────────────────────────────────────────────────────
-
-    def get(self, request):
-        try:
-            staff_name = request.GET.get('staff')
-            card       = request.GET.get('card')
-            date_click = request.GET.get('date') 
-            export     = request.GET.get('export')
-            # ── resolve staff ─────────────────────────────────────────────
-            staff_ids     = self._resolve_staff_ids(staff_name)
-            staff_id_strs = [str(i) for i in staff_ids]
-
-            # CallLog.call_owner stores user id as string
-            call_qs = CallLog.objects.filter(is_deleted=0)
-            if staff_ids:
-                call_qs = call_qs.filter(call_owner__in=staff_id_strs)
-
-            # ActionLog.action_owner stores user id as string
-            action_qs = ActionLog.objects.filter(is_deleted=0)
-            if staff_ids:
-                action_qs = action_qs.filter(action_owner__in=staff_id_strs)
-
-            login_qs = LoginDetails.objects.all()
-
-            # ── profile IDs linked to these calls ─────────────────────────
-            call_profile_ids = list(
-                call_qs
-                .values_list('call_management__profile_id', flat=True)
-                .distinct()
-            )
-
-            # ── summary ───────────────────────────────────────────────────
-            total_calls       = call_qs.count()
-            hot_leads         = call_qs.filter(call_status_id=1).count()
-            total_actions     = action_qs.count()
-
-            # LoginDetails.status is CharField — compare as '1'
-            # approved_profiles = login_qs.filter(
-            #     ProfileId__in=call_profile_ids, status='1'
-            # ).count()
-            # premium_users = login_qs.filter(
-            #     ProfileId__in=call_profile_ids,
-            #     membership_enddate__gte=now()
-            # ).count()
-            # renewal_users = login_qs.filter(
-            #     ProfileId__in=call_profile_ids,
-            #     membership_enddate__lt=now()
-            # ).count()
-
-            if staff_ids:
-                approved_profiles = login_qs.filter(Owner_id__in=staff_ids, status='1').count()
-                premium_users     = login_qs.filter(Owner_id__in=staff_ids, status = '1',secondary_status = '5',membership_enddate__gte=now()).count()
-                renewal_users     = login_qs.filter(Owner_id__in=staff_ids, membership_enddate__lt=now()).count()
-            else:
-                approved_profiles = login_qs.filter(ProfileId__in=call_profile_ids, status='1').count()
-                premium_users     = login_qs.filter(ProfileId__in=call_profile_ids, membership_enddate__gte=now()).count()
-                renewal_users     = login_qs.filter(ProfileId__in=call_profile_ids, membership_enddate__lt=now()).count()
-
-            # ── CallLog_New summary counts ────────────────────────────────
-            call_new_qs = CallLog_New.objects.filter(is_deleted=0)
-            if staff_ids:
-                call_new_qs = call_new_qs.filter(call_owner__in=staff_id_strs)
-
-            attended_calls_count   = call_new_qs.exclude(
-                comments__iregex=r'^RNR'
-            ).count()
-            unattended_calls_count = call_new_qs.filter(
-                comments__iregex=r'^RNR'
-            ).count()
-            general_calls_count    = call_new_qs.count()
-
-           # ── staff-wise table — FIXED ──────────────────────────────────────────
-            staff_performance = []
-
-            all_owner_ids = list(
-                CallLog.objects
-                .filter(is_deleted=0)
-                .exclude(call_owner__isnull=True)
-                .exclude(call_owner='')
-                .values_list('call_owner', flat=True)
-                .distinct()
-            )
-
-            if staff_ids:
-                all_owner_ids = [s for s in all_owner_ids if str(s) in staff_id_strs]
-
-            for owner_id_str in all_owner_ids:
-                if not owner_id_str:
-                    continue
-
-                try:
-                    user = User.objects.filter(id=int(owner_id_str)).values('username').first()
-                    staff_label = user['username'] if user else str(owner_id_str)
-                except Exception:
-                    staff_label = str(owner_id_str)
-
-                s_calls = CallLog.objects.filter(call_owner=str(owner_id_str), is_deleted=0)
-                s_total = s_calls.count()
-                s_hot   = s_calls.filter(call_status_id=1).count()
-                s_warm  = s_calls.filter(call_status_id=2).count()
-                s_cold  = s_calls.filter(call_status_id=3).count()
-
-                s_actions = ActionLog.objects.filter(
-                    action_owner=str(owner_id_str), is_deleted=0
-                ).count()
-
-                s_pids = list(
-                    s_calls
-                    .values_list('call_management__profile_id', flat=True)
-                    .distinct()
-                )
-                s_pids = [p for p in s_pids if p]
-
-                try:
-                    owner_id_int = int(owner_id_str)
-                except Exception:
-                    owner_id_int = None
-
-                if owner_id_int:
-                    s_approved = login_qs.filter(Owner_id=owner_id_int, status='1').count()
-                    # s_premium  = login_qs.filter(
-                    #     Owner_id=owner_id_int, membership_enddate__gte=now()
-                    # ).count()
-                    s_premium=login_qs.filter(Owner_id__in=staff_ids, status = '1',secondary_status = '5',membership_enddate__gte=now()).count()
-
-                    s_renewal  = login_qs.filter(
-                        Owner_id=owner_id_int, membership_enddate__lt=now()
-                    ).count()
-                    s_profile_count = login_qs.filter(Owner_id=owner_id_int).count()
-                else:
-                    s_approved = s_premium = s_renewal = s_profile_count = 0
-
-                # ── CallLog_New counts per staff ──────────────────────────────────
-                s_call_new = CallLog_New.objects.filter(
-                    call_owner=str(owner_id_str), is_deleted=0
-                )
-                s_general    = s_call_new.count()
-                s_unattended = s_call_new.filter(comments__iregex=r'^RNR').count()
-                s_attended   = s_general - s_unattended
-
-                staff_performance.append({
-                    "staff"           : staff_label,
-                    "total_calls"     : s_total,
-                    "hot_leads"       : s_hot,
-                    "warm_leads"      : s_warm,
-                    "cold_leads"      : s_cold,
-                    "approved"        : s_approved,
-                    "premium"         : s_premium,
-                    "renewal"         : s_renewal,
-                    "actions"         : s_actions,
-                    "profile_count"   : s_profile_count,
-                    "general_calls"   : s_general,      # ✅ new
-                    "attended_calls"  : s_attended,     # ✅ new
-                    "unattended_calls": s_unattended,   # ✅ new
-                })
-
-            staff_performance.sort(key=lambda x: x["total_calls"], reverse=True)
-
-            # Sort by most calls first
-            staff_performance.sort(key=lambda x: x["total_calls"], reverse=True)
-
-            # ── date-wise breakdown ───────────────────────────────────────
-           # ── date-wise breakdown ───────────────────────────────────────────────
-            date_wise     = []
-            date_from_str = request.GET.get('date_from')
-            date_to_str   = request.GET.get('date_to')
-            import datetime
-
-            # DEFAULT: current month 1st → today if no dates passed
-            today = datetime.date.today()
-            if not date_from_str:
-                date_from_str = today.replace(day=1).isoformat()
-            if not date_to_str:
-                date_to_str = today.isoformat()
-
-            # ← try is NOW outside the if blocks — runs always
-            try:
-                date_from = datetime.date.fromisoformat(date_from_str)
-                date_to   = datetime.date.fromisoformat(date_to_str)
-                current   = date_from
-                today     = datetime.date.today()
-
-                while current <= date_to:
-                    day_start = datetime.datetime.combine(current, datetime.time.min)
-                    day_end   = datetime.datetime.combine(current, datetime.time.max)
-
-                    day_calls = CallLog.objects.filter(
-                        created_at__gte=day_start,
-                        created_at__lte=day_end,
-                        is_deleted=0,
-                    )
-                    if staff_ids:
-                        day_calls = day_calls.filter(call_owner__in=staff_id_strs)
-
-                    day_data = DataHistory.objects.filter(
-                        date_time__gte=day_start, date_time__lte=day_end
-                    )
-                    if staff_ids:
-                        day_data = day_data.filter(owner_id__in=staff_ids)
-
-                    day_approved    = day_data.filter(profile_status=1).count()
-                    day_profile_ids = list(
-                        day_data.values_list('profile_id', flat=True).distinct()
-                    )
-                    day_premium = LoginDetails.objects.filter(
-                        ProfileId__in=day_profile_ids, secondary_status=5
-                    ).count()
-                    day_renewal = LoginDetails.objects.filter(
-                        ProfileId__in=day_profile_ids,
-                        membership_enddate__date__lt=today
-                    ).count()
-
-                    day_actions = ActionLog.objects.filter(
-                        created_at__gte=day_start,
-                        created_at__lte=day_end,
-                        is_deleted=0,
-                    )
-                    if staff_ids:
-                        day_actions = day_actions.filter(action_owner__in=staff_id_strs)
-
-                    day_call_new = CallLog_New.objects.filter(
-                        created_at__gte=day_start,
-                        created_at__lte=day_end,
-                        is_deleted=0,
-                    )
-                    if staff_ids:
-                        day_call_new = day_call_new.filter(call_owner__in=staff_id_strs)
-
-                    day_general    = day_call_new.count()
-                    day_unattended = day_call_new.filter(comments__iregex=r'^RNR').count()
-                    day_attended   = day_general - day_unattended
-
-                    date_wise.append({
-                        "date"            : current.strftime('%d %b %Y'),
-                        "total_calls"     : day_calls.count(),
-                        "hot"             : day_calls.filter(call_status_id=1).count(),
-                        "approved"        : day_approved,
-                        "premium"         : day_premium,
-                        "renewal"         : day_renewal,
-                        "actions"         : day_actions.count(),
-                        "general_calls"   : day_general,
-                        "attended_calls"  : day_attended,
-                        "unattended_calls": day_unattended,
-                    })
-
-                    current += datetime.timedelta(days=1)
-
-                # ── Export inside try, after while loop ───────────────────────────
-                if export == 'excel' and date_wise:
-                    import openpyxl
-                    from openpyxl.styles import Font, PatternFill, Alignment
-                    from openpyxl.utils import get_column_letter
-                    import io
-                    from django.http import HttpResponse
-
-                    wb = openpyxl.Workbook()
-                    ws = wb.active
-                    ws.title = "Date Wise Performance"
-
-                    headers = [
-                        "Date", "Total Calls", "Hot", "Approved",
-                        "Premium", "Renewal", "Actions",
-                        "General Calls", "Attended Calls", "Unattended Calls"
-                    ]
-
-                    HEADER_FILL = PatternFill("solid", start_color="1e1b4b", end_color="1e1b4b")
-                    HEADER_FONT = Font(bold=True, color="FFFFFF", size=11)
-                    CENTER      = Alignment(horizontal="center", vertical="center")
-                    ALT_FILL    = PatternFill("solid", start_color="f1f5f9", end_color="f1f5f9")
-                    WHITE_FILL  = PatternFill("solid", start_color="FFFFFF", end_color="FFFFFF")
-
-                    ws.append(headers)
-                    for col_idx in range(1, len(headers) + 1):
-                        cell = ws.cell(row=1, column=col_idx)
-                        cell.fill = HEADER_FILL
-                        cell.font = HEADER_FONT
-                        cell.alignment = CENTER
-                    ws.row_dimensions[1].height = 22
-
-                    for i, row in enumerate(date_wise, start=2):
-                        ws.append([
-                            row["date"],
-                            row["total_calls"],
-                            row["hot"],
-                            row["approved"],
-                            row["premium"],
-                            row["renewal"],
-                            row["actions"],
-                            row.get("general_calls",    0),
-                            row.get("attended_calls",   0),
-                            row.get("unattended_calls", 0),
-                        ])
-                        fill = ALT_FILL if i % 2 == 0 else WHITE_FILL
-                        for col_idx in range(1, len(headers) + 1):
-                            cell = ws.cell(row=i, column=col_idx)
-                            cell.fill = fill
-                            cell.alignment = CENTER
-
-                    col_widths = [16, 14, 8, 12, 12, 12, 12, 16, 18, 20]
-                    for i, w in enumerate(col_widths, 1):
-                        ws.column_dimensions[get_column_letter(i)].width = w
-                    ws.freeze_panes = "A2"
-
-                    staff_label = staff_name if staff_name else "all_staff"
-                    filename    = f"date_wise_{staff_label}_{date_from_str}_to_{date_to_str}.xlsx"
-
-                    buf = io.BytesIO()
-                    wb.save(buf)
-                    buf.seek(0)
-
-                    response = HttpResponse(
-                        buf.getvalue(),
-                        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
-                    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-                    return response
-
-            except ValueError:
-                pass
-
-            # ── card drill-down ───────────────────────────────────────────
-            card_detail = {}
-
-            if card:
-
-                # ── A. Total Calls ────────────────────────────────────────
-                if card == 'total_calls':
-                    card_detail = self._call_splits(call_qs)
-                    card_detail["total"] = total_calls
-
-                # ── B. Hot Leads ──────────────────────────────────────────
-                elif card == 'hot_leads':
-                    seen_pids = set()
-                    profiles  = []
-
-                    for call in (
-                        call_qs
-                        .filter(call_status_id=1)
-                        .select_related('call_management')
-                        .order_by('-created_at')
-                    ):
-                        cm  = call.call_management
-                        pid = cm.profile_id if cm else None
-                        if not pid or pid in seen_pids:
-                            continue
-                        seen_pids.add(pid)
-
-                        owner_name = "N/A"
-                        try:
-                            user = User.objects.filter(
-                                id=int(call.call_owner)
-                            ).values('username').first()
-                            if user:
-                                owner_name = user['username']
-                        except Exception:
-                            pass
-
-                        profiles.append({
-                            "profile_id"     : pid,
-                            "call_owner_name": owner_name,
-                        })
-
-                    card_detail = {"total": len(profiles), "profiles": profiles}
-
-                elif card == 'approved':
-                    profiles = []
-                    
-                    approved_qs = login_qs.filter(status='1')
-                    
-                    if staff_ids:
-                        approved_qs = approved_qs.filter(Owner_id__in=staff_ids)
-                    
-                    for p in approved_qs.values('ProfileId', 'Profile_name', 'Owner_id'):
-                        
-                        owner_name = "N/A"
-                        try:
-                            if p['Owner_id']:
-                                user = User.objects.filter(
-                                    id=int(p['Owner_id'])
-                                ).values('username').first()
-                                if user:
-                                    owner_name = user['username']
-                        except Exception:
-                            pass
-
-                        profiles.append({
-                            "profile_id"   : p['ProfileId'],
-                            "name"         : p['Profile_name'] or "N/A",
-                            "owner_name"   : owner_name,
-                            "approved_date": self._approved_date_from_datahistory(p['ProfileId']),
-                        })
-
-                    card_detail = {"total": len(profiles), "profiles": profiles}
-
-                elif card == 'premium':
-                    profiles = []
-                    # premium_qs = login_qs.filter(membership_enddate__gte=now())
-                    premium_qs = login_qs.filter(
-                    status='1',
-                    secondary_status=5,
-                    membership_enddate__gte=now()
-                )
-
-                    if staff_ids:
-                        premium_qs = premium_qs.filter(Owner_id__in=staff_ids)
-
-                    for p in premium_qs.values('ProfileId', 'Owner_id', 'Plan_id'):
-                        owner_name = "N/A"
-                        try:
-                            if p['Owner_id']:
-                                user = User.objects.filter(
-                                    id=int(p['Owner_id'])
-                                ).values('username').first()
-                                if user:
-                                    owner_name = user['username']
-                        except Exception:
-                            pass
-
-                        plan_name = "N/A"
-                        try:
-                            plan = PlanDetails.objects.filter(
-                                id=p['Plan_id']
-                            ).values('plan_name').first()
-                            if plan:
-                                plan_name = plan['plan_name']
-                        except Exception:
-                            pass
-
-                        profiles.append({
-                            "profile_id": p['ProfileId'],
-                            "owner_name": owner_name,
-                            "plan_type":  plan_name,
-                        })
-
-                    card_detail = {"total": len(profiles), "profiles": profiles}
-
-                elif card == 'renewal':
-                    profiles = []
-                    try:
-                        renewal_qs = login_qs.filter(membership_enddate__lt=now())
-                        if staff_ids:
-                            renewal_qs = renewal_qs.filter(Owner_id__in=staff_ids)
-
-                        for p in renewal_qs.values(
-                            'ProfileId', 'Profile_name', 'Owner_id',
-                            'membership_enddate', 'Plan_id'
-                        ):
-                            owner_name = "N/A"
-                            try:
-                                if p['Owner_id']:
-                                    user = User.objects.filter(
-                                        id=int(p['Owner_id'])
-                                    ).values('username').first()
-                                    if user:
-                                        owner_name = user['username']
-                            except Exception:
-                                pass
-
-                            plan_name = "N/A"
-                            try:
-                                plan = PlanDetails.objects.filter(
-                                    id=p['Plan_id']
-                                ).values('plan_name').first()
-                                if plan:
-                                    plan_name = plan['plan_name']
-                            except Exception:
-                                pass
-
-                            profiles.append({
-                                "profile_id"      : p['ProfileId'],
-                                "name"            : p['Profile_name'] or "N/A",
-                                "owner_name"      : owner_name,
-                                "plan_type"       : plan_name,
-                                "membership_ended": p['membership_enddate'].strftime('%Y-%m-%d')
-                                                    if p['membership_enddate'] else "N/A",
-                            })
-
-                        card_detail = {"total": len(profiles), "profiles": profiles}
-
-                    except Exception as e:
-                        card_detail = {"error": str(e)}
-
-                elif card == 'actions':
-                    by_action = {name: 0 for name in self.ACTION_POINTS.values()}
-
-                    for action in action_qs.only('action_point_id'):
-                        ap_id = action.action_point_id
-                        label = self.ACTION_POINTS.get(ap_id, f"Unknown({ap_id})")
-                        by_action[label] = by_action.get(label, 0) + 1
-
-                    card_detail = {
-                        "total"          : total_actions,
-                        "by_action_point": by_action,
-                    }
-
-                # ── G. Attended Calls ─────────────────────────────────────
-                # CallLog_New where comments does NOT start with RNR
-                # Shows splits: by call_type, by call_status, by particulars
-                # Field names from models.py:
-                #   CallTypeMaster.call_type  | CallStatusMaster.status | ParticularsMaster.particulars
-                elif card == 'attended_calls':
-                    try:
-                        attended_qs = call_new_qs.exclude(comments__iregex=r'^RNR')
-                        splits      = self._call_new_splits(attended_qs)
-
-                        card_detail = {
-                            "total"         : attended_qs.count(),
-                            "by_type"       : splits["by_type"],
-                            "by_status"     : splits["by_status"],
-                            "by_particulars": splits["by_particulars"],
-                        }
-
-                    except Exception as e:
-                        card_detail = {"error": str(e)}
-
-                # ── H. Unattended Calls ───────────────────────────────────
-                # CallLog_New where comments starts with RNR (case-insensitive)
-                # Returns profile list: profile_id, profile_name, call_date, call_owner
-                elif card == 'unattended_calls':
-                    try:
-                        unattended_qs = call_new_qs.filter(comments__iregex=r'^RNR')
-                        profiles      = []
-
-                        for p in unattended_qs.values(
-                            'id',
-                            'call_date',
-                            'call_owner',
-                            'comments',
-                            'call_management__profile_id',   # CallManagement_New.profile_id
-                        ):
-                            owner_name = "N/A"
-                            try:
-                                if p['call_owner']:
-                                    user = User.objects.filter(
-                                        id=int(p['call_owner'])
-                                    ).values('username').first()
-                                    if user:
-                                        owner_name = user['username']
-                            except Exception:
-                                pass
-
-                            profiles.append({
-                                "call_id"   : p['id'],
-                                "profile_id": p['call_management__profile_id'] or "N/A",
-                                "call_date" : p['call_date'].strftime('%Y-%m-%d %H:%M')
-                                              if p['call_date'] else "N/A",
-                                "call_owner": owner_name,
-                                "comments"  : p['comments'] or "N/A",
-                            })
-
-                        card_detail = {
-                            "total"   : len(profiles),
-                            "profiles": profiles,
-                        }
-
-                    except Exception as e:
-                        card_detail = {"error": str(e)}
-
-                # ── I. General Calls ──────────────────────────────────────
-                # Total count of all CallLog_New records (attended + unattended)
-                elif card == 'general_calls':
-                    try:
-                        card_detail = {
-                            "total"            : general_calls_count,
-                            "attended_count"   : attended_calls_count,
-                            "unattended_count" : unattended_calls_count,
-                        }
-
-                    except Exception as e:
-                        card_detail = {"error": str(e)}
-
-                # ── J. Date Drill-Down ────────────────────────────────────────────────
-                # GET /api/staff-dashboard/?staff=Lavanya&card=date_detail&date=2026-04-02
-                elif card == 'date_detail':
-                    try:
-                        if not date_click:
-                            card_detail = {"error": "date param required e.g. &date=2026-04-02"}
-                        else:
-                            click_date  = datetime.date.fromisoformat(date_click)
-                            day_start   = datetime.datetime.combine(click_date, datetime.time.min)
-                            day_end     = datetime.datetime.combine(click_date, datetime.time.max)
-
-                            # ── calls on this date ────────────────────────────────────
-                            day_call_qs = CallLog.objects.filter(
-                                created_at__gte=day_start,
-                                created_at__lte=day_end,
-                                is_deleted=0,
-                            )
-                            if staff_ids:
-                                day_call_qs = day_call_qs.filter(call_owner__in=staff_id_strs)
-
-                            # ── by_type ───────────────────────────────────────────────
-                            by_type = {v: 0 for v in self.CALL_TYPES.values()}
-                            for call in day_call_qs.only('call_type_id'):
-                                ct  = self.CALL_TYPES.get(call.call_type_id, f"Unknown({call.call_type_id})")
-                                by_type[ct] = by_type.get(ct, 0) + 1
-
-                            # ── by_status ─────────────────────────────────────────────
-                            by_status = {v: 0 for v in self.CALL_STATUSES.values()}
-                            for call in day_call_qs.only('call_status_id'):
-                                cs  = self.CALL_STATUSES.get(call.call_status_id, f"Unknown({call.call_status_id})")
-                                by_status[cs] = by_status.get(cs, 0) + 1
-
-                            # ── by_particulars ────────────────────────────────────────
-                            by_particulars = {v: 0 for v in self.CALL_PARTICULARS.values()}
-                            for call in day_call_qs.only('particulars_id'):
-                                cp  = self.CALL_PARTICULARS.get(call.particulars_id, f"Unknown({call.particulars_id})")
-                                by_particulars[cp] = by_particulars.get(cp, 0) + 1
-
-                            # ── approved on this date ─────────────────────────────────
-                            day_data     = DataHistory.objects.filter(
-                                date_time__gte=day_start,
-                                date_time__lte=day_end,
-                                profile_status=1,
-                            )
-                            if staff_ids:
-                                day_data = day_data.filter(owner_id__in=staff_ids)
-                            day_approved = day_data.count()
-
-                            # ── actions on this date ──────────────────────────────────
-                            day_action_qs = ActionLog.objects.filter(
-                                created_at__gte=day_start,
-                                created_at__lte=day_end,
-                                is_deleted=0,
-                            )
-                            if staff_ids:
-                                day_action_qs = day_action_qs.filter(action_owner__in=staff_id_strs)
-
-                            by_action = {v: 0 for v in self.ACTION_POINTS.values()}
-                            for action in day_action_qs.only('action_point_id'):
-                                ap  = self.ACTION_POINTS.get(action.action_point_id, f"Unknown({action.action_point_id})")
-                                by_action[ap] = by_action.get(ap, 0) + 1
-
-                            card_detail = {
-                                "date"           : click_date.strftime('%d %b %Y'),
-                                "total_calls"    : day_call_qs.count(),
-                                "approved"       : day_approved,
-                                "actions"        : day_action_qs.count(),
-                                "by_type"        : by_type,
-                                "by_status"      : by_status,
-                                "by_particulars" : by_particulars,
-                                "by_action_point": by_action,
-                            }
-
-                    except ValueError:
-                        card_detail = {"error": "Invalid date format. Use YYYY-MM-DD"}
-                    except Exception as e:
-                        card_detail = {"error": str(e)}
-
-            # ── final response ────────────────────────────────────────────
-            return Response({
-                "summary": {
-                    "total_calls"      : total_calls,
-                    "hot_leads"        : hot_leads,
-                    "approved_profiles": approved_profiles,
-                    "premium_users"    : premium_users,
-                    "renewal_users"    : renewal_users,
-                    "actions"          : total_actions,
-                    "attended_calls"   : attended_calls_count,    # ✅ new
-                    "unattended_calls" : unattended_calls_count,  # ✅ new
-                    "general_calls"    : general_calls_count,     # ✅ new
-                },
-                "staff_wise" : staff_performance,
-                "date_wise"  : date_wise,
-                "card_detail": card_detail,
-            })
-
-        except Exception as e:
-            return Response({"error": str(e)}, status=500)
-
-
-
-class GothramNamesSingleListView(APIView):
-  
- 
-    def get(self, request):
-        try:
-            qs = GothramNamesSingle.objects.filter(is_deleted=False)
- 
-            # Optional filters
-            gothram_id = request.query_params.get('gothram_id')
-            search     = request.query_params.get('search', '').strip()
- 
-            if gothram_id:
-                qs = qs.filter(gothram_id=gothram_id)
- 
-            if search:
-                qs = qs.filter(name__icontains=search)
- 
-            qs = qs.order_by('name')
- 
-            data = list(qs.values('id', 'gothram_id', 'name'))
- 
-            return JsonResponse({
-                "status": "success",
-                "count" : len(data),
-                "data"  : data,
-            })
- 
-        except Exception as e:
-            return JsonResponse({
-                "status" : "error",
-                "message": str(e)
-            }, status=500)
-
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.http import JsonResponse
-
-class PrintEnvelopeJsonView(APIView):
-
-    def get(self, request, pk):
-        try:
-            record = PrintDashboard.objects.get(pk=pk)
-        except PrintDashboard.DoesNotExist:
-            return Response({
-                'status': 'error',
-                'message': 'Record not found'
-            }, status=404)
-
-        # ── Default values ─────────────────────────────────────────
-        profile_id    = record.profile_id or ''
-        owner_name    = ''
-        mobile_no     = ''
-        address_line1 = ''
-        address_line2 = ''
-        district      = ''
-        city          = ''
-        city_state    = ''
-        pincode       = ''
-
-        # ── Pull from LoginDetails ─────────────────────────────────
-        try:
-            owner = LoginDetails.objects.filter(ProfileId=record.profile_id).first()
-            if owner:
-                owner_name    = owner.Profile_name or owner_name
-                mobile_no     = owner.Profile_mobile_no or owner.Mobile_no or ''
-                address_line1 = owner.Profile_address or ''
-                pincode       = owner.Profile_pincode or ''
-
-                # State
-                if owner.Profile_state:
-                    state_obj = State.objects.filter(id=owner.Profile_state).first()
-                    city_state = state_obj.name if state_obj else str(owner.Profile_state)
-
-                # District
-                if owner.Profile_district:
-                    district_obj = District.objects.filter(id=owner.Profile_district).first()
-                    district = district_obj.name if district_obj else str(owner.Profile_district)
-
-                
-                if owner.Profile_city:
-                        city = str(owner.Profile_city)
-
-
-        except Exception:
-            pass
-
-        # ── Query param overrides ──────────────────────────────────
-        profile_id    = request.query_params.get('profile_id',    profile_id)
-        owner_name    = request.query_params.get('owner_name',    owner_name)
-        mobile_no     = request.query_params.get('mobile_no',     mobile_no)
-        address_line1 = request.query_params.get('address_line1', address_line1)
-        address_line2 = request.query_params.get('address_line2', address_line2)
-        district      = request.query_params.get('district',      district)
-        city          = request.query_params.get('city',          city)
-        city_state    = request.query_params.get('city_state',    city_state)
-        pincode       = request.query_params.get('pincode',       pincode)
-
-        # ── JSON Response ─────────────────────────────────────────
-        return Response({
-            'status': 'success',
-            'data': {
-                'profile_id': profile_id,
-                'owner_name': owner_name,
-                'mobile_no': mobile_no,
-                'address_line1': address_line1,
-                'address_line2': address_line2,
-                'district': district,
-                'city': city,
-                'state': city_state,
-                'pincode': pincode
-            }
-        })
-
-
-
-
-from django.db import connection
-from django.http import JsonResponse, HttpResponse
-import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.utils import get_column_letter
-import io
-
-
-# ─── Age bucket boundaries ──────────────────────────────────────────────────
-AGE_BUCKETS = [
-    ("18-21", 18, 21),
-    ("22-25", 22, 25),
-    ("26-29", 26, 29),
-    ("30-34", 30, 34),
-    ("35-38", 35, 38),
-    ("39-40", 39, 40),
-    ("Above 40", 41, 999),
-]
-
-
-def _run_star_rasi_sql(group_by: str) -> list[dict]:
-    """
-    Returns rows like:
-      { id, name, gender, tn_pondy, others,
-        age_18_21, age_22_25, age_26_29, age_30_34,
-        age_35_38, age_39_40, age_above_40, total }
-
-    group_by = 'star'  → joins on profile_horoscope.birthstar_name
-    group_by = 'rasi'  → joins on profile_horoscope.birth_rasi_name
-    """
-
-    if group_by == "star":
-        master_table  = "masterbirthstar"
-        master_id_col = "id"
-        master_nm_col = "star"
-        horo_join_col = "birthstar_name"
-        deleted_col   = "is_deleted"
-    else:
-        master_table  = "masterrasi"
-        master_id_col = "id"
-        master_nm_col = "name"
-        horo_join_col = "birth_rasi_name"
-        deleted_col   = "is_deleted"
-
-    sql = f"""
-        SELECT
-            m.{master_id_col}                                        AS id,
-            m.{master_nm_col}                                        AS name,
-            ld.Gender                                                AS gender,
-
-            -- TN / Pondicherry
-            SUM(CASE WHEN ld.Profile_state IN ('2','7') THEN 1 ELSE 0 END)  AS tn_pondy,
-            SUM(CASE WHEN ld.Profile_state NOT IN ('2','7') THEN 1 ELSE 0 END) AS others,
-
-            -- Age buckets (TIMESTAMPDIFF on dob)
-            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 18 AND 21 THEN 1 ELSE 0 END) AS age_18_21,
-            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 22 AND 25 THEN 1 ELSE 0 END) AS age_22_25,
-            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 26 AND 29 THEN 1 ELSE 0 END) AS age_26_29,
-            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 30 AND 34 THEN 1 ELSE 0 END) AS age_30_34,
-            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 35 AND 38 THEN 1 ELSE 0 END) AS age_35_38,
-            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 39 AND 40 THEN 1 ELSE 0 END) AS age_39_40,
-            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) >= 41           THEN 1 ELSE 0 END) AS age_above_40,
-
-            COUNT(*) AS total
-
-        FROM {master_table} m
-        LEFT JOIN profile_horoscope ph
-               ON ph.{horo_join_col} = CAST(m.{master_id_col} AS CHAR)
-        LEFT JOIN logindetails ld
-               ON ld.ProfileId = ph.profile_id
-              AND ld.status = 1                 -- approved only
-        WHERE m.{deleted_col} = 0
-        GROUP BY m.{master_id_col}, m.{master_nm_col}, ld.Gender
-        ORDER BY m.{master_id_col}, ld.Gender DESC
-    """
-
-    with connection.cursor() as cursor:
-        cursor.execute(sql)
-        cols = [c[0] for c in cursor.description]
-        return [dict(zip(cols, row)) for row in cursor.fetchall()]
-
-
-
-
-def _build_summary(rows: list[dict]) -> list[dict]:
-    groups: dict[int, dict] = {}
-
-    for r in rows:
-        gid  = r["id"]
-        name = r["name"]
-
-        if gid not in groups:
-            groups[gid] = {"id": gid, "name": name, "rows": []}
-
-        if r["gender"]:  # existing logic
-            groups[gid]["rows"].append({
-                "gender":      r["gender"].capitalize(),
-                "tn_pondy":    int(r["tn_pondy"] or 0),
-                "others":      int(r["others"] or 0),
-                "age_18_21":   int(r["age_18_21"] or 0),
-                "age_22_25":   int(r["age_22_25"] or 0),
-                "age_26_29":   int(r["age_26_29"] or 0),
-                "age_30_34":   int(r["age_30_34"] or 0),
-                "age_35_38":   int(r["age_35_38"] or 0),
-                "age_39_40":   int(r["age_39_40"] or 0),
-                "age_above_40":int(r["age_above_40"] or 0),
-                "total": (
-                    int(r["tn_pondy"] or 0) +
-                    int(r["others"] or 0) +
-                    int(r["age_18_21"] or 0) +
-                    int(r["age_22_25"] or 0) +
-                    int(r["age_26_29"] or 0) +
-                    int(r["age_30_34"] or 0) +
-                    int(r["age_35_38"] or 0) +
-                    int(r["age_39_40"] or 0) +
-                    int(r["age_above_40"] or 0)
-                ),
-            })
-          
-
-    # ✅ ADD THIS BLOCK (new logic)
-    for g in groups.values():
-        genders_present = {row["gender"].lower() for row in g["rows"]}
-
-        def empty_row(gender):
-            return {
-                "gender": gender,
-                "tn_pondy": 0,
-                "others": 0,
-                "age_18_21": 0,
-                "age_22_25": 0,
-                "age_26_29": 0,
-                "age_30_34": 0,
-                "age_35_38": 0,
-                "age_39_40": 0,
-                "age_above_40": 0,
-                "total": 0,
-            }
-
-        if "male" not in genders_present:
-            g["rows"].append(empty_row("Male"))
-
-        if "female" not in genders_present:
-            g["rows"].append(empty_row("Female"))
-
-    return list(groups.values())
-
-# ─── API View ────────────────────────────────────────────────────────────────
-
-class StarRasiDashboardView(APIView):
-    """
-    GET /api/star-rasi-dashboard/?type=star          → all 27 stars data
-    GET /api/star-rasi-dashboard/?type=rasi          → all 12 rasi data
-    GET /api/star-rasi-dashboard/?type=star&export=excel  → download Excel
-    GET /api/star-rasi-dashboard/?type=rasi&export=excel  → download Excel
-    """
-
-    def get(self, request):
-        group_by    = request.query_params.get("type", "star").lower()
-        export_type = request.query_params.get("export", "").lower()
-
-        if group_by not in ("star", "rasi"):
-            return JsonResponse({"status": "error", "message": "type must be 'star' or 'rasi'"}, status=400)
-
-        raw  = _run_star_rasi_sql(group_by)
-        data = _build_summary(raw)
-
-        if export_type == "excel":
-            return self._export_excel(data, group_by)
-
-        return JsonResponse({"status": "success", "type": group_by, "data": data})
-
-    # ── Excel export ─────────────────────────────────────────────────────────
-    def _export_excel(self, data: list[dict], group_by: str) -> HttpResponse:
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Stars" if group_by == "star" else "Rasi"
-
-        # ── Styles ────────────────────────────────────────────────────────────
-        RED_FILL    = PatternFill("solid", start_color="C0392B", end_color="C0392B")
-        GOLD_FILL   = PatternFill("solid", start_color="F39C12", end_color="F39C12")
-        GREY_FILL   = PatternFill("solid", start_color="ECF0F1", end_color="ECF0F1")
-        WHITE_FILL  = PatternFill("solid", start_color="FFFFFF", end_color="FFFFFF")
-        WHITE_FONT  = Font(bold=True, color="FFFFFF", size=11)
-        BLACK_BOLD  = Font(bold=True, color="000000", size=10)
-        NORMAL_FONT = Font(color="000000", size=10)
-        CENTER      = Alignment(horizontal="center", vertical="center")
-        LEFT        = Alignment(horizontal="left", vertical="center")
-
-        thin = Side(style="thin", color="BBBBBB")
-        BORDER = Border(left=thin, right=thin, top=thin, bottom=thin)
-
-        # ── Header row 1 ──────────────────────────────────────────────────────
-        label = "Star" if group_by == "star" else "Rasi"
-        headers = [label, "Gender", "TN/Pondy", "Others",
-                   "18-21", "22-25", "26-29", "30-34",
-                   "35-38", "39-40", "Above 40", "Total"]
-        ws.append(headers)
-
-        for col_idx, _ in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col_idx)
-            cell.fill = RED_FILL
-            cell.font = WHITE_FONT
-            cell.alignment = CENTER
-            cell.border = BORDER
-
-        ws.row_dimensions[1].height = 22
-
-        # ── Data rows ─────────────────────────────────────────────────────────
-        current_row = 2
-        for item in data:
-            name     = item["name"]
-            item_rows = item["rows"]
-
-            if not item_rows:
-                # No profiles → write empty row
-                ws.append([name, "-", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-                for col_idx in range(1, 13):
-                    cell = ws.cell(row=current_row, column=col_idx)
-                    cell.fill = GREY_FILL
-                    cell.font = BLACK_BOLD if col_idx == 1 else NORMAL_FONT
-                    cell.alignment = CENTER if col_idx != 1 else LEFT
-                    cell.border = BORDER
-                current_row += 1
-                continue
-
-            for i, row in enumerate(item_rows):
-                star_label = name if i == 0 else ""
-                ws.append([
-                    star_label,
-                    row["gender"],
-                    row["tn_pondy"],
-                    row["others"],
-                    row["age_18_21"],
-                    row["age_22_25"],
-                    row["age_26_29"],
-                    row["age_30_34"],
-                    row["age_35_38"],
-                    row["age_39_40"],
-                    row["age_above_40"],
-                    row["total"],
-                ])
-                fill = GREY_FILL if i % 2 == 0 else WHITE_FILL
-                for col_idx in range(1, 13):
-                    cell = ws.cell(row=current_row, column=col_idx)
-                    cell.fill = fill
-                    cell.font = BLACK_BOLD if col_idx in (1, 12) else NORMAL_FONT
-                    cell.alignment = CENTER if col_idx != 1 else LEFT
-                    cell.border = BORDER
-                current_row += 1
-
-        # ── Column widths ─────────────────────────────────────────────────────
-        col_widths = [16, 10, 12, 10, 8, 8, 8, 8, 8, 8, 10, 8]
-        for i, w in enumerate(col_widths, 1):
-            ws.column_dimensions[get_column_letter(i)].width = w
-
-        # ── Freeze header ─────────────────────────────────────────────────────
-        ws.freeze_panes = "A2"
-
-        # ── Output ────────────────────────────────────────────────────────────
-        buf = io.BytesIO()
-        wb.save(buf)
-        buf.seek(0)
-
-        filename = f"vysyamala_{group_by}_dashboard.xlsx"
-        response = HttpResponse(
-            buf.getvalue(),
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-        return response
-
-
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.db import connection
-from rest_framework import status
-import io
-from django.http import HttpResponse
-import openpyxl
-
-
-class GeographicalReportView(APIView):
-
-    STATE_MAP = {
-        "tn":        ['2', '7'],
-        "karnataka": ['4'],
-        "ap":        ['1'],
-        "telangana": ['3'],
-    }
-    STATE_LABEL = {
-        "tn":        "Tamil Nadu & Pondicherry",
-        "karnataka": "Karnataka",
-        "ap":        "Andhra Pradesh",
-        "telangana": "Telangana",
-        "others":    "Others",
-        "all":       "All States",
-    }
-    KNOWN_STATE_IDS    = ['1', '2', '3', '4', '7']
-    VALID_TOP_CITIES   = {20, 30, 50}
-    VALID_TOP_WORK     = {20, 30, 50, 100}
-    VALID_EXPORT_TYPES = {"city", "work_city", "both", "statewise"}
-
-    @staticmethod
-    def _safe_int(value, default, valid_set):
-        try:
-            v = int(value)
-        except (ValueError, TypeError):
-            return default
-        return v if v in valid_set else default
-
-    def _build_common_where(self, state_filter, occupation, params):
-        fragment = ""
-
-        if state_filter != "all":
-            if state_filter in self.STATE_MAP:
-                ids          = self.STATE_MAP[state_filter]
-                placeholders = ",".join(["%s"] * len(ids))
-                fragment    += f" AND l.Profile_state IN ({placeholders})"
-                params.extend(ids)
-            elif state_filter == "others":
-                placeholders = ",".join(["%s"] * len(self.KNOWN_STATE_IDS))
-                fragment += f"""
-                    AND l.Profile_state NOT IN ({placeholders})
-                    AND l.Profile_state IS NOT NULL
-                    AND l.Profile_state != 0
-                """
-                params.extend(self.KNOWN_STATE_IDS)
-
-        if occupation == "business":
-            fragment += " AND e.profession = 2"
-        elif occupation == "employed":
-            fragment += " AND e.profession = 1"
-        elif occupation == "profession_both":
-            fragment += " AND e.profession = 6"
-
-        return fragment
-
-    def get(self, request):
-        try:
-            # ── parse filters ──────────────────────────────────────────────
-            state_filter = request.query_params.get("state",           "all").lower().strip()
-            occupation   = request.query_params.get("occupation",      "all").lower().strip()
-            top_cities   = self._safe_int(request.query_params.get("top_cities",      20), 20, self.VALID_TOP_CITIES)
-            top_work     = self._safe_int(request.query_params.get("top_work_cities", 20), 20, self.VALID_TOP_WORK)
-            export_raw   = request.query_params.get("export_type", "both").lower().strip()
-            export_type  = export_raw if export_raw in self.VALID_EXPORT_TYPES else "both"
-
-            # ── QUERY 1: City Data ─────────────────────────────────────────
-            params_city = []
-            where_city  = self._build_common_where(state_filter, occupation, params_city)
-
-            city_query = f"""
-                SELECT
-                    l.Profile_state,
-                    l.Profile_city,
-                    COUNT(*)                                                         AS total,
-                    SUM(CASE WHEN e.profession = 2 THEN 1 ELSE 0 END)               AS business,
-                    SUM(CASE WHEN e.profession = 1 THEN 1 ELSE 0 END)               AS employed,
-                    SUM(CASE WHEN e.profession = 6 THEN 1 ELSE 0 END)               AS profession_both,
-                    SUM(CASE WHEN l.Plan_id = 7            THEN 1 ELSE 0 END)        AS free,
-                    SUM(CASE WHEN l.Plan_id = 8            THEN 1 ELSE 0 END)        AS prospect,
-                    SUM(CASE WHEN l.Plan_id = 9            THEN 1 ELSE 0 END)        AS offer,
-                    SUM(CASE WHEN l.Plan_id IN (1,2,3,16,14,15) THEN 1 ELSE 0 END)  AS premium,
-                    SUM(CASE WHEN l.Profile_dob IS NOT NULL
-                              AND TIMESTAMPDIFF(YEAR, l.Profile_dob, CURDATE()) < 32
-                             THEN 1 ELSE 0 END)                                      AS age_below_32,
-                    SUM(CASE WHEN l.Profile_dob IS NOT NULL
-                              AND TIMESTAMPDIFF(YEAR, l.Profile_dob, CURDATE()) >= 32
-                             THEN 1 ELSE 0 END)                                      AS age_above_32
-                FROM logindetails l
-                LEFT JOIN profile_edudetails e ON l.ProfileId = e.profile_id
-                WHERE l.status = '1'
-                {where_city}
-                GROUP BY l.Profile_state, l.Profile_city
-                ORDER BY total DESC
-                LIMIT %s
-            """
-            params_city.append(top_cities)
-
-            # ── QUERY 2: Work City Data ────────────────────────────────────
-            params_work = []
-            where_work  = self._build_common_where(state_filter, occupation, params_work)
-
-            work_query = f"""
-                SELECT
-                    e.work_city,
-                    COUNT(*)                                                         AS total,
-                    SUM(CASE WHEN e.profession = 2 THEN 1 ELSE 0 END)               AS business,
-                    SUM(CASE WHEN e.profession = 1 THEN 1 ELSE 0 END)               AS employed,
-                    SUM(CASE WHEN e.profession = 6 THEN 1 ELSE 0 END)               AS profession_both,
-                    SUM(CASE WHEN l.Plan_id = 7            THEN 1 ELSE 0 END)        AS free,
-                    SUM(CASE WHEN l.Plan_id = 8            THEN 1 ELSE 0 END)        AS prospect,
-                    SUM(CASE WHEN l.Plan_id = 9            THEN 1 ELSE 0 END)        AS offer,
-                    SUM(CASE WHEN l.Plan_id IN (1,2,3,16,14,15) THEN 1 ELSE 0 END)  AS premium,
-                    SUM(CASE WHEN l.Profile_dob IS NOT NULL
-                              AND TIMESTAMPDIFF(YEAR, l.Profile_dob, CURDATE()) < 32
-                             THEN 1 ELSE 0 END)                                      AS age_below_32,
-                    SUM(CASE WHEN l.Profile_dob IS NOT NULL
-                              AND TIMESTAMPDIFF(YEAR, l.Profile_dob, CURDATE()) >= 32
-                             THEN 1 ELSE 0 END)                                      AS age_above_32
-                FROM profile_edudetails e
-                INNER JOIN logindetails l ON l.ProfileId = e.profile_id
-                WHERE e.work_city IS NOT NULL
-                  AND e.work_city != ''
-                  AND l.status = '1'
-                {where_work}
-                GROUP BY e.work_city
-                ORDER BY total DESC
-                LIMIT %s
-            """
-            params_work.append(top_work)
-
-            # ── execute both queries ───────────────────────────────────────
-            with connection.cursor() as cursor:
-                cursor.execute(city_query, params_city)
-                city_rows = cursor.fetchall()
-
-            with connection.cursor() as cursor:
-                cursor.execute(work_query, params_work)
-                work_rows = cursor.fetchall()
-
-            # ── state name lookup ──────────────────────────────────────────
-            state_map = {}
-            if city_rows:
-                state_ids = list({str(r[0]) for r in city_rows if r[0]})
-                if state_ids:
-                    with connection.cursor() as cursor:
-                        placeholders = ",".join(["%s"] * len(state_ids))
-                        cursor.execute(
-                            f"SELECT id, name FROM masterstate WHERE id IN ({placeholders})",
-                            state_ids,
-                        )
-                        state_map = {str(i): n for i, n in cursor.fetchall()}
-
-            # ── city name lookup ───────────────────────────────────────────
-            city_name_map = {}
-            if city_rows:
-                city_ids = list({str(r[1]) for r in city_rows if r[1]})
-                if city_ids:
-                    with connection.cursor() as cursor:
-                        placeholders = ",".join(["%s"] * len(city_ids))
-                        cursor.execute(
-                            f"SELECT id, city_name FROM mastercity WHERE id IN ({placeholders})",
-                            city_ids,
-                        )
-                        city_name_map = {str(i): n for i, n in cursor.fetchall()}
-
-            # ── build city_data ────────────────────────────────────────────
-            city_data      = []
-            total_approved = 0
-            for rank, row in enumerate(city_rows, start=1):
-                total_approved += int(row[2] or 0)
-                city_data.append({
-                    "rank":            rank,
-                    "state_name":      state_map.get(str(row[0]), "N/A"),
-                    "city_name":       row[1],
-                    "total":           int(row[2]  or 0),
-                    "business":        int(row[3]  or 0),
-                    "employed":        int(row[4]  or 0),
-                    "profession_both": int(row[5]  or 0),
-                    "free":            int(row[6]  or 0),
-                    "prospect":        int(row[7]  or 0),
-                    "offer":           int(row[8]  or 0),
-                    "premium":         int(row[9]  or 0),
-                    "age_below_32":    int(row[10] or 0),
-                    "age_above_32":    int(row[11] or 0),
-                })
-
-            city_data = [d for d in city_data if not (
-                d["state_name"] in ("N/A", "", None) and
-                d["city_name"]  in ("N/A", "", None)
-            )]
-            for i, d in enumerate(city_data, start=1):
-                d["rank"] = i
-
-            # ── build work_city_data ───────────────────────────────────────
-            work_city_data = []
-            for rank, row in enumerate(work_rows, start=1):
-                work_city_data.append({
-                    "rank":            rank,
-                    "work_city":       row[0] or "N/A",
-                    "total":           int(row[1]  or 0),
-                    "business":        int(row[2]  or 0),
-                    "employed":        int(row[3]  or 0),
-                    "profession_both": int(row[4]  or 0),
-                    "free":            int(row[5]  or 0),
-                    "prospect":        int(row[6]  or 0),
-                    "offer":           int(row[7]  or 0),
-                    "premium":         int(row[8]  or 0),
-                    "age_below_32":    int(row[9]  or 0),
-                    "age_above_32":    int(row[10] or 0),
-                })
-
-            # ── export ─────────────────────────────────────────────────────
-            if request.query_params.get("export", "").lower().strip() == "excel":
-                if export_type == "statewise":
-                    return self._export_statewise(city_data, work_city_data, state_filter)
-                return self._export_excel(city_data, work_city_data, export_type)
-
-            return Response({
-                "status":  "success",
-                "filters": {
-                    "state":           state_filter,
-                    "top_cities":      top_cities,
-                    "top_work_cities": top_work,
-                    "occupation":      occupation,
-                    "export_type":     export_type,
-                },
-                "summary": {
-                    "total_approved":    total_approved,
-                    "total_cities":      len(city_data),
-                    "total_work_cities": len(work_city_data),
-                },
-                "city_data":      city_data,
-                "work_city_data": work_city_data,
-            })
-
-        except Exception as e:
-            return Response(
-                {"status": "error", "message": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    # ── helper: write combined rows (city + work_city side by side) ───────────
-    # NO CHANGES
-
-    @staticmethod
-    def _write_combined_rows(ws, city_data, work_city_data):
-        ws.append([
-            "Rank", "State", "City", "Place to Stay",
-            "Total", "Business", "Employed", "Both",
-            "Free", "Prospect", "Offer", "Premium",
-            "Age < 32", "Age > 32",
-        ])
-        max_len = max(len(city_data), len(work_city_data), 1)
-        for i in range(max_len):
-            city = city_data[i]      if i < len(city_data)      else None
-            work = work_city_data[i] if i < len(work_city_data) else None
-            ws.append([
-                city["rank"]            if city else (work["rank"] if work else i + 1),
-                city["state_name"]      if city else "",
-                city["city_name"]       if city else "",
-                work["work_city"]       if work else "",
-                city["total"]           if city else (work["total"]           if work else 0),
-                city["business"]        if city else (work["business"]        if work else 0),
-                city["employed"]        if city else (work["employed"]        if work else 0),
-                city["profession_both"] if city else (work["profession_both"] if work else 0),
-                city["free"]            if city else (work["free"]            if work else 0),
-                city["prospect"]        if city else (work["prospect"]        if work else 0),
-                city["offer"]           if city else (work["offer"]           if work else 0),
-                city["premium"]         if city else (work["premium"]         if work else 0),
-                city["age_below_32"]    if city else (work["age_below_32"]    if work else 0),
-                city["age_above_32"]    if city else (work["age_above_32"]    if work else 0),
-            ])
-
-    # ── export: city | work_city | both  ← ONLY THIS METHOD UPDATED ──────────
-
-    def _export_excel(self, city_data, work_city_data, export_type="both"):
-        wb = openpyxl.Workbook()
-        wb.remove(wb.active)
-
-        if export_type == "city":
-            # ── only City Data sheet ──────────────────────────────────────
-            ws = wb.create_sheet(title="City Data")
-            ws.append([
-                "Rank", "State", "City",
-                "Total", "Business", "Employed", "Both",
-                "Free", "Prospect", "Offer", "Premium",
-                "Age < 32", "Age > 32",
-            ])
-            for item in city_data:
-                ws.append([
-                    item["rank"], item["state_name"], item["city_name"],
-                    item["total"], item["business"], item["employed"],
-                    item["profession_both"], item["free"], item["prospect"],
-                    item["offer"], item["premium"],
-                    item["age_below_32"], item["age_above_32"],
-                ])
-
-        elif export_type == "work_city":
-            # ── only Work City Data sheet ─────────────────────────────────
-            ws = wb.create_sheet(title="Work City Data")
-            ws.append([
-                "Rank", "Place to Stay",
-                "Total", "Business", "Employed", "Both",
-                "Free", "Prospect", "Offer", "Premium",
-                "Age < 32", "Age > 32",
-            ])
-            for item in work_city_data:
-                ws.append([
-                    item["rank"], item["work_city"],
-                    item["total"], item["business"], item["employed"],
-                    item["profession_both"], item["free"], item["prospect"],
-                    item["offer"], item["premium"],
-                    item["age_below_32"], item["age_above_32"],
-                ])
-
-        else:
-            # ── both: combined single sheet (city + work city side by side)
-            ws = wb.create_sheet(title="Geographical Report")
-            self._write_combined_rows(ws, city_data, work_city_data)
-
-        return self._stream_excel(wb, "geographical_report.xlsx")
-
-    # ── export: statewise (single combined sheet with title) ─────────────────
-    # NO CHANGES
-
-    def _export_statewise(self, city_data, work_city_data, state_filter):
-        state_label = self.STATE_LABEL.get(state_filter, state_filter.upper())
-        wb = openpyxl.Workbook()
-        wb.remove(wb.active)
-
-        ws = wb.create_sheet(title="Geographical Report")
-        ws.append([f"State: {state_label}"])  # title row
-        ws.append([])                          # blank spacer
-        self._write_combined_rows(ws, city_data, work_city_data)
-
-        return self._stream_excel(wb, f"geographical_report_{state_filter}.xlsx")
-
-    # ── stream to response ────────────────────────────────────────────────────
-    # NO CHANGES
-
-    @staticmethod
-    def _stream_excel(wb, filename):
-        buf = io.BytesIO()
-        wb.save(buf)
-        buf.seek(0)
-        response = HttpResponse(
-            buf.getvalue(),
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-        return response
-
-
-
-
-class AdminInterestNotifications(APIView):
-
-    def get(self, request):
-        notifications = AdminNotification.objects.filter(
-            notification_type="Interest",
-            is_cleared=0
-        ).order_by('-created_at')
-
-        data = [
-            {
-                "id": n.id,
-                "from_profile": n.from_profile,
-                "message": n.message,
-                "created_at": n.created_at,
-                "is_read": n.is_read
-            }
-            for n in notifications
-        ]
-        return Response({
-            "Status": 1,
-            "message": "Interest notifications fetched",
-            "data": data
-        })
-
-
-class AdminTransactionNotifications(APIView):
-
-    def get(self, request):
-        notifications = AdminNotification.objects.filter(
-            notification_type="Transaction",
-            is_cleared=0
-        ).order_by('-created_at')
-
-        data = [
-            {
-                "id": n.id,
-                "from_profile": n.from_profile,
-                "message": n.message,
-                "created_at": n.created_at,
-                "is_read": n.is_read
-            }
-            for n in notifications
-        ]
-        return Response({
-            "Status": 1,
-            "message": "Transaction notifications fetched",
-            "data": data
-        })
-
-class AdminHideProfileNotifications(APIView):
-
-    def get(self, request):
-        notifications = AdminNotification.objects.filter(
-            notification_type="HideProfile",
-            is_cleared=0
-        ).order_by('-created_at')
-
-        data = [
-            {
-                "id": n.id,
-                "from_profile": n.from_profile,
-                "message": n.message,
-                "created_at": n.created_at,
-                "is_read": n.is_read
-            }
-            for n in notifications
-        ]
-        return Response({
-            "Status": 1,
-            "message": "Hide profile notifications fetched",
-            "data": data
-        })
-
-from .models import MarriageSettleDetails, SuccessStory, ProfileSubStatus
-class WebsitePerformanceReport(APIView):
-    def get(self, request):
-        try:
-            from_date_str = request.query_params.get('from_date')
-            to_date_str   = request.query_params.get('to_date')
-            export        = request.query_params.get('export')  # pass ?export=excel to download
-
-            # ── Date filter ───────────────────────────────────────────────
-            from_date = None
-            to_date   = None
-            if from_date_str and to_date_str:
-                try:
-                    from_date = datetime.strptime(from_date_str, "%Y-%m-%d").date()
-                    to_date   = datetime.strptime(to_date_str,   "%Y-%m-%d").date()
-                except ValueError:
-                    return Response(
-                        {"Status": 0, "message": "Invalid date format. Use YYYY-MM-DD"},
-                        status=400
-                    )
-
-            # Helper: apply date filter on a datetime field
-            def date_filter(qs, field):
-                if from_date and to_date:
-                    return qs.filter(**{
-                        f"{field}__date__gte": from_date,
-                        f"{field}__date__lte": to_date
-                    })
-                return qs
-
-            # Helper: apply date filter using DateOfJoin (stored as CharField)
-            def join_date_filter(qs):
-                if from_date and to_date:
-                    return qs.extra(
-                        where=["DATE(DateOfJoin) >= %s AND DATE(DateOfJoin) <= %s"],
-                        params=[str(from_date), str(to_date)]
-                    )
-                return qs
-
-            # ── Plan groupings ────────────────────────────────────────────
-            FREE_PLANS     = [6, 7, 9, 11, 12, 13]
-            PROSPECT_PLANS = [8]
-            # Premium = status=1, Plan_id NOT in free or prospect
-
-            # ─────────────────────────────────────────────────────────────
-            # 1. EXECUTIVE SUMMARY
-            # ─────────────────────────────────────────────────────────────
-
-            # Total Registrations
-            total_registrations = join_date_filter(LoginDetails.objects.all()).count()
-            # Total Login Members (status 0 & 1, with valid Last_login_date)
-            login_members_qs = join_date_filter(
-                LoginDetails.objects.filter(status__in=[0, 1])
-            ).exclude(
-                Last_login_date__isnull=True
-            )
-            total_login_members = login_members_qs.count()
-
-            # Unique Login Members (distinct profile_id who logged in during period)
-            total_unique_logins = date_filter(
-                ProfileLoginLogs.objects.values('profile_id').distinct(),
-                'login_datetime'
-            ).count()
-
-
-            # Premium Members (status=1, secondary_status=5)
-            premium_members  = login_members_qs.filter(
-                status=1, secondary_status=5
-            ).count()
-
-            # Prospect Members (status=1, secondary_status=2)
-            prospect_members = login_members_qs.filter(
-                status=1, secondary_status=2
-            ).count()
-
-            # Other Members (status=1, secondary_status NOT in 5 or 2)
-            other_members    = login_members_qs.filter(
-                status=1
-            ).exclude(
-                secondary_status__in=[5, 2]
-            ).count()
-
-            # Express Interests
-            interest_qs        = date_filter(Express_interests.objects.all(), 'req_datetime')
-            total_interests    = interest_qs.count()
-            accepted_interests = interest_qs.filter(status='2').count()
-            acceptance_pct     = round((accepted_interests / total_interests * 100), 2) if total_interests > 0 else 0
-
-            # Bookmarks / Wishlists
-            total_bookmarks = date_filter(
-                Profile_wishlists.objects.filter(status='1'),
-                'marked_datetime'
-            ).count()
-
-            # Transactions
-            txn_qs        = date_filter(PaymentTransaction.objects.all(), 'created_at')
-            txn_success   = txn_qs.filter(status='1').count()
-            txn_failure   = txn_qs.filter(status='3').count()
-
-            # Total Deleted
-            total_deleted = join_date_filter(
-                LoginDetails.objects.filter(status=4)
-            ).count()
-
-            # Marriage Settled (status=4, secondary_status=20)
-            marriage_settled = join_date_filter(
-                LoginDetails.objects.filter(status=4, secondary_status=20)
-            ).count()
-
-            # ─────────────────────────────────────────────────────────────
-            # 2. LOGIN MEMBER REPORT — Category wise
-            # ─────────────────────────────────────────────────────────────
-            total_for_pct = total_login_members if total_login_members > 0 else 1
-
-            login_category_report = {
-                "total":    {
-                    "count": total_login_members,
-                    "pct":   100
-                },
-                "premium":  {
-                    "count": premium_members,
-                    "pct":   round(premium_members  / total_for_pct * 100, 1)
-                },
-                "prospect": {
-                    "count": prospect_members,
-                    "pct":   round(prospect_members / total_for_pct * 100, 1)
-                },
-                "others":   {
-                    "count": other_members,
-                    "pct":   round(other_members    / total_for_pct * 100, 1)
-                },
-            }
-
-            # ─────────────────────────────────────────────────────────────
-            # 3. STATE-WISE LOGIN MEMBERS
-            # ─────────────────────────────────────────────────────────────
-            tn_pondy      = login_members_qs.filter(Profile_state__in=['2', '7']).count()
-            andhra        = login_members_qs.filter(Profile_state='1').count()
-            telangana     = login_members_qs.filter(Profile_state='3').count()
-            karnataka     = login_members_qs.filter(Profile_state='4').count()
-            kerala        = login_members_qs.filter(Profile_state='5').count()
-            nri           = login_members_qs.filter(
-                            Profile_country='1',
-                            ProfileId__in=ProfileEduDetails.objects.filter(
-                                ~Q(work_country='1'),
-                                ~Q(work_country=''),
-                                ~Q(work_country='0'),
-                                work_country__isnull=False
-                            ).values('profile_id')
-                        ).count()
-            state_others  = login_members_qs.exclude(
-                Profile_state__in=['1', '2', '3', '4', '5', '7']
-            ).count()
-
-            state_wise_report = {
-                "tamil_nadu_pondicherry": tn_pondy,
-                "andhra_pradesh":         andhra,
-                "telangana":              telangana,
-                "karnataka":              karnataka,
-                "kerala":                 kerala,
-                "nri":                    nri,
-                "others":                 state_others,
-            }
-
-            # ─────────────────────────────────────────────────────────────
-            # 4. EXPRESS INTEREST REPORT — by sender's plan
-            # ─────────────────────────────────────────────────────────────
-            def interest_by_secondary_status(secondary_status=None, exclude_statuses=None):
-                profile_qs = LoginDetails.objects.filter(status=1)
-                if secondary_status:
-                    profile_qs = profile_qs.filter(secondary_status__in=secondary_status)
-                elif exclude_statuses:
-                    profile_qs = profile_qs.exclude(secondary_status__in=exclude_statuses)
-                ids = list(profile_qs.values_list('ProfileId', flat=True))
-                return interest_qs.filter(profile_from__in=ids).count()
-
-            premium_sent  = interest_by_secondary_status(secondary_status=[5])
-            prospect_sent = interest_by_secondary_status(secondary_status=[2])
-            others_sent   = interest_by_secondary_status(exclude_statuses=[5, 2])
-
-            interest_report = {
-                "total_sent":      total_interests,
-                "premium_sent":    premium_sent,
-                "prospect_sent":   prospect_sent,
-                "others_sent":     others_sent,
-                "total_accepted":  accepted_interests,
-                "acceptance_pct":  acceptance_pct,
-            }
-
-            # ─────────────────────────────────────────────────────────────
-            # 5. REGISTRATION REPORT
-            # ─────────────────────────────────────────────────────────────
-
-            
-            all_reg_qs = join_date_filter(LoginDetails.objects.all())
-
-            # New (status=0)
-            new_registrations  = all_reg_qs.filter(status=0).count()
-
-            # Approved (status=1)
-            approved_total    = all_reg_qs.filter(status=1).count()
-            approved_premium  = all_reg_qs.filter(status=1, secondary_status=5).count()
-            approved_prospect = all_reg_qs.filter(status=1, secondary_status=2).count()
-
-            registration_report = {
-                "total_registrations": total_registrations,
-                "new":      new_registrations,
-                "approved": {
-                    "total":    approved_total,
-                    "premium":  approved_premium,
-                    "prospect": approved_prospect,
-                },
-            }
-
-
-                        # ─────────────────────────────────────────────────────────────
-            # 6. DELETED PROFILES REPORT
-            # ─────────────────────────────────────────────────────────────
-            deleted_qs = join_date_filter(LoginDetails.objects.filter(status=4))
-            total_deleted_profiles = deleted_qs.count()
-
-            # Get secondary_status IDs from ProfileSubStatus (status_code=4)
-            sub_statuses_4 = ProfileSubStatus.objects.filter(status_code=4)
-
-            duplicate_ids      = list(sub_statuses_4.filter(
-                sub_status_name__icontains='duplicate'
-            ).values_list('id', flat=True))
-
-            fake_ids           = list(sub_statuses_4.filter(
-                sub_status_name__icontains='fake'
-            ).values_list('id', flat=True))
-
-            marriage_ids       = list(sub_statuses_4.filter(
-                sub_status_name__iregex=r'marriage|got married'
-            ).values_list('id', flat=True))
-
-            duplicate_count    = deleted_qs.filter(secondary_status__in=duplicate_ids).count()
-            fake_others_count  = deleted_qs.filter(secondary_status__in=fake_ids).count()
-            marriage_del_count = deleted_qs.filter(secondary_status__in=marriage_ids).count()
-
-            deleted_profiles_report = {
-                "total_deleted_profiles":    total_deleted_profiles,
-                "duplicate_profiles":        duplicate_count,
-                "fake_profiles_others":      fake_others_count,
-                "marriage_settled":          marriage_del_count,
-            }
-
-            # ─────────────────────────────────────────────────────────────
-            # 7. MARRIAGE SETTLED / GOT MARRIED REPORT
-            # ─────────────────────────────────────────────────────────────
-            marriage_qs = MarriageSettleDetails.objects.all()
-            if from_date and to_date:
-                marriage_qs = marriage_qs.filter(
-                    created_at__date__gte=from_date,
-                    created_at__date__lte=to_date
-                )
-
-            total_marriage          = marriage_qs.count()
-            with_marriage_date      = marriage_qs.filter(marriage_date__isnull=False).count()
-            without_marriage_date   = marriage_qs.filter(marriage_date__isnull=True).count()
-
-            # settled_thru — exact values from the UI: Vysyamala, Relatives, Whatsapp Group, Others
-            thru_vysyamala          = marriage_qs.filter(settled_thru='Vysyamala').count()
-            thru_relatives          = marriage_qs.filter(settled_thru='Relatives').count()
-            thru_whatsapp           = marriage_qs.filter(settled_thru='Whatsapp Group').count()
-            thru_others             = marriage_qs.filter(settled_thru='Others').count()
-
-            # Bride/Groom Vysyamala ID presence
-            both_ids_present        = marriage_qs.exclude(
-                                        groom_bride_vysyamala_id__isnull=True
-                                    ).exclude(
-                                        groom_bride_vysyamala_id=''
-                                    ).count()
-            single_id_present       = total_marriage - both_ids_present
-
-            marriage_settled_report = {
-                "total":                 total_marriage,
-                "with_marriage_date":    with_marriage_date,
-                "without_marriage_date": without_marriage_date,
-                "thru_vysyamala":        thru_vysyamala,
-                "thru_relatives":        thru_relatives,
-                "thru_whatsapp_group":   thru_whatsapp,
-                "thru_others":           thru_others,
-                "both_ids_present":      both_ids_present,
-                "single_id_present":     single_id_present,
-            }
-
-            # ─────────────────────────────────────────────────────────────
-            # 8. SUCCESS STORIES REPORT
-            # ─────────────────────────────────────────────────────────────
-            story_qs = SuccessStory.objects.filter(deleted=False)
-            if from_date and to_date:
-                story_qs = story_qs.filter(
-                    date_of_marriage__gte=from_date,
-                    date_of_marriage__lte=to_date
-                )
-
-            total_success_stories = story_qs.count()
-            photos_uploaded       = story_qs.exclude(
-                                        photo__isnull=True
-                                    ).exclude(
-                                        photo=''
-                                    ).count()
-
-            success_stories_report = {
-                "total_success_stories": total_success_stories,
-                "photos_uploaded":       photos_uploaded,
-            }
-                                    # ─────────────────────────────────────────────────────────────
-            # EXCEL EXPORT
-            # ─────────────────────────────────────────────────────────────
-            if export == 'excel':
-                from openpyxl import Workbook
-                from openpyxl.styles import Font, PatternFill, Alignment
-                from io import BytesIO
-
-                wb  = Workbook()
-                ws  = wb.active
-                ws.title = "Website Performance"
-
-                header_font  = Font(bold=True, size=12, color="FFFFFF")
-                header_fill  = PatternFill("solid", fgColor="4F46E5")
-                section_font = Font(bold=True, size=11, color="FFFFFF")
-                section_fill = PatternFill("solid", fgColor="6D6875")
-
-                ws.column_dimensions['A'].width = 35
-                ws.column_dimensions['B'].width = 20
-
-                row = 1
-                ws.cell(row=row, column=1, value="VYSYAMALA – WEBSITE PERFORMANCE REPORT").font = Font(bold=True, size=14)
-                row += 1
-                ws.cell(row=row, column=1, value=f"Period: {from_date or 'All time'}  to  {to_date or 'All time'}")
-                row += 2
-
-                sections = [
-                    ("EXECUTIVE SUMMARY", [
-                        ("Total Registrations",      total_registrations),
-                        ("Total Login Members",      total_login_members),
-                        ("Total Unique Login Members", total_unique_logins),
-                        ("Premium Members",          premium_members),
-                        ("Prospect Members",         prospect_members),
-                        ("Other Members",            other_members),
-                        ("Total Express Interests",  total_interests),
-                        ("Accepted Interests",       accepted_interests),
-                        ("Total Bookmarks",          total_bookmarks),
-                        ("Transactions Success",     txn_success),
-                        ("Transactions Failure",     txn_failure),
-                        ("Total Deleted",            total_deleted),
-                        ("Marriage Settled",         marriage_settled),
-                    ]),
-                    ("LOGIN MEMBER REPORT – Category Wise", [
-                        ("Total",    f"{total_login_members}   (100%)"),
-                        ("Premium",  f"{premium_members}   ({login_category_report['premium']['pct']}%)"),
-                        ("Prospect", f"{prospect_members}  ({login_category_report['prospect']['pct']}%)"),
-                        ("Others",   f"{other_members}  ({login_category_report['others']['pct']}%)"),
-                    ]),
-                    ("STATE-WISE LOGIN MEMBERS", [
-                        ("Tamil Nadu / Pondicherry", tn_pondy),
-                        ("Andhra Pradesh",           andhra),
-                        ("Telangana",                telangana),
-                        ("Karnataka",                karnataka),
-                        ("Kerala",                   kerala),
-                        ("NRI",                      nri),
-                        ("Others",                   state_others),
-                    ]),
-                    ("EXPRESS INTEREST REPORT", [
-                        ("Total Sent",      total_interests),
-                        ("Premium Sent",    premium_sent),
-                        ("Prospect Sent",   prospect_sent),
-                        ("Others Sent",     others_sent),
-                        ("Total Accepted",  accepted_interests),
-                        ("Acceptance %",    f"{acceptance_pct}%"),
-                    ]),
-
-                    ("REGISTRATION REPORT", [
-                        ("Total Registrations",  total_registrations),
-                        ("New",                  new_registrations),
-                        ("Approved - Total",     approved_total),
-                        ("Approved - Premium",   approved_premium),
-                        ("Approved - Prospect",  approved_prospect),
-                    ]),
-
-                    ("DELETED PROFILES REPORT", [
-                        ("Total Deleted Profiles",    total_deleted_profiles),
-                        ("Duplicate Profiles",        duplicate_count),
-                        ("Fake Profiles / Others",    fake_others_count),
-                        ("Marriage Settled",          marriage_del_count),
-                    ]),
-                    ("MARRIAGE SETTLED / GOT MARRIED", [
-                        ("Total",                     total_marriage),
-                        ("With Marriage Date",        with_marriage_date),
-                        ("Without Marriage Date",     without_marriage_date),
-                        ("Thru Vysyamala",            thru_vysyamala),
-                        ("Thru Relatives",            thru_relatives),
-                        ("Thru Whatsapp Group",       thru_whatsapp),
-                        ("Thru Others",               thru_others),
-                        ("Both IDs Present",          both_ids_present),
-                        ("Single ID Present",         single_id_present),
-                    ]),
-                    ("SUCCESS STORIES", [
-                        ("Total Success Stories",     total_success_stories),
-                        ("Marriage Photos Uploaded",  photos_uploaded),
-                    ]),
-                ]
-
-                for section_title, rows in sections:
-                    # Section header
-                    cell = ws.cell(row=row, column=1, value=section_title)
-                    cell.font = section_font
-                    cell.fill = section_fill
-                    ws.cell(row=row, column=2).fill = section_fill
-                    row += 1
-
-                    # Column headers
-                    for col, label in [(1, "Category"), (2, "Count")]:
-                        c = ws.cell(row=row, column=col, value=label)
-                        c.font = header_font
-                        c.fill = header_fill
-                    row += 1
-
-                    # Data rows
-                    for label, value in rows:
-                        ws.cell(row=row, column=1, value=label)
-                        ws.cell(row=row, column=2, value=value)
-                        row += 1
-                    row += 1  # blank row between sections
-
-                buffer = BytesIO()
-                wb.save(buffer)
-                buffer.seek(0)
-
-                response = HttpResponse(
-                    buffer,
-                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                )
-                response['Content-Disposition'] = (
-                    f'attachment; filename="vysyamala_performance_report_{from_date or "all"}_{to_date or "all"}.xlsx"'
-                )
-                return response
-
-            # ─────────────────────────────────────────────────────────────
-            # JSON RESPONSE
-            # ─────────────────────────────────────────────────────────────
-            return Response({
-                "Status": 1,
-                "message": "Website performance report fetched successfully",
-                "period": {
-                    "from_date": str(from_date) if from_date else "All time",
-                    "to_date":   str(to_date)   if to_date   else "All time",
-                },
-                "executive_summary": {
-                    "total_registrations":   total_registrations,
-                    "total_login_members":   total_login_members,
-                    "total_unique_logins":   total_unique_logins,
-                    "premium_members":       premium_members,
-                    "prospect_members":      prospect_members,
-                    "other_members":         other_members,
-                    "total_interests":       total_interests,
-                    "accepted_interests":    accepted_interests,
-                    "total_bookmarks":       total_bookmarks,
-                    "transactions_success":  txn_success,
-                    "transactions_failure":  txn_failure,
-                    "total_deleted":         total_deleted,
-                    "marriage_settled":      marriage_settled,
-                    "deleted_profiles_report":  deleted_profiles_report,
-                    "marriage_settled_report":  marriage_settled_report,
-                    "success_stories_report":   success_stories_report,
-                },
-                "login_category_report": login_category_report,
-                "state_wise_report":     state_wise_report,
-                "interest_report":       interest_report,
-                "registration_report":   registration_report,
-            })
-
-        except Exception as e:
-            return Response({"Status": 0, "message": str(e)}, status=500)
