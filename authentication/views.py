@@ -102,6 +102,7 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
 from accounts.models import AdminNotification
+
 WKIMG = "/home/site/wwwroot/bin/wkhtmltoimage"
 
 imgconfig = imgkit.config(wkhtmltoimage=WKIMG)
@@ -156,7 +157,11 @@ class LoginView(APIView):
                     'status': 0,
                     'message': f'Your profile is currently {status_text}. For assistance, please contact our support team. 9944851550'
                 })
-                      
+
+ 
+        # continue your login logic
+               
+
             # if check_password(password,auth_user.Password):
             if password == auth_user.Password:
                 user, created = User.objects.get_or_create(username=auth_user.ProfileId)
@@ -427,7 +432,7 @@ class Registrationstep1(APIView):
                         '',
                         from_email,
                         recipient_list,
-                        fail_silently=True,
+                        fail_silently=False,
                         html_message=html_content
                     )
                 verify_type='Email Otp'
@@ -508,7 +513,7 @@ class Registrationstep2(APIView):
                         '',
                         from_email,
                         recipient_list,
-                        fail_silently=True,
+                        fail_silently=False,
                         html_message=html_content
                     )
 
@@ -530,7 +535,7 @@ class Registrationstep2(APIView):
                     strip_tags(glance_html_content),
                     from_email,
                     recipient_list,
-                    fail_silently=True,
+                    fail_silently=False,
                     html_message=glance_html_content
                 )
                 return JsonResponse({"Status": 1, "message": "Registration step 2 successful","profile_id":profile_id}, status=status.HTTP_201_CREATED)
@@ -2285,6 +2290,15 @@ class Send_profile_intrests(APIView):
                         if send_email:
                             print("test1",degree)
                             send_email_notification(profile_from,from_profile_name,to_profile_name,to_profile.EmailId, message_title, to_message,notification_type,age,degree,star_name)
+
+                try:
+                    AdminNotification.objects.create(
+                    notification_type="Interest",
+                    from_profile=profile_from,
+                    message=f"{profile_from} sent an interest request to {profile_to}"
+                )
+                except Exception:
+                    pass
 
                 return JsonResponse({"Status": 1, "message": "Express interests sent successfully"}, status=status.HTTP_200_OK)
             else:
@@ -4693,7 +4707,7 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
                 # print('no_of_image','1')
 
-                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1).exclude(is_deleted=1).first()           
+                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()           
             
                 if get_entry:
                         # Serialize the single instance
@@ -6533,27 +6547,24 @@ class Send_photo_request(APIView):
                         "user_api/authentication/Photo_Request.html",
                         context
                     )
-                    send_mail(
-                        subject,
-                        strip_tags(html_content),
-                        settings.DEFAULT_FROM_EMAIL,
-                        [to_profile_obj.EmailId],
-                        fail_silently=True,
-                        html_message=html_content
+                    from_email = settings.DEFAULT_FROM_EMAIL
+
+
+                    email = EmailMultiAlternatives(
+                        subject=subject,
+                        body='',
+                        from_email=from_email,
+                        to=to_profile_obj.EmailId,
+                        cc=['']  # ✅ ADD CC HERE
                     )
+
+                    email.attach_alternative(html_content, "text/html")
+                    email.send()
                   
                     return JsonResponse(
                         {"Status": 1, "message": "Photo interests sent successfully"},
                         status=status.HTTP_200_OK
                     )
-
-
-                 
-                
-
-
-
-                    return JsonResponse({"Status": 1, "message": "Photo interests sent successfully"}, status=status.HTTP_200_OK)
             
             else:
                 return JsonResponse({"Status": 0, "message": "Get full access - upgrade your package today!"}, status=status.HTTP_200_OK)
@@ -7401,6 +7412,7 @@ class Get_addon_packages(APIView):
         
 
 
+from .models import Planet
 
 def render_pdf_view(request, user_profile_id, filename="Horoscope_withbirthchart"):
 
@@ -7478,17 +7490,44 @@ def render_pdf_view(request, user_profile_id, filename="Horoscope_withbirthchart
                 #     "10": "Lagnam",
                 # }
 
+                # planet_mapping = {
+                #     "1": "Sun",
+                #     "2": "Moo",
+                #     "3": "Rahu",
+                #     "4": "Kethu",
+                #     "5": "Mar",
+                #     "6": "Ven",
+                #     "7": "Jup",
+                #     "8": "Mer",
+                #     "9": "Sat",
+                #     "10": "Lagnam",
+                # }
+
+
+                # choose language dynamically
+                
+
+                from .models import Planet
+                import json
+
+                # ---------------- LANGUAGE FROM REQUEST ----------------
+                LANG = "english"
+
+                try:
+                    body = json.loads(request.body)
+                    LANG = body.get("lang", "english").lower()
+                except:
+                    LANG = request.GET.get("lang", "english").lower()
+
+                if LANG not in ["tamil", "english"]:
+                    LANG = "english"
+
+                # ---------------- PLANET MAPPING ----------------
+                planets = Planet.objects.all()
+
                 planet_mapping = {
-                    "1": "Sun",
-                    "2": "Moo",
-                    "3": "Rahu",
-                    "4": "Kethu",
-                    "5": "Mar",
-                    "6": "Ven",
-                    "7": "Jup",
-                    "8": "Mer",
-                    "9": "Sat",
-                    "10": "Lagnam",
+                    p.code: p.planet_tamil if LANG == "tamil" else p.planet_english
+                    for p in planets
                 }
 
                 # Define a default placeholder for empty values
@@ -8545,6 +8584,14 @@ class Save_plan_package(APIView):
                 status=1,
                 created_at=payment_datetime
             )
+            try:
+                AdminNotification.objects.create(
+                    notification_type="Transaction",
+                    from_profile=profile_id,
+                    message=f"Payment of ₹{total_amount} by {profile_id} via Gpay"
+                )
+            except Exception:
+                pass
 
 
             notify_count=models.Profile_notification.objects.filter(profile_id=profile_id, is_read=0).count()
@@ -8658,13 +8705,28 @@ class Save_plan_package(APIView):
 
                 registration = models.Registration1.objects.get(ProfileId=profile_id)
 
-                if registration.Status ==1:
-                    registration.Plan_id = plan_id if plan_id != 0 else registration.Plan_id 
+                # if registration.Status ==1:
+                #     registration.Plan_id = plan_id if plan_id != 0 else registration.Plan_id 
+                #     registration.secondary_status = 5
+                #     registration.Status=1
+                #     registration.plan_status = plan_id
+                #     registration.Addon_package = addon_package_id
+                #     registration.Payment= total_amount
+                if registration.Status == 1:
+                    if is_plan_purchase and plan_id:
+                        registration.Plan_id = plan_id
+                        registration.plan_status = plan_id
                     registration.secondary_status = 5
-                    registration.Status=1
-                    registration.plan_status = plan_id
-                    registration.Addon_package = addon_package_id
-                    registration.Payment= total_amount
+                    registration.Status = 1
+
+                    # Merge new addon IDs with existing ones, no duplicates
+                    existing = registration.Addon_package or ""
+                    existing_ids = set(x.strip() for x in existing.split(",") if x.strip().isdigit())
+                    new_ids = set(x.strip() for x in (addon_package_id or "").split(",") if x.strip().isdigit())
+                    merged_ids = existing_ids | new_ids
+                    registration.Addon_package = ",".join(sorted(merged_ids, key=int))
+
+                    registration.Payment = total_amount
 
                 addon_package_ids = addon_package_id
 
@@ -8725,7 +8787,7 @@ class Save_plan_package(APIView):
                 paid_amount=total_amount,            
                 payment_mode='RazorPay',    
                 status=1,   
-                payment_by='user_self',                             # e.g., 1 for success, or your own logic
+                payment_by='user_self',                 # e.g., 1 for success, or your own logic
                 payment_date=payment_datetime,          # current timestamp
                 order_id=order_id ,
                 validity_startdate =membership_fromdate if is_plan_purchase else None,
@@ -11766,8 +11828,16 @@ class CreateOrderView(APIView):
                 status=1,
                 created_at=timezone.now()
             )
-            
-            #return JsonResponse(order)
+            try:
+                AdminNotification.objects.create(
+                    notification_type="Transaction",
+                    from_profile=profile_id,           # ✅ direct variable
+                    message=f"Payment of ₹{amount / 100} by {profile_id} via Razor pay"  # ✅
+                )
+            except Exception:
+                pass
+
+            # return JsonResponse(order)
             return JsonResponse({"status": "success" , "message": "Order Created Sucessfully", "order": order})
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
@@ -12228,7 +12298,16 @@ class UpdatePaymentStatusView(APIView):
             order = models.PaymentTransaction.objects.filter(Q(order_id=order_id) & ~Q(status=2)).first()
             order.status = status
             order.save()
-            
+            # ── ADMIN NOTIFICATION (safe – will never break existing flow) ──
+            try:
+                AdminNotification.objects.create(
+                    notification_type="Transaction",
+                    from_profile=order.profile_id,
+                    message=f"Payment of ₹{order.amount} by {order.profile_id} via {order.payment_type}"
+                )
+            except Exception:
+                pass
+            # ────────────────────────────────────────────────────────────────
             #return JsonResponse({"status": "success", "message": f"Order {order_id} updated to {status}"})
             return JsonResponse({"status": "success", "message": "Order Updated Sucessfully"})
         except models.PaymentTransaction.DoesNotExist:
@@ -12487,14 +12566,14 @@ def calculate_profile_completion(profile_id):
     # Define field weights
     field_weights = {
         'logindetails': {'Profile_idproof': 15},  # ID Proof Upload - 15%
-        'profile_images': {'image': 20},  # Photo Upload - 20%
-        'profile_horoscope': {'horoscope_file': 20},  # Horoscope Upload - 20%
+        'profile_images': {'image': 20},  # Photo Upload - 15%
+        'profile_horoscope': {'horoscope_file': 20},  # Horoscope Upload - 15%
         'logindetails_additional': {'EmailId': 5},  # Email Verification - 5%
         'profile_familydetails': {'property_worth': 5},  # Property Worth - 5%
         'about_myself': {'about_self': 10},  # About Myself - 10%
         'about_my_family': {'about_family': 10},  # About My Family - 10%
-        'profile_edudetails': {'career_plans': 5, 'anual_income': 5},  # Career Plan (5%), Annual Income (5%)
-        'profile_videos': {'Video_url': 5},  # Videos - 5%
+        'profile_edudetails': {'career_plans': 5, 'anual_income': 5},  # Career Plan (10%), Annual Income (5%)
+        'profile_videos': {'Video_url': 5},  # Videos - 10%
     }
 
     # 1. ID Proof Upload
@@ -12584,12 +12663,12 @@ def calculate_points_and_get_empty_fields(profile_id):
     field_weights = {
         'logindetails': {'Profile_idproof': 15},  # ID Proof Upload - 15%
         'profile_images': {'image': 20},  # Photo Upload - 20%
-        'profile_horoscope': {'horoscope_file': 20},  # Horoscope Upload - 15%
+        'profile_horoscope': {'horoscope_file': 20},  # Horoscope Upload - 20%
         'logindetails_additional': {'EmailId': 5},  # Email Verification - 5%
         'profile_familydetails': {'property_worth': 5},  # Property Worth - 5%
         'about_myself': {'about_self': 10},  # About Myself - 10%
         'about_my_family': {'about_family': 10},  # About My Family - 10%
-        'profile_edudetails': {'career_plans': 5, 'anual_income': 5},  # Career Plan (10%), Annual Income (5%)
+        'profile_edudetails': {'career_plans': 5, 'anual_income': 5},  # Career Plan (5%), Annual Income (5%)
         'profile_videos': {'Video_url': 5},  # Videos - 5%
     }
 
@@ -12759,7 +12838,7 @@ class FeaturedProfile(APIView):
                     FROM profile_images pi
                     WHERE pi.profile_id = l1.ProfileId
                     AND pi.image_approved = 1
-                   AND (pi.is_deleted = 0 or pi.is_deleted is null)
+                    AND pi.is_deleted = 0
                 )
                 ORDER BY pf.boosted_date DESC
                 LIMIT 25
@@ -13050,6 +13129,63 @@ class Search_byprofile_id(APIView):
 #Vysassists list
 
 
+
+# class Send_vysassist_request(APIView):
+#     def post(self, request):
+#         serializer = serializers.VysassistrequestSerializer(data=request.data)
+
+#         # print('serializer',serializer)
+        
+#         if serializer.is_valid():
+#             profile_from = serializer.validated_data.get('profile_id')
+#             profile_to = serializer.validated_data.get('profile_to')
+#             int_status = serializer.validated_data.get('status')
+#             to_message = serializer.validated_data.get('to_message')
+
+#             get_limits=can_get_vysassist_profile(profile_from)
+
+#             # print('get_limits',get_limits)
+
+#             if get_limits is True: 
+        
+
+#                 # print('profile_from',profile_from)
+#                 # print('profile_to',profile_to)
+                
+#                 # Check if an entry with the same profile_from and profile_to already exists
+#                 existing_entry = models.Profile_vysassist.objects.filter(profile_from=profile_from, profile_to=profile_to).first()
+                
+#                 if existing_entry:
+#                     # Update the status to 0 if the entry already exists
+#                     #existing_entry.status = 0
+#                     existing_entry.status = int_status
+#                     existing_entry.req_datetime = timezone.now()
+#                     existing_entry.save() 
+
+#                     return JsonResponse({"Status": 0, "message": "Vysassist updated"}, status=status.HTTP_200_OK)
+                
+                
+#                 else:
+#                     # Create a new entry with status 1
+#                     serializer.save(status=1)
+                    
+#                     models.Profile_notification.objects.create(
+#                         profile_id=profile_to,
+#                         from_profile_id=profile_from,
+#                         notification_type='Vys_assists',
+#                         to_message=to_message,
+#                         is_read=0,
+#                         created_at=timezone.now()
+#                     )
+
+#                     return JsonResponse({"Status": 1, "message": "Vysassist sent successfully"}, status=status.HTTP_200_OK)
+#             else:
+#                 return JsonResponse({"Status": 0, "message": "No access to Vysyassis request"}, status=status.HTTP_200_OK)
+            
+#         return JsonResponse(serializer.errors, status=status.HTTP_200_OK)
+
+
+
 class Send_vysassist_request(APIView):
     def post(self, request):
 
@@ -13145,7 +13281,7 @@ class Send_vysassist_request(APIView):
                             Thank you.
                             """
 
-                        
+                        from django.core.mail import send_mail
                         from django.conf import settings
 
                         send_mail(
@@ -13153,7 +13289,7 @@ class Send_vysassist_request(APIView):
                             message,
                             settings.DEFAULT_FROM_EMAIL,
                             [login_user_email],
-                            fail_silently=True,
+                            fail_silently=False,
                         )
 
                     except Exception as e:
@@ -13175,128 +13311,6 @@ class Send_vysassist_request(APIView):
                 )
 
         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-
-
-# class Send_vysassist_request(APIView):
-#     def post(self, request):
-
-#         serializer = serializers.VysassistrequestSerializer(data=request.data)
-
-#         if serializer.is_valid():
-
-#             profile_from = serializer.validated_data.get('profile_id')
-#             profile_to = serializer.validated_data.get('profile_to')
-#             int_status = serializer.validated_data.get('status')
-#             to_message = serializer.validated_data.get('to_message')
-
-#             get_limits = can_get_vysassist_profile(profile_from)
-
-#             if get_limits is True:
-
-#                 # Check existing request
-#                 existing_entry = models.Profile_vysassist.objects.filter(
-#                     profile_from=profile_from,
-#                     profile_to=profile_to
-#                 ).first()
-
-#                 if existing_entry:
-
-#                     existing_entry.status = int_status
-#                     existing_entry.req_datetime = timezone.now()
-#                     existing_entry.save()
-
-#                     return JsonResponse(
-#                         {"Status": 0, "message": "Vysassist updated"},
-#                         status=status.HTTP_200_OK
-#                     )
-
-#                 else:
-                    
-#                     # Save new request
-#                     serializer.save(status=1)
-#                     plan_limit = models.Profile_PlanFeatureLimit.objects.filter(
-#                         profile_id=profile_from
-#                     ).first()
-
-#                     used_count = models.Profile_vysassist.objects.filter(
-#                         profile_from=profile_from,
-#                         status=1
-#                     ).count()   
-
-#                     if plan_limit:
-#                         vys_assist_count = plan_limit.vys_assist_count - used_count
-#                     else:
-#                         vys_assist_count = 0
-
-#                     # Create notification for requested profile
-#                     models.Profile_notification.objects.create(
-#                         profile_id=profile_from,
-#                         from_profile_id=profile_to,
-#                         notification_type='Vys_assists',
-#                         to_message=to_message,
-#                         is_read=0,
-#                         created_at=timezone.now()
-#                     )
-
-#                     # -----------------------------
-#                     # EMAIL FUNCTION (LOGIN USER)
-#                     # -----------------------------
-
-#                     try:
-
-#                         login_user = models.Registration1.objects.get(ProfileId=profile_from)
-
-#                         login_user_email = login_user.EmailId
-#                         login_user_name = login_user.Profile_name
-
-#                         subject = "Vysassist Request Sent"
-
-#                         message = f"""
-#                             Hello {login_user_name},
-
-#                             Your Vysassist request has been sent successfully.
-
-#                             Requested Profile : {profile_to}
-
-#                             Message : {to_message}
-
-#                             Thank you.
-#                             """
-
-#                         from django.core.mail import send_mail
-#                         from django.conf import settings
-
-#                         send_mail(
-#                             subject,
-#                             message,
-#                             settings.DEFAULT_FROM_EMAIL,
-#                             [login_user_email],
-#                             fail_silently=False,
-#                         )
-
-#                     except Exception as e:
-#                         print("MAIL ERROR:", e)
-#                     return JsonResponse(
-#                             {
-#                                 "Status": 1,
-#                                 "message": "Vysassist sent successfully",
-#                                 "vys_assist_count": vys_assist_count
-#                             },
-#                             status=status.HTTP_200_OK
-#                         )
-
-#             else:
-
-#                 return JsonResponse(
-#                     {"Status": 0, "message": "No access to Vysassist request"},
-#                     status=status.HTTP_200_OK
-#                 )
-
-#         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class Click_call_request(APIView):
@@ -15099,6 +15113,9 @@ def get_work_address(city, district, state, country):
         return "-".join(parts) if parts else "N/A"
     except Exception:
         return " "
+import os
+from django.conf import settings
+font_path = os.path.join(settings.BASE_DIR, 'fonts/NotoSansTamil.ttf')
 
 def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirthchart.pdf"):
 
@@ -15109,6 +15126,21 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 horoscope = get_object_or_404(models.Horoscope, profile_id=user_profile_id)
                 login_details = get_object_or_404(models.Registration1, ProfileId=user_profile_id)
                 education_details = get_object_or_404(models.Edudetails, profile_id=user_profile_id)
+
+                import json
+
+                # ---------------- LANGUAGE FROM REQUEST ----------------
+                LANG = "english"
+
+                try:
+                    body = json.loads(request.body)
+                    LANG = body.get("lang", "english").lower()
+                except:
+                    LANG = request.GET.get("lang", "english").lower()
+
+                if LANG not in ["tamil", "english"]:
+                    LANG = "english"
+
 
                 if all(not str(val).strip() for val in [
                     login_details.Profile_address,
@@ -15327,19 +15359,28 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 #     "10": "Lagnam",
                 # }
 
-                planet_mapping = {
-                    "1": "Sun",
-                    "2": "Moo",
-                    "3": "Rahu",
-                    "4": "Kethu",
-                    "5": "Mar",
-                    "6": "Ven",
-                    "7": "Jup",
-                    "8": "Mer",
-                    "9": "Sat",
-                    "10": "Lagnam",
-                }
+                # planet_mapping = {
+                #     "1": "Sun",
+                #     "2": "Moo",
+                #     "3": "Rahu",
+                #     "4": "Kethu",
+                #     "5": "Mar",
+                #     "6": "Ven",
+                #     "7": "Jup",
+                #     "8": "Mer",
+                #     "9": "Sat",
+                #     "10": "Lagnam",
+                # }
 
+                from .models import Planet
+
+                planets = Planet.objects.all()
+
+                planet_mapping = {
+                    p.code: p.planet_tamil if LANG == "tamil" else p.planet_english
+                    for p in planets
+                }
+                print("test",planet_mapping)    
                 # Define a default placeholder for empty values
                 default_placeholder = '-'
 
@@ -15559,11 +15600,17 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     </td>
                     </table>
                     """
-
+                
                 html_content = rf"""
                 <html>
                     <head>
                         <style>
+
+                        @font-face {{
+                            font-family: 'TamilFont';
+                            src: url("{font_path}");
+                        }}
+                    
                         @page {{
                                 size: A4;
                                 margin: 0;
@@ -15665,6 +15712,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 display: inline-block;
                                 vertical-align: top;
                                 background-color: #ffffff;
+                                font-family: 'TamilFont', sans-serif;
                             }}
                             .inner-tabledata{{
                                  width:25%;
@@ -15679,16 +15727,23 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 color: #008000;
                                 font-weight: 500;
                                 font-size: 12px;
+                                font-family: 'TamilFont', sans-serif;
+                                font-size: 12px;
                                 white-space: pre-line;
                                 /* Ensures new lines are respected */
                             }}
 
+                                td.inner-tabledata {{
+                                font-family: 'TamilFont', sans-serif;
+                                font-size: 12px;
+                            }}
                             .inner-table tr td p{{
                                 white-space: pre-line;
                                word-break: break-all;
                                 word-wrap: normal;
                                 word-wrap: break-word;
                                 overflow:hidden;
+                                font-family: 'TamilFont', sans-serif;
                                 
                             }}
 
@@ -16377,7 +16432,9 @@ def parse_data(data):
     return parsed_items
 
 
-
+import os
+from django.conf import settings
+font_path = os.path.join(settings.BASE_DIR, 'fonts/NotoSansTamil.ttf')
 def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart.pdf"):
 
                 try:
@@ -16388,6 +16445,20 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart.pd
                 login_details = get_object_or_404(models.Registration1, ProfileId=user_profile_id)
                 education_details = get_object_or_404(models.Edudetails, profile_id=user_profile_id)
 
+
+                import json
+
+                # ---------------- LANGUAGE FROM REQUEST ----------------
+                LANG = "english"
+
+                try:
+                    body = json.loads(request.body)
+                    LANG = body.get("lang", "english").lower()
+                except:
+                    LANG = request.GET.get("lang", "english").lower()
+
+                if LANG not in ["tamil", "english"]:
+                    LANG = "english"
 
                 if all(not str(val).strip() for val in [
                     login_details.Profile_address,
@@ -16611,18 +16682,28 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart.pd
                 #     "10": "Lagnam",
                 # }
 
+                # planet_mapping = {
+                #     "1": "Sun",
+                #     "2": "Moo",
+                #     "3": "Rahu",
+                #     "4": "Kethu",
+                #     "5": "Mar",
+                #     "6": "Ven",
+                #     "7": "Jup",
+                #     "8": "Mer",
+                #     "9": "Sat",
+                #     "10": "Lagnam",
+                # }
+
+                from .models import Planet
+
+                planets = Planet.objects.all()
+
                 planet_mapping = {
-                    "1": "Sun",
-                    "2": "Moo",
-                    "3": "Rahu",
-                    "4": "Kethu",
-                    "5": "Mar",
-                    "6": "Ven",
-                    "7": "Jup",
-                    "8": "Mer",
-                    "9": "Sat",
-                    "10": "Lagnam",
+                    p.code: p.planet_tamil if LANG == "tamil" else p.planet_english
+                    for p in planets
                 }
+                print("test",planet_mapping)
 
                 # Define a default placeholder for empty values
                 default_placeholder = '-'
@@ -16805,6 +16886,12 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart.pd
                 <html>
                     <head>
                         <style>
+
+                         @font-face {{
+                            font-family: 'TamilFont';
+                            src: url("{font_path}");
+                        }}
+                    
                         @page {{
                                 size: A4;
                                 margin: 0;
@@ -16904,6 +16991,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart.pd
                                 display: inline-block;
                                 vertical-align: top;
                                 background-color: #fff;
+                                font-family: 'TamilFont', sans-serif;
                             }}
                             .inner-tabledata{{
                                  width:25%;
@@ -16918,9 +17006,14 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart.pd
                                 color: #000000;
                                 font-weight: bold;
                                 font-size: 12px;
+                                font-family: 'TamilFont', sans-serif;
+                                font-size: 12px;
                                 white-space: pre-line; /* Ensures new lines are respected */
                             }}
-
+                            td.inner-tabledata {{
+                                font-family: 'TamilFont', sans-serif;
+                                font-size: 12px;
+                            }}
                             .inner .highlight {{
                                     background-color: #ffffff;
                                     text-align: center;
@@ -16937,6 +17030,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart.pd
                                 word-wrap: normal;
                                 word-wrap: break-word;
                                 overflow:hidden;
+                                font-family: 'TamilFont', sans-serif;
                                 
                             }}
                             .inner .highlight p{{
@@ -18090,6 +18184,687 @@ def generate_porutham_pdf(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
+# @csrf_exempt
+# def generate_porutham_pdf_mobile(request, profile_from, profile_to):
+#     if request.method != 'GET':
+#         return JsonResponse({'status': 'error', 'message': 'Only GET method is allowed'}, status=405)
+
+#     try:
+#         try:
+#             profile_from = signing.loads(profile_from)
+#         except signing.BadSignature:
+#             return HttpResponse("Invalid profile ID", status=400) 
+        
+#         try:
+#             profile_to = signing.loads(profile_to)
+#         except signing.BadSignature:
+#             return HttpResponse("Invalid profile ID", status=400) 
+
+#         if not profile_from or not profile_to:
+#             return JsonResponse({'status': 'error', 'message': 'profile_from and profile_to are required'}, status=400)
+
+#         if can_see_compatability_report(profile_from, profile_to) is not True:
+#             return JsonResponse({'status': 'failure', 'message': 'No access to see the compatibility report'}, status=400)
+
+#         # Fetch required data
+#         profile_from_details = models.Registration1.objects.get(ProfileId=profile_from)
+#         profile_to_details = models.Registration1.objects.get(ProfileId=profile_to)
+#         horoscope_from = models.Horoscope.objects.get(profile_id=profile_from)
+#         horoscope_to = models.Horoscope.objects.get(profile_id=profile_to)
+#         education_from_details = models.Edudetails.objects.get(profile_id=profile_from)
+#         education_to_details = models.Edudetails.objects.get(profile_id=profile_to)
+#         try:
+#             family_from = models.Familydetails.objects.get(profile_id=profile_from)
+#         except Exception as e:
+#             family_from = None
+#         if family_from and family_from.suya_gothram:
+#             suya_gothram_from = family_from.suya_gothram
+#         else:
+#             suya_gothram_from = "N/A"
+#         try:
+#             family_to = models.Familydetails.objects.get(profile_id=profile_to)
+#         except Exception as e:
+#             family_to = None
+
+#         if family_to and family_to.suya_gothram:
+#             suya_gothram_to = family_to.suya_gothram
+#         else:
+#             suya_gothram_to = "N/A"
+#         try:
+#             degree_from= get_degree_name(education_from_details.degree,education_from_details.other_degree,'','','')  
+#         except Exception as e:
+#             degree_from = None
+#         try:
+#             degree_to= get_degree_name(education_to_details.degree,education_to_details.other_degree,'','','')  
+#         except Exception as e:
+#             degree_to = None
+
+#         # Defensive check for null fields
+#         if not horoscope_from.birthstar_name or not horoscope_to.birthstar_name:
+#             return JsonResponse({'status': 'error', 'message': 'Missing birth star data'}, status=400)
+
+#         if not horoscope_from.birth_rasi_name or not horoscope_to.birth_rasi_name:
+#             return JsonResponse({'status': 'error', 'message': 'Missing rasi data'}, status=400)
+
+#         if not education_from_details.highest_education or not education_to_details.highest_education:
+#             return JsonResponse({'status': 'error', 'message': 'Missing education data'}, status=400)
+
+#         # Fetch from master tables
+#         birth_star_from = models.Birthstar.objects.get(id=horoscope_from.birthstar_name)
+#         birth_star_to = models.Birthstar.objects.get(id=horoscope_to.birthstar_name)
+#         rasi_from = models.Rasi.objects.get(id=horoscope_from.birth_rasi_name)
+#         rasi_to = models.Rasi.objects.get(id=horoscope_to.birth_rasi_name)
+#         highest_education_from = models.Edupref.objects.get(RowId=education_from_details.highest_education)
+#         highest_education_to = models.Edupref.objects.get(RowId=education_to_details.highest_education)
+#         star_disp_from=None
+#         star_disp_to = None
+#         if horoscope_from.padham:
+#             star_disp_from = f'{birth_star_from.star} - {horoscope_from.padham}'
+#         else:    
+#             star_disp_from = f'{birth_star_from.star}'
+#         if horoscope_to.padham:
+#             star_disp_to = f'{birth_star_to.star} - {horoscope_to.padham}'
+#         else:    
+#             star_disp_to = f'{birth_star_to.star}'
+        
+#         field_ofstudy_id_from = education_from_details.field_ofstudy
+#         fieldof_study_from=" "
+#         if field_ofstudy_id_from:
+#             fieldof_study_from = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id_from).values_list('field_of_study', flat=True).first() or "Unknown"
+        
+#         about_edu_from=education_from_details.about_edu
+        
+#         final_education_from = (highest_education_from.EducationLevel + ' ' + fieldof_study_from).strip() or about_edu_from
+                
+#         field_ofstudy_id_to = education_to_details.field_ofstudy
+#         fieldof_study_to=" "
+#         if field_ofstudy_id_to:
+#             fieldof_study_to = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id_to).values_list('field_of_study', flat=True).first() or "Unknown"
+        
+#         about_edu_to=education_to_details.about_edu
+        
+#         final_education_to = (highest_education_to.EducationLevel + ' ' + fieldof_study_to).strip() or about_edu_to
+        
+#         def format_time_am_pm(time_str):
+#             if not time_str:  # Handles None or empty strings
+#                 return "N/A"
+#             try:
+#                 time_obj = datetime.strptime(str(time_str), "%H:%M:%S")
+#                 return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
+#             except ValueError:
+#                 return str(time_str)
+            
+#         horo_from_time = format_time_am_pm(horoscope_from.time_of_birth)
+#         horo_to_time = format_time_am_pm(horoscope_to.time_of_birth)
+        
+#         horo_from_date = format_date_of_birth(profile_from_details.Profile_dob)
+#         horo_to_date = format_date_of_birth(profile_to_details.Profile_dob)
+
+#         # Handle Gender safely
+#         gender_from = safe_str(profile_from_details.Gender).lower()
+#         gender_to = safe_str(profile_to_details.Gender).lower()
+#         if gender_from == gender_to:
+#             return JsonResponse({'status': 'error', 'message': 'Profiles have the same gender. Matching is not applicable.'}, status=400)
+
+#         # Parse Rasi Kattam data
+#         rasi_kattam_from = parse_data(horoscope_from.rasi_kattam or "")
+#         rasi_kattam_to = parse_data(horoscope_to.rasi_kattam or "")
+#         rasi_kattam_from.extend(['-'] * (12 - len(rasi_kattam_from)))
+#         rasi_kattam_to.extend(['-'] * (12 - len(rasi_kattam_to)))
+#         if horoscope_from.rasi_kattam or  horoscope_from.amsa_kattam:
+#             rasi_kattam_data_from = parse_data(horoscope_from.rasi_kattam)
+#         else:
+#             rasi_kattam_data_from=parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
+#         rasi_kattam_data_from.extend([default_placeholder] * (12 - len(rasi_kattam_data_from)))
+
+#         if horoscope_to.rasi_kattam or  horoscope_to.amsa_kattam:
+#             rasi_kattam_data_to = parse_data(horoscope_to.rasi_kattam)
+#         else:
+#             rasi_kattam_data_to=parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
+#         rasi_kattam_data_to.extend([default_placeholder] * (12 - len(rasi_kattam_data_to)))     
+#         # Get porutham data
+#         porutham_data = fetch_porutham_details(profile_from, profile_to)
+
+
+#         porutham_rows = ""
+#         for idx, porutham in enumerate(porutham_data['porutham_results']):
+#             extra_td = ""
+#             if idx == 0:
+#                 extra_td = (
+#                     f"<td rowspan='{len(porutham_data['porutham_results'])}'>"
+#                     f"<p class='matching-score' style='font-size:40px;'>{porutham_data['matching_score']}</p>"
+#                     f"<p style='font-weight:300;'>Please check with your astrologer for detailed compatibility.</p>"
+#                     f"<p>Jai Vasavi</p>"
+#                     f"</td>"
+#                 )
+#             porutham_rows += (
+#                 f"<tr>"
+#                 f"<td>{porutham['porutham_name']}</td>"
+#                 f"<td><span style='color: {'green' if porutham['status'].startswith('YES') else 'red'};'>{porutham['status']}</span></td>"
+#                 f"{extra_td}"
+#                 f"</tr>"
+#             )
+
+
+
+#             # Define the HTML content with custom styles
+#         html_content = f"""
+#             <html>
+#             <head>
+#                 <style>
+#                    @page {{
+#                                 size: A4;
+#                                 margin: 0;
+#                             }}
+#                             body {{
+#                                 margin: 0;
+#                                 padding: 0;
+#                                 background-color: #ffffff;
+#                             }}
+
+                           
+
+#                             .header-left img {{
+#                                 width: 100%;
+#                                 height: auto;
+#                             }}
+#                             .logo-text{{
+#                                 font-size: 18px;
+#                                 font-weight: 400;
+#                                 color:  #fbf274;
+#                             }}
+#                             .header-left {{
+#                                 width: 100%;
+#                             }}
+                            
+#                             .header-left p{{
+#                                 font-size: 18px;
+#                                 font-weight: 400;
+#                                 color: #ffffff;
+#                             }}
+#                             .header-info p {{
+#                                 color:#fbf274;
+#                                 font-size:16px;
+#                                 padding-bottom:5px;
+#                                 text-align:center;
+#                             }}
+                           
+                           
+#                             .porutham-header p {{
+#                                 font-size:22px;
+#                                 font-weight: 700;
+#                                 color:#000000;
+#                             }}
+
+#                             h2.porutham-table-title{{
+#                                 font-size: 24px;
+#                                 font-weight: 700;
+#                                 margin-bottom: 20px;
+#                                 padding:0px 0px;
+#                             }}
+#                             .porutham-table{{
+#                                 border:1px solid #538135;
+#                                 border-collapse: collapse;
+#                                 margin-bottom: 10px;
+#                             }}
+#                             .porutham-table th {{
+#                                 padding: 5px 0;
+#                                   background-color: #538135;
+#                                   color:#f4c542;
+#                                 font-size:16px;
+#                                 font-weight:700;
+#                                 text-align:center;
+#                                 padding: 5px 0 0 0;
+#                             }}
+#                             .porutham-table td {{
+#                                 border:1px solid #538135;
+#                                 color: #538135;
+#                                 font-size:15px;
+#                                 font-weight:400;
+#                                 text-align:center;
+#                                 padding: 8px 5px;
+#                             }}
+#                             .porutham-table tr td p{{
+#                                 color: #538135;
+#                                 font-size:15px;
+#                                 font-weight:700;
+#                                 text-align:center;
+#                                 padding: 5px 0;
+#                             }}
+                          
+#                             .porutham-stars tr td p{{
+#                                 text-align:left;
+#                                 padding: 20px 20px;
+#                             }}
+#                             .porutham-note{{
+#                                 font-size: 17px;
+#                                 font-weight:400;
+#                                 color: #000000;
+#                                 padding:20px 0px;
+#                             }}
+#                             table, tr, td {{
+#                                 margin: 0;
+#                                 padding: 0;
+#                                 border-spacing: 0;
+#                                 border-collapse: collapse;
+#                             }}
+
+#                             .matching-score{{
+#                                 font-size:30px ;
+#                                 font-weight:700;
+#                             }}
+                        
+
+#                             .compatibility-page-wrapper {{
+#                                  margin:0px;
+#                                 text-align:center;
+#                                 width:100%;
+#                             }}
+#                             .compatibility-page-wrapper tr {{
+#                                 margin: auto;
+#                                 text-align:center;
+#                                 width:100%;
+#                             }}
+                            
+#                             .compatibility-page-wrapper tr td{{
+#                                 background-color: #ffd966;
+#                                 width:100%;
+#                                 text-align:center;
+#                                 margin: auto;
+                               
+#                             }}
+
+#                             .report-title {{
+#                                 background-color: #ffd966;
+#                                 color: #538135;
+#                                 font-weight: bold;
+#                                 text-align: center;
+#                                 padding: 10px 0px 0px;
+#                                 font-size: 16px;
+#                             }}
+#                              .report-table {{
+#                                 width: 100%;
+#                                 border-collapse: collapse;
+#                                 background-color: #538135;
+                                
+#                             }}
+#                              .report-table  tr {{
+#                                 background-color: #538135;
+
+#                              }}
+#                              .report-table  tr  td{{
+#                                 background-color: #538135;
+#                                 color:#ffd966;
+#                                 border:1px solid #ffd966;
+
+#                              }}
+#                              .report-table  tr  td p{{
+#                                 background-color: #538135;
+#                                 color:#ffd966;
+#                                 font-size:14px;
+#                                 width:100%;
+
+#                              }}
+#                              .profile-name{{
+#                                 color:#ffd966;
+#                              }}
+#                             .header-cell {{
+#                                 background-color: #538135;
+#                                 color: #fff;
+#                                 font-weight: bold;
+#                                 text-align: center;
+#                                 padding: 6px;
+#                             }}
+#                             .sub-header {{
+#                                 background-color:#538135;
+#                                 color: #000;
+#                                 text-align: center;
+#                                 padding: 4px;
+#                             }}
+#                             .profile-addtional-info{{
+#                                 width: 100%;
+#                                 background-color: #ffd966;
+#                                 border:1px solid #538135;
+
+#                             }}
+#                               .profile-addtional-info  tr {{
+#                                 background-color: #ffd966;
+#                                 border:none;
+
+#                              }}
+                            
+#                              .profile-addtional-info  tr  td p{{
+#                                 background-color: #ffd966;
+#                                 color:#538135;
+#                                 font-size:14px;
+#                                 width:100%;
+
+#                              }}
+#                             .data-row {{
+#                                 padding: 2px 0px;
+#                             }}
+#                             .data-label {{
+#                                 font-weight: bold;
+#                                 width: 40%;
+#                                 padding: 4px;
+#                             }}
+#                             .data-value {{
+#                                 padding: 4px;
+#                             }}
+#                             table.outer {{
+#                                 width: 100%;
+#                                 text-align: center;
+#                                 font-family: Arial, sans-serif;
+#                                 margin: 0;
+#                                 padding: 0;
+#                                 margin-bottom: 10px;
+#                             }}
+#                             .outer tr td {{
+#                                 padding: 0 20px;
+#                             }}
+#                             table.inner {{
+#                                 width: 45%;
+#                                 border-collapse: collapse;
+#                                 text-align: center;
+#                                 font-family: Arial, sans-serif;
+#                                 margin: 10px;
+#                                 display: inline-block;
+#                                 vertical-align: top;
+#                                 background-color: #fff9c7;
+#                             }}
+
+#                             .inner-tabledata {{
+#                                 width: 25%;
+#                                 height: 80px;
+
+#                             }}
+
+#                             .inner td {{
+#                                 width: 25%;
+#                                 height: 80px;
+#                                 border: 2px solid #008000;
+#                                 padding: 10px;
+#                                 color: #008000;
+#                                 font-weight: bold;
+#                                 font-size: 12px;
+#                                 white-space: pre-line;
+#                                 /* Ensures new lines are respected */
+#                             }}
+
+#                             .inner-table tr td p {{
+#                                 white-space: pre-line;
+#                                 word-break: break-all;
+#                                 word-wrap: normal;
+#                                 word-wrap: break-word;
+#                                 overflow: hidden;
+
+#                             }}
+
+#                             .inner .highlight {{
+#                                 background-color: #ffd966;
+#                                 text-align: center;
+#                                 width: 100%;
+#                                 height: 100%;
+#                                 font-size: 24px;
+#                                 font-weight: 700;
+#                                 color: #008000;
+#                                 vertical-align: middle;
+#                                 padding: 10px;
+
+#                             }}
+
+#                             .inner .highlight p {{
+#                                 font-size: 16px;
+#                                 font-weight: 400;
+#                                 color: #008000;
+#                             }}
+#                 </style>
+#             </head>
+#         <body>
+                               
+#                  <table class="header">
+#                                 <tr>
+#                                     <td class="header-left">
+#                                         <div class="header-logo">
+#                                             <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader.png" alt="Vysyamala Logo">
+#                                         </div>
+#                                     </td>
+#                                 </tr>
+#                         </table>
+
+#             <table class="compatibility-page-wrapper" >
+#             <tr>
+#             <td style="text-align:center;margin:0 auto; padding:0px 20px;">
+                        
+#             <h2 class="report-title">Marriage Compatibility Report</h2>
+        
+#             <table class="report-table" border="0">
+#                 <tr>
+#                 <td class="header-cell">
+#                     <p class="profile-name">{profile_from_details.Profile_name} - {profile_from_details.ProfileId}</p>
+#                 </td>
+#                 <td class="header-cell">
+#                     <p class="profile-name"> {profile_to_details.Profile_name} - {profile_to_details.ProfileId}</p>   
+#                  </td>
+#                 </tr>
+#                 <tr>
+#                 <td class="sub-header">
+#                     <p class="profile-rasi-star"> {rasi_from.name} - {star_disp_from}</p>
+#                 </td>
+#                 <td class="sub-header">
+#                     <p class="profile-rasi-star"> {rasi_to.name} - {star_disp_to}</p>
+#                 </td>
+#                 </tr>
+#             </table>
+#             <br>
+        
+#             <table class="profile-addtional-info" >
+#                 <tr>
+#                 <td class="data-row">
+#                      <p> Place of Birth : {horoscope_from.place_of_birth}</p>
+#                 </td>
+#                 <td class="data-row">
+#                     <p> Place of Birth : {horoscope_to.place_of_birth}</p>
+#                 </td>
+#                 </tr>
+#                 <tr>
+#                 <td class="data-row">
+#                     <p> Time of Birth : {horo_from_time}</p>
+#                 </td>
+#                 <td class="data-row">
+#                     <p>  Time of Birth : {horo_to_time}</p>
+#                 </td>
+#                 </tr>
+#                 <tr>
+#                 <td class="data-row">
+#                     <p> Date Of Birth : {horo_from_date}</p>
+#                 </td>
+#                 <td class="data-row">
+#                     <p> Date Of Birth : {horo_to_date}</p>
+#                 </td>
+#                 </tr>
+#                  <tr>
+#                 <td class="data-row">
+#                     <p> Suya Gothram : {suya_gothram_from}</p>
+#                 </td>
+#                 <td class="data-row">
+#                     <p> Suya Gothram : {suya_gothram_to}</p>
+#                 </td>
+#                 </tr>
+#             </table>
+#             <br>
+        
+#               <table class="profile-addtional-info">
+#                 <tr>
+#                 <td class="data-row">
+#                     <p> Height : {profile_from_details.Profile_height}</p>
+#                 </td>
+#                 <td class="data-row">
+#                         <p> Height : {profile_to_details.Profile_height}</p>
+        
+#                 </td>
+#                 </tr>
+#                 <tr>
+#                 <td class="data-row">
+#                     <p> {final_education_from}</p>
+#                     <p> {degree_from} </p>
+#                 </td>
+#                 <td class="data-row">
+#                     <p> {final_education_to}</p>
+#                     <p> {degree_to} </p>
+#                 </td>
+#                 </tr>
+#             </table>
+#             <br>
+            
+#             <br>
+
+#             <table class="outer">
+#                         <tr>
+#                             <td>
+#                                 <table class="inner">
+#                                     <tr>
+#                                         <td class="inner-tabledata">{rasi_kattam_data_from[0].replace('/', '<br>')}</td>
+#                                         <td class="inner-tabledata">{rasi_kattam_data_from[1].replace('/', '<br>')}</td>
+#                                         <td class="inner-tabledata">{rasi_kattam_data_from[2].replace('/', '<br>')}</td>
+#                                         <td class="inner-tabledata">{rasi_kattam_data_from[3].replace('/', '<br>')}</td>
+#                                     </tr>
+#                                     <tr>
+#                                         <td class="inner-tabledata">{rasi_kattam_data_from[11].replace('/', '<br>')}</td>
+#                                         <td colspan="2" rowspan="2" class="highlight">
+#                                             Rasi
+#                                             <p>vysyamala.com</p>
+#                                         </td>
+#                                         <td class="inner-tabledata">{rasi_kattam_data_from[4].replace('/', '<br>')}</td>
+#                                     </tr>
+#                                     <tr>
+#                                         <td class="inner-tabledata">{rasi_kattam_data_from[10].replace('/', '<br>')}</td>
+#                                         <td class="inner-tabledata">{rasi_kattam_data_from[5].replace('/', '<br>')}</td>
+#                                     </tr>
+#                                     <tr>
+#                                         <td class="inner-tabledata">{rasi_kattam_data_from[9].replace('/', '<br>')}</td>
+#                                         <td class="inner-tabledata">{rasi_kattam_data_from[8].replace('/', '<br>')}</td>
+#                                         <td class="inner-tabledata">{rasi_kattam_data_from[7].replace('/', '<br>')}</td>
+#                                         <td class="inner-tabledata">{rasi_kattam_data_from[6].replace('/', '<br>')}</td>
+#                                     </tr>
+#                                 </table>
+#                             </td>
+#                             <td>
+#                                 <table class="inner">
+#                                     <tr>
+#                                         <td>{rasi_kattam_data_to[0].replace('/', '<br>')}</td>
+#                                         <td>{rasi_kattam_data_to[1].replace('/', '<br>')}</td>
+#                                         <td>{rasi_kattam_data_to[2].replace('/', '<br>')}</td>
+#                                         <td>{rasi_kattam_data_to[3].replace('/', '<br>')}</td>
+#                                     </tr>
+#                                     <tr>
+#                                         <td>{rasi_kattam_data_to[11].replace('/', '<br>')}</td>
+#                                         <td colspan="2" rowspan="2" class="highlight">Rasi
+#                                             <p>vysyamala.com</p>
+#                                         </td>
+#                                         <td>{rasi_kattam_data_to[4].replace('/', '<br>')}</td>
+#                                     </tr>
+#                                     <tr>
+#                                         <td>{rasi_kattam_data_to[10].replace('/', '<br>')}</td>
+#                                         <td>{rasi_kattam_data_to[5].replace('/', '<br>')}</td>
+#                                     </tr>
+#                                     <tr>
+#                                         <td>{rasi_kattam_data_to[9].replace('/', '<br>')}</td>
+#                                         <td>{rasi_kattam_data_to[8].replace('/', '<br>')}</td>
+#                                         <td>{rasi_kattam_data_to[7].replace('/', '<br>')}</td>
+#                                         <td>{rasi_kattam_data_to[6].replace('/', '<br>')}</td>
+#                                     </tr>
+#                                 </table>
+#                             </td>
+#                         </tr>
+#                     </table>
+#             <br>
+                    
+#             # <br><br>
+                    
+#             # <br><br>
+                    
+#             # <br><br>
+                    
+#             # <br><br>
+                    
+#             # <br> <br>
+#             # <br> <br>
+#             # <br> <br>
+#             # <br><br>
+                    
+#             </td>
+#             </tr>
+#             </table>
+#              <table class="compatibility-page-wrapper" >
+#             <tr>
+#             <td style="text-align:center;margin:0 auto; padding:0px 20px;">
+#                                  <br>
+                    
+#             <br><br>   
+                
+#             <h2 class="report-title" >Nakshatra Porutham & Rasi Porutham</h2>
+#            <table class="porutham-table">
+#                 <tr>
+#                     <th>Porutham Name</th>
+#                     <th>Status</th>
+#                     <th>Matching Score</th>
+#                 </tr>
+#                  {porutham_rows}
+#                  </table>        
+#               <table class="profile-addtional-info">
+#                 <tr >
+#                 <td class="data-row"  style="width:100%;">
+#                 <p>
+#                 Our best wishes for finding your soulmate in Vyasyamala soon. Please inform Vyasyamala if your marriage is fixed. Share your engagement photo and receive a surprise gift. No commissions / hidden charges. Jai Vasavi!
+#                 </p>
+#                 </td>
+#                 </tr>
+#                 </table>
+#                 <br>
+#             </td>
+#             </tr>
+#             </table>
+#         </body>
+#         </html>"""
+
+#             # Log profile view
+#         save_logs, created = models.Profile_docviewlogs.objects.get_or_create(
+#             profile_id=profile_from,
+#             viewed_profile=profile_to,
+#             type=3,
+#             defaults={
+#                 'viewed_profile': profile_to,
+#                 'datetime': timezone.now(),
+#                 'type': 3,
+#                 'status': 1
+#             }
+#         )
+#         if not created:
+#             save_logs.datetime = timezone.now()
+#             save_logs.save()
+
+#         response = HttpResponse(content_type='application/pdf')
+#         response['Content-Disposition'] = f'inline; filename="Porutham.pdf"'
+
+#         pisa_status = pisa.CreatePDF(html_content, dest=response)
+#         if pisa_status.err:
+#             logger.error(f"PDF generation error: {pisa_status.err}")
+#             return HttpResponse('We had some errors <pre>' + html_content + '</pre>')
+
+#         return response
+
+#     except json.JSONDecodeError:
+#         return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+#     except models.Registration1.DoesNotExist:
+#         return JsonResponse({'status': 'error', 'message': 'Profile not found'}, status=404)
+#     except models.Horoscope.DoesNotExist:
+#         return JsonResponse({'status': 'error', 'message': 'Horoscope not found'}, status=404)
+#     except models.Edudetails.DoesNotExist:
+#         return JsonResponse({'status': 'error', 'message': 'Education details not found'}, status=404)
+#     except Exception as e:
+#         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
 @csrf_exempt
 def generate_porutham_pdf_mobile(request, profile_from, profile_to):
     if request.method != 'GET':
@@ -18623,7 +19398,7 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
             </table>
             <br>
             
-            <br>
+            
 
             <table class="outer">
                         <tr>
@@ -18728,6 +19503,19 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
                 </tr>
                 </table>
                 <br>
+                <br><br>  
+                <br><br>  
+                <br><br> 
+                <br><br> 
+                <br><br>
+                <br><br>
+                <br><br>
+                <br><br>
+                <br><br><br><br>
+                <br><br>
+                <br><br><br><br>
+                <br><br>
+
             </td>
             </tr>
             </table>
@@ -18770,6 +19558,7 @@ def generate_porutham_pdf_mobile(request, profile_from, profile_to):
         return JsonResponse({'status': 'error', 'message': 'Education details not found'}, status=404)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
 
 
 def get_primary_sign(value):
@@ -19741,7 +20530,7 @@ class WithoutAddressSendEmailAPI(APIView):
             email.attach(*attachment)
 
         try:
-            email.send()
+            # email.send()
             email_status = "sent"
             response_msg = {"message": "Email sent successfully to the recipient!"}
             if missing_profiles:
@@ -20573,7 +21362,9 @@ def parse_data(data):
 #         except Exception as e:
 #             return Response({'error': str(e)}, status=400)
 
-
+import os
+from django.conf import settings
+font_path = os.path.join(settings.BASE_DIR, 'fonts/NotoSansTamil.ttf')
 def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horoscope_withbirthchart.pdf"):
 
                 try:
@@ -20581,6 +21372,22 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 except signing.BadSignature:
                     return HttpResponse("Invalid profile ID", status=400) 
                 
+                import json
+
+                # ---------------- LANGUAGE FROM REQUEST ----------------
+                LANG = "english"
+
+                try:
+                    body = json.loads(request.body)
+                    LANG = body.get("lang", "english").lower()
+                except:
+                    LANG = request.GET.get("lang", "english").lower()
+
+                if LANG not in ["tamil", "english"]:
+                    LANG = "english"
+                    
+
+
                 try:
                     my_profile_id = signing.loads(my_profile_id)
                 except signing.BadSignature:
@@ -20826,17 +21633,24 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                 age = calculate_age(login_details.Profile_dob)   or "N/A"
 
 
+                # planet_mapping = {
+                #     "1": "Sun",
+                #     "2": "Moo",
+                #     "3": "Rahu",
+                #     "4": "Kethu",
+                #     "5": "Mar",
+                #     "6": "Ven",
+                #     "7": "Jup",
+                #     "8": "Mer",
+                #     "9": "Sat",
+                #     "10": "Lagnam",
+                # }
+
+                planets = Planet.objects.all()
+
                 planet_mapping = {
-                    "1": "Sun",
-                    "2": "Moo",
-                    "3": "Rahu",
-                    "4": "Kethu",
-                    "5": "Mar",
-                    "6": "Ven",
-                    "7": "Jup",
-                    "8": "Mer",
-                    "9": "Sat",
-                    "10": "Lagnam",
+                    p.code: p.planet_tamil if LANG == "tamil" else p.planet_english
+                    for p in planets
                 }
 
                 # Define a default placeholder for empty values
@@ -21206,7 +22020,8 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                     </tr>
                                     <tr>
                                         <td>{amsa_kattam_data[11].replace('/', '<br>')}</td>
-                                        <td colspheight: 300px;an="2" rowspan="2" class="highlight">Amsam
+                                        <td colspan="2" rowspan="2" class="highlight">
+                                            Amsam
                                             <p>vysyamala.com</p>
                                         </td>
                                         <td>{amsa_kattam_data[4].replace('/', '<br>')}</td>
@@ -21248,6 +22063,12 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 size: A4;
                                 margin: 0;
                             }}
+
+                              @font-face {{
+                            font-family: 'TamilFont';
+                            src: url("{font_path}");
+                        }}
+                        
                             body {{
                                 background-color: #ffffff;
                             }}
@@ -21345,6 +22166,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 display: inline-block;
                                 vertical-align: top;
                                 background-color: #ffffff;
+                                font-family: 'TamilFont', sans-serif;
                             }}
                             .inner-tabledata{{
                                  width:25%;
@@ -21358,9 +22180,15 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 padding: 10px;
                                 color: #008000;
                                 font-weight: 500;
+                                font-family: 'TamilFont', sans-serif;
                                 font-size: 12px;
                                 white-space: pre-line;
                                 /* Ensures new lines are respected */
+                            }}
+
+                                td.inner-tabledata {{
+                                font-family: 'TamilFont', sans-serif;
+                                font-size: 12px;
                             }}
 
                             .inner-table tr td p{{
@@ -21369,6 +22197,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
                                 word-wrap: normal;
                                 word-wrap: break-word;
                                 overflow:hidden;
+                                font-family: 'TamilFont', sans-serif;
                                 
                             }}
 
@@ -21852,11 +22681,28 @@ def New_horoscope_color(request, user_profile_id, my_profile_id , filename="Horo
 
                 return response
 
+import os
+from django.conf import settings
+font_path = os.path.join(settings.BASE_DIR, 'fonts/NotoSansTamil.ttf')
 def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Horoscope_withbirthchart.pdf"):
                 try:
                     user_profile_id = signing.loads(user_profile_id)
                 except signing.BadSignature:
                     return HttpResponse("Invalid profile ID", status=400) 
+
+                import json
+
+                # ---------------- LANGUAGE FROM REQUEST ----------------
+                LANG = "english"
+
+                try:
+                    body = json.loads(request.body)
+                    LANG = body.get("lang", "english").lower()
+                except:
+                    LANG = request.GET.get("lang", "english").lower()
+
+                if LANG not in ["tamil", "english"]:
+                    LANG = "english"
                 
                 try:
                     my_profile_id = signing.loads(my_profile_id)
@@ -22140,17 +22986,24 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                 #     "10": "Lagnam",
                 # }
 
+                # planet_mapping = {
+                #     "1": "Sun",
+                #     "2": "Moo",
+                #     "3": "Rahu",
+                #     "4": "Kethu",
+                #     "5": "Mar",
+                #     "6": "Ven",
+                #     "7": "Jup",
+                #     "8": "Mer",
+                #     "9": "Sat",
+                #     "10": "Lagnam",
+                # }
+
+                planets = Planet.objects.all()
+
                 planet_mapping = {
-                    "1": "Sun",
-                    "2": "Moo",
-                    "3": "Rahu",
-                    "4": "Kethu",
-                    "5": "Mar",
-                    "6": "Ven",
-                    "7": "Jup",
-                    "8": "Mer",
-                    "9": "Sat",
-                    "10": "Lagnam",
+                    p.code: p.planet_tamil if LANG == "tamil" else p.planet_english
+                    for p in planets
                 }
 
                 # Define a default placeholder for empty values
@@ -22552,6 +23405,11 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                 size: A4;
                                 margin: 0;
                             }}
+
+                            @font-face {{
+		                    font-family: 'TamilFont';
+		                    src: url("{font_path}");
+		                }}
                             body {{
                                 background-color: #ffffff;
                             }}
@@ -22647,6 +23505,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                 display: inline-block;
                                 vertical-align: top;
                                 background-color: #fff;
+                                font-family: 'TamilFont', sans-serif;
                             }}
                             .inner-tabledata{{
                                  width:25%;
@@ -22660,8 +23519,14 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                                 padding: 10px;
                                 color: #000000;
                                 font-weight: bold;
+                                font-family: 'TamilFont', sans-serif;
                                 font-size: 12px;
                                 white-space: pre-line; /* Ensures new lines are respected */
+                            }}
+
+                            td.inner-tabledata {{
+                                font-family: 'TamilFont', sans-serif;
+                                font-size: 12px;
                             }}
 
                             .inner .highlight {{
@@ -22676,10 +23541,11 @@ def New_horoscope_black(request, user_profile_id, my_profile_id ,  filename="Hor
                             }}
                             .inner-table tr td p{{
                                 white-space: pre-line;
-                               word-break: break-all;
+                                word-break: break-all;
                                 word-wrap: normal;
                                 word-wrap: break-word;
                                 overflow:hidden;
+                                font-family: 'TamilFont', sans-serif;
                                 
                             }}
                             .inner .highlight p{{
@@ -23511,7 +24377,6 @@ class UnsubscribeAPIView(APIView):
             })
 
 
-
 class Get_Vysassist_Requests(APIView):
 
     def get(self, request, profile_id):
@@ -23554,16 +24419,25 @@ def get_success_story_images(request):
         name_starts_with="success_stories/photos/"
     ))
 
+    # ✅ Sort by upload date (latest first)
+    blob_list.sort(key=lambda x: x.last_modified, reverse=True)
+
     base_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{settings.AZURE_CONTAINER}/"
 
-    image_urls = [base_url + blob.name for blob in blob_list]
-
+    # image_urls = [base_url + blob.name for blob in blob_list]
+    image_data = [
+        {
+            "name": blob.name.split("/")[-1],  # extract file name
+            "url": base_url + blob.name
+        }
+        for blob in blob_list
+    ]
     # 👉 Pagination logic
-    total_count = len(image_urls)
+    total_count = len(image_data)
     start = (page - 1) * page_size
     end = start + page_size
 
-    paginated_images = image_urls[start:end]
+    paginated_images = image_data[start:end]
 
     return JsonResponse({
         "status": "success",
@@ -23573,3 +24447,91 @@ def get_success_story_images(request):
         "total_pages": (total_count + page_size - 1) // page_size,
         "images": paginated_images
     })
+
+
+
+class HideProfileView(APIView):
+    def post(self, request):
+        try:
+            profile_id = request.data.get("profile_id")
+            reason     = request.data.get("reason")
+            other_text = request.data.get("other_text", "")
+            # Validations
+            if not profile_id:
+                return JsonResponse({"Status": 0, "message": "profile_id is required"}, status=400)
+
+            if not reason:
+                return JsonResponse({"Status": 0, "message": "reason is required"}, status=400)
+
+            VALID_REASONS = [
+                "Temporary Hide",
+                "Take a Break",
+                "Marriage Settled",
+                "Personal Reason",
+                "Others"
+            ]
+
+            if reason not in VALID_REASONS:
+                return JsonResponse({
+                    "Status": 0,
+                    "message": f"reason must be one of {VALID_REASONS}"
+                }, status=400)
+
+            if reason == "Others" and not other_text.strip():
+                return JsonResponse({
+                    "Status": 0,
+                    "message": "other_text is required when reason is Others"
+                }, status=400)
+
+
+
+            # Fetch profile
+            try:
+                profile = models.Registration1.objects.get(ProfileId=profile_id)
+            except models.Registration1.DoesNotExist:
+                return JsonResponse({"Status": 0, "message": "Profile not found"}, status=404)
+
+            # 1. Set Status = 3 (Hidden) on logindetails — admin sees it immediately
+            profile.Status = 3
+            profile.save()
+
+            # 2. Save to new HideProfile table
+            models.HideProfile.objects.create(
+                profile_id=profile_id,
+                reason=reason,
+                other_text=other_text.strip() if reason == "Others" else None
+            )
+
+            # ── ADMIN NOTIFICATION ──
+            try:
+                hide_display = other_text.strip() if reason == "Others" else reason
+                AdminNotification.objects.create(
+                    notification_type="HideProfile",
+                    from_profile=profile_id,
+                    message=f"Profile ID: {profile_id} Reason: {hide_display}"
+                )
+            except Exception:
+                pass
+            # ──────────────────────
+
+            # 3. Also log to DataHistory (keeps admin history intact)
+            try:
+                hide_reason_text = other_text.strip() if reason == "Others" else reason
+                models.DataHistory.objects.create(
+                    profile_id=profile_id,
+                    profile_status=3,
+                    hide_others=hide_reason_text,
+                    others=hide_reason_text,
+                    date_time=timezone.now()
+                )
+            except Exception:
+                pass
+
+            return JsonResponse({
+                "Status": 1,
+                "message": "Your profile has been hidden successfully. You will be logged out now."
+            })
+
+        except Exception as e:
+            return JsonResponse({"Status": 0, "message": str(e)}, status=500)
+

@@ -835,6 +835,26 @@ class Update_ExpressintrSerializer(serializers.ModelSerializer):
             instance.status = validated_data.get('status', instance.status)
             instance.response_datetime = timezone.now()  # Set the response_datetime to the current time
             instance.save()
+            # ── ADMIN NOTIFICATION (safe – will never break existing flow) ──
+            try:
+                from accounts.models import AdminNotification
+                _status = int(validated_data.get('status', 0))
+                _from = validated_data.get('profile_from', '')
+                _to = instance.profile_to
+                if _status == 2:
+                    _action = "accepted"
+                elif _status == 3:
+                    _action = "rejected"
+                else:
+                    _action = None
+                if _action:
+                    AdminNotification.objects.create(
+                        notification_type="Interest",
+                        from_profile=_from,
+                        message=f"{_to} {_action} the interest request from {_from}"
+                    )
+            except Exception:
+                pass
             int_mesage=''
             cta=''
             message_titile=''

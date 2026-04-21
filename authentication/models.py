@@ -1099,17 +1099,26 @@ class Get_profiledata(models.Model):
                         ON a.ProfileId = f1.profile_id
                     LEFT JOIN mastereducation g ON f.highest_education = g.RowId
                     LEFT JOIN masterannualincome h ON h.id = f.anual_income
-                    LEFT JOIN vw_profile_images pi ON a.ProfileId = pi.profile_id
-                    LEFT JOIN profile_visibility pv ON pv.profile_id = a.ProfileId
-                    LEFT JOIN profile_visit_logs v ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
 
-                    -- Fetch FROM-PROFILE details for visibility checks
+
+                    -- Fetch FROM-PROFILE details (must come before mgs_from_gothram which depends on f1_from)
                     JOIN profile_edudetails f_from ON f_from.profile_id = %s
                     JOIN profile_familydetails f1_from ON f1_from.profile_id = %s
                     JOIN profile_horoscope h1_from ON h1_from.profile_id = %s
                     JOIN logindetails l1_from ON l1_from.ProfileId = %s
                     LEFT JOIN masterannualincome h_from ON h_from.id = f_from.anual_income
 
+                    -- Resolve suya_gothram_admin child → parent for CANDIDATE profile
+                    LEFT JOIN mastergothram_names_single mgs_candidate 
+                        ON mgs_candidate.id = f1.suya_gothram_admin
+
+                    -- Resolve suya_gothram_admin child → parent for FROM profile
+                    LEFT JOIN mastergothram_names_single mgs_from_gothram 
+                        ON mgs_from_gothram.id = f1_from.suya_gothram_admin
+
+                    LEFT JOIN vw_profile_images pi ON a.ProfileId = pi.profile_id
+                    LEFT JOIN profile_visibility pv ON pv.profile_id = a.ProfileId
+                    LEFT JOIN profile_visit_logs v ON v.viewed_profile = a.ProfileId AND v.profile_id = %s
 
                     WHERE a.Status = 1 
                     AND (
@@ -1187,14 +1196,27 @@ class Get_profiledata(models.Model):
                 query_params = [profile_id,profile_id,profile_id,profile_id,profile_id,gender, profile.Profile_dob,gender, profile.Profile_dob,gender, profile_id, min_dob, max_dob]
 
                 # Check suya_gothram_admin first (ID stored as string in DB)
+                # --- suya_gothram_admin (child ID now stored; compare via parent) ---
                 if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
+                    
+                    if str(my_suya_gothram_admin).strip() != '103':
+                        base_query += """
+                        AND (
+                            f1.suya_gothram_admin IS NULL 
+                            OR f1.suya_gothram_admin = ''
+                            OR mgs_candidate.gothram_id IS NULL
+                            OR f1.suya_gothram_admin = '334'
+                            OR mgs_from_gothram.gothram_id IS NULL
+                            OR mgs_candidate.gothram_id != mgs_from_gothram.gothram_id
+                        )
+                    """
+                    # No query_params.append needed — comparison is fully JOIN-based now
 
-                    base_query += " AND (f1.suya_gothram_admin IS NULL OR f1.suya_gothram_admin = '' OR f1.suya_gothram_admin != %s)"
-                    query_params.append(str(my_suya_gothram_admin))
-                if my_suya_gothram and str(my_suya_gothram).strip() != "":
-
-                    base_query += " AND (f1.suya_gothram IS NULL OR f1.suya_gothram = '' OR f1.suya_gothram != %s )"
-                    query_params.append(my_suya_gothram)
+                else:
+                # --- suya_gothram (plain text/name; logic unchanged) ---
+                    if my_suya_gothram and str(my_suya_gothram).strip() != "":
+                        base_query += " AND (f1.suya_gothram IS NULL OR f1.suya_gothram = '' OR f1.suya_gothram != %s)"
+                        query_params.append(my_suya_gothram)
 
 
                 # if min_income and max_income:
@@ -1505,15 +1527,20 @@ class Get_profiledata(models.Model):
                     LEFT JOIN masterannualincome h ON h.id = f.anual_income
                     LEFT JOIN profile_visibility pv ON pv.profile_id = a.ProfileId
 
-
-                    
+                    -- FROM-profile joins must come before mgs_from_gothram which depends on f1_from
                     JOIN profile_edudetails f_from ON f_from.profile_id = %s
                     JOIN profile_familydetails f1_from ON f1_from.profile_id = %s
                     JOIN profile_horoscope h1_from ON h1_from.profile_id = %s
                     JOIN logindetails l1_from ON l1_from.ProfileId = %s
                     LEFT JOIN masterannualincome h_from ON h_from.id = f_from.anual_income
 
+                    -- Resolve suya_gothram_admin child → parent for CANDIDATE profile
+                    LEFT JOIN mastergothram_names_single mgs_candidate
+                        ON mgs_candidate.id = f1.suya_gothram_admin
 
+                    -- Resolve suya_gothram_admin child → parent for FROM profile
+                    LEFT JOIN mastergothram_names_single mgs_from_gothram
+                        ON mgs_from_gothram.id = f1_from.suya_gothram_admin
 
 
                     WHERE a.Status=1
@@ -1590,13 +1617,23 @@ class Get_profiledata(models.Model):
             # query_params = [gender, profile_id, min_dob , max_dob]
             query_params = [profile_id,profile_id,profile_id,profile_id,gender, profile.Profile_dob,gender, profile.Profile_dob,gender, profile_id, min_dob, max_dob]
 
-            
+            # --- suya_gothram_admin: compare via parent gothram_id (same logic as get_profile_list) ---
             if my_suya_gothram_admin and str(my_suya_gothram_admin).strip() != "" and my_suya_gothram_admin != '0':
-
-                    query += " AND (f1.suya_gothram_admin IS NULL OR f1.suya_gothram_admin = '' OR f1.suya_gothram_admin != %s)"
-                    query_params.append(str(my_suya_gothram_admin))
-            if my_suya_gothram and str(my_suya_gothram).strip() != "":
-
+                if str(my_suya_gothram_admin).strip() != '103':  # '103' = exempt Suya Gothram entry
+                    query += """
+                    AND (
+                        f1.suya_gothram_admin IS NULL
+                        OR f1.suya_gothram_admin = ''
+                        OR mgs_candidate.gothram_id IS NULL
+                        OR f1.suya_gothram_admin = '334'
+                        OR mgs_from_gothram.gothram_id IS NULL
+                        OR mgs_candidate.gothram_id != mgs_from_gothram.gothram_id
+                    )
+                    """
+                    # No query_params.append — JOIN-based comparison uses no %s placeholder
+            else:
+                # --- suya_gothram (plain text fallback when admin ID not set) ---
+                if my_suya_gothram and str(my_suya_gothram).strip() != "":
                     query += " AND (f1.suya_gothram IS NULL OR f1.suya_gothram = '' OR f1.suya_gothram != %s )"
                     query_params.append(my_suya_gothram)
             
@@ -2649,3 +2686,29 @@ class UnsubscribeDetails(models.Model):
 
     def __str__(self):
         return self.profile_id
+    
+
+class Planet(models.Model):
+    code = models.CharField(max_length=10, unique=True)  # "1", "2", etc
+    planet_english = models.CharField(max_length=50)
+    planet_tamil = models.CharField(max_length=50)
+
+    class Meta:
+        db_table = "planet"
+
+    def __str__(self):
+        return f"{self.code} - {self.planet_english}" 
+
+
+class HideProfile(models.Model):
+    id          = models.AutoField(primary_key=True)
+    profile_id  = models.CharField(max_length=50)
+    reason      = models.CharField(max_length=255)   # Not Interested / private / Temporary hide / Others
+    other_text  = models.CharField(max_length=500, blank=True, null=True)  # filled only when reason=Others
+    hidden_at   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'hide_profile'
+
+    def __str__(self):
+        return f"{self.profile_id} - {self.reason}"
