@@ -1483,8 +1483,7 @@ class Get_profiledata_Matching(models.Model):
                         )
                         OR 
                         -- If opposite profile is not Platinum → skip pv.* checks
-                        # (a.Plan_id NOT IN (3,16,17))
-                        (a.Plan_id NOT IN (3,16,17) OR (a.Plan_id = 16 AND a.allow_visit = 1 AND l1_from.Plan_id = 16))
+                        (a.Plan_id NOT IN (3,16,17))
                     )
                         AND a.ProfileId != %s
                         AND a.Profile_dob BETWEEN %s AND %s """
@@ -1493,7 +1492,6 @@ class Get_profiledata_Matching(models.Model):
                 
                 
             if status == "sent":
-                    # print('status is sent')
                     base_query += " AND a.Status != 0 " #Shows the deleted profiles also if it is already sent but deleted later
                     action_filter = "" if action_type == "all" else "AND sp.action_type = %s"
                     
@@ -1506,12 +1504,9 @@ class Get_profiledata_Matching(models.Model):
                         {action_filter}
                     )""".format(action_filter=action_filter)
 
-                    # base_query += " ORDER BY asp.sent_date DESC "
-                
                     query_params.append(profile_id)
                     if action_type != "all":
                         query_params.append(action_type)
-                    
 
                     if search:
                         base_query += """ AND (a.Profile_name LIKE %s
@@ -1520,9 +1515,11 @@ class Get_profiledata_Matching(models.Model):
                         search_param = f"%{search.strip()}%"
                         query_params.extend([search_param] * 3)
 
-
-                    
-                    # base_query += " ORDER BY CASE WHEN sent_date IS NULL THEN 1 ELSE 0 END, sent_date DESC"
+                    base_query += """
+                    ORDER BY 
+                        CASE WHEN sent_date IS NULL THEN 1 ELSE 0 END,
+                        sent_date DESC
+                    """
             
             
             
@@ -1919,16 +1916,9 @@ class Get_profiledata_Matching(models.Model):
                     else:
                         base_query += " AND a.Status = 1 "   #approved Only
                         pass
-                                # FINAL ORDERING (IMPORTANT FIX)
-                if status == "sent":
-                    base_query += """
-                    ORDER BY 
-                        CASE WHEN sent_date IS NULL THEN 1 ELSE 0 END,
-                        sent_date DESC
-                    """
-                else:
-                    # base_query += " ORDER BY a.DateOfJoin DESC"
-                    base_query += " AND a.Status = 1 ORDER BY a.DateOfJoin DESC"
+                # FINAL ORDERING
+                base_query += " ORDER BY a.DateOfJoin DESC"
+
             # COUNT
             with connection.cursor() as cursor:
                 cursor.execute(base_query, query_params)
