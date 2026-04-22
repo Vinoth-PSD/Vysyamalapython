@@ -8311,15 +8311,45 @@ def GetMarsRahuKethuDoshamDetails(raw_input):
 
 
 
-def parse_data(data):
-    # Clean up and split data
+# def parse_data(data):
+#     # Clean up and split data
+#     items = data.strip('{}').split(', ')
+#     parsed_items = []
+#     for item in items:
+#         parts = item.split(':')
+#         if len(parts) > 1:
+#             values = parts[-1].strip()
+#             # Handle multiple values separated by comma
+#             if ',' in values:
+#                 values = '/'.join(planet_mapping.get(v.strip(), default_placeholder) for v in values.split(','))
+#             else:
+#                 values = planet_mapping.get(values, default_placeholder)
+#         else:
+#             values = default_placeholder
+#         parsed_items.append(values)
+#     return parsed_items
+
+
+def parse_data(data, planet_mapping=None, default_placeholder="-"):
+    if planet_mapping is None or len(planet_mapping) == 0:
+        planet_mapping = {
+            "1": "Sun",
+            "2": "Moon",
+            "3": "Rahu",
+            "4": "Kethu",
+            "5": "Mars",
+            "6": "Venus",
+            "7": "Jupiter",
+            "8": "Mercury",
+            "9": "Saturn",
+            "10": "Lagnam",
+        }
     items = data.strip('{}').split(', ')
     parsed_items = []
     for item in items:
         parts = item.split(':')
         if len(parts) > 1:
             values = parts[-1].strip()
-            # Handle multiple values separated by comma
             if ',' in values:
                 values = '/'.join(planet_mapping.get(v.strip(), default_placeholder) for v in values.split(','))
             else:
@@ -8328,9 +8358,6 @@ def parse_data(data):
             values = default_placeholder
         parsed_items.append(values)
     return parsed_items
-
-
-
 
 
 class ShortProfilePDFView(APIView):
@@ -10618,13 +10645,34 @@ class AdminMatchProfilePDFView(APIView):
                         return "N/A"
                     return ', '.join([item['matching_starname'] for item in poruthams])
                 default_placeholder = "-"
-                if horoscope_data.rasi_kattam or horoscope_data.amsa_kattam:
-                    rasi_kattam_data = parse_data(horoscope_data.rasi_kattam)
-                    amsa_kattam_data = parse_data(horoscope_data.amsa_kattam)
-                else:
-                    rasi_kattam_data = parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
-                    amsa_kattam_data = parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
+                planet_mapping = {
+                    "1": "Sun",
+                    "2": "Moon",
+                    "3": "Rahu",
+                    "4": "Kethu",
+                    "5": "Mars",
+                    "6": "Venus",
+                    "7": "Jupiter",
+                    "8": "Mercury",
+                    "9": "Saturn",
+                    "10": "Lagnam",
+                }
+                empty_grid = '{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}'
+                try:
+                    if horoscope_data.rasi_kattam:
+                        rasi_kattam_data = parse_data(horoscope_data.rasi_kattam, planet_mapping, default_placeholder)
+                    else:
+                        rasi_kattam_data = parse_data(empty_grid, planet_mapping, default_placeholder)
+                except Exception:
+                    rasi_kattam_data = [default_placeholder] * 12
 
+                try:
+                    if horoscope_data.amsa_kattam:
+                        amsa_kattam_data = parse_data(horoscope_data.amsa_kattam, planet_mapping, default_placeholder)
+                    else:
+                        amsa_kattam_data = parse_data(empty_grid, planet_mapping, default_placeholder)
+                except Exception:
+                    amsa_kattam_data = [default_placeholder] * 12
                 if all(not str(val).strip() for val in [
                     login.Profile_address,
                     get_district_name(login.Profile_district),
