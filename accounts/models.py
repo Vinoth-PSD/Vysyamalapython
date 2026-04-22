@@ -1492,6 +1492,7 @@ class Get_profiledata_Matching(models.Model):
                 
                 
             if status == "sent":
+                    # print('status is sent')
                     base_query += " AND a.Status != 0 " #Shows the deleted profiles also if it is already sent but deleted later
                     action_filter = "" if action_type == "all" else "AND sp.action_type = %s"
                     
@@ -1504,9 +1505,12 @@ class Get_profiledata_Matching(models.Model):
                         {action_filter}
                     )""".format(action_filter=action_filter)
 
+                    # base_query += " ORDER BY asp.sent_date DESC "
+                
                     query_params.append(profile_id)
                     if action_type != "all":
                         query_params.append(action_type)
+                    
 
                     if search:
                         base_query += """ AND (a.Profile_name LIKE %s
@@ -1515,11 +1519,9 @@ class Get_profiledata_Matching(models.Model):
                         search_param = f"%{search.strip()}%"
                         query_params.extend([search_param] * 3)
 
-                    base_query += """
-                    ORDER BY 
-                        CASE WHEN sent_date IS NULL THEN 1 ELSE 0 END,
-                        sent_date DESC
-                    """
+
+                    
+                    # base_query += " ORDER BY CASE WHEN sent_date IS NULL THEN 1 ELSE 0 END, sent_date DESC"
             
             
             
@@ -1916,11 +1918,16 @@ class Get_profiledata_Matching(models.Model):
                     else:
                         base_query += " AND a.Status = 1 "   #approved Only
                         pass
-                # FINAL ORDERING
-                if status is None:
-                    base_query += " AND a.Status = 1 "
-                base_query += " ORDER BY a.DateOfJoin DESC"
-
+                                # FINAL ORDERING (IMPORTANT FIX)
+                if status == "sent":
+                    base_query += """
+                    ORDER BY 
+                        CASE WHEN sent_date IS NULL THEN 1 ELSE 0 END,
+                        sent_date DESC
+                    """
+                else:
+                    # base_query += " ORDER BY a.DateOfJoin DESC"
+                    base_query += " AND a.Status = 1 ORDER BY a.DateOfJoin DESC"
             # COUNT
             with connection.cursor() as cursor:
                 cursor.execute(base_query, query_params)
@@ -4859,13 +4866,13 @@ class Partnerpref(models.Model):
     status = models.IntegerField()   # Changed from CharField to TextField
     degree = models.CharField(max_length=255, blank=True, null=True) 
     pref_fieldof_study = models.CharField(max_length=255, blank=True, null=True)
-    body_type = models.IntegerField(null=True, blank=True)
-    look_lifestyle = models.CharField(max_length=50, null=True, blank=True)
-    face_appeal = models.IntegerField(null=True, blank=True)
-    smile_expression = models.IntegerField(null=True, blank=True)
-    personality_impression = models.IntegerField(null=True, blank=True)
-    overall_impression = models.IntegerField(null=True, blank=True)
-    complexion = models.IntegerField(null=True, blank=True)
+    # body_type = models.IntegerField(null=True, blank=True)
+    # look_lifestyle = models.CharField(max_length=50, null=True, blank=True)
+    # face_appeal = models.IntegerField(null=True, blank=True)
+    # smile_expression = models.IntegerField(null=True, blank=True)
+    # personality_impression = models.IntegerField(null=True, blank=True)
+    # overall_impression = models.IntegerField(null=True, blank=True)
+    # complexion = models.IntegerField(null=True, blank=True)
     class Meta:
         managed = False  # This tells Django not to handle database table creation/migration for this model
         db_table = 'profile_partner_pref'  # Name of the table in your database
