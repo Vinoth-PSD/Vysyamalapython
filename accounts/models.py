@@ -1917,6 +1917,8 @@ class Get_profiledata_Matching(models.Model):
                         base_query += " AND a.Status = 1 "   #approved Only
                         pass
                 # FINAL ORDERING
+                if status is None:
+                    base_query += " AND a.Status = 1 "
                 base_query += " ORDER BY a.DateOfJoin DESC"
 
             # COUNT
