@@ -24535,3 +24535,184 @@ class HideProfileView(APIView):
         except Exception as e:
             return JsonResponse({"Status": 0, "message": str(e)}, status=500)
 
+
+
+# ─── API 1 : Random Approved Groom Profiles (FIXED) ─────────────────────────
+# URL: path('random-grooms/', views.RandomGroomProfiles.as_view(), name='random-grooms'),
+
+class RandomGroomProfiles(APIView):
+    """
+    GET /random-grooms/
+    Returns 25 random approved (status=1) male profiles.
+
+    FIXES applied vs old version:
+      - status=1  (lowercase 's' — matches logindetails.status column)
+      - Photo_protection != 1  removed — logindetails uses BooleanField so
+        this was silently dropping rows; protection check kept safe via
+        Get_profile_image() which already handles it
+      - image EXISTS sub-query made lenient: profiles without any image are
+        included and Get_profile_image() returns the default avatar
+      - LIMIT raised to 25
+    """
+
+    def get(self, request):
+        try:
+            query = """
+                SELECT
+                    l1.ProfileId,
+                    l1.Profile_name,
+                    l1.Gender,
+                    l1.Profile_dob,
+                    l1.Profile_height,
+                    l1.Profile_city,
+                    l1.Photo_protection
+                FROM logindetails l1
+                WHERE LOWER(l1.Gender) = 'male'
+                  AND l1.status = 1
+                ORDER BY RAND()
+                LIMIT 25
+            """
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                columns = [col[0] for col in cursor.description]
+                profiles = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+            if not profiles:
+                return JsonResponse(
+                    {"Status": 0, "message": "No approved groom profiles found"},
+                    status=status.HTTP_200_OK
+                )
+
+            profile_ids = [p['ProfileId'] for p in profiles]
+
+            # Education details
+            edu_details       = models.Edudetails.objects.filter(profile_id__in=profile_ids)
+            profession_id_map = {e.profile_id: e.profession        for e in edu_details}
+            education_id_map  = {e.profile_id: e.highest_education for e in edu_details}
+
+            profession_mapping = {str(p.RowId): p.profession for p in models.Profespref.objects.all()}
+            degree_mapping     = {str(d.id): d.degree        for d in models.Highesteducation.objects.all()}
+
+            result = []
+            for p in profiles:
+                pid            = p['ProfileId']
+                photo_protect  = p['Photo_protection']  # BooleanField — True/False/0/1
+
+                # pass 'female' so default fallback img is the bride silhouette
+                profile_img = Get_profile_image(pid, 'female', 1, photo_protect)
+
+                result.append({
+                    "profile_id":   pid,
+                    "profile_name": p['Profile_name'],
+                    "profile_img":  profile_img,
+                    "profile_age":  calculate_age(p['Profile_dob']),
+                    # "height":       p['Profile_height'] or "",
+                    "height": get_height_info(p['Profile_height']),
+                    "degree":       degree_mapping.get(str(education_id_map.get(pid, "")), "N/A") or "N/A",
+                    "profession":   profession_mapping.get(str(profession_id_map.get(pid, "")), "N/A") or "N/A",
+                    "location":     p['Profile_city'] or "",
+                })
+
+            return JsonResponse({
+                "Status":        1,
+                "message":       "Random groom profiles fetched successfully",
+                "profile_count": len(result),
+                "profiles":      result,
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return JsonResponse(
+                {"Status": 0, "message": f"An error occurred: {e}"},
+                status=status.HTTP_200_OK
+            )
+
+
+# ─── API 2 : Random Approved Bride Profiles (FIXED) ─────────────────────────
+# URL: path('random-brides/', views.RandomBrideProfiles.as_view(), name='random-brides'),
+
+class RandomBrideProfiles(APIView):
+    """
+    GET /random-brides/
+    Returns 25 random approved (status=1) female profiles.
+
+    FIXES applied vs old version:
+      - status=1  (lowercase 's' — matches logindetails.status column)
+      - Photo_protection filter removed (BooleanField mismatch was killing results)
+      - image EXISTS sub-query removed — was too strict, returning 0 results
+        because image_approved/is_deleted are stored as TINYINT(1) booleans
+        and the comparison was inconsistent across MySQL versions
+      - LIMIT raised to 25
+    """
+
+    def get(self, request):
+        try:
+            query = """
+                SELECT
+                    l1.ProfileId,
+                    l1.Profile_name,
+                    l1.Gender,
+                    l1.Profile_dob,
+                    l1.Profile_height,
+                    l1.Profile_city,
+                    l1.Photo_protection
+                FROM logindetails l1
+                WHERE LOWER(l1.Gender) = 'female'
+                  AND l1.status = 1
+                ORDER BY RAND()
+                LIMIT 25
+            """
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                columns = [col[0] for col in cursor.description]
+                profiles = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+            if not profiles:
+                return JsonResponse(
+                    {"Status": 0, "message": "No approved bride profiles found"},
+                    status=status.HTTP_200_OK
+                )
+
+            profile_ids = [p['ProfileId'] for p in profiles]
+
+            edu_details       = models.Edudetails.objects.filter(profile_id__in=profile_ids)
+            profession_id_map = {e.profile_id: e.profession        for e in edu_details}
+            education_id_map  = {e.profile_id: e.highest_education for e in edu_details}
+
+            profession_mapping = {str(p.RowId): p.profession for p in models.Profespref.objects.all()}
+            degree_mapping     = {str(d.id): d.degree        for d in models.Highesteducation.objects.all()}
+
+            result = []
+            for p in profiles:
+                pid           = p['ProfileId']
+                photo_protect = p['Photo_protection']  # BooleanField — True/False/0/1
+
+                # pass 'male' so default fallback img is the groom silhouette
+                profile_img = Get_profile_image(pid, 'male', 1, photo_protect)
+
+                result.append({
+                    "profile_id":   pid,
+                    "profile_name": p['Profile_name'],
+                    "profile_img":  profile_img,
+                    "profile_age":  calculate_age(p['Profile_dob']),
+                    # "height":       p['Profile_height'] or "",
+                    "height": get_height_info(p['Profile_height']),
+                    "degree":       degree_mapping.get(str(education_id_map.get(pid, "")), "N/A") or "N/A",
+                    "profession":   profession_mapping.get(str(profession_id_map.get(pid, "")), "N/A") or "N/A",
+                    "location":     p['Profile_city'] or "",
+                })
+
+            return JsonResponse({
+                "Status":        1,
+                "message":       "Random bride profiles fetched successfully",
+                "profile_count": len(result),
+                "profiles":      result,
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return JsonResponse(
+                {"Status": 0, "message": f"An error occurred: {e}"},
+                status=status.HTTP_200_OK
+            )
+
+
+

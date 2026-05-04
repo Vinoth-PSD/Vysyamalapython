@@ -18444,893 +18444,6 @@ class PrintDashboardClearCompletedView(APIView):
 
 
 
-from django.utils.timezone import now
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from .models import (
-    CallLog, CallManagement,
-    ActionLog, ActionPointMaster,
-    CallTypeMaster, ParticularsMaster, CallStatusMaster,
-    LoginDetails, DataHistory, User, PlanDetails,
-    CallLog_New, CallManagement_New   # ✅ add these
-)
-
-
-class StaffDashboardView(APIView):
-    """
-    Staff Dashboard API.
-
-    GET params:
-        staff      : username     (optional — filters all data to one staff)
-        card       : total_calls | hot_leads | approved | premium | renewal | actions
-                     | attended_calls | unattended_calls | general_calls   ← new
-        date_from  : YYYY-MM-DD   (optional)
-        date_to    : YYYY-MM-DD   (optional)
-
-    Field mapping notes:
-        CallLog.call_owner      → CharField storing User.id as string
-        CallLog.particulars     → FK to ParticularsMaster → particulars_id
-        ActionLog.action_owner  → CharField storing User.id as string
-        ActionLog.action_point  → FK to ActionPointMaster → action_point_id
-        LoginDetails.status     → CharField ('1' = approved)
-        DataHistory.owner_id    → IntegerField → User.id → User.username
-        DataHistory.profile_status = 1 → approved event record
-
-        CallLog_New.call_owner  → CharField storing User.id as string
-        CallLog_New.comments    → starts with 'RNR' = unattended call
-        CallLog_New.call_type   → FK to CallTypeMaster  → call_type (CharField)
-        CallLog_New.call_status → FK to CallStatusMaster → status (CharField)
-        CallLog_New.particulars → FK to ParticularsMaster → particulars (CharField)
-    """
-
-    # ── Master data (matches your master tables exactly) ─────────────────────
-
-    CALL_TYPES = {
-        1: "Inbound call",
-        2: "Outbound call",
-        3: "In missed call",
-    }
-
-    CALL_STATUSES = {
-        1: "Hot - 3 days",
-        2: "Warm - 7 days",
-        3: "Cold - 30 days",
-        4: "Not interested",
-        5: "In Progress",
-        6: "Completed",
-    }
-
-    CALL_PARTICULARS = {
-        1 : "Validation",
-        2 : "Prospect",
-        3 : "Offer",
-        4 : "SOSP - Next call date",
-        5 : "Vys - Assist",
-        6 : "Horo Updation",
-        7 : "Photo Updation",
-        8 : "Id Proof Updation",
-        9 : "Feedback",
-        10: "Followup",
-        11: "Offer",
-        12: "Others",
-        13: "New Customer",
-        14: "Marriage Settled",
-        15: "Marriage Date Collection",
-        16: "Duplicate",
-        17: "Enquiry",
-        18: "Marriage Photo Collection",
-        19: "Wishes Cards",
-    }
-
-    ACTION_POINTS = {
-        1 : "Invoice",
-        2 : "PSP",
-        3 : "Weekly profile update",
-        4 : "Priority Circulation",
-        5 : "Compatability Report",
-        6 : "Express interest",
-        7 : "Horo updation",
-        8 : "Photo updation",
-        9 : "Id proof updation",
-        10: "Matching profile",
-        11: "Intimation",
-    }
-
-    # ── helpers ───────────────────────────────────────────────────────────────
-
-    @staticmethod
-    def _resolve_staff_ids(staff_name):
-        """Username → list of User.id (int)"""
-        if not staff_name:
-            return []
-        return list(
-            User.objects.filter(username=staff_name).values_list('id', flat=True)
-        )
-
-    def _call_splits(self, call_qs):
-        """
-        Returns split counts for a CallLog queryset.
-        All known IDs pre-seeded with 0 so every entry always appears.
-
-            call.call_type_id   → CALL_TYPES
-            call.call_status_id → CALL_STATUSES
-            call.particulars_id → CALL_PARTICULARS
-        """
-        by_type        = {v: 0 for v in self.CALL_TYPES.values()}
-        by_status      = {v: 0 for v in self.CALL_STATUSES.values()}
-        by_particulars = {v: 0 for v in self.CALL_PARTICULARS.values()}
-
-        for call in call_qs.only('call_type_id', 'call_status_id', 'particulars_id'):
-
-            ct_id = call.call_type_id
-            ct    = self.CALL_TYPES.get(ct_id, f"Unknown({ct_id})")
-            by_type[ct] = by_type.get(ct, 0) + 1
-
-            cs_id = call.call_status_id
-            cs    = self.CALL_STATUSES.get(cs_id, f"Unknown({cs_id})")
-            by_status[cs] = by_status.get(cs, 0) + 1
-
-            cp_id = call.particulars_id
-            cp    = self.CALL_PARTICULARS.get(cp_id, f"Unknown({cp_id})")
-            by_particulars[cp] = by_particulars.get(cp, 0) + 1
-
-        return {
-            "by_type"       : by_type,
-            "by_status"     : by_status,
-            "by_particulars": by_particulars,
-        }
-
-    def _call_new_splits(self, call_new_qs):
-        """
-        Returns split counts for a CallLog_New queryset.
-        Uses FK field names from models.py:
-            call_type   → CallTypeMaster  → call_type   (CharField)
-            call_status → CallStatusMaster → status     (CharField)
-            particulars → ParticularsMaster → particulars (CharField)
-        """
-        by_type        = {}
-        by_status      = {}
-        by_particulars = {}
-
-        for call in call_new_qs.only(
-            'call_type_id', 'call_status_id', 'particulars_id'
-        ):
-            # ── Call Type (CallTypeMaster.call_type) ──────────────────────
-            ct_id = call.call_type_id
-            if ct_id:
-                try:
-                    label = CallTypeMaster.objects.filter(
-                        id=ct_id
-                    ).values('call_type').first()
-                    ct = label['call_type'] if label else f"Unknown({ct_id})"
-                except Exception:
-                    ct = f"Unknown({ct_id})"
-            else:
-                ct = "N/A"
-            by_type[ct] = by_type.get(ct, 0) + 1
-
-            # ── Call Status (CallStatusMaster.status) ─────────────────────
-            cs_id = call.call_status_id
-            if cs_id:
-                try:
-                    label = CallStatusMaster.objects.filter(
-                        id=cs_id
-                    ).values('status').first()
-                    cs = label['status'] if label else f"Unknown({cs_id})"
-                except Exception:
-                    cs = f"Unknown({cs_id})"
-            else:
-                cs = "N/A"
-            by_status[cs] = by_status.get(cs, 0) + 1
-
-            # ── Particulars (ParticularsMaster.particulars) ───────────────
-            cp_id = call.particulars_id
-            if cp_id:
-                try:
-                    label = ParticularsMaster.objects.filter(
-                        id=cp_id
-                    ).values('particulars').first()
-                    cp = label['particulars'] if label else f"Unknown({cp_id})"
-                except Exception:
-                    cp = f"Unknown({cp_id})"
-            else:
-                cp = "N/A"
-            by_particulars[cp] = by_particulars.get(cp, 0) + 1
-
-        return {
-            "by_type"       : by_type,
-            "by_status"     : by_status,
-            "by_particulars": by_particulars,
-        }
-
-    @staticmethod
-    def _approved_date_from_datahistory(profile_id):
-        """
-        Earliest DataHistory record where profile_status = 1 → date_time.
-        """
-        dh = (
-            DataHistory.objects
-            .filter(profile_id=profile_id, profile_status=1)
-            .order_by('date_time')
-            .values('date_time')
-            .first()
-        )
-        if dh and dh['date_time']:
-            return dh['date_time'].strftime('%Y-%m-%d')
-        return "N/A"
-
-    # ── main handler ──────────────────────────────────────────────────────────
-
-    def get(self, request):
-        try:
-            staff_name = request.GET.get('staff')
-            card       = request.GET.get('card')
-            date_click = request.GET.get('date') 
-            export     = request.GET.get('export')
-            # ── resolve staff ─────────────────────────────────────────────
-            staff_ids     = self._resolve_staff_ids(staff_name)
-            staff_id_strs = [str(i) for i in staff_ids]
-
-            # CallLog.call_owner stores user id as string
-            call_qs = CallLog.objects.filter(is_deleted=0)
-            if staff_ids:
-                call_qs = call_qs.filter(call_owner__in=staff_id_strs)
-
-            # ActionLog.action_owner stores user id as string
-            action_qs = ActionLog.objects.filter(is_deleted=0)
-            if staff_ids:
-                action_qs = action_qs.filter(action_owner__in=staff_id_strs)
-
-            login_qs = LoginDetails.objects.all()
-
-            # ── profile IDs linked to these calls ─────────────────────────
-            call_profile_ids = list(
-                call_qs
-                .values_list('call_management__profile_id', flat=True)
-                .distinct()
-            )
-
-            # ── summary ───────────────────────────────────────────────────
-            total_calls       = call_qs.count()
-            hot_leads         = call_qs.filter(call_status_id=1).count()
-            total_actions     = action_qs.count()
-
-            # LoginDetails.status is CharField — compare as '1'
-            # approved_profiles = login_qs.filter(
-            #     ProfileId__in=call_profile_ids, status='1'
-            # ).count()
-            # premium_users = login_qs.filter(
-            #     ProfileId__in=call_profile_ids,
-            #     membership_enddate__gte=now()
-            # ).count()
-            # renewal_users = login_qs.filter(
-            #     ProfileId__in=call_profile_ids,
-            #     membership_enddate__lt=now()
-            # ).count()
-
-            if staff_ids:
-                approved_profiles = login_qs.filter(Owner_id__in=staff_ids, status='1').count()
-                premium_users     = login_qs.filter(Owner_id__in=staff_ids, status = '1',secondary_status = '5',membership_enddate__gte=now()).count()
-                renewal_users     = login_qs.filter(Owner_id__in=staff_ids, membership_enddate__lt=now()).count()
-            else:
-                approved_profiles = login_qs.filter(ProfileId__in=call_profile_ids, status='1').count()
-                premium_users     = login_qs.filter(ProfileId__in=call_profile_ids, membership_enddate__gte=now()).count()
-                renewal_users     = login_qs.filter(ProfileId__in=call_profile_ids, membership_enddate__lt=now()).count()
-
-            # ── CallLog_New summary counts ────────────────────────────────
-            call_new_qs = CallLog_New.objects.filter(is_deleted=0)
-            if staff_ids:
-                call_new_qs = call_new_qs.filter(call_owner__in=staff_id_strs)
-
-            attended_calls_count   = call_new_qs.exclude(
-                comments__iregex=r'^RNR'
-            ).count()
-            unattended_calls_count = call_new_qs.filter(
-                comments__iregex=r'^RNR'
-            ).count()
-            general_calls_count    = call_new_qs.count()
-
-           # ── staff-wise table — FIXED ──────────────────────────────────────────
-            staff_performance = []
-
-            all_owner_ids = list(
-                CallLog.objects
-                .filter(is_deleted=0)
-                .exclude(call_owner__isnull=True)
-                .exclude(call_owner='')
-                .values_list('call_owner', flat=True)
-                .distinct()
-            )
-
-            if staff_ids:
-                all_owner_ids = [s for s in all_owner_ids if str(s) in staff_id_strs]
-
-            for owner_id_str in all_owner_ids:
-                if not owner_id_str:
-                    continue
-
-                try:
-                    user = User.objects.filter(id=int(owner_id_str)).values('username').first()
-                    staff_label = user['username'] if user else str(owner_id_str)
-                except Exception:
-                    staff_label = str(owner_id_str)
-
-                s_calls = CallLog.objects.filter(call_owner=str(owner_id_str), is_deleted=0)
-                s_total = s_calls.count()
-                s_hot   = s_calls.filter(call_status_id=1).count()
-                s_warm  = s_calls.filter(call_status_id=2).count()
-                s_cold  = s_calls.filter(call_status_id=3).count()
-
-                s_actions = ActionLog.objects.filter(
-                    action_owner=str(owner_id_str), is_deleted=0
-                ).count()
-
-                s_pids = list(
-                    s_calls
-                    .values_list('call_management__profile_id', flat=True)
-                    .distinct()
-                )
-                s_pids = [p for p in s_pids if p]
-
-                try:
-                    owner_id_int = int(owner_id_str)
-                except Exception:
-                    owner_id_int = None
-
-                if owner_id_int:
-                    s_approved = login_qs.filter(Owner_id=owner_id_int, status='1').count()
-                    # s_premium  = login_qs.filter(
-                    #     Owner_id=owner_id_int, membership_enddate__gte=now()
-                    # ).count()
-                    s_premium=login_qs.filter(Owner_id__in=staff_ids, status = '1',secondary_status = '5',membership_enddate__gte=now()).count()
-
-                    s_renewal  = login_qs.filter(
-                        Owner_id=owner_id_int, membership_enddate__lt=now()
-                    ).count()
-                    s_profile_count = login_qs.filter(Owner_id=owner_id_int).count()
-                else:
-                    s_approved = s_premium = s_renewal = s_profile_count = 0
-
-                # ── CallLog_New counts per staff ──────────────────────────────────
-                s_call_new = CallLog_New.objects.filter(
-                    call_owner=str(owner_id_str), is_deleted=0
-                )
-                s_general    = s_call_new.count()
-                s_unattended = s_call_new.filter(comments__iregex=r'^RNR').count()
-                s_attended   = s_general - s_unattended
-
-                staff_performance.append({
-                    "staff"           : staff_label,
-                    "total_calls"     : s_total,
-                    "hot_leads"       : s_hot,
-                    "warm_leads"      : s_warm,
-                    "cold_leads"      : s_cold,
-                    "approved"        : s_approved,
-                    "premium"         : s_premium,
-                    "renewal"         : s_renewal,
-                    "actions"         : s_actions,
-                    "profile_count"   : s_profile_count,
-                    "general_calls"   : s_general,      # ✅ new
-                    "attended_calls"  : s_attended,     # ✅ new
-                    "unattended_calls": s_unattended,   # ✅ new
-                })
-
-            staff_performance.sort(key=lambda x: x["total_calls"], reverse=True)
-
-            # Sort by most calls first
-            staff_performance.sort(key=lambda x: x["total_calls"], reverse=True)
-
-            # ── date-wise breakdown ───────────────────────────────────────
-           # ── date-wise breakdown ───────────────────────────────────────────────
-            date_wise     = []
-            date_from_str = request.GET.get('date_from')
-            date_to_str   = request.GET.get('date_to')
-            import datetime
-
-            # DEFAULT: current month 1st → today if no dates passed
-            today = datetime.date.today()
-            if not date_from_str:
-                date_from_str = today.replace(day=1).isoformat()
-            if not date_to_str:
-                date_to_str = today.isoformat()
-
-            # ← try is NOW outside the if blocks — runs always
-            try:
-                date_from = datetime.date.fromisoformat(date_from_str)
-                date_to   = datetime.date.fromisoformat(date_to_str)
-                current   = date_from
-                today     = datetime.date.today()
-
-                while current <= date_to:
-                    day_start = datetime.datetime.combine(current, datetime.time.min)
-                    day_end   = datetime.datetime.combine(current, datetime.time.max)
-
-                    day_calls = CallLog.objects.filter(
-                        created_at__gte=day_start,
-                        created_at__lte=day_end,
-                        is_deleted=0,
-                    )
-                    if staff_ids:
-                        day_calls = day_calls.filter(call_owner__in=staff_id_strs)
-
-                    day_data = DataHistory.objects.filter(
-                        date_time__gte=day_start, date_time__lte=day_end
-                    )
-                    if staff_ids:
-                        day_data = day_data.filter(owner_id__in=staff_ids)
-
-                    day_approved    = day_data.filter(profile_status=1).count()
-                    day_profile_ids = list(
-                        day_data.values_list('profile_id', flat=True).distinct()
-                    )
-                    day_premium = LoginDetails.objects.filter(
-                        ProfileId__in=day_profile_ids, secondary_status=5
-                    ).count()
-                    day_renewal = LoginDetails.objects.filter(
-                        ProfileId__in=day_profile_ids,
-                        membership_enddate__date__lt=today
-                    ).count()
-
-                    day_actions = ActionLog.objects.filter(
-                        created_at__gte=day_start,
-                        created_at__lte=day_end,
-                        is_deleted=0,
-                    )
-                    if staff_ids:
-                        day_actions = day_actions.filter(action_owner__in=staff_id_strs)
-
-                    day_call_new = CallLog_New.objects.filter(
-                        created_at__gte=day_start,
-                        created_at__lte=day_end,
-                        is_deleted=0,
-                    )
-                    if staff_ids:
-                        day_call_new = day_call_new.filter(call_owner__in=staff_id_strs)
-
-                    day_general    = day_call_new.count()
-                    day_unattended = day_call_new.filter(comments__iregex=r'^RNR').count()
-                    day_attended   = day_general - day_unattended
-
-                    date_wise.append({
-                        "date"            : current.strftime('%d %b %Y'),
-                        "total_calls"     : day_calls.count(),
-                        "hot"             : day_calls.filter(call_status_id=1).count(),
-                        "approved"        : day_approved,
-                        "premium"         : day_premium,
-                        "renewal"         : day_renewal,
-                        "actions"         : day_actions.count(),
-                        "general_calls"   : day_general,
-                        "attended_calls"  : day_attended,
-                        "unattended_calls": day_unattended,
-                    })
-
-                    current += datetime.timedelta(days=1)
-
-                # ── Export inside try, after while loop ───────────────────────────
-                if export == 'excel' and date_wise:
-                    import openpyxl
-                    from openpyxl.styles import Font, PatternFill, Alignment
-                    from openpyxl.utils import get_column_letter
-                    import io
-                    from django.http import HttpResponse
-
-                    wb = openpyxl.Workbook()
-                    ws = wb.active
-                    ws.title = "Date Wise Performance"
-
-                    headers = [
-                        "Date", "Total Calls", "Hot", "Approved",
-                        "Premium", "Renewal", "Actions",
-                        "General Calls", "Attended Calls", "Unattended Calls"
-                    ]
-
-                    HEADER_FILL = PatternFill("solid", start_color="1e1b4b", end_color="1e1b4b")
-                    HEADER_FONT = Font(bold=True, color="FFFFFF", size=11)
-                    CENTER      = Alignment(horizontal="center", vertical="center")
-                    ALT_FILL    = PatternFill("solid", start_color="f1f5f9", end_color="f1f5f9")
-                    WHITE_FILL  = PatternFill("solid", start_color="FFFFFF", end_color="FFFFFF")
-
-                    ws.append(headers)
-                    for col_idx in range(1, len(headers) + 1):
-                        cell = ws.cell(row=1, column=col_idx)
-                        cell.fill = HEADER_FILL
-                        cell.font = HEADER_FONT
-                        cell.alignment = CENTER
-                    ws.row_dimensions[1].height = 22
-
-                    for i, row in enumerate(date_wise, start=2):
-                        ws.append([
-                            row["date"],
-                            row["total_calls"],
-                            row["hot"],
-                            row["approved"],
-                            row["premium"],
-                            row["renewal"],
-                            row["actions"],
-                            row.get("general_calls",    0),
-                            row.get("attended_calls",   0),
-                            row.get("unattended_calls", 0),
-                        ])
-                        fill = ALT_FILL if i % 2 == 0 else WHITE_FILL
-                        for col_idx in range(1, len(headers) + 1):
-                            cell = ws.cell(row=i, column=col_idx)
-                            cell.fill = fill
-                            cell.alignment = CENTER
-
-                    col_widths = [16, 14, 8, 12, 12, 12, 12, 16, 18, 20]
-                    for i, w in enumerate(col_widths, 1):
-                        ws.column_dimensions[get_column_letter(i)].width = w
-                    ws.freeze_panes = "A2"
-
-                    staff_label = staff_name if staff_name else "all_staff"
-                    filename    = f"date_wise_{staff_label}_{date_from_str}_to_{date_to_str}.xlsx"
-
-                    buf = io.BytesIO()
-                    wb.save(buf)
-                    buf.seek(0)
-
-                    response = HttpResponse(
-                        buf.getvalue(),
-                        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
-                    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-                    return response
-
-            except ValueError:
-                pass
-
-            # ── card drill-down ───────────────────────────────────────────
-            card_detail = {}
-
-            if card:
-
-                # ── A. Total Calls ────────────────────────────────────────
-                if card == 'total_calls':
-                    card_detail = self._call_splits(call_qs)
-                    card_detail["total"] = total_calls
-
-                # ── B. Hot Leads ──────────────────────────────────────────
-                elif card == 'hot_leads':
-                    seen_pids = set()
-                    profiles  = []
-
-                    for call in (
-                        call_qs
-                        .filter(call_status_id=1)
-                        .select_related('call_management')
-                        .order_by('-created_at')
-                    ):
-                        cm  = call.call_management
-                        pid = cm.profile_id if cm else None
-                        if not pid or pid in seen_pids:
-                            continue
-                        seen_pids.add(pid)
-
-                        owner_name = "N/A"
-                        try:
-                            user = User.objects.filter(
-                                id=int(call.call_owner)
-                            ).values('username').first()
-                            if user:
-                                owner_name = user['username']
-                        except Exception:
-                            pass
-
-                        profiles.append({
-                            "profile_id"     : pid,
-                            "call_owner_name": owner_name,
-                        })
-
-                    card_detail = {"total": len(profiles), "profiles": profiles}
-
-                elif card == 'approved':
-                    profiles = []
-                    
-                    approved_qs = login_qs.filter(status='1')
-                    
-                    if staff_ids:
-                        approved_qs = approved_qs.filter(Owner_id__in=staff_ids)
-                    
-                    for p in approved_qs.values('ProfileId', 'Profile_name', 'Owner_id'):
-                        
-                        owner_name = "N/A"
-                        try:
-                            if p['Owner_id']:
-                                user = User.objects.filter(
-                                    id=int(p['Owner_id'])
-                                ).values('username').first()
-                                if user:
-                                    owner_name = user['username']
-                        except Exception:
-                            pass
-
-                        profiles.append({
-                            "profile_id"   : p['ProfileId'],
-                            "name"         : p['Profile_name'] or "N/A",
-                            "owner_name"   : owner_name,
-                            "approved_date": self._approved_date_from_datahistory(p['ProfileId']),
-                        })
-
-                    card_detail = {"total": len(profiles), "profiles": profiles}
-
-                elif card == 'premium':
-                    profiles = []
-                    # premium_qs = login_qs.filter(membership_enddate__gte=now())
-                    premium_qs = login_qs.filter(
-                    status='1',
-                    secondary_status=5,
-                    membership_enddate__gte=now()
-                )
-
-                    if staff_ids:
-                        premium_qs = premium_qs.filter(Owner_id__in=staff_ids)
-
-                    for p in premium_qs.values('ProfileId', 'Owner_id', 'Plan_id'):
-                        owner_name = "N/A"
-                        try:
-                            if p['Owner_id']:
-                                user = User.objects.filter(
-                                    id=int(p['Owner_id'])
-                                ).values('username').first()
-                                if user:
-                                    owner_name = user['username']
-                        except Exception:
-                            pass
-
-                        plan_name = "N/A"
-                        try:
-                            plan = PlanDetails.objects.filter(
-                                id=p['Plan_id']
-                            ).values('plan_name').first()
-                            if plan:
-                                plan_name = plan['plan_name']
-                        except Exception:
-                            pass
-
-                        profiles.append({
-                            "profile_id": p['ProfileId'],
-                            "owner_name": owner_name,
-                            "plan_type":  plan_name,
-                        })
-
-                    card_detail = {"total": len(profiles), "profiles": profiles}
-
-                elif card == 'renewal':
-                    profiles = []
-                    try:
-                        renewal_qs = login_qs.filter(membership_enddate__lt=now())
-                        if staff_ids:
-                            renewal_qs = renewal_qs.filter(Owner_id__in=staff_ids)
-
-                        for p in renewal_qs.values(
-                            'ProfileId', 'Profile_name', 'Owner_id',
-                            'membership_enddate', 'Plan_id'
-                        ):
-                            owner_name = "N/A"
-                            try:
-                                if p['Owner_id']:
-                                    user = User.objects.filter(
-                                        id=int(p['Owner_id'])
-                                    ).values('username').first()
-                                    if user:
-                                        owner_name = user['username']
-                            except Exception:
-                                pass
-
-                            plan_name = "N/A"
-                            try:
-                                plan = PlanDetails.objects.filter(
-                                    id=p['Plan_id']
-                                ).values('plan_name').first()
-                                if plan:
-                                    plan_name = plan['plan_name']
-                            except Exception:
-                                pass
-
-                            profiles.append({
-                                "profile_id"      : p['ProfileId'],
-                                "name"            : p['Profile_name'] or "N/A",
-                                "owner_name"      : owner_name,
-                                "plan_type"       : plan_name,
-                                "membership_ended": p['membership_enddate'].strftime('%Y-%m-%d')
-                                                    if p['membership_enddate'] else "N/A",
-                            })
-
-                        card_detail = {"total": len(profiles), "profiles": profiles}
-
-                    except Exception as e:
-                        card_detail = {"error": str(e)}
-
-                elif card == 'actions':
-                    by_action = {name: 0 for name in self.ACTION_POINTS.values()}
-
-                    for action in action_qs.only('action_point_id'):
-                        ap_id = action.action_point_id
-                        label = self.ACTION_POINTS.get(ap_id, f"Unknown({ap_id})")
-                        by_action[label] = by_action.get(label, 0) + 1
-
-                    card_detail = {
-                        "total"          : total_actions,
-                        "by_action_point": by_action,
-                    }
-
-                # ── G. Attended Calls ─────────────────────────────────────
-                # CallLog_New where comments does NOT start with RNR
-                # Shows splits: by call_type, by call_status, by particulars
-                # Field names from models.py:
-                #   CallTypeMaster.call_type  | CallStatusMaster.status | ParticularsMaster.particulars
-                elif card == 'attended_calls':
-                    try:
-                        attended_qs = call_new_qs.exclude(comments__iregex=r'^RNR')
-                        splits      = self._call_new_splits(attended_qs)
-
-                        card_detail = {
-                            "total"         : attended_qs.count(),
-                            "by_type"       : splits["by_type"],
-                            "by_status"     : splits["by_status"],
-                            "by_particulars": splits["by_particulars"],
-                        }
-
-                    except Exception as e:
-                        card_detail = {"error": str(e)}
-
-                # ── H. Unattended Calls ───────────────────────────────────
-                # CallLog_New where comments starts with RNR (case-insensitive)
-                # Returns profile list: profile_id, profile_name, call_date, call_owner
-                elif card == 'unattended_calls':
-                    try:
-                        unattended_qs = call_new_qs.filter(comments__iregex=r'^RNR')
-                        profiles      = []
-
-                        for p in unattended_qs.values(
-                            'id',
-                            'call_date',
-                            'call_owner',
-                            'comments',
-                            'call_management__profile_id',   # CallManagement_New.profile_id
-                        ):
-                            owner_name = "N/A"
-                            try:
-                                if p['call_owner']:
-                                    user = User.objects.filter(
-                                        id=int(p['call_owner'])
-                                    ).values('username').first()
-                                    if user:
-                                        owner_name = user['username']
-                            except Exception:
-                                pass
-
-                            profiles.append({
-                                "call_id"   : p['id'],
-                                "profile_id": p['call_management__profile_id'] or "N/A",
-                                "call_date" : p['call_date'].strftime('%Y-%m-%d %H:%M')
-                                              if p['call_date'] else "N/A",
-                                "call_owner": owner_name,
-                                "comments"  : p['comments'] or "N/A",
-                            })
-
-                        card_detail = {
-                            "total"   : len(profiles),
-                            "profiles": profiles,
-                        }
-
-                    except Exception as e:
-                        card_detail = {"error": str(e)}
-
-                # ── I. General Calls ──────────────────────────────────────
-                # Total count of all CallLog_New records (attended + unattended)
-                elif card == 'general_calls':
-                    try:
-                        card_detail = {
-                            "total"            : general_calls_count,
-                            "attended_count"   : attended_calls_count,
-                            "unattended_count" : unattended_calls_count,
-                        }
-
-                    except Exception as e:
-                        card_detail = {"error": str(e)}
-
-                # ── J. Date Drill-Down ────────────────────────────────────────────────
-                # GET /api/staff-dashboard/?staff=Lavanya&card=date_detail&date=2026-04-02
-                elif card == 'date_detail':
-                    try:
-                        if not date_click:
-                            card_detail = {"error": "date param required e.g. &date=2026-04-02"}
-                        else:
-                            click_date  = datetime.date.fromisoformat(date_click)
-                            day_start   = datetime.datetime.combine(click_date, datetime.time.min)
-                            day_end     = datetime.datetime.combine(click_date, datetime.time.max)
-
-                            # ── calls on this date ────────────────────────────────────
-                            day_call_qs = CallLog.objects.filter(
-                                created_at__gte=day_start,
-                                created_at__lte=day_end,
-                                is_deleted=0,
-                            )
-                            if staff_ids:
-                                day_call_qs = day_call_qs.filter(call_owner__in=staff_id_strs)
-
-                            # ── by_type ───────────────────────────────────────────────
-                            by_type = {v: 0 for v in self.CALL_TYPES.values()}
-                            for call in day_call_qs.only('call_type_id'):
-                                ct  = self.CALL_TYPES.get(call.call_type_id, f"Unknown({call.call_type_id})")
-                                by_type[ct] = by_type.get(ct, 0) + 1
-
-                            # ── by_status ─────────────────────────────────────────────
-                            by_status = {v: 0 for v in self.CALL_STATUSES.values()}
-                            for call in day_call_qs.only('call_status_id'):
-                                cs  = self.CALL_STATUSES.get(call.call_status_id, f"Unknown({call.call_status_id})")
-                                by_status[cs] = by_status.get(cs, 0) + 1
-
-                            # ── by_particulars ────────────────────────────────────────
-                            by_particulars = {v: 0 for v in self.CALL_PARTICULARS.values()}
-                            for call in day_call_qs.only('particulars_id'):
-                                cp  = self.CALL_PARTICULARS.get(call.particulars_id, f"Unknown({call.particulars_id})")
-                                by_particulars[cp] = by_particulars.get(cp, 0) + 1
-
-                            # ── approved on this date ─────────────────────────────────
-                            day_data     = DataHistory.objects.filter(
-                                date_time__gte=day_start,
-                                date_time__lte=day_end,
-                                profile_status=1,
-                            )
-                            if staff_ids:
-                                day_data = day_data.filter(owner_id__in=staff_ids)
-                            day_approved = day_data.count()
-
-                            # ── actions on this date ──────────────────────────────────
-                            day_action_qs = ActionLog.objects.filter(
-                                created_at__gte=day_start,
-                                created_at__lte=day_end,
-                                is_deleted=0,
-                            )
-                            if staff_ids:
-                                day_action_qs = day_action_qs.filter(action_owner__in=staff_id_strs)
-
-                            by_action = {v: 0 for v in self.ACTION_POINTS.values()}
-                            for action in day_action_qs.only('action_point_id'):
-                                ap  = self.ACTION_POINTS.get(action.action_point_id, f"Unknown({action.action_point_id})")
-                                by_action[ap] = by_action.get(ap, 0) + 1
-
-                            card_detail = {
-                                "date"           : click_date.strftime('%d %b %Y'),
-                                "total_calls"    : day_call_qs.count(),
-                                "approved"       : day_approved,
-                                "actions"        : day_action_qs.count(),
-                                "by_type"        : by_type,
-                                "by_status"      : by_status,
-                                "by_particulars" : by_particulars,
-                                "by_action_point": by_action,
-                            }
-
-                    except ValueError:
-                        card_detail = {"error": "Invalid date format. Use YYYY-MM-DD"}
-                    except Exception as e:
-                        card_detail = {"error": str(e)}
-
-            # ── final response ────────────────────────────────────────────
-            return Response({
-                "summary": {
-                    "total_calls"      : total_calls,
-                    "hot_leads"        : hot_leads,
-                    "approved_profiles": approved_profiles,
-                    "premium_users"    : premium_users,
-                    "renewal_users"    : renewal_users,
-                    "actions"          : total_actions,
-                    "attended_calls"   : attended_calls_count,    # ✅ new
-                    "unattended_calls" : unattended_calls_count,  # ✅ new
-                    "general_calls"    : general_calls_count,     # ✅ new
-                },
-                "staff_wise" : staff_performance,
-                "date_wise"  : date_wise,
-                "card_detail": card_detail,
-            })
-
-        except Exception as e:
-            return Response({"error": str(e)}, status=500)
-
-
-
 class GothramNamesSingleListView(APIView):
   
  
@@ -20160,15 +19273,17 @@ class AdminHideProfileNotifications(APIView):
             "data": data
         })
 
+
+
+
 from .models import MarriageSettleDetails, SuccessStory, ProfileSubStatus
-class WebsitePerformanceReport(APIView):
+class   WebsitePerformanceReport(APIView):
     def get(self, request):
         try:
             from_date_str = request.query_params.get('from_date')
             to_date_str   = request.query_params.get('to_date')
-            export        = request.query_params.get('export')  # pass ?export=excel to download
+            export        = request.query_params.get('export')
 
-            # ── Date filter ───────────────────────────────────────────────
             from_date = None
             to_date   = None
             if from_date_str and to_date_str:
@@ -20199,31 +19314,40 @@ class WebsitePerformanceReport(APIView):
                     )
                 return qs
 
-            # ── Plan groupings ────────────────────────────────────────────
+            # Helper: apply date filter using Last_login_date
+            def login_date_filter(qs):
+                if from_date and to_date:
+                    return qs.extra(
+                        where=["DATE(Last_login_date) >= %s AND DATE(Last_login_date) <= %s"],
+                        params=[str(from_date), str(to_date)]
+                    )
+                return qs
+
+            # ── Plan groupings ─────────────────────────────────────────
             FREE_PLANS     = [6, 7, 9, 11, 12, 13]
             PROSPECT_PLANS = [8]
-            # Premium = status=1, Plan_id NOT in free or prospect
 
             # ─────────────────────────────────────────────────────────────
             # 1. EXECUTIVE SUMMARY
             # ─────────────────────────────────────────────────────────────
 
-            # Total Registrations
+            # Total Registrations (still uses DateOfJoin)
             total_registrations = join_date_filter(LoginDetails.objects.all()).count()
-            # Total Login Members (status 0 & 1, with valid Last_login_date)
-            login_members_qs = join_date_filter(
+
+            # ── Total Login Members — filtered by Last_login_date ────────
+            login_members_qs = login_date_filter(
                 LoginDetails.objects.filter(status__in=[0, 1])
-            ).exclude(
-                Last_login_date__isnull=True
-            )
+            ).exclude(Last_login_date__isnull=True)
+
             total_login_members = login_members_qs.count()
 
-            # Unique Login Members (distinct profile_id who logged in during period)
-            total_unique_logins = date_filter(
-                ProfileLoginLogs.objects.values('profile_id').distinct(),
-                'login_datetime'
+            # ── Total Unique Login Members — filtered by Last_login_date ─
+            total_unique_logins = login_date_filter(
+                LoginDetails.objects.filter(status__in=[0, 1])
+                .exclude(Last_login_date__isnull=True)
+                .values('ProfileId')
+                .distinct()
             ).count()
-
 
             # Premium Members (status=1, secondary_status=5)
             premium_members  = login_members_qs.filter(
@@ -20275,10 +19399,7 @@ class WebsitePerformanceReport(APIView):
             total_for_pct = total_login_members if total_login_members > 0 else 1
 
             login_category_report = {
-                "total":    {
-                    "count": total_login_members,
-                    "pct":   100
-                },
+                "total":    {"count": total_login_members, "pct": 100},
                 "premium":  {
                     "count": premium_members,
                     "pct":   round(premium_members  / total_for_pct * 100, 1)
@@ -20294,14 +19415,22 @@ class WebsitePerformanceReport(APIView):
             }
 
             # ─────────────────────────────────────────────────────────────
-            # 3. STATE-WISE LOGIN MEMBERS
+            # 3. STATE-WISE LOGIN MEMBERS — filtered by Last_login_date
             # ─────────────────────────────────────────────────────────────
-            tn_pondy      = login_members_qs.filter(Profile_state__in=['2', '7']).count()
-            andhra        = login_members_qs.filter(Profile_state='1').count()
-            telangana     = login_members_qs.filter(Profile_state='3').count()
-            karnataka     = login_members_qs.filter(Profile_state='4').count()
-            kerala        = login_members_qs.filter(Profile_state='5').count()
-            nri           = login_members_qs.filter(
+
+            # Base queryset: status IN (0,1), Last_login_date NOT NULL,
+            # filtered by Last_login_date range when dates are provided
+            state_base_qs = login_date_filter(
+                LoginDetails.objects.filter(status__in=[0, 1])
+                .exclude(Last_login_date__isnull=True)
+            )
+
+            tn_pondy     = state_base_qs.filter(Profile_state__in=['2', '7']).count()
+            andhra       = state_base_qs.filter(Profile_state='1').count()
+            telangana    = state_base_qs.filter(Profile_state='3').count()
+            karnataka    = state_base_qs.filter(Profile_state='4').count()
+            kerala       = state_base_qs.filter(Profile_state='5').count()
+            nri          = state_base_qs.filter(
                             Profile_country='1',
                             ProfileId__in=ProfileEduDetails.objects.filter(
                                 ~Q(work_country='1'),
@@ -20310,7 +19439,7 @@ class WebsitePerformanceReport(APIView):
                                 work_country__isnull=False
                             ).values('profile_id')
                         ).count()
-            state_others  = login_members_qs.exclude(
+            state_others = state_base_qs.exclude(
                 Profile_state__in=['1', '2', '3', '4', '5', '7']
             ).count()
 
@@ -20352,14 +19481,9 @@ class WebsitePerformanceReport(APIView):
             # ─────────────────────────────────────────────────────────────
             # 5. REGISTRATION REPORT
             # ─────────────────────────────────────────────────────────────
-
-            
             all_reg_qs = join_date_filter(LoginDetails.objects.all())
 
-            # New (status=0)
             new_registrations  = all_reg_qs.filter(status=0).count()
-
-            # Approved (status=1)
             approved_total    = all_reg_qs.filter(status=1).count()
             approved_premium  = all_reg_qs.filter(status=1, secondary_status=5).count()
             approved_prospect = all_reg_qs.filter(status=1, secondary_status=2).count()
@@ -20374,25 +19498,23 @@ class WebsitePerformanceReport(APIView):
                 },
             }
 
-
-                        # ─────────────────────────────────────────────────────────────
+            # ─────────────────────────────────────────────────────────────
             # 6. DELETED PROFILES REPORT
             # ─────────────────────────────────────────────────────────────
             deleted_qs = join_date_filter(LoginDetails.objects.filter(status=4))
             total_deleted_profiles = deleted_qs.count()
 
-            # Get secondary_status IDs from ProfileSubStatus (status_code=4)
             sub_statuses_4 = ProfileSubStatus.objects.filter(status_code=4)
 
-            duplicate_ids      = list(sub_statuses_4.filter(
+            duplicate_ids = list(sub_statuses_4.filter(
                 sub_status_name__icontains='duplicate'
             ).values_list('id', flat=True))
 
-            fake_ids           = list(sub_statuses_4.filter(
+            fake_ids = list(sub_statuses_4.filter(
                 sub_status_name__icontains='fake'
             ).values_list('id', flat=True))
 
-            marriage_ids       = list(sub_statuses_4.filter(
+            marriage_ids = list(sub_statuses_4.filter(
                 sub_status_name__iregex=r'marriage|got married'
             ).values_list('id', flat=True))
 
@@ -20401,10 +19523,10 @@ class WebsitePerformanceReport(APIView):
             marriage_del_count = deleted_qs.filter(secondary_status__in=marriage_ids).count()
 
             deleted_profiles_report = {
-                "total_deleted_profiles":    total_deleted_profiles,
-                "duplicate_profiles":        duplicate_count,
-                "fake_profiles_others":      fake_others_count,
-                "marriage_settled":          marriage_del_count,
+                "total_deleted_profiles": total_deleted_profiles,
+                "duplicate_profiles":     duplicate_count,
+                "fake_profiles_others":   fake_others_count,
+                "marriage_settled":       marriage_del_count,
             }
 
             # ─────────────────────────────────────────────────────────────
@@ -20417,23 +19539,21 @@ class WebsitePerformanceReport(APIView):
                     created_at__date__lte=to_date
                 )
 
-            total_marriage          = marriage_qs.count()
-            with_marriage_date      = marriage_qs.filter(marriage_date__isnull=False).count()
-            without_marriage_date   = marriage_qs.filter(marriage_date__isnull=True).count()
+            total_marriage        = marriage_qs.count()
+            with_marriage_date    = marriage_qs.filter(marriage_date__isnull=False).count()
+            without_marriage_date = marriage_qs.filter(marriage_date__isnull=True).count()
 
-            # settled_thru — exact values from the UI: Vysyamala, Relatives, Whatsapp Group, Others
-            thru_vysyamala          = marriage_qs.filter(settled_thru='Vysyamala').count()
-            thru_relatives          = marriage_qs.filter(settled_thru='Relatives').count()
-            thru_whatsapp           = marriage_qs.filter(settled_thru='Whatsapp Group').count()
-            thru_others             = marriage_qs.filter(settled_thru='Others').count()
+            thru_vysyamala = marriage_qs.filter(settled_thru='Vysyamala').count()
+            thru_relatives = marriage_qs.filter(settled_thru='Relatives').count()
+            thru_whatsapp  = marriage_qs.filter(settled_thru='Whatsapp Group').count()
+            thru_others    = marriage_qs.filter(settled_thru='Others').count()
 
-            # Bride/Groom Vysyamala ID presence
-            both_ids_present        = marriage_qs.exclude(
-                                        groom_bride_vysyamala_id__isnull=True
-                                    ).exclude(
-                                        groom_bride_vysyamala_id=''
-                                    ).count()
-            single_id_present       = total_marriage - both_ids_present
+            both_ids_present  = marriage_qs.exclude(
+                                    groom_bride_vysyamala_id__isnull=True
+                                ).exclude(
+                                    groom_bride_vysyamala_id=''
+                                ).count()
+            single_id_present = total_marriage - both_ids_present
 
             marriage_settled_report = {
                 "total":                 total_marriage,
@@ -20468,7 +19588,8 @@ class WebsitePerformanceReport(APIView):
                 "total_success_stories": total_success_stories,
                 "photos_uploaded":       photos_uploaded,
             }
-                                    # ─────────────────────────────────────────────────────────────
+
+            # ─────────────────────────────────────────────────────────────
             # EXCEL EXPORT
             # ─────────────────────────────────────────────────────────────
             if export == 'excel':
@@ -20476,8 +19597,8 @@ class WebsitePerformanceReport(APIView):
                 from openpyxl.styles import Font, PatternFill, Alignment
                 from io import BytesIO
 
-                wb  = Workbook()
-                ws  = wb.active
+                wb = Workbook()
+                ws = wb.active
                 ws.title = "Website Performance"
 
                 header_font  = Font(bold=True, size=12, color="FFFFFF")
@@ -20496,19 +19617,19 @@ class WebsitePerformanceReport(APIView):
 
                 sections = [
                     ("EXECUTIVE SUMMARY", [
-                        ("Total Registrations",      total_registrations),
-                        ("Total Login Members",      total_login_members),
+                        ("Total Registrations",        total_registrations),
+                        ("Total Login Members",        total_login_members),
                         ("Total Unique Login Members", total_unique_logins),
-                        ("Premium Members",          premium_members),
-                        ("Prospect Members",         prospect_members),
-                        ("Other Members",            other_members),
-                        ("Total Express Interests",  total_interests),
-                        ("Accepted Interests",       accepted_interests),
-                        ("Total Bookmarks",          total_bookmarks),
-                        ("Transactions Success",     txn_success),
-                        ("Transactions Failure",     txn_failure),
-                        ("Total Deleted",            total_deleted),
-                        ("Marriage Settled",         marriage_settled),
+                        ("Premium Members",            premium_members),
+                        ("Prospect Members",           prospect_members),
+                        ("Other Members",              other_members),
+                        ("Total Express Interests",    total_interests),
+                        ("Accepted Interests",         accepted_interests),
+                        ("Total Bookmarks",            total_bookmarks),
+                        ("Transactions Success",       txn_success),
+                        ("Transactions Failure",       txn_failure),
+                        ("Total Deleted",              total_deleted),
+                        ("Marriage Settled",           marriage_settled),
                     ]),
                     ("LOGIN MEMBER REPORT – Category Wise", [
                         ("Total",    f"{total_login_members}   (100%)"),
@@ -20526,66 +19647,61 @@ class WebsitePerformanceReport(APIView):
                         ("Others",                   state_others),
                     ]),
                     ("EXPRESS INTEREST REPORT", [
-                        ("Total Sent",      total_interests),
-                        ("Premium Sent",    premium_sent),
-                        ("Prospect Sent",   prospect_sent),
-                        ("Others Sent",     others_sent),
-                        ("Total Accepted",  accepted_interests),
-                        ("Acceptance %",    f"{acceptance_pct}%"),
+                        ("Total Sent",     total_interests),
+                        ("Premium Sent",   premium_sent),
+                        ("Prospect Sent",  prospect_sent),
+                        ("Others Sent",    others_sent),
+                        ("Total Accepted", accepted_interests),
+                        ("Acceptance %",   f"{acceptance_pct}%"),
                     ]),
-
                     ("REGISTRATION REPORT", [
-                        ("Total Registrations",  total_registrations),
-                        ("New",                  new_registrations),
-                        ("Approved - Total",     approved_total),
-                        ("Approved - Premium",   approved_premium),
-                        ("Approved - Prospect",  approved_prospect),
+                        ("Total Registrations", total_registrations),
+                        ("New",                 new_registrations),
+                        ("Approved - Total",    approved_total),
+                        ("Approved - Premium",  approved_premium),
+                        ("Approved - Prospect", approved_prospect),
                     ]),
-
                     ("DELETED PROFILES REPORT", [
-                        ("Total Deleted Profiles",    total_deleted_profiles),
-                        ("Duplicate Profiles",        duplicate_count),
-                        ("Fake Profiles / Others",    fake_others_count),
-                        ("Marriage Settled",          marriage_del_count),
+                        ("Total Deleted Profiles", total_deleted_profiles),
+                        ("Duplicate Profiles",     duplicate_count),
+                        ("Fake Profiles / Others", fake_others_count),
+                        ("Marriage Settled",       marriage_del_count),
                     ]),
                     ("MARRIAGE SETTLED / GOT MARRIED", [
-                        ("Total",                     total_marriage),
-                        ("With Marriage Date",        with_marriage_date),
-                        ("Without Marriage Date",     without_marriage_date),
-                        ("Thru Vysyamala",            thru_vysyamala),
-                        ("Thru Relatives",            thru_relatives),
-                        ("Thru Whatsapp Group",       thru_whatsapp),
-                        ("Thru Others",               thru_others),
-                        ("Both IDs Present",          both_ids_present),
-                        ("Single ID Present",         single_id_present),
+                        ("Total",                 total_marriage),
+                        ("With Marriage Date",    with_marriage_date),
+                        ("Without Marriage Date", without_marriage_date),
+                        ("Thru Vysyamala",        thru_vysyamala),
+                        ("Thru Relatives",        thru_relatives),
+                        ("Thru Whatsapp Group",   thru_whatsapp),
+                        ("Thru Others",           thru_others),
+                        ("Both IDs Present",      both_ids_present),
+                        ("Single ID Present",     single_id_present),
                     ]),
                     ("SUCCESS STORIES", [
-                        ("Total Success Stories",     total_success_stories),
-                        ("Marriage Photos Uploaded",  photos_uploaded),
+                        ("Total Success Stories",    total_success_stories),
+                        ("Marriage Photos Uploaded", photos_uploaded),
                     ]),
                 ]
 
                 for section_title, rows in sections:
-                    # Section header
                     cell = ws.cell(row=row, column=1, value=section_title)
                     cell.font = section_font
                     cell.fill = section_fill
                     ws.cell(row=row, column=2).fill = section_fill
                     row += 1
 
-                    # Column headers
                     for col, label in [(1, "Category"), (2, "Count")]:
                         c = ws.cell(row=row, column=col, value=label)
                         c.font = header_font
                         c.fill = header_fill
                     row += 1
 
-                    # Data rows
                     for label, value in rows:
                         ws.cell(row=row, column=1, value=label)
                         ws.cell(row=row, column=2, value=value)
                         row += 1
-                    row += 1  # blank row between sections
+                    row += 1
 
                 buffer = BytesIO()
                 wb.save(buffer)
@@ -20611,22 +19727,22 @@ class WebsitePerformanceReport(APIView):
                     "to_date":   str(to_date)   if to_date   else "All time",
                 },
                 "executive_summary": {
-                    "total_registrations":   total_registrations,
-                    "total_login_members":   total_login_members,
-                    "total_unique_logins":   total_unique_logins,
-                    "premium_members":       premium_members,
-                    "prospect_members":      prospect_members,
-                    "other_members":         other_members,
-                    "total_interests":       total_interests,
-                    "accepted_interests":    accepted_interests,
-                    "total_bookmarks":       total_bookmarks,
-                    "transactions_success":  txn_success,
-                    "transactions_failure":  txn_failure,
-                    "total_deleted":         total_deleted,
-                    "marriage_settled":      marriage_settled,
-                    "deleted_profiles_report":  deleted_profiles_report,
-                    "marriage_settled_report":  marriage_settled_report,
-                    "success_stories_report":   success_stories_report,
+                    "total_registrations":  total_registrations,
+                    "total_login_members":  total_login_members,
+                    "total_unique_logins":  total_unique_logins,
+                    "premium_members":      premium_members,
+                    "prospect_members":     prospect_members,
+                    "other_members":        other_members,
+                    "total_interests":      total_interests,
+                    "accepted_interests":   accepted_interests,
+                    "total_bookmarks":      total_bookmarks,
+                    "transactions_success": txn_success,
+                    "transactions_failure": txn_failure,
+                    "total_deleted":        total_deleted,
+                    "marriage_settled":     marriage_settled,
+                    "deleted_profiles_report": deleted_profiles_report,
+                    "marriage_settled_report": marriage_settled_report,
+                    "success_stories_report":  success_stories_report,
                 },
                 "login_category_report": login_category_report,
                 "state_wise_report":     state_wise_report,
@@ -20636,3 +19752,1176 @@ class WebsitePerformanceReport(APIView):
 
         except Exception as e:
             return Response({"Status": 0, "message": str(e)}, status=500)
+
+
+
+
+
+from django.utils.timezone import now
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import (
+    CallLog, CallManagement,
+    ActionLog, ActionPointMaster,
+    CallTypeMaster, ParticularsMaster, CallStatusMaster,
+    LoginDetails, DataHistory, User, PlanDetails,
+    CallLog_New, CallManagement_New
+)
+
+
+class StaffDashboardView(APIView):
+    """
+    Staff Dashboard API.
+
+    GET params:
+        staff      : username     (optional — filters all data to one staff)
+        card       : total_calls | hot_leads | approved | premium | renewal | actions
+                     | attended_calls | unattended_calls | general_calls
+        date_from  : YYYY-MM-DD   (optional, defaults to 1st of current month)
+        date_to    : YYYY-MM-DD   (optional, defaults to today)
+
+    All summary counts, staff_wise counts, and date_wise counts are scoped
+    to the date_from / date_to window (default = current month).
+    """
+
+    CALL_TYPES = {
+        1: "Inbound call",
+        2: "Outbound call",
+        3: "In missed call",
+    }
+
+    CALL_STATUSES = {
+        1: "Hot - 3 days",
+        2: "Warm - 7 days",
+        3: "Cold - 30 days",
+        4: "Not interested",
+        5: "In Progress",
+        6: "Completed",
+    }
+
+    CALL_PARTICULARS = {
+        1 : "Validation",
+        2 : "Prospect",
+        3 : "Offer",
+        4 : "SOSP - Next call date",
+        5 : "Vys - Assist",
+        6 : "Horo Updation",
+        7 : "Photo Updation",
+        8 : "Id Proof Updation",
+        9 : "Feedback",
+        10: "Followup",
+        11: "Offer",
+        12: "Others",
+        13: "New Customer",
+        14: "Marriage Settled",
+        15: "Marriage Date Collection",
+        16: "Duplicate",
+        17: "Enquiry",
+        18: "Marriage Photo Collection",
+        19: "Wishes Cards",
+    }
+
+    ACTION_POINTS = {
+        1 : "Invoice",
+        2 : "PSP",
+        3 : "Weekly profile update",
+        4 : "Priority Circulation",
+        5 : "Compatability Report",
+        6 : "Express interest",
+        7 : "Horo updation",
+        8 : "Photo updation",
+        9 : "Id proof updation",
+        10: "Matching profile",
+        11: "Intimation",
+    }
+
+    # ── helpers ───────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _resolve_staff_ids(staff_name):
+        """Username → list of User.id (int)"""
+        if not staff_name:
+            return []
+        return list(
+            User.objects.filter(username=staff_name).values_list('id', flat=True)
+        )
+
+    @staticmethod
+    def _resolve_date_range(request):
+        """
+        Returns (date_from, date_to) as date objects.
+        Defaults to 1st of the current month → today if not provided.
+        """
+        today         = date.today()
+        date_from_str = request.GET.get('date_from')
+        date_to_str   = request.GET.get('date_to')
+
+        try:
+            date_from = date.fromisoformat(date_from_str) if date_from_str else today.replace(day=1)
+        except ValueError:
+            date_from = today.replace(day=1)
+
+        try:
+            date_to = date.fromisoformat(date_to_str) if date_to_str else today
+        except ValueError:
+            date_to = today
+
+        return date_from, date_to
+
+    @staticmethod
+    def _day_bounds(d):
+        """Return (day_start, day_end) as datetime objects for a given date."""
+        return (
+            datetime.combine(d, time.min),
+            datetime.combine(d, time.max),
+        )
+
+    def _call_splits(self, call_qs):
+        """
+        Returns split counts for a CallLog queryset.
+        All known IDs pre-seeded with 0 so every entry always appears.
+        """
+        by_type        = {v: 0 for v in self.CALL_TYPES.values()}
+        by_status      = {v: 0 for v in self.CALL_STATUSES.values()}
+        by_particulars = {v: 0 for v in self.CALL_PARTICULARS.values()}
+
+        for call in call_qs.only('call_type_id', 'call_status_id', 'particulars_id'):
+            ct_id = call.call_type_id
+            ct    = self.CALL_TYPES.get(ct_id, f"Unknown({ct_id})")
+            by_type[ct] = by_type.get(ct, 0) + 1
+
+            cs_id = call.call_status_id
+            cs    = self.CALL_STATUSES.get(cs_id, f"Unknown({cs_id})")
+            by_status[cs] = by_status.get(cs, 0) + 1
+
+            cp_id = call.particulars_id
+            cp    = self.CALL_PARTICULARS.get(cp_id, f"Unknown({cp_id})")
+            by_particulars[cp] = by_particulars.get(cp, 0) + 1
+
+        return {
+            "by_type"       : by_type,
+            "by_status"     : by_status,
+            "by_particulars": by_particulars,
+        }
+
+    def _call_new_splits(self, call_new_qs):
+        """
+        Returns split counts for a CallLog_New queryset.
+        """
+        by_type        = {}
+        by_status      = {}
+        by_particulars = {}
+
+        for call in call_new_qs.only('call_type_id', 'call_status_id', 'particulars_id'):
+            ct_id = call.call_type_id
+            if ct_id:
+                try:
+                    label = CallTypeMaster.objects.filter(id=ct_id).values('call_type').first()
+                    ct = label['call_type'] if label else f"Unknown({ct_id})"
+                except Exception:
+                    ct = f"Unknown({ct_id})"
+            else:
+                ct = "N/A"
+            by_type[ct] = by_type.get(ct, 0) + 1
+
+            cs_id = call.call_status_id
+            if cs_id:
+                try:
+                    label = CallStatusMaster.objects.filter(id=cs_id).values('status').first()
+                    cs = label['status'] if label else f"Unknown({cs_id})"
+                except Exception:
+                    cs = f"Unknown({cs_id})"
+            else:
+                cs = "N/A"
+            by_status[cs] = by_status.get(cs, 0) + 1
+
+            cp_id = call.particulars_id
+            if cp_id:
+                try:
+                    label = ParticularsMaster.objects.filter(id=cp_id).values('particulars').first()
+                    cp = label['particulars'] if label else f"Unknown({cp_id})"
+                except Exception:
+                    cp = f"Unknown({cp_id})"
+            else:
+                cp = "N/A"
+            by_particulars[cp] = by_particulars.get(cp, 0) + 1
+
+        return {
+            "by_type"       : by_type,
+            "by_status"     : by_status,
+            "by_particulars": by_particulars,
+        }
+
+    @staticmethod
+    def _approved_date_from_datahistory(profile_id):
+        """Earliest DataHistory record where profile_status = 1 → date_time."""
+        dh = (
+            DataHistory.objects
+            .filter(profile_id=profile_id, profile_status=1)
+            .order_by('date_time')
+            .values('date_time')
+            .first()
+        )
+        if dh and dh['date_time']:
+            return dh['date_time'].strftime('%Y-%m-%d')
+        return "N/A"
+
+    # ── main handler ──────────────────────────────────────────────────────────
+
+    def get(self, request):
+        try:
+            staff_name = request.GET.get('staff')
+            card       = request.GET.get('card')
+            date_click = request.GET.get('date')
+            export     = request.GET.get('export')
+
+            # ── resolve date range (used for summary + staff_wise + date_wise) ──
+            date_from, date_to = self._resolve_date_range(request)
+            range_start, _     = self._day_bounds(date_from)
+            _, range_end       = self._day_bounds(date_to)
+
+            # ── resolve staff ─────────────────────────────────────────────
+            staff_ids     = self._resolve_staff_ids(staff_name)
+            staff_id_strs = [str(i) for i in staff_ids]
+
+            # ── base querysets scoped to date range ───────────────────────
+            # CallLog — scoped to date range
+            call_qs = CallLog.objects.filter(
+                is_deleted=0,
+                created_at__gte=range_start,
+                created_at__lte=range_end,
+            )
+            if staff_ids:
+                call_qs = call_qs.filter(call_owner__in=staff_id_strs)
+
+            # ActionLog — scoped to date range
+            action_qs = ActionLog.objects.filter(
+                is_deleted=0,
+                created_at__gte=range_start,
+                created_at__lte=range_end,
+            )
+            if staff_ids:
+                action_qs = action_qs.filter(action_owner__in=staff_id_strs)
+
+            # CallLog_New — scoped to date range
+            call_new_qs = CallLog_New.objects.filter(
+                is_deleted=0,
+                created_at__gte=range_start,
+                created_at__lte=range_end,
+            )
+            if staff_ids:
+                call_new_qs = call_new_qs.filter(call_owner__in=staff_id_strs)
+
+            # LoginDetails — approved/premium/renewal scoped via DataHistory dates
+            # We identify which profiles were touched in this date range
+            login_qs = LoginDetails.objects.all()
+
+            data_history_in_range = DataHistory.objects.filter(
+                date_time__gte=range_start,
+                date_time__lte=range_end,
+            )
+            if staff_ids:
+                data_history_in_range = data_history_in_range.filter(owner_id__in=staff_ids)
+
+            # Profile IDs approved in this date range
+            approved_pids_in_range = list(
+                data_history_in_range.filter(profile_status=1)
+                .values_list('profile_id', flat=True)
+                .distinct()
+            )
+
+            # ── summary counts — all scoped to date range ─────────────────
+            total_calls   = call_qs.count()
+            hot_leads     = call_qs.filter(call_status_id=1).count()
+            total_actions = action_qs.count()
+
+            attended_calls_count   = call_new_qs.exclude(comments__iregex=r'^RNR').count()
+            unattended_calls_count = call_new_qs.filter(comments__iregex=r'^RNR').count()
+            general_calls_count    = call_new_qs.count()
+
+            # Approved: profiles whose approval event falls in date range
+            if staff_ids:
+                approved_profiles = login_qs.filter(
+                    Owner_id__in=staff_ids,
+                    status='1',
+                    ProfileId__in=approved_pids_in_range,
+                ).count()
+                premium_users = login_qs.filter(
+                    Owner_id__in=staff_ids,
+                    status='1',
+                    secondary_status='5',
+                    membership_enddate__gte=now(),
+                    ProfileId__in=approved_pids_in_range,
+                ).count()
+                renewal_users = login_qs.filter(
+                    Owner_id__in=staff_ids,
+                    membership_enddate__lt=now(),
+                    ProfileId__in=approved_pids_in_range,
+                ).count()
+            else:
+                approved_profiles = login_qs.filter(
+                    status='1',
+                    ProfileId__in=approved_pids_in_range,
+                ).count()
+                premium_users = login_qs.filter(
+                    status='1',
+                    secondary_status='5',
+                    membership_enddate__gte=now(),
+                    ProfileId__in=approved_pids_in_range,
+                ).count()
+                renewal_users = login_qs.filter(
+                    membership_enddate__lt=now(),
+                    ProfileId__in=approved_pids_in_range,
+                ).count()
+
+            # ── staff-wise table — scoped to date range ───────────────────
+            staff_performance = []
+
+            # all_owner_ids = list(
+            #     CallLog.objects
+            #     .filter(
+            #         is_deleted=0,
+            #         created_at__gte=range_start,
+            #         created_at__lte=range_end,
+            #     )
+            #     .exclude(call_owner__isnull=True)
+            #     .exclude(call_owner='')
+            #     .values_list('call_owner', flat=True)
+            #     .distinct()
+            # )
+
+            # if staff_ids:
+            #     all_owner_ids = [s for s in all_owner_ids if str(s) in staff_id_strs]
+            if staff_ids:
+                all_owner_ids = [str(i) for i in staff_ids]
+            else:
+                all_owner_ids = [
+                    str(i) for i in User.objects.values_list('id', flat=True)
+                ]
+
+            for owner_id_str in all_owner_ids:
+                if not owner_id_str:
+                    continue
+
+                try:
+                    user = User.objects.filter(id=int(owner_id_str)).values('username').first()
+                    staff_label = user['username'] if user else str(owner_id_str)
+                except Exception:
+                    staff_label = str(owner_id_str)
+
+                # CallLog counts in date range for this staff
+                s_calls = CallLog.objects.filter(
+                    call_owner=str(owner_id_str),
+                    is_deleted=0,
+                    created_at__gte=range_start,
+                    created_at__lte=range_end,
+                )
+                s_total = s_calls.count()
+                s_hot   = s_calls.filter(call_status_id=1).count()
+                s_warm  = s_calls.filter(call_status_id=2).count()
+                s_cold  = s_calls.filter(call_status_id=3).count()
+
+                # ActionLog counts in date range for this staff
+                s_actions = ActionLog.objects.filter(
+                    action_owner=str(owner_id_str),
+                    is_deleted=0,
+                    created_at__gte=range_start,
+                    created_at__lte=range_end,
+                ).count()
+
+                # CallLog_New counts in date range for this staff
+                s_call_new = CallLog_New.objects.filter(
+                    call_owner=str(owner_id_str),
+                    is_deleted=0,
+                    created_at__gte=range_start,
+                    created_at__lte=range_end,
+                )
+                s_general    = s_call_new.count()
+                s_unattended = s_call_new.filter(comments__iregex=r'^RNR').count()
+                s_attended   = s_general - s_unattended
+
+                # Approved / premium / renewal for this staff scoped to date range
+                try:
+                    owner_id_int = int(owner_id_str)
+                except Exception:
+                    owner_id_int = None
+
+                if owner_id_int:
+                    # Profiles approved in date range owned by this staff
+                    s_approved_pids = list(
+                        DataHistory.objects.filter(
+                            date_time__gte=range_start,
+                            date_time__lte=range_end,
+                            profile_status=1,
+                            owner_id=owner_id_int,
+                        ).values_list('profile_id', flat=True).distinct()
+                    )
+
+                    s_approved = login_qs.filter(
+                        Owner_id=owner_id_int,
+                        status='1',
+                        ProfileId__in=s_approved_pids,
+                    ).count()
+
+                    s_premium = login_qs.filter(
+                        Owner_id=owner_id_int,
+                        status='1',
+                        secondary_status='5',
+                        membership_enddate__gte=now(),
+                        ProfileId__in=s_approved_pids,
+                    ).count()
+
+                    s_renewal = login_qs.filter(
+                        Owner_id=owner_id_int,
+                        membership_enddate__lt=now(),
+                        ProfileId__in=s_approved_pids,
+                    ).count()
+
+                    s_profile_count = login_qs.filter(Owner_id=owner_id_int).count()
+                else:
+                    s_approved = s_premium = s_renewal = s_profile_count = 0
+
+                staff_performance.append({
+                    "staff"           : staff_label,
+                    "total_calls"     : s_total,
+                    "hot_leads"       : s_hot,
+                    "warm_leads"      : s_warm,
+                    "cold_leads"      : s_cold,
+                    "approved"        : s_approved,
+                    "premium"         : s_premium,
+                    "renewal"         : s_renewal,
+                    "actions"         : s_actions,
+                    "profile_count"   : s_profile_count,
+                    "general_calls"   : s_general,
+                    "attended_calls"  : s_attended,
+                    "unattended_calls": s_unattended,
+                })
+
+            staff_performance.sort(key=lambda x: x["total_calls"], reverse=True)
+
+            # ── date-wise breakdown ───────────────────────────────────────
+            # Each day shows its own individual counts for ALL columns:
+            # total_calls, hot, attended, approved, premium, renewal, actions,
+            # general_calls, attended_calls, unattended_calls
+            from datetime import date, datetime, time, timedelta
+            date_wise = []
+            today     = date.today()
+            current   = date_from
+            while current <= date_to:
+                day_start, day_end = self._day_bounds(current)
+
+                # ── Calls (CallLog) ───────────────────────────────────────
+                day_calls = CallLog.objects.filter(
+                    created_at__gte=day_start,
+                    created_at__lte=day_end,
+                    is_deleted=0,
+                )
+                if staff_ids:
+                    day_calls = day_calls.filter(call_owner__in=staff_id_strs)
+
+                # ── Actions ───────────────────────────────────────────────
+                day_actions = ActionLog.objects.filter(
+                    created_at__gte=day_start,
+                    created_at__lte=day_end,
+                    is_deleted=0,
+                )
+                if staff_ids:
+                    day_actions = day_actions.filter(action_owner__in=staff_id_strs)
+
+                # ── CallLog_New (attended / unattended / general) ─────────
+                day_call_new = CallLog_New.objects.filter(
+                    created_at__gte=day_start,
+                    created_at__lte=day_end,
+                    is_deleted=0,
+                )
+                if staff_ids:
+                    day_call_new = day_call_new.filter(call_owner__in=staff_id_strs)
+
+                day_general    = day_call_new.count()
+                day_unattended = day_call_new.filter(comments__iregex=r'^RNR').count()
+                day_attended   = day_general - day_unattended
+
+                # ── Approved / Premium / Renewal (via DataHistory) ────────
+                day_data = DataHistory.objects.filter(
+                    date_time__gte=day_start,
+                    date_time__lte=day_end,
+                )
+                if staff_ids:
+                    day_data = day_data.filter(owner_id__in=staff_ids)
+
+                day_approved_pids = list(
+                    day_data.filter(profile_status=1)
+                    .values_list('profile_id', flat=True)
+                    .distinct()
+                )
+                day_approved = len(day_approved_pids)
+
+                # Premium: approved on this day AND currently has active premium plan
+                day_premium = LoginDetails.objects.filter(
+                    ProfileId__in=day_approved_pids,
+                    status='1',
+                    secondary_status='5',
+                    membership_enddate__gte=now(),
+                ).count()
+
+                # Renewal: approved on this day AND membership already expired
+                day_renewal = LoginDetails.objects.filter(
+                    ProfileId__in=day_approved_pids,
+                    membership_enddate__date__lt=today,
+                ).count()
+
+                date_wise.append({
+                    "date"            : current.strftime('%d %b %Y'),
+                    "total_calls"     : day_calls.count(),
+                    "hot"             : day_calls.filter(call_status_id=1).count(),
+                    "attended_calls"  : day_attended,      # ← individual day count
+                    "approved"        : day_approved,      # ← individual day count
+                    "premium"         : day_premium,       # ← individual day count
+                    "renewal"         : day_renewal,       # ← individual day count
+                    "actions"         : day_actions.count(), # ← individual day count
+                    "general_calls"   : day_general,
+                    "unattended_calls": day_unattended,
+                })
+
+                current += timedelta(days=1)
+
+            # ── Export ────────────────────────────────────────────────────
+            if export == 'excel' and date_wise:
+                import openpyxl
+                from openpyxl.styles import Font, PatternFill, Alignment
+                from openpyxl.utils import get_column_letter
+                import io
+                from django.http import HttpResponse
+
+                wb = openpyxl.Workbook()
+                ws = wb.active
+                ws.title = "Date Wise Performance"
+
+                headers = [
+                    "Date", "Total Calls", "Hot", "Attended Calls",
+                    "Approved", "Premium", "Renewal", "Actions",
+                    "General Calls", "Unattended Calls"
+                ]
+
+                HEADER_FILL = PatternFill("solid", start_color="1e1b4b", end_color="1e1b4b")
+                HEADER_FONT = Font(bold=True, color="FFFFFF", size=11)
+                CENTER      = Alignment(horizontal="center", vertical="center")
+                ALT_FILL    = PatternFill("solid", start_color="f1f5f9", end_color="f1f5f9")
+                WHITE_FILL  = PatternFill("solid", start_color="FFFFFF", end_color="FFFFFF")
+
+                ws.append(headers)
+                for col_idx in range(1, len(headers) + 1):
+                    cell = ws.cell(row=1, column=col_idx)
+                    cell.fill = HEADER_FILL
+                    cell.font = HEADER_FONT
+                    cell.alignment = CENTER
+                ws.row_dimensions[1].height = 22
+
+                for i, row in enumerate(date_wise, start=2):
+                    ws.append([
+                        row["date"],
+                        row["total_calls"],
+                        row["hot"],
+                        row["attended_calls"],
+                        row["approved"],
+                        row["premium"],
+                        row["renewal"],
+                        row["actions"],
+                        row["general_calls"],
+                        row["unattended_calls"],
+                    ])
+                    fill = ALT_FILL if i % 2 == 0 else WHITE_FILL
+                    for col_idx in range(1, len(headers) + 1):
+                        cell = ws.cell(row=i, column=col_idx)
+                        cell.fill = fill
+                        cell.alignment = CENTER
+
+                col_widths = [16, 14, 8, 18, 12, 12, 12, 12, 16, 20]
+                for i, w in enumerate(col_widths, 1):
+                    ws.column_dimensions[get_column_letter(i)].width = w
+                ws.freeze_panes = "A2"
+
+                date_from_str = date_from.isoformat()
+                date_to_str   = date_to.isoformat()
+                staff_label   = staff_name if staff_name else "all_staff"
+                filename      = f"date_wise_{staff_label}_{date_from_str}_to_{date_to_str}.xlsx"
+
+                buf = io.BytesIO()
+                wb.save(buf)
+                buf.seek(0)
+
+                response = HttpResponse(
+                    buf.getvalue(),
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+                response["Content-Disposition"] = f'attachment; filename="{filename}"'
+                return response
+
+            # ── card drill-down ───────────────────────────────────────────
+            card_detail = {}
+
+            if card:
+
+                if card == 'total_calls':
+                    card_detail = self._call_splits(call_qs)
+                    card_detail["total"] = total_calls
+
+                elif card == 'hot_leads':
+                    seen_pids = set()
+                    profiles  = []
+
+                    for call in (
+                        call_qs
+                        .filter(call_status_id=1)
+                        .select_related('call_management')
+                        .order_by('-created_at')
+                    ):
+                        cm  = call.call_management
+                        pid = cm.profile_id if cm else None
+                        if not pid or pid in seen_pids:
+                            continue
+                        seen_pids.add(pid)
+
+                        owner_name = "N/A"
+                        try:
+                            user = User.objects.filter(
+                                id=int(call.call_owner)
+                            ).values('username').first()
+                            if user:
+                                owner_name = user['username']
+                        except Exception:
+                            pass
+
+                        profiles.append({
+                            "profile_id"     : pid,
+                            "call_owner_name": owner_name,
+                        })
+
+                    card_detail = {"total": len(profiles), "profiles": profiles}
+
+                elif card == 'approved':
+                    profiles = []
+
+                    approved_qs = login_qs.filter(
+                        status='1',
+                        ProfileId__in=approved_pids_in_range,
+                    )
+                    if staff_ids:
+                        approved_qs = approved_qs.filter(Owner_id__in=staff_ids)
+
+                    for p in approved_qs.values('ProfileId', 'Profile_name', 'Owner_id'):
+                        owner_name = "N/A"
+                        try:
+                            if p['Owner_id']:
+                                user = User.objects.filter(
+                                    id=int(p['Owner_id'])
+                                ).values('username').first()
+                                if user:
+                                    owner_name = user['username']
+                        except Exception:
+                            pass
+
+                        profiles.append({
+                            "profile_id"   : p['ProfileId'],
+                            "name"         : p['Profile_name'] or "N/A",
+                            "owner_name"   : owner_name,
+                            "approved_date": self._approved_date_from_datahistory(p['ProfileId']),
+                        })
+
+                    card_detail = {"total": len(profiles), "profiles": profiles}
+
+                elif card == 'premium':
+                    profiles = []
+                    premium_qs = login_qs.filter(
+                        status='1',
+                        secondary_status='5',
+                        membership_enddate__gte=now(),
+                        ProfileId__in=approved_pids_in_range,
+                    )
+                    if staff_ids:
+                        premium_qs = premium_qs.filter(Owner_id__in=staff_ids)
+
+                    for p in premium_qs.values('ProfileId', 'Owner_id', 'Plan_id'):
+                        owner_name = "N/A"
+                        try:
+                            if p['Owner_id']:
+                                user = User.objects.filter(
+                                    id=int(p['Owner_id'])
+                                ).values('username').first()
+                                if user:
+                                    owner_name = user['username']
+                        except Exception:
+                            pass
+
+                        plan_name = "N/A"
+                        try:
+                            plan = PlanDetails.objects.filter(
+                                id=p['Plan_id']
+                            ).values('plan_name').first()
+                            if plan:
+                                plan_name = plan['plan_name']
+                        except Exception:
+                            pass
+
+                        profiles.append({
+                            "profile_id": p['ProfileId'],
+                            "owner_name": owner_name,
+                            "plan_type":  plan_name,
+                        })
+
+                    card_detail = {"total": len(profiles), "profiles": profiles}
+
+                elif card == 'renewal':
+                    profiles = []
+                    try:
+                        renewal_qs = login_qs.filter(
+                            membership_enddate__lt=now(),
+                            ProfileId__in=approved_pids_in_range,
+                        )
+                        if staff_ids:
+                            renewal_qs = renewal_qs.filter(Owner_id__in=staff_ids)
+
+                        for p in renewal_qs.values(
+                            'ProfileId', 'Profile_name', 'Owner_id',
+                            'membership_enddate', 'Plan_id'
+                        ):
+                            owner_name = "N/A"
+                            try:
+                                if p['Owner_id']:
+                                    user = User.objects.filter(
+                                        id=int(p['Owner_id'])
+                                    ).values('username').first()
+                                    if user:
+                                        owner_name = user['username']
+                            except Exception:
+                                pass
+
+                            plan_name = "N/A"
+                            try:
+                                plan = PlanDetails.objects.filter(
+                                    id=p['Plan_id']
+                                ).values('plan_name').first()
+                                if plan:
+                                    plan_name = plan['plan_name']
+                            except Exception:
+                                pass
+
+                            profiles.append({
+                                "profile_id"      : p['ProfileId'],
+                                "name"            : p['Profile_name'] or "N/A",
+                                "owner_name"      : owner_name,
+                                "plan_type"       : plan_name,
+                                "membership_ended": p['membership_enddate'].strftime('%Y-%m-%d')
+                                                    if p['membership_enddate'] else "N/A",
+                            })
+
+                        card_detail = {"total": len(profiles), "profiles": profiles}
+
+                    except Exception as e:
+                        card_detail = {"error": str(e)}
+
+                elif card == 'actions':
+                    by_action = {name: 0 for name in self.ACTION_POINTS.values()}
+
+                    for action in action_qs.only('action_point_id'):
+                        ap_id = action.action_point_id
+                        label = self.ACTION_POINTS.get(ap_id, f"Unknown({ap_id})")
+                        by_action[label] = by_action.get(label, 0) + 1
+
+                    card_detail = {
+                        "total"          : total_actions,
+                        "by_action_point": by_action,
+                    }
+
+                elif card == 'attended_calls':
+                    try:
+                        attended_qs = call_new_qs.exclude(comments__iregex=r'^RNR')
+                        splits      = self._call_new_splits(attended_qs)
+                        card_detail = {
+                            "total"         : attended_qs.count(),
+                            "by_type"       : splits["by_type"],
+                            "by_status"     : splits["by_status"],
+                            "by_particulars": splits["by_particulars"],
+                        }
+                    except Exception as e:
+                        card_detail = {"error": str(e)}
+
+                elif card == 'unattended_calls':
+                    try:
+                        unattended_qs = call_new_qs.filter(comments__iregex=r'^RNR')
+                        profiles      = []
+
+                        for p in unattended_qs.values(
+                            'id', 'call_date', 'call_owner', 'comments',
+                            'call_management__profile_id',
+                        ):
+                            owner_name = "N/A"
+                            try:
+                                if p['call_owner']:
+                                    user = User.objects.filter(
+                                        id=int(p['call_owner'])
+                                    ).values('username').first()
+                                    if user:
+                                        owner_name = user['username']
+                            except Exception:
+                                pass
+
+                            profiles.append({
+                                "call_id"   : p['id'],
+                                "profile_id": p['call_management__profile_id'] or "N/A",
+                                "call_date" : p['call_date'].strftime('%Y-%m-%d %H:%M')
+                                              if p['call_date'] else "N/A",
+                                "call_owner": owner_name,
+                                "comments"  : p['comments'] or "N/A",
+                            })
+
+                        card_detail = {"total": len(profiles), "profiles": profiles}
+
+                    except Exception as e:
+                        card_detail = {"error": str(e)}
+
+                elif card == 'general_calls':
+                    try:
+                        card_detail = {
+                            "total"           : general_calls_count,
+                            "attended_count"  : attended_calls_count,
+                            "unattended_count": unattended_calls_count,
+                        }
+                    except Exception as e:
+                        card_detail = {"error": str(e)}
+
+                elif card == 'date_detail':
+                    try:
+                        if not date_click:
+                            card_detail = {"error": "date param required e.g. &date=2026-04-02"}
+                        else:
+                            click_date    = date.fromisoformat(date_click)
+                            day_start, day_end = self._day_bounds(click_date)
+
+                            day_call_qs = CallLog.objects.filter(
+                                created_at__gte=day_start,
+                                created_at__lte=day_end,
+                                is_deleted=0,
+                            )
+                            if staff_ids:
+                                day_call_qs = day_call_qs.filter(call_owner__in=staff_id_strs)
+
+                            by_type = {v: 0 for v in self.CALL_TYPES.values()}
+                            for call in day_call_qs.only('call_type_id'):
+                                ct = self.CALL_TYPES.get(call.call_type_id, f"Unknown({call.call_type_id})")
+                                by_type[ct] = by_type.get(ct, 0) + 1
+
+                            by_status = {v: 0 for v in self.CALL_STATUSES.values()}
+                            for call in day_call_qs.only('call_status_id'):
+                                cs = self.CALL_STATUSES.get(call.call_status_id, f"Unknown({call.call_status_id})")
+                                by_status[cs] = by_status.get(cs, 0) + 1
+
+                            by_particulars = {v: 0 for v in self.CALL_PARTICULARS.values()}
+                            for call in day_call_qs.only('particulars_id'):
+                                cp = self.CALL_PARTICULARS.get(call.particulars_id, f"Unknown({call.particulars_id})")
+                                by_particulars[cp] = by_particulars.get(cp, 0) + 1
+
+                            day_data = DataHistory.objects.filter(
+                                date_time__gte=day_start,
+                                date_time__lte=day_end,
+                                profile_status=1,
+                            )
+                            if staff_ids:
+                                day_data = day_data.filter(owner_id__in=staff_ids)
+                            day_approved = day_data.count()
+
+                            day_action_qs = ActionLog.objects.filter(
+                                created_at__gte=day_start,
+                                created_at__lte=day_end,
+                                is_deleted=0,
+                            )
+                            if staff_ids:
+                                day_action_qs = day_action_qs.filter(action_owner__in=staff_id_strs)
+
+                            by_action = {v: 0 for v in self.ACTION_POINTS.values()}
+                            for action in day_action_qs.only('action_point_id'):
+                                ap = self.ACTION_POINTS.get(action.action_point_id, f"Unknown({action.action_point_id})")
+                                by_action[ap] = by_action.get(ap, 0) + 1
+
+                            card_detail = {
+                                "date"           : click_date.strftime('%d %b %Y'),
+                                "total_calls"    : day_call_qs.count(),
+                                "approved"       : day_approved,
+                                "actions"        : day_action_qs.count(),
+                                "by_type"        : by_type,
+                                "by_status"      : by_status,
+                                "by_particulars" : by_particulars,
+                                "by_action_point": by_action,
+                            }
+
+                    except ValueError:
+                        card_detail = {"error": "Invalid date format. Use YYYY-MM-DD"}
+                    except Exception as e:
+                        card_detail = {"error": str(e)}
+
+
+                # ── K. Date → Attended Calls detail ──────────────────────
+                elif card == 'date_attended':
+                    try:
+                        if not date_click:
+                            card_detail = {"error": "date param required e.g. &date=2026-04-01"}
+                        else:
+                            click_date         = date.fromisoformat(date_click)
+                            day_start, day_end = self._day_bounds(click_date)
+                            day_attended_qs = CallLog_New.objects.filter(
+                                created_at__gte=day_start, created_at__lte=day_end, is_deleted=0,
+                            ).exclude(comments__iregex=r'^RNR')
+                            if staff_ids:
+                                day_attended_qs = day_attended_qs.filter(call_owner__in=staff_id_strs)
+                            splits = self._call_new_splits(day_attended_qs)
+                            card_detail = {
+                                "date": click_date.strftime('%d %b %Y'),
+                                "total": day_attended_qs.count(),
+                                "by_type": splits["by_type"],
+                                "by_status": splits["by_status"],
+                                "by_particulars": splits["by_particulars"],
+                            }
+                    except ValueError:
+                        card_detail = {"error": "Invalid date format. Use YYYY-MM-DD"}
+                    except Exception as e:
+                        card_detail = {"error": str(e)}
+
+                # ── L. Date → Unattended Calls detail ────────────────────
+                elif card == 'date_unattended':
+                    try:
+                        if not date_click:
+                            card_detail = {"error": "date param required e.g. &date=2026-04-01"}
+                        else:
+                            click_date         = date.fromisoformat(date_click)
+                            day_start, day_end = self._day_bounds(click_date)
+                            day_unattended_qs = CallLog_New.objects.filter(
+                                created_at__gte=day_start, created_at__lte=day_end,
+                                is_deleted=0, comments__iregex=r'^RNR',
+                            )
+                            if staff_ids:
+                                day_unattended_qs = day_unattended_qs.filter(call_owner__in=staff_id_strs)
+                            profiles = []
+                            for p in day_unattended_qs.values('id','call_date','call_owner','comments','call_management__profile_id'):
+                                owner_name = "N/A"
+                                try:
+                                    if p['call_owner']:
+                                        u = User.objects.filter(id=int(p['call_owner'])).values('username').first()
+                                        if u: owner_name = u['username']
+                                except Exception: pass
+                                profiles.append({
+                                    "call_id": p['id'],
+                                    "profile_id": p['call_management__profile_id'] or "N/A",
+                                    "call_date": p['call_date'].strftime('%Y-%m-%d %H:%M') if p['call_date'] else "N/A",
+                                    "call_owner": owner_name,
+                                    "comments": p['comments'] or "N/A",
+                                })
+                            card_detail = {"date": click_date.strftime('%d %b %Y'), "total": len(profiles), "profiles": profiles}
+                    except ValueError:
+                        card_detail = {"error": "Invalid date format. Use YYYY-MM-DD"}
+                    except Exception as e:
+                        card_detail = {"error": str(e)}
+
+                # ── M. Date → Hot Leads detail ────────────────────────────
+                elif card == 'date_hot':
+                    try:
+                        if not date_click:
+                            card_detail = {"error": "date param required e.g. &date=2026-04-01"}
+                        else:
+                            click_date         = date.fromisoformat(date_click)
+                            day_start, day_end = self._day_bounds(click_date)
+                            day_hot_qs = CallLog.objects.filter(
+                                created_at__gte=day_start, created_at__lte=day_end,
+                                is_deleted=0, call_status_id=1,
+                            ).select_related('call_management')
+                            if staff_ids:
+                                day_hot_qs = day_hot_qs.filter(call_owner__in=staff_id_strs)
+                            seen_pids, profiles = set(), []
+                            for call in day_hot_qs.order_by('-created_at'):
+                                cm  = call.call_management
+                                pid = cm.profile_id if cm else None
+                                if not pid or pid in seen_pids: continue
+                                seen_pids.add(pid)
+                                owner_name = "N/A"
+                                try:
+                                    u = User.objects.filter(id=int(call.call_owner)).values('username').first()
+                                    if u: owner_name = u['username']
+                                except Exception: pass
+                                profiles.append({
+                                    "profile_id": pid,
+                                    "call_owner_name": owner_name,
+                                    "call_time": call.created_at.strftime('%Y-%m-%d %H:%M') if call.created_at else "N/A",
+                                })
+                            card_detail = {"date": click_date.strftime('%d %b %Y'), "total": len(profiles), "profiles": profiles}
+                    except ValueError:
+                        card_detail = {"error": "Invalid date format. Use YYYY-MM-DD"}
+                    except Exception as e:
+                        card_detail = {"error": str(e)}
+
+                # ── N. Date → Approved detail ─────────────────────────────
+                elif card == 'date_approved':
+                    try:
+                        if not date_click:
+                            card_detail = {"error": "date param required e.g. &date=2026-04-01"}
+                        else:
+                            click_date         = date.fromisoformat(date_click)
+                            day_start, day_end = self._day_bounds(click_date)
+                            day_data = DataHistory.objects.filter(
+                                date_time__gte=day_start, date_time__lte=day_end, profile_status=1,
+                            )
+                            if staff_ids:
+                                day_data = day_data.filter(owner_id__in=staff_ids)
+                            day_approved_pids = list(day_data.values_list('profile_id', flat=True).distinct())
+                            profiles = []
+                            for p in LoginDetails.objects.filter(ProfileId__in=day_approved_pids, status='1').values('ProfileId','Profile_name','Owner_id'):
+                                owner_name = "N/A"
+                                try:
+                                    if p['Owner_id']:
+                                        u = User.objects.filter(id=int(p['Owner_id'])).values('username').first()
+                                        if u: owner_name = u['username']
+                                except Exception: pass
+                                profiles.append({
+                                    "profile_id": p['ProfileId'],
+                                    "name": p['Profile_name'] or "N/A",
+                                    "owner_name": owner_name,
+                                    "approved_date": click_date.strftime('%Y-%m-%d'),
+                                })
+                            card_detail = {"date": click_date.strftime('%d %b %Y'), "total": len(profiles), "profiles": profiles}
+                    except ValueError:
+                        card_detail = {"error": "Invalid date format. Use YYYY-MM-DD"}
+                    except Exception as e:
+                        card_detail = {"error": str(e)}
+
+                # ── O. Date → Premium detail ──────────────────────────────
+                elif card == 'date_premium':
+                    try:
+                        if not date_click:
+                            card_detail = {"error": "date param required e.g. &date=2026-04-01"}
+                        else:
+                            click_date         = date.fromisoformat(date_click)
+                            day_start, day_end = self._day_bounds(click_date)
+                            day_data = DataHistory.objects.filter(
+                                date_time__gte=day_start, date_time__lte=day_end, profile_status=1,
+                            )
+                            if staff_ids:
+                                day_data = day_data.filter(owner_id__in=staff_ids)
+                            day_approved_pids = list(day_data.values_list('profile_id', flat=True).distinct())
+                            premium_qs = LoginDetails.objects.filter(
+                                ProfileId__in=day_approved_pids, status='1',
+                                secondary_status='5', membership_enddate__gte=now(),
+                            )
+                            profiles = []
+                            for p in premium_qs.values('ProfileId','Owner_id','Plan_id','membership_enddate'):
+                                owner_name, plan_name = "N/A", "N/A"
+                                try:
+                                    if p['Owner_id']:
+                                        u = User.objects.filter(id=int(p['Owner_id'])).values('username').first()
+                                        if u: owner_name = u['username']
+                                except Exception: pass
+                                try:
+                                    pl = PlanDetails.objects.filter(id=p['Plan_id']).values('plan_name').first()
+                                    if pl: plan_name = pl['plan_name']
+                                except Exception: pass
+                                profiles.append({
+                                    "profile_id": p['ProfileId'],
+                                    "owner_name": owner_name,
+                                    "plan_type": plan_name,
+                                    "membership_end": p['membership_enddate'].strftime('%Y-%m-%d') if p['membership_enddate'] else "N/A",
+                                })
+                            card_detail = {"date": click_date.strftime('%d %b %Y'), "total": len(profiles), "profiles": profiles}
+                    except ValueError:
+                        card_detail = {"error": "Invalid date format. Use YYYY-MM-DD"}
+                    except Exception as e:
+                        card_detail = {"error": str(e)}
+
+                # ── P. Date → Renewal detail ──────────────────────────────
+                elif card == 'date_renewal':
+                    try:
+                        if not date_click:
+                            card_detail = {"error": "date param required e.g. &date=2026-04-01"}
+                        else:
+                            click_date         = date.fromisoformat(date_click)
+                            day_start, day_end = self._day_bounds(click_date)
+                            day_data = DataHistory.objects.filter(
+                                date_time__gte=day_start, date_time__lte=day_end, profile_status=1,
+                            )
+                            if staff_ids:
+                                day_data = day_data.filter(owner_id__in=staff_ids)
+                            day_approved_pids = list(day_data.values_list('profile_id', flat=True).distinct())
+                            renewal_qs = LoginDetails.objects.filter(
+                                ProfileId__in=day_approved_pids, membership_enddate__lt=now(),
+                            )
+                            profiles = []
+                            for p in renewal_qs.values('ProfileId','Profile_name','Owner_id','Plan_id','membership_enddate'):
+                                owner_name, plan_name = "N/A", "N/A"
+                                try:
+                                    if p['Owner_id']:
+                                        u = User.objects.filter(id=int(p['Owner_id'])).values('username').first()
+                                        if u: owner_name = u['username']
+                                except Exception: pass
+                                try:
+                                    pl = PlanDetails.objects.filter(id=p['Plan_id']).values('plan_name').first()
+                                    if pl: plan_name = pl['plan_name']
+                                except Exception: pass
+                                profiles.append({
+                                    "profile_id": p['ProfileId'],
+                                    "name": p['Profile_name'] or "N/A",
+                                    "owner_name": owner_name,
+                                    "plan_type": plan_name,
+                                    "membership_ended": p['membership_enddate'].strftime('%Y-%m-%d') if p['membership_enddate'] else "N/A",
+                                })
+                            card_detail = {"date": click_date.strftime('%d %b %Y'), "total": len(profiles), "profiles": profiles}
+                    except ValueError:
+                        card_detail = {"error": "Invalid date format. Use YYYY-MM-DD"}
+                    except Exception as e:
+                        card_detail = {"error": str(e)}
+
+                # ── Q. Date → Actions detail ──────────────────────────────
+                elif card == 'date_actions':
+                    try:    
+                        if not date_click:
+                            card_detail = {"error": "date param required e.g. &date=2026-04-01"}
+                        else:
+                            click_date         = date.fromisoformat(date_click)
+                            day_start, day_end = self._day_bounds(click_date)
+                            day_action_qs = ActionLog.objects.filter(
+                                created_at__gte=day_start, created_at__lte=day_end, is_deleted=0,
+                            )
+                            if staff_ids:
+                                day_action_qs = day_action_qs.filter(action_owner__in=staff_id_strs)
+                            by_action = {v: 0 for v in self.ACTION_POINTS.values()}
+                            for action in day_action_qs.only('action_point_id'):
+                                ap = self.ACTION_POINTS.get(action.action_point_id, f"Unknown({action.action_point_id})")
+                                by_action[ap] = by_action.get(ap, 0) + 1
+                            card_detail = {
+                                "date": click_date.strftime('%d %b %Y'),
+                                "total": day_action_qs.count(),
+                                "by_action_point": by_action,
+                            }
+                    except ValueError:
+                        card_detail = {"error": "Invalid date format. Use YYYY-MM-DD"}
+                    except Exception as e:
+                        card_detail = {"error": str(e)}
+
+            # ── final response ────────────────────────────────────────────
+            return Response({
+                "summary": {
+                    "total_calls"      : total_calls,
+                    "hot_leads"        : hot_leads,
+                    "approved_profiles": approved_profiles,
+                    "premium_users"    : premium_users,
+                    "renewal_users"    : renewal_users,
+                    "actions"          : total_actions,
+                    "attended_calls"   : attended_calls_count,
+                    "unattended_calls" : unattended_calls_count,
+                    "general_calls"    : general_calls_count,
+                    "date_from"        : date_from.isoformat(),   # echo back active range
+                    "date_to"          : date_to.isoformat(),
+                },
+                "staff_wise" : staff_performance,
+                "date_wise"  : date_wise,
+                "card_detail": card_detail,
+            })
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+

@@ -1724,29 +1724,32 @@ class Get_profiledata_Matching(models.Model):
                 if has_photos and has_photos.lower() == "yes":
                     base_query += " AND pi.first_image_id IS NOT NULL"
 
-                if except_viewed == 1:
+                if isinstance(except_viewed, tuple):
+                    except_viewed = except_viewed[0] if except_viewed else None
+                if isinstance(except_visitor, tuple):
+                    except_visitor = except_visitor[0] if except_visitor else None
+
+                if except_viewed in (1, '1', 'true', True):
                     base_query += """
                         AND NOT EXISTS (
                             SELECT 1 
                             FROM profile_visit_logs v1 
-                            WHERE v1.viewed_profile = a.ProfileId 
-                            AND v1.profile_id = %s
+                            WHERE v1.profile_id = a.ProfileId 
+                            AND v1.viewed_profile = %s
                         )
                     """
                     query_params.append(profile_id)
 
-                if except_visitor == 1:
+                if except_visitor in (1, '1', 'true', True):
                     base_query += """
-                        AND EXISTS (
+                        AND NOT EXISTS (
                             SELECT 1 
                             FROM profile_visit_logs v2 
-                            WHERE v2.profile_id = a.ProfileId 
-                            AND v2.viewed_profile = %s
+                            WHERE v2.viewed_profile = a.ProfileId 
+                            AND v2.profile_id = %s
                         )
                     """
                     query_params.append(profile_id)
-
-
 
                 if membership:
                     membership_ids = [m.strip() for m in membership.split(",") if m.strip().isdigit()]
