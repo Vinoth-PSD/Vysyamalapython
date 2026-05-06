@@ -21,7 +21,6 @@ from .models import Invoice
 from .models import MasterhighestEducation
 from .models import PlanSubscription,Addonpackages
 from .models import PrintDashboard
-from .models import VysyamalaGothra
 from django.contrib.auth.hashers import make_password
 
 # from django.contrib.auth import get_user_model
@@ -1748,10 +1747,5 @@ class PrintDashboardSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return None
-
-class VysyamalaGothraSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = VysyamalaGothra
-        fields = '__all__'
 
 

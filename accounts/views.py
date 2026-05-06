@@ -153,15 +153,6 @@ from openpyxl.utils import get_column_letter
 #         instance.save()
 #         return Response({"status": "deleted"})
 
-
-
-def get_height_info(cm_value):
-    try:
-        h = Height.objects.get(height_value=str(cm_value))
-        return {"height_value": h.height_value, "height_desc": h.height_desc}
-    except Height.DoesNotExist:
-        return {"height_value": cm_value, "height_desc": None}
-
 from django.utils import timezone
 from django.db.models import Subquery
 class DashboardcountView(APIView):
@@ -3346,11 +3337,7 @@ class GetProfEditDetailsAPIView(APIView):
         # Step 5: Fetch ProfilePartnerPref
         try:
             partner_pref_detail = ProfilePartnerPref.objects.get(profile_id=profile_id)
-            # response_data['partner_pref_details'] = ProfilePartnerPrefSerializer(partner_pref_detail).data
-            partner_data = dict(ProfilePartnerPrefSerializer(partner_pref_detail).data)
-            partner_data['pref_height_from'] = get_height_info(partner_data.get('pref_height_from'))
-            partner_data['pref_height_to']   = get_height_info(partner_data.get('pref_height_to'))
-            response_data['partner_pref_details'] = partner_data
+            response_data['partner_pref_details'] = ProfilePartnerPrefSerializer(partner_pref_detail).data
         except ProfilePartnerPref.DoesNotExist:
             response_data['partner_pref_details'] = {}  # Return an empty object if not found
 
@@ -3588,21 +3575,14 @@ class GetProfEditDetailsAPIView(APIView):
             suggests_pref_detail = ProfileSuggestedPref.objects.get(profile_id=profile_id)
         except ProfileSuggestedPref.DoesNotExist:
             suggests_pref_detail = ProfileSuggestedPref.objects.create(profile_id=profile_id)
-        # response_data['suggests_pref_details'] = ProfileSuggestedPrefSerializer(suggests_pref_detail).data
-        suggested_data = dict(ProfileSuggestedPrefSerializer(suggests_pref_detail).data)
-        suggested_data['pref_height_from'] = get_height_info(suggested_data.get('pref_height_from'))
-        suggested_data['pref_height_to']   = get_height_info(suggested_data.get('pref_height_to'))
-        response_data['suggests_pref_details'] = suggested_data
+        response_data['suggests_pref_details'] = ProfileSuggestedPrefSerializer(suggests_pref_detail).data
 
         # Profile Visibility
         try:
             profile_visibility_qs = ProfileVisibility.objects.filter(profile_id=profile_id).first()
             if profile_visibility_qs:
                 visibility_serializer = ProfileVisibilitySerializer(profile_visibility_qs)
-                visibility_data = dict(visibility_serializer.data)
-                visibility_data['visibility_height_from'] = get_height_info(visibility_data.get('visibility_height_from'))
-                visibility_data['visibility_height_to']   = get_height_info(visibility_data.get('visibility_height_to'))
-                response_data['profile_visibility'] = visibility_data
+                response_data['profile_visibility'] = visibility_serializer.data
             else:
                 response_data['profile_visibility'] = {}
         except Exception as e:
@@ -6680,8 +6660,7 @@ class My_viewed_profiles(APIView):
                             "visited_Profile_img": Get_profile_image(detail.get("ProfileId"), my_gender, 1, 0),
                             "visited_profile_age": calculate_age(detail.get("Profile_dob")),
                             "visited_verified": detail.get("Profile_verified"),
-                            # "visited_height": detail.get("Profile_height"),
-                            "visited_height": get_height_info(detail.get("Profile_height")),
+                            "visited_height": detail.get("Profile_height"),
                             "visited_star": detail.get("star_name"),
                             "visited_profession": getprofession(detail.get("profession")),
                             "visited_city": detail.get("Profile_city"),
@@ -6886,8 +6865,7 @@ class My_profiles_vistors(APIView):
                             "visited_Profile_img": Get_profile_image(detail.get("ProfileId"), my_gender, 1, 0),
                             "visited_profile_age": calculate_age(detail.get("Profile_dob")),
                             "visited_verified": detail.get("Profile_verified"),
-                            # "visited_height": detail.get("Profile_height"),
-                            "visited_height": get_height_info(detail.get("Profile_height")),
+                            "visited_height": detail.get("Profile_height"),
                             "visited_star": detail.get("star_name"),
                             "visited_profession": getprofession(detail.get("profession")),
                             "visited_city": detail.get("Profile_city"),
@@ -7065,8 +7043,7 @@ class Get_photo_request_list(APIView):
                             "response_message": fetch_data[index].response_message,
                             "req_status": fetch_data[index].status,
                             "req_verified": detail.get('Profile_verified'),
-                            # "req_height": detail.get("Profile_height"),
-                            "req_height": get_height_info(detail.get("Profile_height")),
+                            "req_height": detail.get("Profile_height"),
                             "req_star": detail.get("star_name"),
                             "req_profession": getprofession(detail.get("profession")),
                             "req_city": detail.get("Profile_city"),
@@ -7155,8 +7132,7 @@ class My_vysassist_list(APIView):
                             "vys_Profile_img": Get_profile_image(detail.get("ProfileId"), my_gender, 1, detail.get("Photo_protection")),
                             "vys_profile_age": calculate_age(detail.get("Profile_dob")),
                             "vys_verified": detail.get("Profile_verified"),
-                            # "vys_height": detail.get("Profile_height"),
-                            "vys_height": get_height_info(detail.get("Profile_height")),
+                            "vys_height": detail.get("Profile_height"),
                             "vys_star": detail.get("star_name"),
                             "vys_profession": getprofession(detail.get("profession")),
                             "vys_city": detail.get("Profile_city"),
@@ -7261,8 +7237,7 @@ class Get_personal_notes(APIView):
                             "notes_details": notes_mapping.get(detail.get("ProfileId"), ('notes', ''))[0],
                             "notes_datetime": notes_mapping.get(detail.get("ProfileId"), ('datetime', ''))[1],
                             "notes_verified": detail.get("Profile_verified"),
-                            # "notes_height": detail.get("Profile_height"),
-                            "notes_height": get_height_info(detail.get("Profile_height")),
+                            "notes_height": detail.get("Profile_height"),
                             "notes_star": detail.get("star_name"),
                             "notes_profession": getprofession(detail.get("profession")),
                             "notes_city": detail.get("Profile_city"),
@@ -7350,8 +7325,7 @@ class Exp_intrests_list(APIView):
                             "myint_Profile_img": Get_profile_image(detail.get("ProfileId"), my_gender, 1, 0),
                             "myint_profile_age": calculate_age(detail.get("Profile_dob")),
                             "myint_verified": detail.get("Profile_verified"),
-                            # "myint_height": detail.get("Profile_height"),
-                            "myint_height": get_height_info(detail.get("Profile_height")),
+                            "myint_height": detail.get("Profile_height"),
                             "myint_star": detail.get("star_name"),
                             "myint_profession": getprofession(detail.get("profession")),
                             "myint_city": detail.get("Profile_city"),
@@ -7549,8 +7523,7 @@ class Exp_intrests_mutual(APIView):
                             "mutint_Profile_img":  Get_profile_image(detail.get("ProfileId"),my_gender,1,detail.get("Photo_protection")),                           
                             "mutint_profile_age": calculate_age(detail.get("Profile_dob")),
                             "mutint_verified":detail.get("Profile_verified"),
-                            # "mutint_height":detail.get("Profile_height"),
-                            "mutint_height": get_height_info(detail.get("Profile_height")),
+                            "mutint_height":detail.get("Profile_height"),
                             "mutint_star":detail.get("star_name"),
                             "mutint_profession":getprofession(detail.get("profession")),
                             "mutint_city":detail.get("Profile_city"),
@@ -8354,7 +8327,7 @@ def GetMarsRahuKethuDoshamDetails(raw_input):
 #         else:
 #             values = default_placeholder
 #         parsed_items.append(values)
-    # return parsed_items
+#     return parsed_items
 
 
 def parse_data(data, planet_mapping=None, default_placeholder="-"):
@@ -8385,10 +8358,6 @@ def parse_data(data, planet_mapping=None, default_placeholder="-"):
             values = default_placeholder
         parsed_items.append(values)
     return parsed_items
-
-
-
-
 
 
 class ShortProfilePDFView(APIView):
@@ -9838,9 +9807,8 @@ class CommonProfileSearchAPIView(APIView):
                     "profile_name": detail["Profile_name"],
                     "profile_img": Get_profile_image(detail["ProfileId"], detail["Gender"], 1, 0, is_admin=True),
                     "profile_age": calculate_age(detail["Profile_dob"]),
-                    "profile_gender": detail["Gender"], 
-                    # "height": detail["Profile_height"],
-                    "height": get_height_info(detail["Profile_height"]),
+                    "profile_gender": detail["Gender"],
+                    "height": detail["Profile_height"],
                     "degree": degree(detail.get("degree"),detail.get("other_degree")),
                     "profession": getprofession(detail.get("profession")),
                     "location": detail["Profile_city"],
@@ -9922,39 +9890,16 @@ class CommonProfileSearchAPIView(APIView):
 
 
 def generate_pdf_from_template(template_name, context, filename):
-    from weasyprint import HTML as WeasyHTML, CSS
-    import os
 
-    html_string = render_to_string(template_name, context)
+    html_string = render_to_string(template_name, context)  # Removed "templates/"
+    pdf_file = io.BytesIO()
+    pisa_status = pisa.CreatePDF(io.StringIO(html_string), dest=pdf_file)
 
-    # Resolve font path — try server path first, fall back to BASE_DIR
-    font_path = context.get("font_path", "")
-    if font_path.startswith("file://"):
-        font_path = font_path[7:]  # strip file:// for os.path check
+    if pisa_status.err:
+        return JsonResponse({"status": "error", "message": "Error generating PDF."}, status=500)
 
-    if not font_path or not os.path.exists(font_path):
-        font_path = os.path.join(settings.BASE_DIR, "fonts", "NotoSansTamil.ttf")
-
-    font_face_css = ""
-    if os.path.exists(font_path):
-        font_face_css = f"""
-        @font-face {{
-            font-family: 'Noto Sans Tamil';
-            src: url('file://{font_path}');
-        }}
-        body, p, td, th, span, div {{
-            font-family: 'Noto Sans Tamil', Arial, sans-serif !important;
-        }}
-        """
-
-    try:
-        pdf_bytes = WeasyHTML(string=html_string).write_pdf(
-            stylesheets=[CSS(string=font_face_css)] if font_face_css else []
-        )
-    except Exception as e:
-        return JsonResponse({"status": "error", "message": f"PDF generation error: {str(e)}"}, status=500)
-
-    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    pdf_file.seek(0)
+    response = HttpResponse(pdf_file, content_type='application/pdf')
     response['Content-Disposition'] = f'inline; filename="{filename}"'
     return response
 
@@ -10408,7 +10353,7 @@ class AdminProfilePDFView(APIView):
                 ("5", format_star_names(porutham_data.get("5 Poruthams"))),
             ]),
             "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}",
-            "font_path": "file://" + os.path.join(settings.BASE_DIR, "fonts", "NotoSansTamil.ttf")
+         "font_path": "file:///home/ubuntu/Documents/vysya_staging/vyspython-staging/fonts/NotoSansTamil.ttf"
         }
 
 
@@ -18499,6 +18444,1319 @@ class PrintDashboardClearCompletedView(APIView):
 
 
 
+class GothramNamesSingleListView(APIView):
+  
+ 
+    def get(self, request):
+        try:
+            qs = GothramNamesSingle.objects.filter(is_deleted=False)
+ 
+            # Optional filters
+            gothram_id = request.query_params.get('gothram_id')
+            search     = request.query_params.get('search', '').strip()
+ 
+            if gothram_id:
+                qs = qs.filter(gothram_id=gothram_id)
+ 
+            if search:
+                qs = qs.filter(name__icontains=search)
+ 
+            qs = qs.order_by('name')
+ 
+            data = list(qs.values('id', 'gothram_id', 'name'))
+ 
+            return JsonResponse({
+                "status": "success",
+                "count" : len(data),
+                "data"  : data,
+            })
+ 
+        except Exception as e:
+            return JsonResponse({
+                "status" : "error",
+                "message": str(e)
+            }, status=500)
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.http import JsonResponse
+
+class PrintEnvelopeJsonView(APIView):
+
+    def get(self, request, pk):
+        try:
+            record = PrintDashboard.objects.get(pk=pk)
+        except PrintDashboard.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'message': 'Record not found'
+            }, status=404)
+
+        # ── Default values ─────────────────────────────────────────
+        profile_id    = record.profile_id or ''
+        owner_name    = ''
+        mobile_no     = ''
+        address_line1 = ''
+        address_line2 = ''
+        district      = ''
+        city          = ''
+        city_state    = ''
+        pincode       = ''
+
+        # ── Pull from LoginDetails ─────────────────────────────────
+        try:
+            owner = LoginDetails.objects.filter(ProfileId=record.profile_id).first()
+            if owner:
+                owner_name    = owner.Profile_name or owner_name
+                mobile_no     = owner.Profile_mobile_no or owner.Mobile_no or ''
+                address_line1 = owner.Profile_address or ''
+                pincode       = owner.Profile_pincode or ''
+
+                # State
+                if owner.Profile_state:
+                    state_obj = State.objects.filter(id=owner.Profile_state).first()
+                    city_state = state_obj.name if state_obj else str(owner.Profile_state)
+
+                # District
+                if owner.Profile_district:
+                    district_obj = District.objects.filter(id=owner.Profile_district).first()
+                    district = district_obj.name if district_obj else str(owner.Profile_district)
+
+                
+                if owner.Profile_city:
+                        city = str(owner.Profile_city)
+
+
+        except Exception:
+            pass
+
+        # ── Query param overrides ──────────────────────────────────
+        profile_id    = request.query_params.get('profile_id',    profile_id)
+        owner_name    = request.query_params.get('owner_name',    owner_name)
+        mobile_no     = request.query_params.get('mobile_no',     mobile_no)
+        address_line1 = request.query_params.get('address_line1', address_line1)
+        address_line2 = request.query_params.get('address_line2', address_line2)
+        district      = request.query_params.get('district',      district)
+        city          = request.query_params.get('city',          city)
+        city_state    = request.query_params.get('city_state',    city_state)
+        pincode       = request.query_params.get('pincode',       pincode)
+
+        # ── JSON Response ─────────────────────────────────────────
+        return Response({
+            'status': 'success',
+            'data': {
+                'profile_id': profile_id,
+                'owner_name': owner_name,
+                'mobile_no': mobile_no,
+                'address_line1': address_line1,
+                'address_line2': address_line2,
+                'district': district,
+                'city': city,
+                'state': city_state,
+                'pincode': pincode
+            }
+        })
+
+
+
+
+from django.db import connection
+from django.http import JsonResponse, HttpResponse
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+import io
+
+
+# ─── Age bucket boundaries ──────────────────────────────────────────────────
+AGE_BUCKETS = [
+    ("18-21", 18, 21),
+    ("22-25", 22, 25),
+    ("26-29", 26, 29),
+    ("30-34", 30, 34),
+    ("35-38", 35, 38),
+    ("39-40", 39, 40),
+    ("Above 40", 41, 999),
+]
+
+
+def _run_star_rasi_sql(group_by: str) -> list[dict]:
+    """
+    Returns rows like:
+      { id, name, gender, tn_pondy, others,
+        age_18_21, age_22_25, age_26_29, age_30_34,
+        age_35_38, age_39_40, age_above_40, total }
+
+    group_by = 'star'  → joins on profile_horoscope.birthstar_name
+    group_by = 'rasi'  → joins on profile_horoscope.birth_rasi_name
+    """
+
+    if group_by == "star":
+        master_table  = "masterbirthstar"
+        master_id_col = "id"
+        master_nm_col = "star"
+        horo_join_col = "birthstar_name"
+        deleted_col   = "is_deleted"
+    else:
+        master_table  = "masterrasi"
+        master_id_col = "id"
+        master_nm_col = "name"
+        horo_join_col = "birth_rasi_name"
+        deleted_col   = "is_deleted"
+
+    sql = f"""
+        SELECT
+            m.{master_id_col}                                        AS id,
+            m.{master_nm_col}                                        AS name,
+            ld.Gender                                                AS gender,
+
+            -- TN / Pondicherry
+            SUM(CASE WHEN ld.Profile_state IN ('2','7') THEN 1 ELSE 0 END)  AS tn_pondy,
+            SUM(CASE WHEN ld.Profile_state NOT IN ('2','7') THEN 1 ELSE 0 END) AS others,
+
+            -- Age buckets (TIMESTAMPDIFF on dob)
+            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 18 AND 21 THEN 1 ELSE 0 END) AS age_18_21,
+            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 22 AND 25 THEN 1 ELSE 0 END) AS age_22_25,
+            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 26 AND 29 THEN 1 ELSE 0 END) AS age_26_29,
+            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 30 AND 34 THEN 1 ELSE 0 END) AS age_30_34,
+            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 35 AND 38 THEN 1 ELSE 0 END) AS age_35_38,
+            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 39 AND 40 THEN 1 ELSE 0 END) AS age_39_40,
+            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) >= 41           THEN 1 ELSE 0 END) AS age_above_40,
+
+            COUNT(*) AS total
+
+        FROM {master_table} m
+        LEFT JOIN profile_horoscope ph
+               ON ph.{horo_join_col} = CAST(m.{master_id_col} AS CHAR)
+        LEFT JOIN logindetails ld
+               ON ld.ProfileId = ph.profile_id
+              AND ld.status = 1                 -- approved only
+        WHERE m.{deleted_col} = 0
+        GROUP BY m.{master_id_col}, m.{master_nm_col}, ld.Gender
+        ORDER BY m.{master_id_col}, ld.Gender DESC
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql)
+        cols = [c[0] for c in cursor.description]
+        return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+
+
+
+def _build_summary(rows: list[dict]) -> list[dict]:
+    groups: dict[int, dict] = {}
+
+    for r in rows:
+        gid  = r["id"]
+        name = r["name"]
+
+        if gid not in groups:
+            groups[gid] = {"id": gid, "name": name, "rows": []}
+
+        if r["gender"]:  # existing logic
+            groups[gid]["rows"].append({
+                "gender":      r["gender"].capitalize(),
+                "tn_pondy":    int(r["tn_pondy"] or 0),
+                "others":      int(r["others"] or 0),
+                "age_18_21":   int(r["age_18_21"] or 0),
+                "age_22_25":   int(r["age_22_25"] or 0),
+                "age_26_29":   int(r["age_26_29"] or 0),
+                "age_30_34":   int(r["age_30_34"] or 0),
+                "age_35_38":   int(r["age_35_38"] or 0),
+                "age_39_40":   int(r["age_39_40"] or 0),
+                "age_above_40":int(r["age_above_40"] or 0),
+                "total": (
+                    int(r["tn_pondy"] or 0) +
+                    int(r["others"] or 0) +
+                    int(r["age_18_21"] or 0) +
+                    int(r["age_22_25"] or 0) +
+                    int(r["age_26_29"] or 0) +
+                    int(r["age_30_34"] or 0) +
+                    int(r["age_35_38"] or 0) +
+                    int(r["age_39_40"] or 0) +
+                    int(r["age_above_40"] or 0)
+                ),
+            })
+          
+
+    # ✅ ADD THIS BLOCK (new logic)
+    for g in groups.values():
+        genders_present = {row["gender"].lower() for row in g["rows"]}
+
+        def empty_row(gender):
+            return {
+                "gender": gender,
+                "tn_pondy": 0,
+                "others": 0,
+                "age_18_21": 0,
+                "age_22_25": 0,
+                "age_26_29": 0,
+                "age_30_34": 0,
+                "age_35_38": 0,
+                "age_39_40": 0,
+                "age_above_40": 0,
+                "total": 0,
+            }
+
+        if "male" not in genders_present:
+            g["rows"].append(empty_row("Male"))
+
+        if "female" not in genders_present:
+            g["rows"].append(empty_row("Female"))
+
+    return list(groups.values())
+
+# ─── API View ────────────────────────────────────────────────────────────────
+
+class StarRasiDashboardView(APIView):
+    """
+    GET /api/star-rasi-dashboard/?type=star          → all 27 stars data
+    GET /api/star-rasi-dashboard/?type=rasi          → all 12 rasi data
+    GET /api/star-rasi-dashboard/?type=star&export=excel  → download Excel
+    GET /api/star-rasi-dashboard/?type=rasi&export=excel  → download Excel
+    """
+
+    def get(self, request):
+        group_by    = request.query_params.get("type", "star").lower()
+        export_type = request.query_params.get("export", "").lower()
+
+        if group_by not in ("star", "rasi"):
+            return JsonResponse({"status": "error", "message": "type must be 'star' or 'rasi'"}, status=400)
+
+        raw  = _run_star_rasi_sql(group_by)
+        data = _build_summary(raw)
+
+        if export_type == "excel":
+            return self._export_excel(data, group_by)
+
+        return JsonResponse({"status": "success", "type": group_by, "data": data})
+
+    # ── Excel export ─────────────────────────────────────────────────────────
+    def _export_excel(self, data: list[dict], group_by: str) -> HttpResponse:
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Stars" if group_by == "star" else "Rasi"
+
+        # ── Styles ────────────────────────────────────────────────────────────
+        RED_FILL    = PatternFill("solid", start_color="C0392B", end_color="C0392B")
+        GOLD_FILL   = PatternFill("solid", start_color="F39C12", end_color="F39C12")
+        GREY_FILL   = PatternFill("solid", start_color="ECF0F1", end_color="ECF0F1")
+        WHITE_FILL  = PatternFill("solid", start_color="FFFFFF", end_color="FFFFFF")
+        WHITE_FONT  = Font(bold=True, color="FFFFFF", size=11)
+        BLACK_BOLD  = Font(bold=True, color="000000", size=10)
+        NORMAL_FONT = Font(color="000000", size=10)
+        CENTER      = Alignment(horizontal="center", vertical="center")
+        LEFT        = Alignment(horizontal="left", vertical="center")
+
+        thin = Side(style="thin", color="BBBBBB")
+        BORDER = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+        # ── Header row 1 ──────────────────────────────────────────────────────
+        label = "Star" if group_by == "star" else "Rasi"
+        headers = [label, "Gender", "TN/Pondy", "Others",
+                   "18-21", "22-25", "26-29", "30-34",
+                   "35-38", "39-40", "Above 40", "Total"]
+        ws.append(headers)
+
+        for col_idx, _ in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_idx)
+            cell.fill = RED_FILL
+            cell.font = WHITE_FONT
+            cell.alignment = CENTER
+            cell.border = BORDER
+
+        ws.row_dimensions[1].height = 22
+
+        # ── Data rows ─────────────────────────────────────────────────────────
+        current_row = 2
+        for item in data:
+            name     = item["name"]
+            item_rows = item["rows"]
+
+            if not item_rows:
+                # No profiles → write empty row
+                ws.append([name, "-", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+                for col_idx in range(1, 13):
+                    cell = ws.cell(row=current_row, column=col_idx)
+                    cell.fill = GREY_FILL
+                    cell.font = BLACK_BOLD if col_idx == 1 else NORMAL_FONT
+                    cell.alignment = CENTER if col_idx != 1 else LEFT
+                    cell.border = BORDER
+                current_row += 1
+                continue
+
+            for i, row in enumerate(item_rows):
+                star_label = name if i == 0 else ""
+                ws.append([
+                    star_label,
+                    row["gender"],
+                    row["tn_pondy"],
+                    row["others"],
+                    row["age_18_21"],
+                    row["age_22_25"],
+                    row["age_26_29"],
+                    row["age_30_34"],
+                    row["age_35_38"],
+                    row["age_39_40"],
+                    row["age_above_40"],
+                    row["total"],
+                ])
+                fill = GREY_FILL if i % 2 == 0 else WHITE_FILL
+                for col_idx in range(1, 13):
+                    cell = ws.cell(row=current_row, column=col_idx)
+                    cell.fill = fill
+                    cell.font = BLACK_BOLD if col_idx in (1, 12) else NORMAL_FONT
+                    cell.alignment = CENTER if col_idx != 1 else LEFT
+                    cell.border = BORDER
+                current_row += 1
+
+        # ── Column widths ─────────────────────────────────────────────────────
+        col_widths = [16, 10, 12, 10, 8, 8, 8, 8, 8, 8, 10, 8]
+        for i, w in enumerate(col_widths, 1):
+            ws.column_dimensions[get_column_letter(i)].width = w
+
+        # ── Freeze header ─────────────────────────────────────────────────────
+        ws.freeze_panes = "A2"
+
+        # ── Output ────────────────────────────────────────────────────────────
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+
+        filename = f"vysyamala_{group_by}_dashboard.xlsx"
+        response = HttpResponse(
+            buf.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.db import connection
+from rest_framework import status
+import io
+from django.http import HttpResponse
+import openpyxl
+
+
+class GeographicalReportView(APIView):
+
+    STATE_MAP = {
+        "tn":        ['2', '7'],
+        "karnataka": ['4'],
+        "ap":        ['1'],
+        "telangana": ['3'],
+    }
+    STATE_LABEL = {
+        "tn":        "Tamil Nadu & Pondicherry",
+        "karnataka": "Karnataka",
+        "ap":        "Andhra Pradesh",
+        "telangana": "Telangana",
+        "others":    "Others",
+        "all":       "All States",
+    }
+    KNOWN_STATE_IDS    = ['1', '2', '3', '4', '7']
+    VALID_TOP_CITIES   = {20, 30, 50}
+    VALID_TOP_WORK     = {20, 30, 50, 100}
+    VALID_EXPORT_TYPES = {"city", "work_city", "both", "statewise"}
+
+    @staticmethod
+    def _safe_int(value, default, valid_set):
+        try:
+            v = int(value)
+        except (ValueError, TypeError):
+            return default
+        return v if v in valid_set else default
+
+    def _build_common_where(self, state_filter, occupation, params):
+        fragment = ""
+
+        if state_filter != "all":
+            if state_filter in self.STATE_MAP:
+                ids          = self.STATE_MAP[state_filter]
+                placeholders = ",".join(["%s"] * len(ids))
+                fragment    += f" AND l.Profile_state IN ({placeholders})"
+                params.extend(ids)
+            elif state_filter == "others":
+                placeholders = ",".join(["%s"] * len(self.KNOWN_STATE_IDS))
+                fragment += f"""
+                    AND l.Profile_state NOT IN ({placeholders})
+                    AND l.Profile_state IS NOT NULL
+                    AND l.Profile_state != 0
+                """
+                params.extend(self.KNOWN_STATE_IDS)
+
+        if occupation == "business":
+            fragment += " AND e.profession = 2"
+        elif occupation == "employed":
+            fragment += " AND e.profession = 1"
+        elif occupation == "profession_both":
+            fragment += " AND e.profession = 6"
+
+        return fragment
+
+    def get(self, request):
+        try:
+            # ── parse filters ──────────────────────────────────────────────
+            state_filter = request.query_params.get("state",           "all").lower().strip()
+            occupation   = request.query_params.get("occupation",      "all").lower().strip()
+            top_cities   = self._safe_int(request.query_params.get("top_cities",      20), 20, self.VALID_TOP_CITIES)
+            top_work     = self._safe_int(request.query_params.get("top_work_cities", 20), 20, self.VALID_TOP_WORK)
+            export_raw   = request.query_params.get("export_type", "both").lower().strip()
+            export_type  = export_raw if export_raw in self.VALID_EXPORT_TYPES else "both"
+
+            # ── QUERY 1: City Data ─────────────────────────────────────────
+            params_city = []
+            where_city  = self._build_common_where(state_filter, occupation, params_city)
+
+            city_query = f"""
+                SELECT
+                    l.Profile_state,
+                    l.Profile_city,
+                    COUNT(*)                                                         AS total,
+                    SUM(CASE WHEN e.profession = 2 THEN 1 ELSE 0 END)               AS business,
+                    SUM(CASE WHEN e.profession = 1 THEN 1 ELSE 0 END)               AS employed,
+                    SUM(CASE WHEN e.profession = 6 THEN 1 ELSE 0 END)               AS profession_both,
+                    SUM(CASE WHEN l.Plan_id = 7            THEN 1 ELSE 0 END)        AS free,
+                    SUM(CASE WHEN l.Plan_id = 8            THEN 1 ELSE 0 END)        AS prospect,
+                    SUM(CASE WHEN l.Plan_id = 9            THEN 1 ELSE 0 END)        AS offer,
+                    SUM(CASE WHEN l.Plan_id IN (1,2,3,16,14,15) THEN 1 ELSE 0 END)  AS premium,
+                    SUM(CASE WHEN l.Profile_dob IS NOT NULL
+                              AND TIMESTAMPDIFF(YEAR, l.Profile_dob, CURDATE()) < 32
+                             THEN 1 ELSE 0 END)                                      AS age_below_32,
+                    SUM(CASE WHEN l.Profile_dob IS NOT NULL
+                              AND TIMESTAMPDIFF(YEAR, l.Profile_dob, CURDATE()) >= 32
+                             THEN 1 ELSE 0 END)                                      AS age_above_32
+                FROM logindetails l
+                LEFT JOIN profile_edudetails e ON l.ProfileId = e.profile_id
+                WHERE l.status = '1'
+                {where_city}
+                GROUP BY l.Profile_state, l.Profile_city
+                ORDER BY total DESC
+                LIMIT %s
+            """
+            params_city.append(top_cities)
+
+            # ── QUERY 2: Work City Data ────────────────────────────────────
+            params_work = []
+            where_work  = self._build_common_where(state_filter, occupation, params_work)
+
+            work_query = f"""
+                SELECT
+                    e.work_city,
+                    COUNT(*)                                                         AS total,
+                    SUM(CASE WHEN e.profession = 2 THEN 1 ELSE 0 END)               AS business,
+                    SUM(CASE WHEN e.profession = 1 THEN 1 ELSE 0 END)               AS employed,
+                    SUM(CASE WHEN e.profession = 6 THEN 1 ELSE 0 END)               AS profession_both,
+                    SUM(CASE WHEN l.Plan_id = 7            THEN 1 ELSE 0 END)        AS free,
+                    SUM(CASE WHEN l.Plan_id = 8            THEN 1 ELSE 0 END)        AS prospect,
+                    SUM(CASE WHEN l.Plan_id = 9            THEN 1 ELSE 0 END)        AS offer,
+                    SUM(CASE WHEN l.Plan_id IN (1,2,3,16,14,15) THEN 1 ELSE 0 END)  AS premium,
+                    SUM(CASE WHEN l.Profile_dob IS NOT NULL
+                              AND TIMESTAMPDIFF(YEAR, l.Profile_dob, CURDATE()) < 32
+                             THEN 1 ELSE 0 END)                                      AS age_below_32,
+                    SUM(CASE WHEN l.Profile_dob IS NOT NULL
+                              AND TIMESTAMPDIFF(YEAR, l.Profile_dob, CURDATE()) >= 32
+                             THEN 1 ELSE 0 END)                                      AS age_above_32
+                FROM profile_edudetails e
+                INNER JOIN logindetails l ON l.ProfileId = e.profile_id
+                WHERE e.work_city IS NOT NULL
+                  AND e.work_city != ''
+                  AND l.status = '1'
+                {where_work}
+                GROUP BY e.work_city
+                ORDER BY total DESC
+                LIMIT %s
+            """
+            params_work.append(top_work)
+
+            # ── execute both queries ───────────────────────────────────────
+            with connection.cursor() as cursor:
+                cursor.execute(city_query, params_city)
+                city_rows = cursor.fetchall()
+
+            with connection.cursor() as cursor:
+                cursor.execute(work_query, params_work)
+                work_rows = cursor.fetchall()
+
+            # ── state name lookup ──────────────────────────────────────────
+            state_map = {}
+            if city_rows:
+                state_ids = list({str(r[0]) for r in city_rows if r[0]})
+                if state_ids:
+                    with connection.cursor() as cursor:
+                        placeholders = ",".join(["%s"] * len(state_ids))
+                        cursor.execute(
+                            f"SELECT id, name FROM masterstate WHERE id IN ({placeholders})",
+                            state_ids,
+                        )
+                        state_map = {str(i): n for i, n in cursor.fetchall()}
+
+            # ── city name lookup ───────────────────────────────────────────
+            city_name_map = {}
+            if city_rows:
+                city_ids = list({str(r[1]) for r in city_rows if r[1]})
+                if city_ids:
+                    with connection.cursor() as cursor:
+                        placeholders = ",".join(["%s"] * len(city_ids))
+                        cursor.execute(
+                            f"SELECT id, city_name FROM mastercity WHERE id IN ({placeholders})",
+                            city_ids,
+                        )
+                        city_name_map = {str(i): n for i, n in cursor.fetchall()}
+
+            # ── build city_data ────────────────────────────────────────────
+            city_data      = []
+            total_approved = 0
+            for rank, row in enumerate(city_rows, start=1):
+                total_approved += int(row[2] or 0)
+                city_data.append({
+                    "rank":            rank,
+                    "state_name":      state_map.get(str(row[0]), "N/A"),
+                    "city_name":       row[1],
+                    "total":           int(row[2]  or 0),
+                    "business":        int(row[3]  or 0),
+                    "employed":        int(row[4]  or 0),
+                    "profession_both": int(row[5]  or 0),
+                    "free":            int(row[6]  or 0),
+                    "prospect":        int(row[7]  or 0),
+                    "offer":           int(row[8]  or 0),
+                    "premium":         int(row[9]  or 0),
+                    "age_below_32":    int(row[10] or 0),
+                    "age_above_32":    int(row[11] or 0),
+                })
+
+            city_data = [d for d in city_data if not (
+                d["state_name"] in ("N/A", "", None) and
+                d["city_name"]  in ("N/A", "", None)
+            )]
+            for i, d in enumerate(city_data, start=1):
+                d["rank"] = i
+
+            # ── build work_city_data ───────────────────────────────────────
+            work_city_data = []
+            for rank, row in enumerate(work_rows, start=1):
+                work_city_data.append({
+                    "rank":            rank,
+                    "work_city":       row[0] or "N/A",
+                    "total":           int(row[1]  or 0),
+                    "business":        int(row[2]  or 0),
+                    "employed":        int(row[3]  or 0),
+                    "profession_both": int(row[4]  or 0),
+                    "free":            int(row[5]  or 0),
+                    "prospect":        int(row[6]  or 0),
+                    "offer":           int(row[7]  or 0),
+                    "premium":         int(row[8]  or 0),
+                    "age_below_32":    int(row[9]  or 0),
+                    "age_above_32":    int(row[10] or 0),
+                })
+
+            # ── export ─────────────────────────────────────────────────────
+            if request.query_params.get("export", "").lower().strip() == "excel":
+                if export_type == "statewise":
+                    return self._export_statewise(city_data, work_city_data, state_filter)
+                return self._export_excel(city_data, work_city_data, export_type)
+
+            return Response({
+                "status":  "success",
+                "filters": {
+                    "state":           state_filter,
+                    "top_cities":      top_cities,
+                    "top_work_cities": top_work,
+                    "occupation":      occupation,
+                    "export_type":     export_type,
+                },
+                "summary": {
+                    "total_approved":    total_approved,
+                    "total_cities":      len(city_data),
+                    "total_work_cities": len(work_city_data),
+                },
+                "city_data":      city_data,
+                "work_city_data": work_city_data,
+            })
+
+        except Exception as e:
+            return Response(
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    # ── helper: write combined rows (city + work_city side by side) ───────────
+    # NO CHANGES
+
+    @staticmethod
+    def _write_combined_rows(ws, city_data, work_city_data):
+        ws.append([
+            "Rank", "State", "City", "Place to Stay",
+            "Total", "Business", "Employed", "Both",
+            "Free", "Prospect", "Offer", "Premium",
+            "Age < 32", "Age > 32",
+        ])
+        max_len = max(len(city_data), len(work_city_data), 1)
+        for i in range(max_len):
+            city = city_data[i]      if i < len(city_data)      else None
+            work = work_city_data[i] if i < len(work_city_data) else None
+            ws.append([
+                city["rank"]            if city else (work["rank"] if work else i + 1),
+                city["state_name"]      if city else "",
+                city["city_name"]       if city else "",
+                work["work_city"]       if work else "",
+                city["total"]           if city else (work["total"]           if work else 0),
+                city["business"]        if city else (work["business"]        if work else 0),
+                city["employed"]        if city else (work["employed"]        if work else 0),
+                city["profession_both"] if city else (work["profession_both"] if work else 0),
+                city["free"]            if city else (work["free"]            if work else 0),
+                city["prospect"]        if city else (work["prospect"]        if work else 0),
+                city["offer"]           if city else (work["offer"]           if work else 0),
+                city["premium"]         if city else (work["premium"]         if work else 0),
+                city["age_below_32"]    if city else (work["age_below_32"]    if work else 0),
+                city["age_above_32"]    if city else (work["age_above_32"]    if work else 0),
+            ])
+
+    # ── export: city | work_city | both  ← ONLY THIS METHOD UPDATED ──────────
+
+    def _export_excel(self, city_data, work_city_data, export_type="both"):
+        wb = openpyxl.Workbook()
+        wb.remove(wb.active)
+
+        if export_type == "city":
+            # ── only City Data sheet ──────────────────────────────────────
+            ws = wb.create_sheet(title="City Data")
+            ws.append([
+                "Rank", "State", "City",
+                "Total", "Business", "Employed", "Both",
+                "Free", "Prospect", "Offer", "Premium",
+                "Age < 32", "Age > 32",
+            ])
+            for item in city_data:
+                ws.append([
+                    item["rank"], item["state_name"], item["city_name"],
+                    item["total"], item["business"], item["employed"],
+                    item["profession_both"], item["free"], item["prospect"],
+                    item["offer"], item["premium"],
+                    item["age_below_32"], item["age_above_32"],
+                ])
+
+        elif export_type == "work_city":
+            # ── only Work City Data sheet ─────────────────────────────────
+            ws = wb.create_sheet(title="Work City Data")
+            ws.append([
+                "Rank", "Place to Stay",
+                "Total", "Business", "Employed", "Both",
+                "Free", "Prospect", "Offer", "Premium",
+                "Age < 32", "Age > 32",
+            ])
+            for item in work_city_data:
+                ws.append([
+                    item["rank"], item["work_city"],
+                    item["total"], item["business"], item["employed"],
+                    item["profession_both"], item["free"], item["prospect"],
+                    item["offer"], item["premium"],
+                    item["age_below_32"], item["age_above_32"],
+                ])
+
+        else:
+            # ── both: combined single sheet (city + work city side by side)
+            ws = wb.create_sheet(title="Geographical Report")
+            self._write_combined_rows(ws, city_data, work_city_data)
+
+        return self._stream_excel(wb, "geographical_report.xlsx")
+
+    # ── export: statewise (single combined sheet with title) ─────────────────
+    # NO CHANGES
+
+    def _export_statewise(self, city_data, work_city_data, state_filter):
+        state_label = self.STATE_LABEL.get(state_filter, state_filter.upper())
+        wb = openpyxl.Workbook()
+        wb.remove(wb.active)
+
+        ws = wb.create_sheet(title="Geographical Report")
+        ws.append([f"State: {state_label}"])  # title row
+        ws.append([])                          # blank spacer
+        self._write_combined_rows(ws, city_data, work_city_data)
+
+        return self._stream_excel(wb, f"geographical_report_{state_filter}.xlsx")
+
+    # ── stream to response ────────────────────────────────────────────────────
+    # NO CHANGES
+
+    @staticmethod
+    def _stream_excel(wb, filename):
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        response = HttpResponse(
+            buf.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+
+
+
+class AdminInterestNotifications(APIView):
+
+    def get(self, request):
+        notifications = AdminNotification.objects.filter(
+            notification_type="Interest",
+            is_cleared=0
+        ).order_by('-created_at')
+
+        data = [
+            {
+                "id": n.id,
+                "from_profile": n.from_profile,
+                "message": n.message,
+                "created_at": n.created_at,
+                "is_read": n.is_read
+            }
+            for n in notifications
+        ]
+        return Response({
+            "Status": 1,
+            "message": "Interest notifications fetched",
+            "data": data
+        })
+
+
+class AdminTransactionNotifications(APIView):
+
+    def get(self, request):
+        notifications = AdminNotification.objects.filter(
+            notification_type="Transaction",
+            is_cleared=0
+        ).order_by('-created_at')
+
+        data = [
+            {
+                "id": n.id,
+                "from_profile": n.from_profile,
+                "message": n.message,
+                "created_at": n.created_at,
+                "is_read": n.is_read
+            }
+            for n in notifications
+        ]
+        return Response({
+            "Status": 1,
+            "message": "Transaction notifications fetched",
+            "data": data
+        })
+
+class AdminHideProfileNotifications(APIView):
+
+    def get(self, request):
+        notifications = AdminNotification.objects.filter(
+            notification_type="HideProfile",
+            is_cleared=0
+        ).order_by('-created_at')
+
+        data = [
+            {
+                "id": n.id,
+                "from_profile": n.from_profile,
+                "message": n.message,
+                "created_at": n.created_at,
+                "is_read": n.is_read
+            }
+            for n in notifications
+        ]
+        return Response({
+            "Status": 1,
+            "message": "Hide profile notifications fetched",
+            "data": data
+        })
+
+
+
+
+from .models import MarriageSettleDetails, SuccessStory, ProfileSubStatus
+class   WebsitePerformanceReport(APIView):
+    def get(self, request):
+        try:
+            from_date_str = request.query_params.get('from_date')
+            to_date_str   = request.query_params.get('to_date')
+            export        = request.query_params.get('export')
+
+            from_date = None
+            to_date   = None
+            if from_date_str and to_date_str:
+                try:
+                    from_date = datetime.strptime(from_date_str, "%Y-%m-%d").date()
+                    to_date   = datetime.strptime(to_date_str,   "%Y-%m-%d").date()
+                except ValueError:
+                    return Response(
+                        {"Status": 0, "message": "Invalid date format. Use YYYY-MM-DD"},
+                        status=400
+                    )
+
+            # Helper: apply date filter on a datetime field
+            def date_filter(qs, field):
+                if from_date and to_date:
+                    return qs.filter(**{
+                        f"{field}__date__gte": from_date,
+                        f"{field}__date__lte": to_date
+                    })
+                return qs
+
+            # Helper: apply date filter using DateOfJoin (stored as CharField)
+            def join_date_filter(qs):
+                if from_date and to_date:
+                    return qs.extra(
+                        where=["DATE(DateOfJoin) >= %s AND DATE(DateOfJoin) <= %s"],
+                        params=[str(from_date), str(to_date)]
+                    )
+                return qs
+
+            # Helper: apply date filter using Last_login_date
+            def login_date_filter(qs):
+                if from_date and to_date:
+                    return qs.extra(
+                        where=["DATE(Last_login_date) >= %s AND DATE(Last_login_date) <= %s"],
+                        params=[str(from_date), str(to_date)]
+                    )
+                return qs
+
+            # ── Plan groupings ─────────────────────────────────────────
+            FREE_PLANS     = [6, 7, 9, 11, 12, 13]
+            PROSPECT_PLANS = [8]
+
+            # ─────────────────────────────────────────────────────────────
+            # 1. EXECUTIVE SUMMARY
+            # ─────────────────────────────────────────────────────────────
+
+            # Total Registrations (still uses DateOfJoin)
+            total_registrations = join_date_filter(LoginDetails.objects.all()).count()
+
+            # ── Total Login Members — filtered by Last_login_date ────────
+            login_members_qs = login_date_filter(
+                LoginDetails.objects.filter(status__in=[0, 1])
+            ).exclude(Last_login_date__isnull=True)
+
+            total_login_members = login_members_qs.count()
+
+            # ── Total Unique Login Members — filtered by Last_login_date ─
+            total_unique_logins = login_date_filter(
+                LoginDetails.objects.filter(status__in=[0, 1])
+                .exclude(Last_login_date__isnull=True)
+                .values('ProfileId')
+                .distinct()
+            ).count()
+
+            # Premium Members (status=1, secondary_status=5)
+            premium_members  = login_members_qs.filter(
+                status=1, secondary_status=5
+            ).count()
+
+            # Prospect Members (status=1, secondary_status=2)
+            prospect_members = login_members_qs.filter(
+                status=1, secondary_status=2
+            ).count()
+
+            # Other Members (status=1, secondary_status NOT in 5 or 2)
+            other_members    = login_members_qs.filter(
+                status=1
+            ).exclude(
+                secondary_status__in=[5, 2]
+            ).count()
+
+            # Express Interests
+            interest_qs        = date_filter(Express_interests.objects.all(), 'req_datetime')
+            total_interests    = interest_qs.count()
+            accepted_interests = interest_qs.filter(status='2').count()
+            acceptance_pct     = round((accepted_interests / total_interests * 100), 2) if total_interests > 0 else 0
+
+            # Bookmarks / Wishlists
+            total_bookmarks = date_filter(
+                Profile_wishlists.objects.filter(status='1'),
+                'marked_datetime'
+            ).count()
+
+            # Transactions
+            txn_qs        = date_filter(PaymentTransaction.objects.all(), 'created_at')
+            txn_success   = txn_qs.filter(status='1').count()
+            txn_failure   = txn_qs.filter(status='3').count()
+
+            # Total Deleted
+            total_deleted = join_date_filter(
+                LoginDetails.objects.filter(status=4)
+            ).count()
+
+            # Marriage Settled (status=4, secondary_status=20)
+            marriage_settled = join_date_filter(
+                LoginDetails.objects.filter(status=4, secondary_status=20)
+            ).count()
+
+            # ─────────────────────────────────────────────────────────────
+            # 2. LOGIN MEMBER REPORT — Category wise
+            # ─────────────────────────────────────────────────────────────
+            total_for_pct = total_login_members if total_login_members > 0 else 1
+
+            login_category_report = {
+                "total":    {"count": total_login_members, "pct": 100},
+                "premium":  {
+                    "count": premium_members,
+                    "pct":   round(premium_members  / total_for_pct * 100, 1)
+                },
+                "prospect": {
+                    "count": prospect_members,
+                    "pct":   round(prospect_members / total_for_pct * 100, 1)
+                },
+                "others":   {
+                    "count": other_members,
+                    "pct":   round(other_members    / total_for_pct * 100, 1)
+                },
+            }
+
+            # ─────────────────────────────────────────────────────────────
+            # 3. STATE-WISE LOGIN MEMBERS — filtered by Last_login_date
+            # ─────────────────────────────────────────────────────────────
+
+            # Base queryset: status IN (0,1), Last_login_date NOT NULL,
+            # filtered by Last_login_date range when dates are provided
+            state_base_qs = login_date_filter(
+                LoginDetails.objects.filter(status__in=[0, 1])
+                .exclude(Last_login_date__isnull=True)
+            )
+
+            tn_pondy     = state_base_qs.filter(Profile_state__in=['2', '7']).count()
+            andhra       = state_base_qs.filter(Profile_state='1').count()
+            telangana    = state_base_qs.filter(Profile_state='3').count()
+            karnataka    = state_base_qs.filter(Profile_state='4').count()
+            kerala       = state_base_qs.filter(Profile_state='5').count()
+            nri          = state_base_qs.filter(
+                            Profile_country='1',
+                            ProfileId__in=ProfileEduDetails.objects.filter(
+                                ~Q(work_country='1'),
+                                ~Q(work_country=''),
+                                ~Q(work_country='0'),
+                                work_country__isnull=False
+                            ).values('profile_id')
+                        ).count()
+            state_others = state_base_qs.exclude(
+                Profile_state__in=['1', '2', '3', '4', '5', '7']
+            ).count()
+
+            state_wise_report = {
+                "tamil_nadu_pondicherry": tn_pondy,
+                "andhra_pradesh":         andhra,
+                "telangana":              telangana,
+                "karnataka":              karnataka,
+                "kerala":                 kerala,
+                "nri":                    nri,
+                "others":                 state_others,
+            }
+
+            # ─────────────────────────────────────────────────────────────
+            # 4. EXPRESS INTEREST REPORT — by sender's plan
+            # ─────────────────────────────────────────────────────────────
+            def interest_by_secondary_status(secondary_status=None, exclude_statuses=None):
+                profile_qs = LoginDetails.objects.filter(status=1)
+                if secondary_status:
+                    profile_qs = profile_qs.filter(secondary_status__in=secondary_status)
+                elif exclude_statuses:
+                    profile_qs = profile_qs.exclude(secondary_status__in=exclude_statuses)
+                ids = list(profile_qs.values_list('ProfileId', flat=True))
+                return interest_qs.filter(profile_from__in=ids).count()
+
+            premium_sent  = interest_by_secondary_status(secondary_status=[5])
+            prospect_sent = interest_by_secondary_status(secondary_status=[2])
+            others_sent   = interest_by_secondary_status(exclude_statuses=[5, 2])
+
+            interest_report = {
+                "total_sent":      total_interests,
+                "premium_sent":    premium_sent,
+                "prospect_sent":   prospect_sent,
+                "others_sent":     others_sent,
+                "total_accepted":  accepted_interests,
+                "acceptance_pct":  acceptance_pct,
+            }
+
+            # ─────────────────────────────────────────────────────────────
+            # 5. REGISTRATION REPORT
+            # ─────────────────────────────────────────────────────────────
+            all_reg_qs = join_date_filter(LoginDetails.objects.all())
+
+            new_registrations  = all_reg_qs.filter(status=0).count()
+            approved_total    = all_reg_qs.filter(status=1).count()
+            approved_premium  = all_reg_qs.filter(status=1, secondary_status=5).count()
+            approved_prospect = all_reg_qs.filter(status=1, secondary_status=2).count()
+
+            registration_report = {
+                "total_registrations": total_registrations,
+                "new":      new_registrations,
+                "approved": {
+                    "total":    approved_total,
+                    "premium":  approved_premium,
+                    "prospect": approved_prospect,
+                },
+            }
+
+            # ─────────────────────────────────────────────────────────────
+            # 6. DELETED PROFILES REPORT
+            # ─────────────────────────────────────────────────────────────
+            deleted_qs = join_date_filter(LoginDetails.objects.filter(status=4))
+            total_deleted_profiles = deleted_qs.count()
+
+            sub_statuses_4 = ProfileSubStatus.objects.filter(status_code=4)
+
+            duplicate_ids = list(sub_statuses_4.filter(
+                sub_status_name__icontains='duplicate'
+            ).values_list('id', flat=True))
+
+            fake_ids = list(sub_statuses_4.filter(
+                sub_status_name__icontains='fake'
+            ).values_list('id', flat=True))
+
+            marriage_ids = list(sub_statuses_4.filter(
+                sub_status_name__iregex=r'marriage|got married'
+            ).values_list('id', flat=True))
+
+            duplicate_count    = deleted_qs.filter(secondary_status__in=duplicate_ids).count()
+            fake_others_count  = deleted_qs.filter(secondary_status__in=fake_ids).count()
+            marriage_del_count = deleted_qs.filter(secondary_status__in=marriage_ids).count()
+
+            deleted_profiles_report = {
+                "total_deleted_profiles": total_deleted_profiles,
+                "duplicate_profiles":     duplicate_count,
+                "fake_profiles_others":   fake_others_count,
+                "marriage_settled":       marriage_del_count,
+            }
+
+            # ─────────────────────────────────────────────────────────────
+            # 7. MARRIAGE SETTLED / GOT MARRIED REPORT
+            # ─────────────────────────────────────────────────────────────
+            marriage_qs = MarriageSettleDetails.objects.all()
+            if from_date and to_date:
+                marriage_qs = marriage_qs.filter(
+                    created_at__date__gte=from_date,
+                    created_at__date__lte=to_date
+                )
+
+            total_marriage        = marriage_qs.count()
+            with_marriage_date    = marriage_qs.filter(marriage_date__isnull=False).count()
+            without_marriage_date = marriage_qs.filter(marriage_date__isnull=True).count()
+
+            thru_vysyamala = marriage_qs.filter(settled_thru='Vysyamala').count()
+            thru_relatives = marriage_qs.filter(settled_thru='Relatives').count()
+            thru_whatsapp  = marriage_qs.filter(settled_thru='Whatsapp Group').count()
+            thru_others    = marriage_qs.filter(settled_thru='Others').count()
+
+            both_ids_present  = marriage_qs.exclude(
+                                    groom_bride_vysyamala_id__isnull=True
+                                ).exclude(
+                                    groom_bride_vysyamala_id=''
+                                ).count()
+            single_id_present = total_marriage - both_ids_present
+
+            marriage_settled_report = {
+                "total":                 total_marriage,
+                "with_marriage_date":    with_marriage_date,
+                "without_marriage_date": without_marriage_date,
+                "thru_vysyamala":        thru_vysyamala,
+                "thru_relatives":        thru_relatives,
+                "thru_whatsapp_group":   thru_whatsapp,
+                "thru_others":           thru_others,
+                "both_ids_present":      both_ids_present,
+                "single_id_present":     single_id_present,
+            }
+
+            # ─────────────────────────────────────────────────────────────
+            # 8. SUCCESS STORIES REPORT
+            # ─────────────────────────────────────────────────────────────
+            story_qs = SuccessStory.objects.filter(deleted=False)
+            if from_date and to_date:
+                story_qs = story_qs.filter(
+                    date_of_marriage__gte=from_date,
+                    date_of_marriage__lte=to_date
+                )
+
+            total_success_stories = story_qs.count()
+            photos_uploaded       = story_qs.exclude(
+                                        photo__isnull=True
+                                    ).exclude(
+                                        photo=''
+                                    ).count()
+
+            success_stories_report = {
+                "total_success_stories": total_success_stories,
+                "photos_uploaded":       photos_uploaded,
+            }
+
+            # ─────────────────────────────────────────────────────────────
+            # EXCEL EXPORT
+            # ─────────────────────────────────────────────────────────────
+            if export == 'excel':
+                from openpyxl import Workbook
+                from openpyxl.styles import Font, PatternFill, Alignment
+                from io import BytesIO
+
+                wb = Workbook()
+                ws = wb.active
+                ws.title = "Website Performance"
+
+                header_font  = Font(bold=True, size=12, color="FFFFFF")
+                header_fill  = PatternFill("solid", fgColor="4F46E5")
+                section_font = Font(bold=True, size=11, color="FFFFFF")
+                section_fill = PatternFill("solid", fgColor="6D6875")
+
+                ws.column_dimensions['A'].width = 35
+                ws.column_dimensions['B'].width = 20
+
+                row = 1
+                ws.cell(row=row, column=1, value="VYSYAMALA – WEBSITE PERFORMANCE REPORT").font = Font(bold=True, size=14)
+                row += 1
+                ws.cell(row=row, column=1, value=f"Period: {from_date or 'All time'}  to  {to_date or 'All time'}")
+                row += 2
+
+                sections = [
+                    ("EXECUTIVE SUMMARY", [
+                        ("Total Registrations",        total_registrations),
+                        ("Total Login Members",        total_login_members),
+                        ("Total Unique Login Members", total_unique_logins),
+                        ("Premium Members",            premium_members),
+                        ("Prospect Members",           prospect_members),
+                        ("Other Members",              other_members),
+                        ("Total Express Interests",    total_interests),
+                        ("Accepted Interests",         accepted_interests),
+                        ("Total Bookmarks",            total_bookmarks),
+                        ("Transactions Success",       txn_success),
+                        ("Transactions Failure",       txn_failure),
+                        ("Total Deleted",              total_deleted),
+                        ("Marriage Settled",           marriage_settled),
+                    ]),
+                    ("LOGIN MEMBER REPORT – Category Wise", [
+                        ("Total",    f"{total_login_members}   (100%)"),
+                        ("Premium",  f"{premium_members}   ({login_category_report['premium']['pct']}%)"),
+                        ("Prospect", f"{prospect_members}  ({login_category_report['prospect']['pct']}%)"),
+                        ("Others",   f"{other_members}  ({login_category_report['others']['pct']}%)"),
+                    ]),
+                    ("STATE-WISE LOGIN MEMBERS", [
+                        ("Tamil Nadu / Pondicherry", tn_pondy),
+                        ("Andhra Pradesh",           andhra),
+                        ("Telangana",                telangana),
+                        ("Karnataka",                karnataka),
+                        ("Kerala",                   kerala),
+                        ("NRI",                      nri),
+                        ("Others",                   state_others),
+                    ]),
+                    ("EXPRESS INTEREST REPORT", [
+                        ("Total Sent",     total_interests),
+                        ("Premium Sent",   premium_sent),
+                        ("Prospect Sent",  prospect_sent),
+                        ("Others Sent",    others_sent),
+                        ("Total Accepted", accepted_interests),
+                        ("Acceptance %",   f"{acceptance_pct}%"),
+                    ]),
+                    ("REGISTRATION REPORT", [
+                        ("Total Registrations", total_registrations),
+                        ("New",                 new_registrations),
+                        ("Approved - Total",    approved_total),
+                        ("Approved - Premium",  approved_premium),
+                        ("Approved - Prospect", approved_prospect),
+                    ]),
+                    ("DELETED PROFILES REPORT", [
+                        ("Total Deleted Profiles", total_deleted_profiles),
+                        ("Duplicate Profiles",     duplicate_count),
+                        ("Fake Profiles / Others", fake_others_count),
+                        ("Marriage Settled",       marriage_del_count),
+                    ]),
+                    ("MARRIAGE SETTLED / GOT MARRIED", [
+                        ("Total",                 total_marriage),
+                        ("With Marriage Date",    with_marriage_date),
+                        ("Without Marriage Date", without_marriage_date),
+                        ("Thru Vysyamala",        thru_vysyamala),
+                        ("Thru Relatives",        thru_relatives),
+                        ("Thru Whatsapp Group",   thru_whatsapp),
+                        ("Thru Others",           thru_others),
+                        ("Both IDs Present",      both_ids_present),
+                        ("Single ID Present",     single_id_present),
+                    ]),
+                    ("SUCCESS STORIES", [
+                        ("Total Success Stories",    total_success_stories),
+                        ("Marriage Photos Uploaded", photos_uploaded),
+                    ]),
+                ]
+
+                for section_title, rows in sections:
+                    cell = ws.cell(row=row, column=1, value=section_title)
+                    cell.font = section_font
+                    cell.fill = section_fill
+                    ws.cell(row=row, column=2).fill = section_fill
+                    row += 1
+
+                    for col, label in [(1, "Category"), (2, "Count")]:
+                        c = ws.cell(row=row, column=col, value=label)
+                        c.font = header_font
+                        c.fill = header_fill
+                    row += 1
+
+                    for label, value in rows:
+                        ws.cell(row=row, column=1, value=label)
+                        ws.cell(row=row, column=2, value=value)
+                        row += 1
+                    row += 1
+
+                buffer = BytesIO()
+                wb.save(buffer)
+                buffer.seek(0)
+
+                response = HttpResponse(
+                    buffer,
+                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
+                response['Content-Disposition'] = (
+                    f'attachment; filename="vysyamala_performance_report_{from_date or "all"}_{to_date or "all"}.xlsx"'
+                )
+                return response
+
+            # ─────────────────────────────────────────────────────────────
+            # JSON RESPONSE
+            # ─────────────────────────────────────────────────────────────
+            return Response({
+                "Status": 1,
+                "message": "Website performance report fetched successfully",
+                "period": {
+                    "from_date": str(from_date) if from_date else "All time",
+                    "to_date":   str(to_date)   if to_date   else "All time",
+                },
+                "executive_summary": {
+                    "total_registrations":  total_registrations,
+                    "total_login_members":  total_login_members,
+                    "total_unique_logins":  total_unique_logins,
+                    "premium_members":      premium_members,
+                    "prospect_members":     prospect_members,
+                    "other_members":        other_members,
+                    "total_interests":      total_interests,
+                    "accepted_interests":   accepted_interests,
+                    "total_bookmarks":      total_bookmarks,
+                    "transactions_success": txn_success,
+                    "transactions_failure": txn_failure,
+                    "total_deleted":        total_deleted,
+                    "marriage_settled":     marriage_settled,
+                    "deleted_profiles_report": deleted_profiles_report,
+                    "marriage_settled_report": marriage_settled_report,
+                    "success_stories_report":  success_stories_report,
+                },
+                "login_category_report": login_category_report,
+                "state_wise_report":     state_wise_report,
+                "interest_report":       interest_report,
+                "registration_report":   registration_report,
+            })
+
+        except Exception as e:
+            return Response({"Status": 0, "message": str(e)}, status=500)
+
+
+
+
+
 from django.utils.timezone import now
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -19619,7 +20877,7 @@ class StaffDashboardView(APIView):
 
                 # ── Q. Date → Actions detail ──────────────────────────────
                 elif card == 'date_actions':
-                    try:
+                    try:    
                         if not date_click:
                             card_detail = {"error": "date param required e.g. &date=2026-04-01"}
                         else:
@@ -19667,1609 +20925,3 @@ class StaffDashboardView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
-
-
-
-class GothramNamesSingleListView(APIView):
-  
- 
-    def get(self, request):
-        try:
-            qs = GothramNamesSingle.objects.filter(is_deleted=False)
- 
-            # Optional filters
-            gothram_id = request.query_params.get('gothram_id')
-            search     = request.query_params.get('search', '').strip()
- 
-            if gothram_id:
-                qs = qs.filter(gothram_id=gothram_id)
- 
-            if search:
-                qs = qs.filter(name__icontains=search)
- 
-            qs = qs.order_by('name')
- 
-            data = list(qs.values('id', 'gothram_id', 'name'))
- 
-            return JsonResponse({
-                "status": "success",
-                "count" : len(data),
-                "data"  : data,
-            })
- 
-        except Exception as e:
-            return JsonResponse({
-                "status" : "error",
-                "message": str(e)
-            }, status=500)
-
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.http import JsonResponse
-
-class PrintEnvelopeJsonView(APIView):
-
-    def get(self, request, pk):
-        try:
-            record = PrintDashboard.objects.get(pk=pk)
-        except PrintDashboard.DoesNotExist:
-            return Response({
-                'status': 'error',
-                'message': 'Record not found'
-            }, status=404)
-
-        # ── Default values ─────────────────────────────────────────
-        profile_id    = record.profile_id or ''
-        owner_name    = ''
-        mobile_no     = ''
-        address_line1 = ''
-        address_line2 = ''
-        district      = ''
-        city          = ''
-        city_state    = ''
-        pincode       = ''
-
-        # ── Pull from LoginDetails ─────────────────────────────────
-        try:
-            owner = LoginDetails.objects.filter(ProfileId=record.profile_id).first()
-            if owner:
-                owner_name    = owner.Profile_name or owner_name
-                mobile_no     = owner.Profile_mobile_no or owner.Mobile_no or ''
-                address_line1 = owner.Profile_address or ''
-                pincode       = owner.Profile_pincode or ''
-
-                # State
-                if owner.Profile_state:
-                    state_obj = State.objects.filter(id=owner.Profile_state).first()
-                    city_state = state_obj.name if state_obj else str(owner.Profile_state)
-
-                # District
-                if owner.Profile_district:
-                    district_obj = District.objects.filter(id=owner.Profile_district).first()
-                    district = district_obj.name if district_obj else str(owner.Profile_district)
-
-                
-                if owner.Profile_city:
-                        city = str(owner.Profile_city)
-
-
-        except Exception:
-            pass
-
-        # ── Query param overrides ──────────────────────────────────
-        profile_id    = request.query_params.get('profile_id',    profile_id)
-        owner_name    = request.query_params.get('owner_name',    owner_name)
-        mobile_no     = request.query_params.get('mobile_no',     mobile_no)
-        address_line1 = request.query_params.get('address_line1', address_line1)
-        address_line2 = request.query_params.get('address_line2', address_line2)
-        district      = request.query_params.get('district',      district)
-        city          = request.query_params.get('city',          city)
-        city_state    = request.query_params.get('city_state',    city_state)
-        pincode       = request.query_params.get('pincode',       pincode)
-
-        # ── JSON Response ─────────────────────────────────────────
-        return Response({
-            'status': 'success',
-            'data': {
-                'profile_id': profile_id,
-                'owner_name': owner_name,
-                'mobile_no': mobile_no,
-                'address_line1': address_line1,
-                'address_line2': address_line2,
-                'district': district,
-                'city': city,
-                'state': city_state,
-                'pincode': pincode
-            }
-        })
-
-
-
-
-from django.db import connection
-from django.http import JsonResponse, HttpResponse
-import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.utils import get_column_letter
-import io
-
-
-# ─── Age bucket boundaries ──────────────────────────────────────────────────
-AGE_BUCKETS = [
-    ("18-21", 18, 21),
-    ("22-25", 22, 25),
-    ("26-29", 26, 29),
-    ("30-34", 30, 34),
-    ("35-38", 35, 38),
-    ("39-40", 39, 40),
-    ("Above 40", 41, 999),
-]
-
-
-def _run_star_rasi_sql(group_by: str) -> list[dict]:
-    """
-    Returns rows like:
-      { id, name, gender, tn_pondy, others,
-        age_18_21, age_22_25, age_26_29, age_30_34,
-        age_35_38, age_39_40, age_above_40, total }
-
-    group_by = 'star'  → joins on profile_horoscope.birthstar_name
-    group_by = 'rasi'  → joins on profile_horoscope.birth_rasi_name
-    """
-
-    if group_by == "star":
-        master_table  = "masterbirthstar"
-        master_id_col = "id"
-        master_nm_col = "star"
-        horo_join_col = "birthstar_name"
-        deleted_col   = "is_deleted"
-    else:
-        master_table  = "masterrasi"
-        master_id_col = "id"
-        master_nm_col = "name"
-        horo_join_col = "birth_rasi_name"
-        deleted_col   = "is_deleted"
-
-    sql = f"""
-        SELECT
-            m.{master_id_col}                                        AS id,
-            m.{master_nm_col}                                        AS name,
-            ld.Gender                                                AS gender,
-
-            -- TN / Pondicherry
-            SUM(CASE WHEN ld.Profile_state IN ('2','7') THEN 1 ELSE 0 END)  AS tn_pondy,
-            SUM(CASE WHEN ld.Profile_state NOT IN ('2','7') THEN 1 ELSE 0 END) AS others,
-
-            -- Age buckets (TIMESTAMPDIFF on dob)
-            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 18 AND 21 THEN 1 ELSE 0 END) AS age_18_21,
-            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 22 AND 25 THEN 1 ELSE 0 END) AS age_22_25,
-            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 26 AND 29 THEN 1 ELSE 0 END) AS age_26_29,
-            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 30 AND 34 THEN 1 ELSE 0 END) AS age_30_34,
-            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 35 AND 38 THEN 1 ELSE 0 END) AS age_35_38,
-            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) BETWEEN 39 AND 40 THEN 1 ELSE 0 END) AS age_39_40,
-            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) >= 41           THEN 1 ELSE 0 END) AS age_above_40,
-
-            COUNT(*) AS total
-
-        FROM {master_table} m
-        LEFT JOIN profile_horoscope ph
-               ON ph.{horo_join_col} = CAST(m.{master_id_col} AS CHAR)
-        LEFT JOIN logindetails ld
-               ON ld.ProfileId = ph.profile_id
-              AND ld.status = 1                 -- approved only
-        WHERE m.{deleted_col} = 0
-        GROUP BY m.{master_id_col}, m.{master_nm_col}, ld.Gender
-        ORDER BY m.{master_id_col}, ld.Gender DESC
-    """
-
-    with connection.cursor() as cursor:
-        cursor.execute(sql)
-        cols = [c[0] for c in cursor.description]
-        return [dict(zip(cols, row)) for row in cursor.fetchall()]
-
-
-
-
-def _build_summary(rows: list[dict]) -> list[dict]:
-    groups: dict[int, dict] = {}
-
-    for r in rows:
-        gid  = r["id"]
-        name = r["name"]
-
-        if gid not in groups:
-            groups[gid] = {"id": gid, "name": name, "rows": []}
-
-        if r["gender"]:  # existing logic
-            groups[gid]["rows"].append({
-                "gender":      r["gender"].capitalize(),
-                "tn_pondy":    int(r["tn_pondy"] or 0),
-                "others":      int(r["others"] or 0),
-                "age_18_21":   int(r["age_18_21"] or 0),
-                "age_22_25":   int(r["age_22_25"] or 0),
-                "age_26_29":   int(r["age_26_29"] or 0),
-                "age_30_34":   int(r["age_30_34"] or 0),
-                "age_35_38":   int(r["age_35_38"] or 0),
-                "age_39_40":   int(r["age_39_40"] or 0),
-                "age_above_40":int(r["age_above_40"] or 0),
-                "total": (
-                    int(r["tn_pondy"] or 0) +
-                    int(r["others"] or 0) +
-                    int(r["age_18_21"] or 0) +
-                    int(r["age_22_25"] or 0) +
-                    int(r["age_26_29"] or 0) +
-                    int(r["age_30_34"] or 0) +
-                    int(r["age_35_38"] or 0) +
-                    int(r["age_39_40"] or 0) +
-                    int(r["age_above_40"] or 0)
-                ),
-            })
-          
-
-    # ✅ ADD THIS BLOCK (new logic)
-    for g in groups.values():
-        genders_present = {row["gender"].lower() for row in g["rows"]}
-
-        def empty_row(gender):
-            return {
-                "gender": gender,
-                "tn_pondy": 0,
-                "others": 0,
-                "age_18_21": 0,
-                "age_22_25": 0,
-                "age_26_29": 0,
-                "age_30_34": 0,
-                "age_35_38": 0,
-                "age_39_40": 0,
-                "age_above_40": 0,
-                "total": 0,
-            }
-
-        if "male" not in genders_present:
-            g["rows"].append(empty_row("Male"))
-
-        if "female" not in genders_present:
-            g["rows"].append(empty_row("Female"))
-
-    return list(groups.values())
-
-# ─── API View ────────────────────────────────────────────────────────────────
-
-class StarRasiDashboardView(APIView):
-    """
-    GET /api/star-rasi-dashboard/?type=star          → all 27 stars data
-    GET /api/star-rasi-dashboard/?type=rasi          → all 12 rasi data
-    GET /api/star-rasi-dashboard/?type=star&export=excel  → download Excel
-    GET /api/star-rasi-dashboard/?type=rasi&export=excel  → download Excel
-    """
-
-    def get(self, request):
-        group_by    = request.query_params.get("type", "star").lower()
-        export_type = request.query_params.get("export", "").lower()
-
-        if group_by not in ("star", "rasi"):
-            return JsonResponse({"status": "error", "message": "type must be 'star' or 'rasi'"}, status=400)
-
-        raw  = _run_star_rasi_sql(group_by)
-        data = _build_summary(raw)
-
-        if export_type == "excel":
-            return self._export_excel(data, group_by)
-
-        return JsonResponse({"status": "success", "type": group_by, "data": data})
-
-    # ── Excel export ─────────────────────────────────────────────────────────
-    def _export_excel(self, data: list[dict], group_by: str) -> HttpResponse:
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Stars" if group_by == "star" else "Rasi"
-
-        # ── Styles ────────────────────────────────────────────────────────────
-        RED_FILL    = PatternFill("solid", start_color="C0392B", end_color="C0392B")
-        GOLD_FILL   = PatternFill("solid", start_color="F39C12", end_color="F39C12")
-        GREY_FILL   = PatternFill("solid", start_color="ECF0F1", end_color="ECF0F1")
-        WHITE_FILL  = PatternFill("solid", start_color="FFFFFF", end_color="FFFFFF")
-        WHITE_FONT  = Font(bold=True, color="FFFFFF", size=11)
-        BLACK_BOLD  = Font(bold=True, color="000000", size=10)
-        NORMAL_FONT = Font(color="000000", size=10)
-        CENTER      = Alignment(horizontal="center", vertical="center")
-        LEFT        = Alignment(horizontal="left", vertical="center")
-
-        thin = Side(style="thin", color="BBBBBB")
-        BORDER = Border(left=thin, right=thin, top=thin, bottom=thin)
-
-        # ── Header row 1 ──────────────────────────────────────────────────────
-        label = "Star" if group_by == "star" else "Rasi"
-        headers = [label, "Gender", "TN/Pondy", "Others",
-                   "18-21", "22-25", "26-29", "30-34",
-                   "35-38", "39-40", "Above 40", "Total"]
-        ws.append(headers)
-
-        for col_idx, _ in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col_idx)
-            cell.fill = RED_FILL
-            cell.font = WHITE_FONT
-            cell.alignment = CENTER
-            cell.border = BORDER
-
-        ws.row_dimensions[1].height = 22
-
-        # ── Data rows ─────────────────────────────────────────────────────────
-        current_row = 2
-        for item in data:
-            name     = item["name"]
-            item_rows = item["rows"]
-
-            if not item_rows:
-                # No profiles → write empty row
-                ws.append([name, "-", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-                for col_idx in range(1, 13):
-                    cell = ws.cell(row=current_row, column=col_idx)
-                    cell.fill = GREY_FILL
-                    cell.font = BLACK_BOLD if col_idx == 1 else NORMAL_FONT
-                    cell.alignment = CENTER if col_idx != 1 else LEFT
-                    cell.border = BORDER
-                current_row += 1
-                continue
-
-            for i, row in enumerate(item_rows):
-                star_label = name if i == 0 else ""
-                ws.append([
-                    star_label,
-                    row["gender"],
-                    row["tn_pondy"],
-                    row["others"],
-                    row["age_18_21"],
-                    row["age_22_25"],
-                    row["age_26_29"],
-                    row["age_30_34"],
-                    row["age_35_38"],
-                    row["age_39_40"],
-                    row["age_above_40"],
-                    row["total"],
-                ])
-                fill = GREY_FILL if i % 2 == 0 else WHITE_FILL
-                for col_idx in range(1, 13):
-                    cell = ws.cell(row=current_row, column=col_idx)
-                    cell.fill = fill
-                    cell.font = BLACK_BOLD if col_idx in (1, 12) else NORMAL_FONT
-                    cell.alignment = CENTER if col_idx != 1 else LEFT
-                    cell.border = BORDER
-                current_row += 1
-
-        # ── Column widths ─────────────────────────────────────────────────────
-        col_widths = [16, 10, 12, 10, 8, 8, 8, 8, 8, 8, 10, 8]
-        for i, w in enumerate(col_widths, 1):
-            ws.column_dimensions[get_column_letter(i)].width = w
-
-        # ── Freeze header ─────────────────────────────────────────────────────
-        ws.freeze_panes = "A2"
-
-        # ── Output ────────────────────────────────────────────────────────────
-        buf = io.BytesIO()
-        wb.save(buf)
-        buf.seek(0)
-
-        filename = f"vysyamala_{group_by}_dashboard.xlsx"
-        response = HttpResponse(
-            buf.getvalue(),
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-        return response
-
-
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.db import connection
-from rest_framework import status
-import io
-from django.http import HttpResponse
-import openpyxl
-
-
-class GeographicalReportView(APIView):
-
-    STATE_MAP = {
-        "tn":        ['2', '7'],
-        "karnataka": ['4'],
-        "ap":        ['1'],
-        "telangana": ['3'],
-    }
-    STATE_LABEL = {
-        "tn":        "Tamil Nadu & Pondicherry",
-        "karnataka": "Karnataka",
-        "ap":        "Andhra Pradesh",
-        "telangana": "Telangana",
-        "others":    "Others",
-        "all":       "All States",
-    }
-    KNOWN_STATE_IDS    = ['1', '2', '3', '4', '7']
-    VALID_TOP_CITIES   = {20, 30, 50}
-    VALID_TOP_WORK     = {20, 30, 50, 100}
-    VALID_EXPORT_TYPES = {"city", "work_city", "both", "statewise"}
-
-    @staticmethod
-    def _safe_int(value, default, valid_set):
-        try:
-            v = int(value)
-        except (ValueError, TypeError):
-            return default
-        return v if v in valid_set else default
-
-    def _build_common_where(self, state_filter, occupation, params):
-        fragment = ""
-
-        if state_filter != "all":
-            if state_filter in self.STATE_MAP:
-                ids          = self.STATE_MAP[state_filter]
-                placeholders = ",".join(["%s"] * len(ids))
-                fragment    += f" AND l.Profile_state IN ({placeholders})"
-                params.extend(ids)
-            elif state_filter == "others":
-                placeholders = ",".join(["%s"] * len(self.KNOWN_STATE_IDS))
-                fragment += f"""
-                    AND l.Profile_state NOT IN ({placeholders})
-                    AND l.Profile_state IS NOT NULL
-                    AND l.Profile_state != 0
-                """
-                params.extend(self.KNOWN_STATE_IDS)
-
-        if occupation == "business":
-            fragment += " AND e.profession = 2"
-        elif occupation == "employed":
-            fragment += " AND e.profession = 1"
-        elif occupation == "profession_both":
-            fragment += " AND e.profession = 6"
-
-        return fragment
-
-    def get(self, request):
-        try:
-            # ── parse filters ──────────────────────────────────────────────
-            state_filter = request.query_params.get("state",           "all").lower().strip()
-            occupation   = request.query_params.get("occupation",      "all").lower().strip()
-            top_cities   = self._safe_int(request.query_params.get("top_cities",      20), 20, self.VALID_TOP_CITIES)
-            top_work     = self._safe_int(request.query_params.get("top_work_cities", 20), 20, self.VALID_TOP_WORK)
-            export_raw   = request.query_params.get("export_type", "both").lower().strip()
-            export_type  = export_raw if export_raw in self.VALID_EXPORT_TYPES else "both"
-
-            # ── QUERY 1: City Data ─────────────────────────────────────────
-            params_city = []
-            where_city  = self._build_common_where(state_filter, occupation, params_city)
-
-            city_query = f"""
-                SELECT
-                    l.Profile_state,
-                    l.Profile_city,
-                    COUNT(*)                                                         AS total,
-                    SUM(CASE WHEN e.profession = 2 THEN 1 ELSE 0 END)               AS business,
-                    SUM(CASE WHEN e.profession = 1 THEN 1 ELSE 0 END)               AS employed,
-                    SUM(CASE WHEN e.profession = 6 THEN 1 ELSE 0 END)               AS profession_both,
-                    SUM(CASE WHEN l.Plan_id = 7            THEN 1 ELSE 0 END)        AS free,
-                    SUM(CASE WHEN l.Plan_id = 8            THEN 1 ELSE 0 END)        AS prospect,
-                    SUM(CASE WHEN l.Plan_id = 9            THEN 1 ELSE 0 END)        AS offer,
-                    SUM(CASE WHEN l.Plan_id IN (1,2,3,16,14,15) THEN 1 ELSE 0 END)  AS premium,
-                    SUM(CASE WHEN l.Profile_dob IS NOT NULL
-                              AND TIMESTAMPDIFF(YEAR, l.Profile_dob, CURDATE()) < 32
-                             THEN 1 ELSE 0 END)                                      AS age_below_32,
-                    SUM(CASE WHEN l.Profile_dob IS NOT NULL
-                              AND TIMESTAMPDIFF(YEAR, l.Profile_dob, CURDATE()) >= 32
-                             THEN 1 ELSE 0 END)                                      AS age_above_32
-                FROM logindetails l
-                LEFT JOIN profile_edudetails e ON l.ProfileId = e.profile_id
-                WHERE l.status = '1'
-                {where_city}
-                GROUP BY l.Profile_state, l.Profile_city
-                ORDER BY total DESC
-                LIMIT %s
-            """
-            params_city.append(top_cities)
-
-            # ── QUERY 2: Work City Data ────────────────────────────────────
-            params_work = []
-            where_work  = self._build_common_where(state_filter, occupation, params_work)
-
-            work_query = f"""
-                SELECT
-                    e.work_city,
-                    COUNT(*)                                                         AS total,
-                    SUM(CASE WHEN e.profession = 2 THEN 1 ELSE 0 END)               AS business,
-                    SUM(CASE WHEN e.profession = 1 THEN 1 ELSE 0 END)               AS employed,
-                    SUM(CASE WHEN e.profession = 6 THEN 1 ELSE 0 END)               AS profession_both,
-                    SUM(CASE WHEN l.Plan_id = 7            THEN 1 ELSE 0 END)        AS free,
-                    SUM(CASE WHEN l.Plan_id = 8            THEN 1 ELSE 0 END)        AS prospect,
-                    SUM(CASE WHEN l.Plan_id = 9            THEN 1 ELSE 0 END)        AS offer,
-                    SUM(CASE WHEN l.Plan_id IN (1,2,3,16,14,15) THEN 1 ELSE 0 END)  AS premium,
-                    SUM(CASE WHEN l.Profile_dob IS NOT NULL
-                              AND TIMESTAMPDIFF(YEAR, l.Profile_dob, CURDATE()) < 32
-                             THEN 1 ELSE 0 END)                                      AS age_below_32,
-                    SUM(CASE WHEN l.Profile_dob IS NOT NULL
-                              AND TIMESTAMPDIFF(YEAR, l.Profile_dob, CURDATE()) >= 32
-                             THEN 1 ELSE 0 END)                                      AS age_above_32
-                FROM profile_edudetails e
-                INNER JOIN logindetails l ON l.ProfileId = e.profile_id
-                WHERE e.work_city IS NOT NULL
-                  AND e.work_city != ''
-                  AND l.status = '1'
-                {where_work}
-                GROUP BY e.work_city
-                ORDER BY total DESC
-                LIMIT %s
-            """
-            params_work.append(top_work)
-
-            # ── execute both queries ───────────────────────────────────────
-            with connection.cursor() as cursor:
-                cursor.execute(city_query, params_city)
-                city_rows = cursor.fetchall()
-
-            with connection.cursor() as cursor:
-                cursor.execute(work_query, params_work)
-                work_rows = cursor.fetchall()
-
-            # ── state name lookup ──────────────────────────────────────────
-            state_map = {}
-            if city_rows:
-                state_ids = list({str(r[0]) for r in city_rows if r[0]})
-                if state_ids:
-                    with connection.cursor() as cursor:
-                        placeholders = ",".join(["%s"] * len(state_ids))
-                        cursor.execute(
-                            f"SELECT id, name FROM masterstate WHERE id IN ({placeholders})",
-                            state_ids,
-                        )
-                        state_map = {str(i): n for i, n in cursor.fetchall()}
-
-            # ── city name lookup ───────────────────────────────────────────
-            city_name_map = {}
-            if city_rows:
-                city_ids = list({str(r[1]) for r in city_rows if r[1]})
-                if city_ids:
-                    with connection.cursor() as cursor:
-                        placeholders = ",".join(["%s"] * len(city_ids))
-                        cursor.execute(
-                            f"SELECT id, city_name FROM mastercity WHERE id IN ({placeholders})",
-                            city_ids,
-                        )
-                        city_name_map = {str(i): n for i, n in cursor.fetchall()}
-
-            # ── build city_data ────────────────────────────────────────────
-            city_data      = []
-            total_approved = 0
-            for rank, row in enumerate(city_rows, start=1):
-                total_approved += int(row[2] or 0)
-                city_data.append({
-                    "rank":            rank,
-                    "state_name":      state_map.get(str(row[0]), "N/A"),
-                    "city_name":       row[1],
-                    "total":           int(row[2]  or 0),
-                    "business":        int(row[3]  or 0),
-                    "employed":        int(row[4]  or 0),
-                    "profession_both": int(row[5]  or 0),
-                    "free":            int(row[6]  or 0),
-                    "prospect":        int(row[7]  or 0),
-                    "offer":           int(row[8]  or 0),
-                    "premium":         int(row[9]  or 0),
-                    "age_below_32":    int(row[10] or 0),
-                    "age_above_32":    int(row[11] or 0),
-                })
-
-            city_data = [d for d in city_data if not (
-                d["state_name"] in ("N/A", "", None) and
-                d["city_name"]  in ("N/A", "", None)
-            )]
-            for i, d in enumerate(city_data, start=1):
-                d["rank"] = i
-
-            # ── build work_city_data ───────────────────────────────────────
-            work_city_data = []
-            for rank, row in enumerate(work_rows, start=1):
-                work_city_data.append({
-                    "rank":            rank,
-                    "work_city":       row[0] or "N/A",
-                    "total":           int(row[1]  or 0),
-                    "business":        int(row[2]  or 0),
-                    "employed":        int(row[3]  or 0),
-                    "profession_both": int(row[4]  or 0),
-                    "free":            int(row[5]  or 0),
-                    "prospect":        int(row[6]  or 0),
-                    "offer":           int(row[7]  or 0),
-                    "premium":         int(row[8]  or 0),
-                    "age_below_32":    int(row[9]  or 0),
-                    "age_above_32":    int(row[10] or 0),
-                })
-
-            # ── export ─────────────────────────────────────────────────────
-            if request.query_params.get("export", "").lower().strip() == "excel":
-                if export_type == "statewise":
-                    return self._export_statewise(city_data, work_city_data, state_filter)
-                return self._export_excel(city_data, work_city_data, export_type)
-
-            return Response({
-                "status":  "success",
-                "filters": {
-                    "state":           state_filter,
-                    "top_cities":      top_cities,
-                    "top_work_cities": top_work,
-                    "occupation":      occupation,
-                    "export_type":     export_type,
-                },
-                "summary": {
-                    "total_approved":    total_approved,
-                    "total_cities":      len(city_data),
-                    "total_work_cities": len(work_city_data),
-                },
-                "city_data":      city_data,
-                "work_city_data": work_city_data,
-            })
-
-        except Exception as e:
-            return Response(
-                {"status": "error", "message": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    # ── helper: write combined rows (city + work_city side by side) ───────────
-    # NO CHANGES
-
-    @staticmethod
-    def _write_combined_rows(ws, city_data, work_city_data):
-        ws.append([
-            "Rank", "State", "City", "Place to Stay",
-            "Total", "Business", "Employed", "Both",
-            "Free", "Prospect", "Offer", "Premium",
-            "Age < 32", "Age > 32",
-        ])
-        max_len = max(len(city_data), len(work_city_data), 1)
-        for i in range(max_len):
-            city = city_data[i]      if i < len(city_data)      else None
-            work = work_city_data[i] if i < len(work_city_data) else None
-            ws.append([
-                city["rank"]            if city else (work["rank"] if work else i + 1),
-                city["state_name"]      if city else "",
-                city["city_name"]       if city else "",
-                work["work_city"]       if work else "",
-                city["total"]           if city else (work["total"]           if work else 0),
-                city["business"]        if city else (work["business"]        if work else 0),
-                city["employed"]        if city else (work["employed"]        if work else 0),
-                city["profession_both"] if city else (work["profession_both"] if work else 0),
-                city["free"]            if city else (work["free"]            if work else 0),
-                city["prospect"]        if city else (work["prospect"]        if work else 0),
-                city["offer"]           if city else (work["offer"]           if work else 0),
-                city["premium"]         if city else (work["premium"]         if work else 0),
-                city["age_below_32"]    if city else (work["age_below_32"]    if work else 0),
-                city["age_above_32"]    if city else (work["age_above_32"]    if work else 0),
-            ])
-
-    # ── export: city | work_city | both  ← ONLY THIS METHOD UPDATED ──────────
-
-    def _export_excel(self, city_data, work_city_data, export_type="both"):
-        wb = openpyxl.Workbook()
-        wb.remove(wb.active)
-
-        if export_type == "city":
-            # ── only City Data sheet ──────────────────────────────────────
-            ws = wb.create_sheet(title="City Data")
-            ws.append([
-                "Rank", "State", "City",
-                "Total", "Business", "Employed", "Both",
-                "Free", "Prospect", "Offer", "Premium",
-                "Age < 32", "Age > 32",
-            ])
-            for item in city_data:
-                ws.append([
-                    item["rank"], item["state_name"], item["city_name"],
-                    item["total"], item["business"], item["employed"],
-                    item["profession_both"], item["free"], item["prospect"],
-                    item["offer"], item["premium"],
-                    item["age_below_32"], item["age_above_32"],
-                ])
-
-        elif export_type == "work_city":
-            # ── only Work City Data sheet ─────────────────────────────────
-            ws = wb.create_sheet(title="Work City Data")
-            ws.append([
-                "Rank", "Place to Stay",
-                "Total", "Business", "Employed", "Both",
-                "Free", "Prospect", "Offer", "Premium",
-                "Age < 32", "Age > 32",
-            ])
-            for item in work_city_data:
-                ws.append([
-                    item["rank"], item["work_city"],
-                    item["total"], item["business"], item["employed"],
-                    item["profession_both"], item["free"], item["prospect"],
-                    item["offer"], item["premium"],
-                    item["age_below_32"], item["age_above_32"],
-                ])
-
-        else:
-            # ── both: combined single sheet (city + work city side by side)
-            ws = wb.create_sheet(title="Geographical Report")
-            self._write_combined_rows(ws, city_data, work_city_data)
-
-        return self._stream_excel(wb, "geographical_report.xlsx")
-
-    # ── export: statewise (single combined sheet with title) ─────────────────
-    # NO CHANGES
-
-    def _export_statewise(self, city_data, work_city_data, state_filter):
-        state_label = self.STATE_LABEL.get(state_filter, state_filter.upper())
-        wb = openpyxl.Workbook()
-        wb.remove(wb.active)
-
-        ws = wb.create_sheet(title="Geographical Report")
-        ws.append([f"State: {state_label}"])  # title row
-        ws.append([])                          # blank spacer
-        self._write_combined_rows(ws, city_data, work_city_data)
-
-        return self._stream_excel(wb, f"geographical_report_{state_filter}.xlsx")
-
-    # ── stream to response ────────────────────────────────────────────────────
-    # NO CHANGES
-
-    @staticmethod
-    def _stream_excel(wb, filename):
-        buf = io.BytesIO()
-        wb.save(buf)
-        buf.seek(0)
-        response = HttpResponse(
-            buf.getvalue(),
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-        return response
-
-
-
-
-class AdminInterestNotifications(APIView):
-
-    def get(self, request):
-        notifications = AdminNotification.objects.filter(
-            notification_type="Interest",
-            is_cleared=0
-        ).order_by('-created_at')
-
-        data = [
-            {
-                "id": n.id,
-                "from_profile": n.from_profile,
-                "message": n.message,
-                "created_at": n.created_at,
-                "is_read": n.is_read
-            }
-            for n in notifications
-        ]
-        return Response({
-            "Status": 1,
-            "message": "Interest notifications fetched",
-            "data": data
-        })
-
-
-class AdminTransactionNotifications(APIView):
-
-    def get(self, request):
-        notifications = AdminNotification.objects.filter(
-            notification_type="Transaction",
-            is_cleared=0
-        ).order_by('-created_at')
-
-        data = [
-            {
-                "id": n.id,
-                "from_profile": n.from_profile,
-                "message": n.message,
-                "created_at": n.created_at,
-                "is_read": n.is_read
-            }
-            for n in notifications
-        ]
-        return Response({
-            "Status": 1,
-            "message": "Transaction notifications fetched",
-            "data": data
-        })
-
-class AdminHideProfileNotifications(APIView):
-
-    def get(self, request):
-        notifications = AdminNotification.objects.filter(
-            notification_type="HideProfile",
-            is_cleared=0
-        ).order_by('-created_at')
-
-        data = [
-            {
-                "id": n.id,
-                "from_profile": n.from_profile,
-                "message": n.message,
-                "created_at": n.created_at,
-                "is_read": n.is_read
-            }
-            for n in notifications
-        ]
-        return Response({
-            "Status": 1,
-            "message": "Hide profile notifications fetched",
-            "data": data
-        })
-
-
-from .models import MarriageSettleDetails, SuccessStory, ProfileSubStatus
-class WebsitePerformanceReport(APIView):
-    def get(self, request):
-        try:
-            from_date_str = request.query_params.get('from_date')
-            to_date_str   = request.query_params.get('to_date')
-            export        = request.query_params.get('export')
-
-            from_date = None
-            to_date   = None
-            if from_date_str and to_date_str:
-                try:
-                    from_date = datetime.strptime(from_date_str, "%Y-%m-%d").date()
-                    to_date   = datetime.strptime(to_date_str,   "%Y-%m-%d").date()
-                except ValueError:
-                    return Response(
-                        {"Status": 0, "message": "Invalid date format. Use YYYY-MM-DD"},
-                        status=400
-                    )
-
-            # Helper: apply date filter on a datetime field
-            def date_filter(qs, field):
-                if from_date and to_date:
-                    return qs.filter(**{
-                        f"{field}__date__gte": from_date,
-                        f"{field}__date__lte": to_date
-                    })
-                return qs
-
-            # Helper: apply date filter using DateOfJoin (stored as CharField)
-            def join_date_filter(qs):
-                if from_date and to_date:
-                    return qs.extra(
-                        where=["DATE(DateOfJoin) >= %s AND DATE(DateOfJoin) <= %s"],
-                        params=[str(from_date), str(to_date)]
-                    )
-                return qs
-
-            # Helper: apply date filter using Last_login_date
-            def login_date_filter(qs):
-                if from_date and to_date:
-                    return qs.extra(
-                        where=["DATE(Last_login_date) >= %s AND DATE(Last_login_date) <= %s"],
-                        params=[str(from_date), str(to_date)]
-                    )
-                return qs
-
-            # ── Plan groupings ─────────────────────────────────────────
-            FREE_PLANS     = [6, 7, 9, 11, 12, 13]
-            PROSPECT_PLANS = [8]
-
-            # ─────────────────────────────────────────────────────────────
-            # 1. EXECUTIVE SUMMARY
-            # ─────────────────────────────────────────────────────────────
-
-            # Total Registrations (still uses DateOfJoin)
-            total_registrations = join_date_filter(LoginDetails.objects.all()).count()
-
-            # ── Total Login Members — filtered by Last_login_date ────────
-            login_members_qs = login_date_filter(
-                LoginDetails.objects.filter(status__in=[0, 1])
-            ).exclude(Last_login_date__isnull=True)
-
-            total_login_members = login_members_qs.count()
-
-            # ── Total Unique Login Members — filtered by Last_login_date ─
-            total_unique_logins = login_date_filter(
-                LoginDetails.objects.filter(status__in=[0, 1])
-                .exclude(Last_login_date__isnull=True)
-                .values('ProfileId')
-                .distinct()
-            ).count()
-
-            # Premium Members (status=1, secondary_status=5)
-            premium_members  = login_members_qs.filter(
-                status=1, secondary_status=5
-            ).count()
-
-            # Prospect Members (status=1, secondary_status=2)
-            prospect_members = login_members_qs.filter(
-                status=1, secondary_status=2
-            ).count()
-
-            # Other Members (status=1, secondary_status NOT in 5 or 2)
-            other_members    = login_members_qs.filter(
-                status=1
-            ).exclude(
-                secondary_status__in=[5, 2]
-            ).count()
-
-            # Express Interests
-            interest_qs        = date_filter(Express_interests.objects.all(), 'req_datetime')
-            total_interests    = interest_qs.count()
-            accepted_interests = interest_qs.filter(status='2').count()
-            acceptance_pct     = round((accepted_interests / total_interests * 100), 2) if total_interests > 0 else 0
-
-            # Bookmarks / Wishlists
-            total_bookmarks = date_filter(
-                Profile_wishlists.objects.filter(status='1'),
-                'marked_datetime'
-            ).count()
-
-            # Transactions
-            txn_qs        = date_filter(PaymentTransaction.objects.all(), 'created_at')
-            txn_success   = txn_qs.filter(status='1').count()
-            txn_failure   = txn_qs.filter(status='3').count()
-
-            # Total Deleted
-            total_deleted = join_date_filter(
-                LoginDetails.objects.filter(status=4)
-            ).count()
-
-            # Marriage Settled (status=4, secondary_status=20)
-            marriage_settled = join_date_filter(
-                LoginDetails.objects.filter(status=4, secondary_status=20)
-            ).count()
-
-            # ─────────────────────────────────────────────────────────────
-            # 2. LOGIN MEMBER REPORT — Category wise
-            # ─────────────────────────────────────────────────────────────
-            total_for_pct = total_login_members if total_login_members > 0 else 1
-
-            login_category_report = {
-                "total":    {"count": total_login_members, "pct": 100},
-                "premium":  {
-                    "count": premium_members,
-                    "pct":   round(premium_members  / total_for_pct * 100, 1)
-                },
-                "prospect": {
-                    "count": prospect_members,
-                    "pct":   round(prospect_members / total_for_pct * 100, 1)
-                },
-                "others":   {
-                    "count": other_members,
-                    "pct":   round(other_members    / total_for_pct * 100, 1)
-                },
-            }
-
-            # ─────────────────────────────────────────────────────────────
-            # 3. STATE-WISE LOGIN MEMBERS — filtered by Last_login_date
-            # ─────────────────────────────────────────────────────────────
-
-            # Base queryset: status IN (0,1), Last_login_date NOT NULL,
-            # filtered by Last_login_date range when dates are provided
-            state_base_qs = login_date_filter(
-                LoginDetails.objects.filter(status__in=[0, 1])
-                .exclude(Last_login_date__isnull=True)
-            )
-
-            tn_pondy     = state_base_qs.filter(Profile_state__in=['2', '7']).count()
-            andhra       = state_base_qs.filter(Profile_state='1').count()
-            telangana    = state_base_qs.filter(Profile_state='3').count()
-            karnataka    = state_base_qs.filter(Profile_state='4').count()
-            kerala       = state_base_qs.filter(Profile_state='5').count()
-            nri          = state_base_qs.filter(
-                            Profile_country='1',
-                            ProfileId__in=ProfileEduDetails.objects.filter(
-                                ~Q(work_country='1'),
-                                ~Q(work_country=''),
-                                ~Q(work_country='0'),
-                                work_country__isnull=False
-                            ).values('profile_id')
-                        ).count()
-            state_others = state_base_qs.exclude(
-                Profile_state__in=['1', '2', '3', '4', '5', '7']
-            ).count()
-
-            state_wise_report = {
-                "tamil_nadu_pondicherry": tn_pondy,
-                "andhra_pradesh":         andhra,
-                "telangana":              telangana,
-                "karnataka":              karnataka,
-                "kerala":                 kerala,
-                "nri":                    nri,
-                "others":                 state_others,
-            }
-
-            # ─────────────────────────────────────────────────────────────
-            # 4. EXPRESS INTEREST REPORT — by sender's plan
-            # ─────────────────────────────────────────────────────────────
-            def interest_by_secondary_status(secondary_status=None, exclude_statuses=None):
-                profile_qs = LoginDetails.objects.filter(status=1)
-                if secondary_status:
-                    profile_qs = profile_qs.filter(secondary_status__in=secondary_status)
-                elif exclude_statuses:
-                    profile_qs = profile_qs.exclude(secondary_status__in=exclude_statuses)
-                ids = list(profile_qs.values_list('ProfileId', flat=True))
-                return interest_qs.filter(profile_from__in=ids).count()
-
-            premium_sent  = interest_by_secondary_status(secondary_status=[5])
-            prospect_sent = interest_by_secondary_status(secondary_status=[2])
-            others_sent   = interest_by_secondary_status(exclude_statuses=[5, 2])
-
-            interest_report = {
-                "total_sent":      total_interests,
-                "premium_sent":    premium_sent,
-                "prospect_sent":   prospect_sent,
-                "others_sent":     others_sent,
-                "total_accepted":  accepted_interests,
-                "acceptance_pct":  acceptance_pct,
-            }
-
-            # ─────────────────────────────────────────────────────────────
-            # 5. REGISTRATION REPORT
-            # ─────────────────────────────────────────────────────────────
-            all_reg_qs = join_date_filter(LoginDetails.objects.all())
-
-            new_registrations  = all_reg_qs.filter(status=0).count()
-            approved_total    = all_reg_qs.filter(status=1).count()
-            approved_premium  = all_reg_qs.filter(status=1, secondary_status=5).count()
-            approved_prospect = all_reg_qs.filter(status=1, secondary_status=2).count()
-
-            registration_report = {
-                "total_registrations": total_registrations,
-                "new":      new_registrations,
-                "approved": {
-                    "total":    approved_total,
-                    "premium":  approved_premium,
-                    "prospect": approved_prospect,
-                },
-            }
-
-            # ─────────────────────────────────────────────────────────────
-            # 6. DELETED PROFILES REPORT
-            # ─────────────────────────────────────────────────────────────
-            deleted_qs = join_date_filter(LoginDetails.objects.filter(status=4))
-            total_deleted_profiles = deleted_qs.count()
-
-            sub_statuses_4 = ProfileSubStatus.objects.filter(status_code=4)
-
-            duplicate_ids = list(sub_statuses_4.filter(
-                sub_status_name__icontains='duplicate'
-            ).values_list('id', flat=True))
-
-            fake_ids = list(sub_statuses_4.filter(
-                sub_status_name__icontains='fake'
-            ).values_list('id', flat=True))
-
-            marriage_ids = list(sub_statuses_4.filter(
-                sub_status_name__iregex=r'marriage|got married'
-            ).values_list('id', flat=True))
-
-            duplicate_count    = deleted_qs.filter(secondary_status__in=duplicate_ids).count()
-            fake_others_count  = deleted_qs.filter(secondary_status__in=fake_ids).count()
-            marriage_del_count = deleted_qs.filter(secondary_status__in=marriage_ids).count()
-
-            deleted_profiles_report = {
-                "total_deleted_profiles": total_deleted_profiles,
-                "duplicate_profiles":     duplicate_count,
-                "fake_profiles_others":   fake_others_count,
-                "marriage_settled":       marriage_del_count,
-            }
-
-            # ─────────────────────────────────────────────────────────────
-            # 7. MARRIAGE SETTLED / GOT MARRIED REPORT
-            # ─────────────────────────────────────────────────────────────
-            marriage_qs = MarriageSettleDetails.objects.all()
-            if from_date and to_date:
-                marriage_qs = marriage_qs.filter(
-                    created_at__date__gte=from_date,
-                    created_at__date__lte=to_date
-                )
-
-            total_marriage        = marriage_qs.count()
-            with_marriage_date    = marriage_qs.filter(marriage_date__isnull=False).count()
-            without_marriage_date = marriage_qs.filter(marriage_date__isnull=True).count()
-
-            thru_vysyamala = marriage_qs.filter(settled_thru='Vysyamala').count()
-            thru_relatives = marriage_qs.filter(settled_thru='Relatives').count()
-            thru_whatsapp  = marriage_qs.filter(settled_thru='Whatsapp Group').count()
-            thru_others    = marriage_qs.filter(settled_thru='Others').count()
-
-            both_ids_present  = marriage_qs.exclude(
-                                    groom_bride_vysyamala_id__isnull=True
-                                ).exclude(
-                                    groom_bride_vysyamala_id=''
-                                ).count()
-            single_id_present = total_marriage - both_ids_present
-
-            marriage_settled_report = {
-                "total":                 total_marriage,
-                "with_marriage_date":    with_marriage_date,
-                "without_marriage_date": without_marriage_date,
-                "thru_vysyamala":        thru_vysyamala,
-                "thru_relatives":        thru_relatives,
-                "thru_whatsapp_group":   thru_whatsapp,
-                "thru_others":           thru_others,
-                "both_ids_present":      both_ids_present,
-                "single_id_present":     single_id_present,
-            }
-
-            # ─────────────────────────────────────────────────────────────
-            # 8. SUCCESS STORIES REPORT
-            # ─────────────────────────────────────────────────────────────
-            story_qs = SuccessStory.objects.filter(deleted=False)
-            if from_date and to_date:
-                story_qs = story_qs.filter(
-                    date_of_marriage__gte=from_date,
-                    date_of_marriage__lte=to_date
-                )
-
-            total_success_stories = story_qs.count()
-            photos_uploaded       = story_qs.exclude(
-                                        photo__isnull=True
-                                    ).exclude(
-                                        photo=''
-                                    ).count()
-
-            success_stories_report = {
-                "total_success_stories": total_success_stories,
-                "photos_uploaded":       photos_uploaded,
-            }
-
-            # ─────────────────────────────────────────────────────────────
-            # EXCEL EXPORT
-            # ─────────────────────────────────────────────────────────────
-            if export == 'excel':
-                from openpyxl import Workbook
-                from openpyxl.styles import Font, PatternFill, Alignment
-                from io import BytesIO
-
-                wb = Workbook()
-                ws = wb.active
-                ws.title = "Website Performance"
-
-                header_font  = Font(bold=True, size=12, color="FFFFFF")
-                header_fill  = PatternFill("solid", fgColor="4F46E5")
-                section_font = Font(bold=True, size=11, color="FFFFFF")
-                section_fill = PatternFill("solid", fgColor="6D6875")
-
-                ws.column_dimensions['A'].width = 35
-                ws.column_dimensions['B'].width = 20
-
-                row = 1
-                ws.cell(row=row, column=1, value="VYSYAMALA – WEBSITE PERFORMANCE REPORT").font = Font(bold=True, size=14)
-                row += 1
-                ws.cell(row=row, column=1, value=f"Period: {from_date or 'All time'}  to  {to_date or 'All time'}")
-                row += 2
-
-                sections = [
-                    ("EXECUTIVE SUMMARY", [
-                        ("Total Registrations",        total_registrations),
-                        ("Total Login Members",        total_login_members),
-                        ("Total Unique Login Members", total_unique_logins),
-                        ("Premium Members",            premium_members),
-                        ("Prospect Members",           prospect_members),
-                        ("Other Members",              other_members),
-                        ("Total Express Interests",    total_interests),
-                        ("Accepted Interests",         accepted_interests),
-                        ("Total Bookmarks",            total_bookmarks),
-                        ("Transactions Success",       txn_success),
-                        ("Transactions Failure",       txn_failure),
-                        ("Total Deleted",              total_deleted),
-                        ("Marriage Settled",           marriage_settled),
-                    ]),
-                    ("LOGIN MEMBER REPORT – Category Wise", [
-                        ("Total",    f"{total_login_members}   (100%)"),
-                        ("Premium",  f"{premium_members}   ({login_category_report['premium']['pct']}%)"),
-                        ("Prospect", f"{prospect_members}  ({login_category_report['prospect']['pct']}%)"),
-                        ("Others",   f"{other_members}  ({login_category_report['others']['pct']}%)"),
-                    ]),
-                    ("STATE-WISE LOGIN MEMBERS", [
-                        ("Tamil Nadu / Pondicherry", tn_pondy),
-                        ("Andhra Pradesh",           andhra),
-                        ("Telangana",                telangana),
-                        ("Karnataka",                karnataka),
-                        ("Kerala",                   kerala),
-                        ("NRI",                      nri),
-                        ("Others",                   state_others),
-                    ]),
-                    ("EXPRESS INTEREST REPORT", [
-                        ("Total Sent",     total_interests),
-                        ("Premium Sent",   premium_sent),
-                        ("Prospect Sent",  prospect_sent),
-                        ("Others Sent",    others_sent),
-                        ("Total Accepted", accepted_interests),
-                        ("Acceptance %",   f"{acceptance_pct}%"),
-                    ]),
-                    ("REGISTRATION REPORT", [
-                        ("Total Registrations", total_registrations),
-                        ("New",                 new_registrations),
-                        ("Approved - Total",    approved_total),
-                        ("Approved - Premium",  approved_premium),
-                        ("Approved - Prospect", approved_prospect),
-                    ]),
-                    ("DELETED PROFILES REPORT", [
-                        ("Total Deleted Profiles", total_deleted_profiles),
-                        ("Duplicate Profiles",     duplicate_count),
-                        ("Fake Profiles / Others", fake_others_count),
-                        ("Marriage Settled",       marriage_del_count),
-                    ]),
-                    ("MARRIAGE SETTLED / GOT MARRIED", [
-                        ("Total",                 total_marriage),
-                        ("With Marriage Date",    with_marriage_date),
-                        ("Without Marriage Date", without_marriage_date),
-                        ("Thru Vysyamala",        thru_vysyamala),
-                        ("Thru Relatives",        thru_relatives),
-                        ("Thru Whatsapp Group",   thru_whatsapp),
-                        ("Thru Others",           thru_others),
-                        ("Both IDs Present",      both_ids_present),
-                        ("Single ID Present",     single_id_present),
-                    ]),
-                    ("SUCCESS STORIES", [
-                        ("Total Success Stories",    total_success_stories),
-                        ("Marriage Photos Uploaded", photos_uploaded),
-                    ]),
-                ]
-
-                for section_title, rows in sections:
-                    cell = ws.cell(row=row, column=1, value=section_title)
-                    cell.font = section_font
-                    cell.fill = section_fill
-                    ws.cell(row=row, column=2).fill = section_fill
-                    row += 1
-
-                    for col, label in [(1, "Category"), (2, "Count")]:
-                        c = ws.cell(row=row, column=col, value=label)
-                        c.font = header_font
-                        c.fill = header_fill
-                    row += 1
-
-                    for label, value in rows:
-                        ws.cell(row=row, column=1, value=label)
-                        ws.cell(row=row, column=2, value=value)
-                        row += 1
-                    row += 1
-
-                buffer = BytesIO()
-                wb.save(buffer)
-                buffer.seek(0)
-
-                response = HttpResponse(
-                    buffer,
-                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                )
-                response['Content-Disposition'] = (
-                    f'attachment; filename="vysyamala_performance_report_{from_date or "all"}_{to_date or "all"}.xlsx"'
-                )
-                return response
-
-            # ─────────────────────────────────────────────────────────────
-            # JSON RESPONSE
-            # ─────────────────────────────────────────────────────────────
-            return Response({
-                "Status": 1,
-                "message": "Website performance report fetched successfully",
-                "period": {
-                    "from_date": str(from_date) if from_date else "All time",
-                    "to_date":   str(to_date)   if to_date   else "All time",
-                },
-                "executive_summary": {
-                    "total_registrations":  total_registrations,
-                    "total_login_members":  total_login_members,
-                    "total_unique_logins":  total_unique_logins,
-                    "premium_members":      premium_members,
-                    "prospect_members":     prospect_members,
-                    "other_members":        other_members,
-                    "total_interests":      total_interests,
-                    "accepted_interests":   accepted_interests,
-                    "total_bookmarks":      total_bookmarks,
-                    "transactions_success": txn_success,
-                    "transactions_failure": txn_failure,
-                    "total_deleted":        total_deleted,
-                    "marriage_settled":     marriage_settled,
-                    "deleted_profiles_report": deleted_profiles_report,
-                    "marriage_settled_report": marriage_settled_report,
-                    "success_stories_report":  success_stories_report,
-                },
-                "login_category_report": login_category_report,
-                "state_wise_report":     state_wise_report,
-                "interest_report":       interest_report,
-                "registration_report":   registration_report,
-            })
-
-        except Exception as e:
-            return Response({"Status": 0, "message": str(e)}, status=500)
-
-
-
-
-
-
-
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
-from .models import VysyamalaGothra
-from .serializers import VysyamalaGothraSerializer
-@api_view(['GET'])
-def gothras(request):
-    """
-    GET /api/gothras/
-      - No params              -> returns all gothras (paginated)
-      - ?sl_no=<number>        -> returns single gothra by sl_no
-      - ?search=<name>         -> filters by gothram name (case-insensitive)
-      - ?page=<number>         -> page number (default: 1)
-      - ?page_size=<number>    -> items per page (default: 1, max: 100)
-    """
-    sl_no = request.query_params.get('sl_no', None)
-    search = request.query_params.get('search', None)
-    page = int(request.query_params.get('page', 1))
-    page_size = int(request.query_params.get('page_size', 1))  # default 1
-
-    # Limit max page size
-    if page_size > 102:
-        page_size = 102
-
-    # Single gothra by sl_no (no pagination needed)
-    if sl_no:
-        try:
-            gothra = VysyamalaGothra.objects.get(sl_no=sl_no)
-            serializer = VysyamalaGothraSerializer(gothra)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except VysyamalaGothra.DoesNotExist:
-            return Response(
-                {"error": f"Gothra with sl_no={sl_no} not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-    # List with optional search
-    queryset = VysyamalaGothra.objects.all()
-    if search:
-        queryset = queryset.filter(gothram__icontains=search)
-
-    # Pagination
-    total_count = queryset.count()
-    total_pages = (total_count + page_size - 1) // page_size
-    start = (page - 1) * page_size
-    end = start + page_size
-    paginated_queryset = queryset[start:end]
-
-    serializer = VysyamalaGothraSerializer(paginated_queryset, many=True)
-    return Response({
-        "count": total_count,
-        "total_pages": total_pages,
-        "current_page": page,
-        "page_size": page_size,
-        "next_page": page + 1 if page < total_pages else None,
-        "previous_page": page - 1 if page > 1 else None,
-        "results": serializer.data
-    }, status=status.HTTP_200_OK)
-    
-
-# ─── API 3 : Profile-Based Envelope Print ────────────────────────────────────
-# URL (add to authentication/urls.py):
-#   path('envelope-by-profile/', views.ProfileEnvelopePrintView.as_view(), name='envelope-by-profile'),
-#
-# Usage:
-#   GET /envelope-by-profile/?profileId=VM56645
-#   — returns the printable HTML envelope for VM56645
-#
-#   GET /envelope-by-profile/?profileId=VF34132
-#   — returns the printable HTML envelope for VF34132
-#
-# The profileId query-param is REQUIRED.  It works for ANY profile id —
-# not just the logged-in user — so admins can print any profile's envelope.
-
-class ProfileEnvelopePrintView(APIView):
-    """
-    GET /envelope-by-profile/?profileId=<id>
-    Returns a printable A5-landscape HTML envelope for the given profile.
-    Identical design to the existing PrintEnvelopeView (print-dashboard envelope).
-    """
-
-    def get(self, request):
-        profile_id = request.query_params.get('profileId', '').strip()
-
-        if not profile_id:
-            return HttpResponse(
-                "<h3>Error: profileId query parameter is required.</h3>"
-                "<p>Example: /envelope-by-profile/?profileId=VM56645</p>",
-                status=400
-            )
-
-        # ── Pull owner details ────────────────────────────────────
-        owner_name    = ''
-        father_name   = ''
-        mobile_no     = ''
-        address_line1 = ''
-        district      = ''
-        city          = ''
-        city_state    = ''
-        pincode       = ''
-
-        try:
-            from accounts.models import LoginDetails, State, District, City
-            from accounts.models import ProfileFamilyDetails
-
-            owner = LoginDetails.objects.filter(ProfileId=profile_id).first()
-
-            if not owner:
-                return HttpResponse(
-                    f"<h3>Profile not found: {profile_id}</h3>",
-                    status=404
-                )
-
-            owner_name    = owner.Profile_name or ''
-            mobile_no     = owner.Profile_mobile_no or owner.Mobile_no or ''
-            address_line1 = owner.Profile_address or ''
-            pincode       = owner.Profile_pincode or ''
-
-            # City
-            if owner.Profile_city:
-                if str(owner.Profile_city).isdigit():
-                    city_obj = City.objects.filter(id=int(owner.Profile_city)).first()
-                    city = city_obj.city_name if city_obj else ''
-                else:
-                    city = str(owner.Profile_city)
-
-            # District
-            if owner.Profile_district:
-                if str(owner.Profile_district).isdigit():
-                    dist_obj = District.objects.filter(id=int(owner.Profile_district)).first()
-                    district = dist_obj.name if dist_obj else ''
-                else:
-                    district = str(owner.Profile_district)
-
-            # State
-            if owner.Profile_state:
-                if str(owner.Profile_state).isdigit():
-                    state_obj = State.objects.filter(id=int(owner.Profile_state)).first()
-                    city_state = state_obj.name if state_obj else ''
-                else:
-                    city_state = str(owner.Profile_state)
-
-            # Father name from family details
-            family = ProfileFamilyDetails.objects.filter(profile_id=profile_id).first()
-            if family:
-                father_name = family.father_name or ''
-
-        except Exception as e:
-            return HttpResponse(f"<h3>Error fetching profile: {e}</h3>", status=500)
-
-        # ── HTML — identical to PrintEnvelopeView design ─────────
-        html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Envelope - {profile_id}</title>
-            <style>
-                body {{
-                    margin: 0;
-                    font-family: Arial, sans-serif;
-                }}
-
-                @page {{
-                    size: A5 landscape;
-                    margin: 0;
-                }}
-
-                @media print {{
-                    html, body {{
-                        width: 200mm;
-                        height: 140mm;
-                        margin: 0;
-                        padding: 0;
-                        overflow: hidden;
-                    }}
-                    .no-print {{
-                        display: none !important;
-                    }}
-                }}
-
-                /* A5 Half Size */
-                .envelope {{
-                    width: 200mm;
-                    height: 140mm;
-                    margin: auto;
-                    position: relative;
-                    overflow: hidden;
-                }}
-
-                .left {{
-                    position: absolute;
-                    top: 60mm;
-                    left: 15mm;
-                    font-weight: bold;
-                    font-size: 14px;
-                }}
-
-                .right {{
-                    position: absolute;
-                    top: 60mm;
-                    left: 130mm;
-                    font-size: 14px;
-                    line-height: 1.6;
-                }}
-
-                .bold {{
-                    font-weight: bold;
-                }}
-
-                .editable {{
-                    outline: none;
-                    border: none;
-                    padding-left: 30px;
-                }}
-
-                .editable:empty {{
-                    display: none;
-                }}
-
-                .editables {{
-                    outline: none;
-                    border: none;
-                    padding-left: 0px;
-                }}
-
-                input {{
-                    border: none;
-                    outline: none;
-                    font-size: 14px;
-                    width: auto;
-                }}
-
-                @media print {{
-                    body {{
-                        margin: 0;
-                    }}
-                }}
-
-                /* Print button — hidden when printing */
-                .print-btn {{
-                    display: block;
-                    margin: 10px auto;
-                    padding: 10px 28px;
-                    font-size: 15px;
-                    background: #b5451b;
-                    color: #fff;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                }}
-                .print-btn:hover {{
-                    background: #8c3214;
-                }}
-            </style>
-        </head>
-        <body>
-
-        <!-- Print button (hidden during actual print) -->
-        <div class="no-print" style="text-align:center; padding:12px 0;">
-            <button class="print-btn" onclick="window.print()">🖨️ Print Envelope</button>
-        </div>
-
-        <div class="envelope">
-
-            <!-- LEFT: Profile ID -->
-            <div class="left">
-                Profile ID :&nbsp;
-                <span contenteditable="true" class="editables">{profile_id}</span>
-            </div>
-
-            <!-- RIGHT: Address block -->
-            <div class="right">
-                <div class="bold">To,</div>
-                <div contenteditable="true" class="editable bold">{owner_name}</div>
-                <div contenteditable="true" class="editable">Father Name: {father_name}</div>
-                <div contenteditable="true" class="editable">{address_line1}</div>
-                <div contenteditable="true" class="editable">{district}</div>
-                <div contenteditable="true" class="editable">{city}</div>
-                <div contenteditable="true" class="editable">{city_state}</div>
-                <div contenteditable="true" class="editable">PIN: {pincode}</div>
-                <div contenteditable="true" class="editable">Mobile: {mobile_no}</div>
-            </div>
-
-        </div>
-
-        </body>
-        </html>
-        """
-
-        return HttpResponse(html)
