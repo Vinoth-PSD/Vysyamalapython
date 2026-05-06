@@ -5883,3 +5883,23 @@ class GothramNamesSingle(models.Model):
  
     def __str__(self):
         return self.name
+
+class VysyamalaGothra(models.Model):
+    sl_no = models.IntegerField(unique=True)
+    gothram = models.CharField(max_length=200)
+    rishi = models.CharField(max_length=200)
+    sanketha_namam = models.TextField(blank=True)
+    meditating_place = models.CharField(max_length=300, blank=True)
+    water_pool = models.CharField(max_length=300, blank=True)
+    offerings = models.CharField(max_length=300, blank=True)
+    favourite_lord = models.CharField(max_length=200, blank=True)
+    agni_pravesha_couples = models.CharField(max_length=300, blank=True)
+    donts = models.TextField(blank=True)
+    gothra_slokam = models.TextField(blank=True)
+ 
+    class Meta:
+        db_table = 'vysyamala_gothras'
+        ordering = ['sl_no']
+ 
+    def __str__(self):
+        return self.gothram

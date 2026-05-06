@@ -16,6 +16,7 @@ from .views import ProfileCallManagementCreateView, ProfileCallManagementListVie
 from .views import MarriageSettleDetailsCreateView, MarriageSettleDetailsListView
 from .views import PaymentTransactionCreateView, PaymentTransactionListView
 from .views import GenerateInvoicePDF
+from .views import gothras
 from . import views
 from .views import (
     PrintDashboardCreateView,
@@ -367,5 +368,8 @@ path(
     views.WebsitePerformanceReport.as_view(),
     name="website-performance-report"
     ),
+    path('gothras/', gothras, name='gothras'),
+    path('envelope-by-profile/', views.ProfileEnvelopePrintView.as_view(), name='envelope-by-profile'),
+
 
 ]
