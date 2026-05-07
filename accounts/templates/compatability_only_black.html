@@ -1,25 +1,26 @@
 {% include 'pdf_templates/header2.html' %}
   {% include 'pdf_templates/without_contact.html' %}
-
   {% include 'pdf_templates/horoscope_without_contact.html' %}
-  {% comment %} <div style="page-break-before: always;"></div>
-  {% include 'pdf_templates/matching_star_list.html' %}
-  <br/>
-  <br/> {% endcomment %}
-  <div style="page-break-before: always;"></div>
+  
+  <div class="compat-page-container" style="page-break-before: always;">
 {% if porutham_show %}
   {% include 'pdf_templates/compatability_black.html' %}
 {% endif %}
-<div class="upload-horo-bg">
-  <img
-    src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png"
-  />
-</div>
+   {% if horoscope_content_admin != "empty" %}
+   {% include 'pdf_templates/horoscope_file_black.html' %}
+{% endif %}
   <!-- Footer -->
 <style>
-  @page{
+  @page {
+    size: A4;
+    margin: 12mm 10mm 12mm 10mm;
+  }
+  @page compat-page {
     size: A4;
     margin: 0;
+  }
+  .compat-page-container {
+    page: compat-page;
   }
   .mt{
     margin-top: 2rem;

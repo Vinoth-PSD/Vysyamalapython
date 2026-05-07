@@ -32,12 +32,12 @@
             font-size: 10px;
             margin: 3px 0;
             padding: 0;
-            color: #333;
+            color: #000000;
             font-family: 'TamilFont', Arial, sans-serif;
         }
 
         /* ── Header ── */
-        table.header { width: 100%; margin-bottom: 6px; }
+        table.header { width: 100%; margin-bottom: 8px; }
         .header-left { width: 100%; }
         .header-left img { width: 100%; height: auto; }
 
@@ -45,7 +45,7 @@
         table.outer2 {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
         table.outer2 > tbody > tr > td { padding: 0; }
 
@@ -55,7 +55,7 @@
 
         table.table-div {
             width: 100%;
-            border: 1px solid #6207ac;
+            border: 1px solid #000000;
             border-collapse: collapse;
             margin-bottom: 6px;
         }
@@ -67,11 +67,11 @@
             background-color: #ffffff;
             box-sizing: border-box;
         }
-        .table-div .border-right { border-right: 1px solid #6207ac; }
+        .table-div .border-right { border-right: 1px solid #000000; }
         .table-div p {
             font-size: 12px;
             font-weight: 400;
-            color: #000;
+            color: #000000;
             font-family: 'TamilFont', Arial, sans-serif;
             margin: 2px 0;
         }
@@ -83,7 +83,7 @@
             font-weight: 500;
             margin: 2px 0;
             font-family: 'TamilFont', Arial, sans-serif;
-            color: #000;
+            color: #000000;
         }
 
         /* ── Chart grid ── */
@@ -91,7 +91,7 @@
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
         }
         td.chart-cell { width: 43%; padding: 0; vertical-align: top; box-sizing: border-box; }
         td.spacer { width: 14%; padding: 4px 2px; vertical-align: middle; text-align: center; }
@@ -109,7 +109,7 @@
             width: 25%;
             height: 70px;
             max-height: 70px;
-            border: 1px solid #6207ac;
+            border: 1px solid #000000;
             padding: 2px;
             color: #000000;
             font-weight: bold;
@@ -135,7 +135,7 @@
         .inner .highlight p {
             font-size: 10px;
             font-weight: 400;
-            color: #000;
+            color: #000000;
             font-family: 'TamilFont', Arial, sans-serif;
             margin: 2px 0;
         }
@@ -161,12 +161,12 @@
         table.add-info {
             width: 100%;
             border-collapse: collapse;
-            border: 1px solid #6207ac;
+            border: 1px solid #000000;
         }
         .add-info td {
             width: 50%;
             background-color: #ffffff;
-            padding: 5px 9px;
+            padding: 6px 10px;
             vertical-align: top;
         }
         .add-info td p {
@@ -182,13 +182,13 @@
         .add-info2 p {
             font-size: 12px;
             font-weight: 400;
-            color: #000;
+            color: #000000;
             font-family: 'TamilFont', Arial, sans-serif;
             margin: 2px 0;
         }
 
-        .click-here { color: #000; font-weight: 700; text-decoration: none; }
-        .click-here2 { color: #6207ac; font-size: 12px; font-weight: 600; text-decoration: none; }
+        .click-here { color: #000000; font-weight: 700; text-decoration: none; }
+        .click-here2 { color: #000000; font-size: 12px; font-weight: 600; text-decoration: none; }
 
         /* ── Porutham page ── */
         .porutham-match { width: 100%; }
@@ -208,79 +208,89 @@
         }
 
         h2.porutham-table-title {
-            font-size: 16px;
+            font-size: 22px;
             font-weight: 700;
-            margin: 6px 0 3px 0;
-            padding: 10px;
+            margin: 10px 0 3px 0;
+            padding: 15px;
             font-family: 'TamilFont', Arial, sans-serif;
-            color: #000;
+            color: #000000;
         }
 
         table.porutham-table {
             width: 100%;
-            border: 1px solid #6207ac;
+            border: 1px solid #000000;
             border-collapse: collapse;
             margin-bottom: 4px;
         }
         .porutham-table td {
-            border: 1px solid #6207ac;
-            padding: 12px 8px;
+            border: 1px solid #000000;
+            padding: 15px 8px;
             vertical-align: middle;
             background-color: #ffffff;
         }
         .porutham-table td p {
-            color: #000;
-            font-size: 13px;
+            color: #000000;
+            font-size: 14px;
             font-weight: 600;
             text-align: left;
             font-family: 'TamilFont', Arial, sans-serif;
             margin: 0;
         }
-        .porutham-star td { padding: 15px 8px; }
+        .porutham-star td { padding: 20px 8px; }
 
         /* ── Last page horoscope image ── */
+        @page horo-last {
+            size: A4;
+            margin: 0;
+        }
+
         .horo-last-page {
             page: horo-last;
-            display: flex;
-            flex-direction: column;
+            display: block;
+            width: 210mm;
             height: 297mm;
             box-sizing: border-box;
             overflow: hidden;
         }
-        .upload-horo-bg { line-height: 0; font-size: 0; display: block; }
-        .upload-horo-bg img { width: 100%; height: auto; display: block; }
-        .horo-image-center {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 0; margin: 0;
-            box-sizing: border-box;
-            overflow: hidden;
-        }
-        .horo-image-center img {
-            width: 70%;
-            max-height: 60%;
-            object-fit: contain;
-            display: block;
-            margin: 0 auto;
-        }
-        table.upload-horo-image { width: 100%; margin: 10px 0; text-align: center; }
-        .upload-horo-image td { text-align: center; padding: 4px; }
-        .upload-horo-image img { width: 400px; height: auto; object-fit: contain; }
 
-        .text-wrap { word-break: break-word; white-space: normal; font-size: 12px; line-height: 1.4; }
-        .mt { margin-top: 1rem; }
+        .upload-horo-bg {
+            line-height: 0;
+            font-size: 0;
+            display: block;
+        }
+        .upload-horo-bg img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .horo-image-center {
+            display: table;
+            width: 100%;
+            height: 185mm;
+            text-align: center;
+            overflow: hidden;
+            box-sizing: border-box;
+            padding-top: 20mm;
+        }
+
+        .horo-image-center img {
+            display: inline-block;
+            width: 70%;
+            height: 60%;
+            max-height: 130mm;
+            object-fit: contain;
+            margin: 0 auto;
+            vertical-align: middle;
+        }
 
     </style>
 </head>
 <body>
-    <table class="header">
+  <table class="header">
         <tr>
             <td class="header-left">
                 <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader-bg-white.png" alt="Vysyamala Logo">
             </td>
         </tr>
     </table>
-

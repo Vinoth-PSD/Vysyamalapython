@@ -11,7 +11,9 @@
 {% if porutham_show %}
   {% include 'pdf_templates/compatability.html' %}
 {% endif %}
+   {% if horoscope_content_admin != "empty" %}
    {% include 'pdf_templates/horoscope_file.html' %}
+{% endif %}
   <!-- Footer -->
 <style>
   @page{

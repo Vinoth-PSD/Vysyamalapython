@@ -1,28 +1,25 @@
-{% if horoscope_content_admin  == "empty"  %}
-<br>
+{% if horoscope_content_admin == "empty" %}
+
 <div class="upload-horo-bg">
-  <img
-    src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png"
-  />
+    <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png"/>
 </div>
 
 {% else %}
-  
-  <div style="page-break-before: always;"></div>
-<div class="upload-horo-bg">
-  <img
-    src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/Horo-header-for-horoattached-format.png"
-  />
+
+<div class="horo-last-page">
+
+    <div class="upload-horo-bg">
+        <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/Horo-header-for-horoattached-format.png"/>
+    </div>
+
+    <div class="horo-image-center">
+        {{horoscope_content_admin|safe}}
+    </div>
+
+    <div class="upload-horo-bg">
+        <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png"/>
+    </div>
+
 </div>
 
-<table class="upload-horo-image">
-  <tr>
-    <td>{{horoscope_content_admin|safe}}</td>
-  </tr>
-</table>
-<div class="upload-horo-bg">
-  <img
-    src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png"
-  />
-</div>
 {% endif %}

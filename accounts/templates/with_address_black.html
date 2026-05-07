@@ -1,15 +1,12 @@
-{% include 'pdf_templates/header.html' %}
-
+{% include "pdf_templates/header3.html" %}
 
   <!-- Include reusable sections -->
   {% include 'pdf_templates/without_contact.html' %}
   {% include 'pdf_templates/horoscope_without_contact.html' %}
   {% include 'pdf_templates/view_link.html' %}
-   <div style="page-break-before: always;"></div>
+  <div style="page-break-before: always;"></div>
   {% include 'pdf_templates/matching_star_list.html' %}
+  {% include 'pdf_templates/horoscope_with_file.html'%}
 
-  {% if horoscope_content_admin != "empty" %}
-   {% include 'pdf_templates/horoscope_file.html'%}
-{% endif %}
-
-
+</body>
+</html>

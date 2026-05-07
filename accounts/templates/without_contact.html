@@ -2,7 +2,9 @@
     <!-- Basic Profile Details -->
     {% include 'pdf_templates/without_contact.html' %}
     {% include 'pdf_templates/horoscope_without_contact.html' %}
-    {% include 'pdf_templates/horoscope_file.html' %}
+    {% if horoscope_content_admin != "empty" %}
+   {% include 'pdf_templates/horoscope_file.html' %}
+{% endif %}
     <!-- <div class="upload-horo-bg">
     <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png">
   </div> -->

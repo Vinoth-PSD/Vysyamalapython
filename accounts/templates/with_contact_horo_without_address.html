@@ -6,6 +6,8 @@
     {% include 'pdf_templates/horoscope_without_contact.html' %}
       {% include 'pdf_templates/view_link.html' %}
 
-  {% include 'pdf_templates/horoscope_file.html' %}
+  {% if horoscope_content_admin != "empty" %}
+   {% include 'pdf_templates/horoscope_file.html' %}
+{% endif %}
 </body>
 </html>

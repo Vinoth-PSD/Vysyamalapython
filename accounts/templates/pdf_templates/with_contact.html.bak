@@ -1,8 +1,3 @@
-
-<table class="compatibility-page-wrapper">
-  <tr>
-    <td style="text-align: center; margin: 0 auto; padding: 0px 20px;">
-
 <table class="table-div">
   <tr>
     <td class="border-right">
@@ -52,8 +47,6 @@
     </td>
   </tr>
 </table>
-                            
- <hr class="divider">
 
 <table class="table-div">
   <tr>
@@ -81,40 +74,36 @@
     <td>
       <table class="inner-table">
         <tr>
-          <td><p><strong>Mother Name</strong></p></td>
-          <td><p><strong>{{mother_name}}</strong></p></td>
-        </tr>
-        <tr>
-          <td><p>Mother Occupation</p></td>
-          <td><p>{{mother_occupation}}</p></td>
-        </tr>
-        <tr>
-          <td><p>Sisters/Married</p></td>
-          <td><p>{{no_of_sister}}/{{no_of_sister_married}}</p></td>
+          <td>
+            <p><strong>Mother Name </strong></p>
+            <p>Mother Occupation</p>
+            <p>Sisters/Married</p>
+          </td>
+          <td>
+            <p><strong>{{mother_name}}</strong></p>
+            <p>{{mother_occupation}}</p>
+            <p>{{no_of_sister}}/{{no_of_sister_married}}</p>
+          </td>
         </tr>
       </table>
     </td>
   </tr>
 </table>
-
- <hr class="divider">
-
-
 <table class="table-div">
   <tr>
     <td class="border-right">
       <table class="inner-table">
         <tr>
-          <td><p><strong>Star/Rasi</strong></p></td>
-          <td><p style="font-size:12px"><strong>{{birth_star}}, {{birth_rasi}}</strong></p></td>
-        </tr>
-        <tr>
-          <td><p>Lagnam/Didi</p></td>
-          <td><p>{{lagnam}}/{{didi}}</p></td>
-        </tr>
-        <tr>
-          <td><p>Nalikai</p></td>
-          <td><p>{{nalikai}}</p></td>
+          <td>
+            <p><strong>Star/Rasi </strong></p>
+            <p>Lagnam/Didi</p>
+            <p>Nalikai</p>
+          </td>
+          <td>
+            <p style="font-size:12px"><strong>{{birth_star}}, {{birth_rasi}}</strong></p>
+            <p>{{lagnam}}/{{didi}}</p>
+            <p>{{nalikai}}</p>
+          </td>
         </tr>
       </table>
     </td>
@@ -122,20 +111,19 @@
     <td>
       <table class="inner-table">
         <tr>
-          <td><p><strong>Suya Gothram :</strong></p></td>
-          <td><p><strong>{{suya_gothram}}</strong></p></td>
-        </tr>
-        <tr>
-          <td><p>Madhulam</p></td>
-          <td><p>{{madulamn}}</p></td>
-        </tr>
-        <tr>
-          <td><p>Birth Time</p></td>
-          <td><p>{{birth_start}}</p></td>
+          <td>
+            <p><strong>Suya Gothram : </strong></p>
+            <p>Madhulam</p>
+            <p>Birth Time</p>
+          </td>
+          <td>
+            <p><strong>{{suya_gothram}}</strong></p>
+            <p>{{madulamn}}</p>
+            <p>{{birth_start}}</p>
+          </td>
         </tr>
       </table>
     </td>
   </tr>
 </table>
 
- <hr class="divider">
