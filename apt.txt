@@ -3,10 +3,13 @@ libpangocairo-1.0-0
 libcairo2
 libgdk-pixbuf2.0-0
 libffi-dev
-shared-mime-info
+shared-mime-types
 libgobject-2.0-0
 wkhtmltopdf
 libglib2.0-0
 libfreetype6
-libgirepository-2.0-0
-libgirepository1.0-dev
+libgirepository-2.0-0          # Keep this
+libgirepository-1.0-dev        # Keep this
+libgirepository-2.0-dev        # ADD THIS LINE - the dev package for girepository-2.0
+build-essential
+pkg-config
