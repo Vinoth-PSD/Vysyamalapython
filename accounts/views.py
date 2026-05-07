@@ -5604,7 +5604,7 @@ class Get_prof_list_match(APIView):
                 # "degree": degree(detail.get("degree"),detail.get("other_degree")),
                 # "anual_income":get_annual_income(detail.get("anual_income"),detail.get("actual_income")),
                 "degree": degree(detail.get("degree"),detail.get("other_degree")),
-                "anual_income": (detail.get("actual_income") if detail.get("actual_income") not in [None, "", "0"] else anualincomes.get(int(detail.get("anual_income"))) if detail.get("anual_income") else "N/A"),
+                "anual_income": (detail.get("actual_income") if detail.get("actual_income") not in [None, "", "0"] else anualincomes.get( int(float(str(detail.get("anual_income")).strip())))if detail.get("anual_income") not in [None, ""] else "N/A" ),
                 "star": detail.get("star"), 
                 "profession": professions.get(int(detail.get("profession")) if detail.get("profession") else "N/A"),
                 "city": detail.get("Profile_city") if detail.get("Profile_city") not in [None,"0", "N/A","~"] else "N/A",
