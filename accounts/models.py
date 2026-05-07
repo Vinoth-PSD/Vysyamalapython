@@ -1442,10 +1442,10 @@ class Get_profiledata_Matching(models.Model):
                             AND (pv.visibility_height_to IS NULL OR pv.visibility_height_to = '' OR l1_from.Profile_height <= pv.visibility_height_to)
                             AND (pv.visibility_profession IS NULL OR pv.visibility_profession = '' OR FIND_IN_SET(f_from.profession, pv.visibility_profession) > 0)
                             AND (pv.visibility_education IS NULL OR pv.visibility_education = '' OR FIND_IN_SET(f_from.highest_education, pv.visibility_education) > 0)
-                            AND (pv.visibility_anual_income IS NULL OR pv.visibility_anual_income = '' 
+                            AND ((pv.visibility_anual_income IS NULL OR pv.visibility_anual_income = '' 
                             OR h_from.id >= pv.visibility_anual_income)
                             AND (pv.visibility_anual_income_max IS NULL OR pv.visibility_anual_income_max = '' 
-                            OR h_from.id <= pv.visibility_anual_income_max)
+                            OR h_from.id <= pv.visibility_anual_income_max) OR (f_from.anual_income IS NULL OR f_from.anual_income = '' ))
 
                             AND (pv.degree IS NULL OR pv.degree = '' OR FIND_IN_SET(f_from.degree, pv.degree) > 0)
                             AND (pv.visibility_field_of_study IS NULL OR pv.visibility_field_of_study = '' OR FIND_IN_SET(f_from.field_ofstudy, pv.visibility_field_of_study) > 0)
@@ -2499,10 +2499,10 @@ class Get_profiledata_Matching(models.Model):
                         AND (pv.visibility_height_to IS NULL OR pv.visibility_height_to = '' OR l1_from.Profile_height <= pv.visibility_height_to)
                         AND (pv.visibility_profession IS NULL OR pv.visibility_profession = '' OR FIND_IN_SET(f_from.profession, pv.visibility_profession) > 0)
                         AND (pv.visibility_education IS NULL OR pv.visibility_education = '' OR FIND_IN_SET(f_from.highest_education, pv.visibility_education) > 0)
-                        AND (pv.visibility_anual_income IS NULL OR pv.visibility_anual_income = '' 
+                        AND ((pv.visibility_anual_income IS NULL OR pv.visibility_anual_income = '' 
                         OR h_from.id >= pv.visibility_anual_income)
                         AND (pv.visibility_anual_income_max IS NULL OR pv.visibility_anual_income_max = '' 
-                        OR h_from.id <= pv.visibility_anual_income_max)
+                        OR h_from.id <= pv.visibility_anual_income_max)   OR (f_from.anual_income IS NULL OR f_from.anual_income = '' ))
 
                         AND (pv.degree IS NULL OR pv.degree = '' OR FIND_IN_SET(f_from.degree, pv.degree) > 0)
                         AND (pv.visibility_field_of_study IS NULL OR pv.visibility_field_of_study = '' OR FIND_IN_SET(f_from.field_ofstudy, pv.visibility_field_of_study) > 0)
