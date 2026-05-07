@@ -1,5 +1,10 @@
 libcairo2
 libcairo2-dev
+libgirepository-1.0-1
+gobject-introspection
+libgirepository1.0-dev
+gir1.2-glib-2.0
+libglib2.0-dev
 libpango-1.0-0
 libpangocairo-1.0-0
 libgdk-pixbuf-2.0-0
@@ -7,8 +12,6 @@ libffi-dev
 shared-mime-info
 pkg-config
 python3-dev
-libgirepository1.0-dev
-gir1.2-glib-2.0
-libglib2.0-dev
+build-essential
 gcc
 g++
