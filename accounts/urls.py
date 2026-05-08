@@ -370,6 +370,7 @@ path(
     ),
     path('gothras/', gothras, name='gothras'),
     path('envelope-by-profile/', views.ProfileEnvelopePrintView.as_view(), name='envelope-by-profile'),
+    path("notification_action/", views.NotificationAction.as_view(), name="notification_action"),
 
 
 ]

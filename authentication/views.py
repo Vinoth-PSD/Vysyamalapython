@@ -1943,65 +1943,68 @@ class Get_save_details(APIView):
 
 
 
+
 class Login_with_mobileno(APIView):
     def generate_otp(self):
-        # Implement your OTP generation logic here
         import random
         return str(random.randint(100000, 999999))
 
     def post(self, request, *args, **kwargs):
-        # print(request.data)  # Debugging statement to print incoming data
         serializer = serializers.LoginWithMobileSerializer(data=request.data)
 
         if serializer.is_valid():
             mobile_number = serializer.validated_data.get('Mobile_no')
-            # print("Validated mobile number:", mobile_number)  # Debugging statement
-            
-            
 
-            print('mobile_number',mobile_number)
-            # Check if the mobile number exists in Registration table
+            print('mobile_number', mobile_number)
+            
             normalized_input = mobile_number.strip()
             if len(normalized_input) == 10:
                 normalized_input_with_prefix = '91' + normalized_input
             elif len(normalized_input) == 12 and normalized_input.startswith('91'):
                 normalized_input_with_prefix = normalized_input
-                normalized_input = normalized_input[2:]  # Strip '91' for 10-digit version
+                normalized_input = normalized_input[2:]
             else:
                 return JsonResponse({"status": 0, "message": "Invalid mobile number format."}, status=status.HTTP_200_OK)
 
-            # Try matching either format
-            try:
-                profile = (
-                    models.Registration1.objects
-                    .filter(
-                        Q(Mobile_no=normalized_input) | Q(Mobile_no=normalized_input_with_prefix),
-                        Status__in=[0, 1, 2, 3],
-                    )
-                    .order_by('DateOfJoin')  # or 'created_at' if you have it
-                    .first()
+            # Fetch profile without Status filter so all statuses are reachable
+            profile = (
+                models.Registration1.objects
+                .filter(
+                    Q(Mobile_no=normalized_input) | Q(Mobile_no=normalized_input_with_prefix),
                 )
+                .order_by('DateOfJoin')
+                .first()
+            )
 
-            except models.Registration1.DoesNotExist:
-                return JsonResponse({"status": 0, "message": "Invalid Number"}, status=status.HTTP_200_OK)
-            # Generate OTP
+            # Mobile number not found
+            if not profile:
+                return JsonResponse({"status": 0, "message": "Profile ID number does not exist."}, status=status.HTTP_200_OK)
+
+            # Block login for restricted statuses BEFORE sending OTP
+            if profile.Status in [2, 3, 4]:
+                if profile.Status == 2:
+                    status_text = "Pending"
+                elif profile.Status == 3:
+                    status_text = "Hidden"
+                elif profile.Status == 4:
+                    status_text = "Deleted"
+
+                return JsonResponse({
+                    "status": 0,
+                    "message": f"Your profile is currently {status_text}. For assistance, please contact our support team. 9944851550"
+                }, status=status.HTTP_200_OK)
+
+            # Only active profiles (Status 0 or 1) reach here
             otp = self.generate_otp()
 
-            # Send OTP via SMS (implement SendSMS() appropriately)
-            
-            #Below code commented on 30th jully 2024 harcode value set as 1234
-
-            sms_sender = SendSMS()  # Ensure SendSMS class is implemented and imported correctly
+            sms_sender = SendSMS()
             message_id = sms_sender.send_sms(otp, mobile_number)
             dlr_status = sms_sender.check_dlr(message_id)
             available_credit = sms_sender.available_credit()
 
-            # Save OTP to UserProfile
             profile.Otp = otp
-            #profile.Otp = 123456 #otp
             profile.save()
 
-            # Prepare response data
             response_data = {
                 "message": "OTP sent successfully.",
                 "Send Message Response": message_id,
@@ -2010,8 +2013,11 @@ class Login_with_mobileno(APIView):
             }
 
             return JsonResponse({"status": 1, "response_data": response_data, "message": "OTP sent successfully."}, status=status.HTTP_201_CREATED)
+        
         else:
             return JsonResponse(serializer.errors, status=status.HTTP_200_OK)
+
+
         
 class Login_verifyotp(APIView):
     def post(self, request, *args, **kwargs):
@@ -19469,6 +19475,11 @@ def cm_to_feet_inches(cm):
     total_inches = cm / 2.54
     feet = int(total_inches // 12)
     inches = round(total_inches % 12)
+
+    # Handle rollover: e.g. 4 ft 12 in → 5 ft 0 in
+    if inches == 12:
+        feet += 1
+        inches = 0
 
     return f"{feet} ft {inches} in"
 

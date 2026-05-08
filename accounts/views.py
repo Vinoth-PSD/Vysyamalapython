@@ -10044,6 +10044,11 @@ def cm_to_feet_inches(cm):
     feet = int(total_inches // 12)
     inches = round(total_inches % 12)
 
+    # Handle rollover: e.g. 4 ft 12 in → 5 ft 0 in
+    if inches == 12:
+        feet += 1
+        inches = 0
+
     return f"{feet} ft {inches} in"
 
 def get_work_address(city, district, state, country):
@@ -10069,6 +10074,372 @@ def is_valid_file(url):
         return response.status_code == 200
     except requests.RequestException:
         return False
+    
+# import os
+# from django.conf import settings
+# from authentication.models import Planet
+# class AdminProfilePDFView(APIView):
+#     def get(self, request, profile_id=None, pdf_format=None):
+#         profile_id = profile_id or request.query_params.get('profile_id')
+#         format_type = pdf_format or request.query_params.get('pdf_format')
+        
+#         # get details
+#         login = get_object_or_404(models.Registration1, ProfileId=profile_id)
+#         family = models.ProfileFamilyDetails.objects.filter(profile_id=profile_id).first()
+#         horoscope_data = get_object_or_404(models.ProfileHoroscope, profile_id=profile_id)
+#         education_details = get_object_or_404(models.ProfileEduDetails, profile_id=profile_id)
+#         family_details = models.ProfileFamilyDetails.objects.filter(profile_id=profile_id)
+#         if family_details.exists():
+#                 family_detail = family_details.first()  
+
+#                 father_name = family_detail.father_name  
+#                 father_occupation = family_detail.father_occupation
+#                 family_status = family_detail.family_status
+#                 mother_name = family_detail.mother_name
+#                 mother_occupation = family_detail.mother_occupation
+#                 no_of_sis_married = family_detail.no_of_sis_married
+#                 no_of_bro_married = family_detail.no_of_bro_married
+#                 suya_gothram = family_detail.suya_gothram
+#                 madulamn = family_detail.madulamn if family_detail.madulamn != None else "N/A" 
+#                 no_of_sister = family_detail.no_of_sister or "No"
+#                 no_of_brother = family_detail.no_of_brother or "No"
+#         else:
+#             # Handle case where no family details are found
+#             father_name = father_occupation = family_status = ""
+#             mother_name = mother_occupation = ""
+#             no_of_sis_married = no_of_bro_married = 0
+
+#         try:
+#             num_sisters_married = int(no_of_sis_married)
+#         except ValueError:
+#             num_sisters_married = 0     
+    
+#         try:
+#             num_brothers_married = int(no_of_bro_married)
+#         except ValueError:
+#             num_brothers_married = 0   
+#         if int(num_sisters_married) == 0:
+#             no_of_sis_married = "No"
+
+#         if  int(num_brothers_married) == 0:
+#             no_of_bro_married="No"
+#         if no_of_sister=="0" or no_of_sister =='':
+#             no_of_sis_married="No"
+#             no_of_sister ='No'
+
+#         if no_of_brother=="0" or no_of_brother =='':
+#             no_of_bro_married="No"
+#             no_of_brother ='No'
+            
+#         complexion_id = login.Profile_complexion
+#         complexion = "Unknown"
+#         if complexion_id:
+#             complexion = models.Complexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
+
+#         # Safely handle education level
+#         highest_education_id = education_details.highest_education
+#         highest_education = "Unknown"
+#         if highest_education_id:
+#             highest_education = models.EducationLevel.objects.filter(row_id=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
+        
+#         field_ofstudy_id = education_details.field_ofstudy
+#         fieldof_study=" "
+#         if field_ofstudy_id:
+#             fieldof_study = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id).values_list('field_of_study', flat=True).first() or "Unknown"
+        
+#         about_edu=education_details.about_edu
+        
+#         final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
+#         try:
+#             degree= get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)
+#         except Exception:
+#             degree=None
+
+#         annual_income = "Unknown"
+#         actual_income = str(education_details.actual_income).strip()
+#         annual_income_id = education_details.anual_income
+
+#         if not actual_income or actual_income in ["", "~"]:
+#             if annual_income_id and str(annual_income_id).isdigit():
+#                 annual_income = models.AnnualIncome.objects.filter(id=int(annual_income_id)).values_list('income', flat=True).first() or "Unknown"
+#         else:
+#             annual_income = actual_income
+
+
+#         profession_id = education_details.profession
+#         profession = "Unknown"
+#         if profession_id:
+#             profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
+
+#         work_place =get_work_address(city=education_details.work_city,state=education_details.work_state,district=education_details.work_district,country=education_details.work_country)
+#         occupation_title=''
+#         occupation=''
+
+#         try:
+#             prof_id_int = int(profession_id)
+#             if prof_id_int == 1:
+#                 occupation_title = 'Employment Details'
+#                 occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+#             elif prof_id_int == 2:
+#                 occupation_title = 'Business Details'
+#                 occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+#         except (ValueError, TypeError):
+#             occupation_title = 'Other'
+#             occupation = ''
+        
+    
+
+#         #father_occupation_id = family_detail.father_occupation
+#         father_occupation = family_detail.father_occupation or "N/A"
+
+#             #mother_occupation_id = family_detail.mother_occupation
+#         mother_occupation = family_detail.mother_occupation or "N/A"
+#         father_name = family_detail.father_name or "N/A"
+#         mother_name = family_detail.mother_name or "N/A"
+#         family_status = "Unknown"
+#         family_status_id = family_detail.family_status
+
+#         if family_status_id:
+#             family_status = models.FamilyStatus.objects.filter(id=family_status_id).values_list('status', flat=True).first() or "Unknown"
+
+#         def safe_get_value(model, pk_field, value, name_field='name', default='N/A'):
+#                     try:
+#                         if value and str(value).isdigit():
+#                             return model.objects.filter(**{pk_field: value}).values_list(name_field, flat=True).first() or default
+#                     except Exception:
+#                         pass
+#                     return default
+
+#         if horoscope_data.horoscope_file:
+#                     horoscope_image_url = horoscope_data.horoscope_file.url
+#                     if is_valid_file(horoscope_image_url):
+#                         if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+#                             horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
+#                         else:
+#                             horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
+#                     else:
+#                         horoscope_content = "empty"
+#         else:
+#             horoscope_content = "empty"
+            
+#         if horoscope_data.horoscope_file_admin:
+#                     horoscope_image_url = horoscope_data.horoscope_file_admin.url
+#                     if is_valid_file(horoscope_image_url):
+#                         if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+#                             horoscope_content_admin = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
+#                         else:
+#                             horoscope_content_admin = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
+#                     else:
+#                         horoscope_content_admin = "empty"
+#         else:
+#             horoscope_content_admin = "empty"
+#                 # Get matching stars data
+#         birthstar = safe_get_value(models.BirthStar, 'id', horoscope_data.birthstar_name, 'star')
+#         birth_rasi = get_primary_sign(safe_get_value(models.Rasi, 'id', horoscope_data.birth_rasi_name, 'name'))
+
+#         complexion_id = login.Profile_complexion
+#         complexion = safe_get_value(models.Complexion, 'complexion_id', complexion_id, 'complexion_desc')
+#         father_name = family.father_name if family else "N/A"
+#         if not format_type:
+#             return JsonResponse({"status": "error", "message": "format is required"}, status=400)
+
+#         if not profile_id:
+#             return JsonResponse({"status": "error", "message": "profile_id is required"}, status=400)
+#         birth_star_id = horoscope_data.birthstar_name
+#         birth_rasi_id = horoscope_data.birth_rasi_name
+#         gender = login.Gender
+#         porutham_data = models.MatchingStarPartner.get_matching_stars_pdf(birth_rasi_id, birth_star_id, gender)
+#         didi = horoscope_data.didi or "Not specified"
+#         nalikai = horoscope_data.nalikai or "Not specified"
+#         lagnam="Unknown"
+#         try:
+#             if horoscope_data.lagnam_didi and str(horoscope_data.lagnam_didi).isdigit() and int(horoscope_data.lagnam_didi) > 0:
+#                 lagnam = models.Rasi.objects.filter(pk=int(horoscope_data.lagnam_didi)).first()
+#                 lagnam= get_primary_sign(lagnam.name)
+#         except models.Rasi.DoesNotExist:
+#             lagnam = "Unknown"
+#         def format_time_am_pm(time_str):
+#             if not time_str:  # Handles None or empty strings
+#                 return "N/A"
+#             try:
+#                 time_obj = datetime.strptime(str(time_str), "%H:%M:%S")
+#                 return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
+#             except ValueError:
+#                 return str(time_str)
+
+#         dob = login.Profile_dob
+#         age = calculate_age(dob) if dob else "N/A"
+
+#         birth_time=format_time_am_pm(horoscope_data.time_of_birth)
+
+#         # ✅ ADD THIS BLOCK HERE (exact place)
+
+#         LANG = request.GET.get("lang", "english").lower()
+
+#         planets = Planet.objects.values('code', 'planet_english', 'planet_tamil')
+
+#         planet_mapping = {
+#             str(p['code']): p['planet_tamil'] if LANG == 'tamil' else p['planet_english']
+#             for p in planets
+#         }
+
+#         default_placeholder = "-"
+
+#         def parse_data(data):
+#                     items = data.strip('{}').split(', ')
+#                     parsed_items = []
+
+#                     for item in items:
+#                         parts = item.split(':')
+#                         if len(parts) > 1:
+#                             values = parts[-1].strip()
+
+#                             if ',' in values:
+#                                 values = '/'.join(
+#                                     planet_mapping.get(str(v.strip()), default_placeholder)
+#                                     for v in values.split(',')
+#                                 )
+#                             else:
+#                                 values = planet_mapping.get(str(values), default_placeholder)
+#                         else:
+#                             values = default_placeholder
+
+#                         parsed_items.append(values)
+
+#                     return parsed_items
+
+#         image_status = models.Image_Upload.get_image_status(profile_id=profile_id)
+#         horo_hint = horoscope_data.horoscope_hints or "N/A"
+#         # Prepare the Porutham sections for the PDF
+#         def format_star_names(poruthams):
+#             return ', '.join([item['matching_starname'] for item in poruthams])
+#         if horoscope_data.rasi_kattam or  horoscope_data.amsa_kattam:
+#             rasi_kattam_data = parse_data(horoscope_data.rasi_kattam)
+#             amsa_kattam_data = parse_data(horoscope_data.amsa_kattam)
+
+#         else:
+#             rasi_kattam_data=parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
+#             amsa_kattam_data=parse_data('{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}')
+
+#         if all(not str(val).strip() for val in [
+#             login.Profile_address,
+#             get_district_name(login.Profile_district),
+#             get_city_name(login.Profile_city),
+#             login.Profile_pincode
+#         ]):
+#             address_content = f"""
+#                 <p>Not Specified</p>"""
+#         else:
+#             address_content = f"""
+#                 <p>{login.Profile_address}</p>
+#                 <p>{get_district_name(login.Profile_district)}, {get_city_name(login.Profile_city)}</p>
+#                 <p>{login.Profile_pincode}.</p>
+#             """
+#         mobile_email_content = f"""
+#                         <p>Mobile: {login.Mobile_no or ''}</p>
+#                         <p>WhatsApp: {login.Profile_whatsapp or ''}</p>
+#                         <p>Email: {login.EmailId or ''}</p>
+#                 """
+#         # Ensure that we have exactly 12 values for the grid
+#         rasi_kattam_data.extend([default_placeholder] * (12 - len(rasi_kattam_data)))
+#         amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))   
+#         dasa_day = dasa_month = dasa_year = 0
+#         dasa_balance_str=dasa_format_date(horoscope_data.dasa_balance)
+#         match = re.match(
+#                         r"(?:(\d{2})/(\d{2})/(\d{2}))|(?:(\d+)\s+Year[s]?,\s+(\d+)\s+Month[s]?,\s+(\d+)\s+Day[s]?)",
+#                         dasa_balance_str or ""
+#                     )
+#         if match:
+#             if match.group(1):
+#                 dasa_year, dasa_month, dasa_day = match.group(1), match.group(2), match.group(3)
+#             else:
+#                 dasa_year, dasa_month, dasa_day = match.group(4), match.group(5), match.group(6) 
+            
+#         date =  format_date_of_birth(login.Profile_dob)
+#         context_data = {
+#             "profile_id": login.ProfileId,
+#             "name": login.Profile_name,
+#             "height":cm_to_feet_inches(login.Profile_height),
+#             "image_status":image_status,
+#             "dob": date,
+#             "age":age,
+#             "didi":didi,
+#             "nalikai":nalikai,
+#             "father_name": father_name if father_name not in [None, ""] else "N/A" ,
+#             "suya_gothram":suya_gothram if suya_gothram not in [None, ""] else "N/A",
+#             "madulamn":madulamn if madulamn not in [None, ""] else "N/A",
+#             "work_place":work_place if work_place not in [None, ""] else "N/A",
+#             "highest_education":final_education if final_education not in [None, ""] else "N/A",
+#             'degree':degree if degree not in [None,""] else "N/A",
+#             "annual_income":annual_income if annual_income not in [None, ""] else "N/A",
+#             "father_occupation":father_occupation if father_occupation not in [None, ""] else "N/A",
+#             "family_status":family_status if family_status not in [None, ""] else "N/A",
+#             "no_of_brother_married":no_of_bro_married if no_of_bro_married not in [None, ""] else "N/A",
+#             "no_of_sister": no_of_sister if no_of_sister not in [None, ""] else "No",
+#             "no_of_brother": no_of_brother if no_of_brother not in [None, ""] else "No ",
+#             "mother_name":mother_name if mother_name not in [None, ""] else "N/A",
+#             "mother_occupation":mother_occupation if mother_occupation not in [None, ""] else "N/A",
+#             "no_of_sister_married":no_of_sis_married if no_of_sis_married not in [None, ""] else "N/A",
+#             "contact": login.Mobile_no if login.Mobile_no not in [None, ""] else "N/A",
+#             "alternate_number":login.Profile_alternate_mobile if login.Profile_alternate_mobile not in [None, ""] else "N/A",
+#             "whatsapp": login.Profile_whatsapp,
+#             "email":login.EmailId,
+#             "complexion": complexion if complexion not in [None, ""] else "N/A",
+#             "birth_star": birthstar if birthstar not in [None, ""] else "N/A",
+#             "birth_rasi": birth_rasi if birth_rasi not in [None, ""] else "N/A",
+#             "birth_place": horoscope_data.place_of_birth if horoscope_data.place_of_birth not in [None, ""] else "N/A",
+#             "address": address_content,
+#             "padham":horoscope_data.padham if horoscope_data.padham not in [None,""] else None,
+#             "lagnam":lagnam,
+#             "dasa_year":dasa_year,
+#             "dasa_month":dasa_month,
+#             "dasa_day":dasa_day,
+#             "dasa_name":get_dasa_name(horoscope_data.dasa_name),
+#             "occupation":occupation,
+#             "birth_start":birth_time,
+#             "occupation_title":occupation_title,
+#             "profession":profession,
+#             "horoscope_content": horoscope_content,
+#             "horoscope_content_admin":horoscope_content_admin,
+#             "horo_hint":horo_hint,
+#             "rasi_kattam_data": rasi_kattam_data,
+#             "amsa_kattam_data": amsa_kattam_data,
+#             "mobile_content":mobile_email_content,
+#             "porutham_stars": OrderedDict([
+#                 ("9", format_star_names(porutham_data.get("9 Poruthams"))),
+#                 ("8", format_star_names(porutham_data.get("8 Poruthams"))),
+#                 ("7", format_star_names(porutham_data.get("7 Poruthams"))),
+#                 ("6", format_star_names(porutham_data.get("6 Poruthams"))),
+#                 ("5", format_star_names(porutham_data.get("5 Poruthams"))),
+#             ]),
+#             "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}",
+#             "font_path": "file://" + os.path.join(settings.BASE_DIR, "fonts", "NotoSansTamil.ttf")
+#         }
+
+
+#         try:
+#             if format_type == "withoutcontact":
+#                 return generate_pdf_from_template("without_contact.html", context_data, f"profile_with_contact_{profile_id}.pdf")
+#             elif format_type == "withoutaddress":
+#                 return generate_pdf_from_template("without_address.html", context_data, f"profile_with_contact_{profile_id}.pdf")
+#             elif format_type == "withaddress":
+#                 return generate_pdf_from_template("with_address.html", context_data, f"profile_with_contact_{profile_id}.pdf")
+#             elif format_type == "withonlystar":
+#                 return generate_pdf_from_template("with_star_list.html", context_data, f"profile_with_contact_{profile_id}.pdf")
+#             # elif format_type == "withintimationlist":
+#             #     return generate_pdf_from_template("with_intimation_list.html", context_data, f"profile_with_contact_{profile_id}.pdf")
+#             elif format_type == "withcontactonly":
+#                 return generate_pdf_from_template("with_contact_only.html", context_data, f"profile_with_contact_{profile_id}.pdf")
+#             elif format_type == "withoutcontactonly":
+#                 return generate_pdf_from_template("without_contact_only.html", context_data, f"profile_with_contact_{profile_id}.pdf")
+            
+#             else:
+#                 return JsonResponse({"status": "error", "message": "Invalid format"}, status=400)
+
+#         except Exception as e:
+#             print(f"error{str(e)}")
+#             return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
     
 import os
 from django.conf import settings
@@ -10411,25 +10782,30 @@ class AdminProfilePDFView(APIView):
             "font_path": "file://" + os.path.join(settings.BASE_DIR, "fonts", "NotoSansTamil.ttf")
         }
 
+        # get color param
+        color = request.query_params.get('color', 'color').lower()
+
+        template_map = {
+            "withoutcontact":     ("without_contact.html",       "without_contact_black.html"),
+            "withoutaddress":     ("without_address.html",        "without_address_black.html"),
+            "withaddress":        ("with_address.html",           "with_address_black.html"),
+            "withonlystar":       ("with_star_list.html",         "with_star_list_black.html"),
+            "withcontactonly":    ("with_contact_only.html",      "with_contact_only_black.html"),
+            "withoutcontactonly": ("without_contact_only.html",   "without_contact_only_black.html"),
+        }
 
         try:
-            if format_type == "withoutcontact":
-                return generate_pdf_from_template("without_contact.html", context_data, f"profile_with_contact_{profile_id}.pdf")
-            elif format_type == "withoutaddress":
-                return generate_pdf_from_template("without_address.html", context_data, f"profile_with_contact_{profile_id}.pdf")
-            elif format_type == "withaddress":
-                return generate_pdf_from_template("with_address.html", context_data, f"profile_with_contact_{profile_id}.pdf")
-            elif format_type == "withonlystar":
-                return generate_pdf_from_template("with_star_list.html", context_data, f"profile_with_contact_{profile_id}.pdf")
-            # elif format_type == "withintimationlist":
-            #     return generate_pdf_from_template("with_intimation_list.html", context_data, f"profile_with_contact_{profile_id}.pdf")
-            elif format_type == "withcontactonly":
-                return generate_pdf_from_template("with_contact_only.html", context_data, f"profile_with_contact_{profile_id}.pdf")
-            elif format_type == "withoutcontactonly":
-                return generate_pdf_from_template("without_contact_only.html", context_data, f"profile_with_contact_{profile_id}.pdf")
-            
-            else:
+            if format_type not in template_map:
                 return JsonResponse({"status": "error", "message": "Invalid format"}, status=400)
+
+            color_index = 1 if color == "black" else 0
+            template_name = template_map[format_type][color_index]
+
+            return generate_pdf_from_template(
+                template_name,
+                context_data,
+                f"profile_{format_type}_{profile_id}.pdf"
+            )
 
         except Exception as e:
             print(f"error{str(e)}")
@@ -10607,7 +10983,7 @@ class AdminMatchProfilePDFView(APIView):
                     horoscope_image_url = horoscope_data.horoscope_file.url
                     if is_valid_file(horoscope_image_url):
                         if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                            horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 100%; height: auto;">'
+                            horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 400px; height: 500px; margin: 70px 0 100px 0; display: block;">'
                         else:
                             horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                     else:
@@ -10618,7 +10994,7 @@ class AdminMatchProfilePDFView(APIView):
                     horoscope_image_url = horoscope_data.horoscope_file_admin.url
                     if is_valid_file(horoscope_image_url):
                         if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                            horoscope_content_admin = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 100%; height: auto;">'
+                            horoscope_content_admin = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 400px; height: 500px; margin: 70px 0 100px 0; display: block;">'
                         else:
                             horoscope_content_admin = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                     else:
@@ -21273,3 +21649,42 @@ class ProfileEnvelopePrintView(APIView):
         """
 
         return HttpResponse(html)
+
+
+class NotificationAction(APIView):
+
+    def post(self, request):
+
+        notification_id = request.data.get("notification_id")
+
+        if not notification_id:
+            return Response({
+                "Status": 0,
+                "message": "notification_id required"
+            })
+
+        try:
+            # Mark as read
+            notification = AdminNotification.objects.get(id=notification_id)
+            notification.is_read = 1
+            notification.save()
+
+            # Clear
+            AdminNotification.objects.filter(id=notification_id).update(is_cleared=1)
+
+            return Response({
+                "Status": 1,
+                "message": "Notification marked as read and cleared successfully"
+            })
+
+        except AdminNotification.DoesNotExist:
+            return Response({
+                "Status": 0,
+                "message": "Notification not found"
+            })
+
+        except Exception as e:
+            return Response({
+                "Status": 0,
+                "message": str(e)
+            })
