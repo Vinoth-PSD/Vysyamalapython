@@ -23550,19 +23550,18 @@ class Get_Vysassist_Requests(APIView):
         )
 
 
+
 from azure.storage.blob import BlobServiceClient
 from django.conf import settings
 from django.http import JsonResponse
-
+from .models import SuccessStory
 def get_success_story_images(request):
-    # 👉 Get page params
     page = int(request.GET.get('page', 1))
     page_size = int(request.GET.get('page_size', 10))
 
     blob_service_client = BlobServiceClient.from_connection_string(
         settings.AZURE_CONNECTION_STRING
     )
-
     container_client = blob_service_client.get_container_client(
         settings.AZURE_CONTAINER
     )
@@ -23570,25 +23569,34 @@ def get_success_story_images(request):
     blob_list = list(container_client.list_blobs(
         name_starts_with="success_stories/photos/"
     ))
-
-    # ✅ Sort by upload date (latest first)
     blob_list.sort(key=lambda x: x.last_modified, reverse=True)
 
     base_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{settings.AZURE_CONTAINER}/"
 
-    # image_urls = [base_url + blob.name for blob in blob_list]
+    # ✅ Get deleted photos to exclude
+    deleted_photos = set(
+        SuccessStory.objects.filter(deleted=True).values_list('photo', flat=True)
+    )
+
+    # ✅ Get couple_name mapped by photo path from DB
+    photo_to_couple = dict(
+        SuccessStory.objects.filter(deleted=False).values_list('photo', 'couple_name')
+    )
+
     image_data = [
         {
-            "name": blob.name.split("/")[-1],  # extract file name
-            "url": base_url + blob.name
+            "name": blob.name.split("/")[-1],
+            "url": base_url + blob.name,
+            "couple_name": photo_to_couple.get(blob.name, "")  # ✅ map couple name
         }
         for blob in blob_list
+        if blob.name not in deleted_photos
+        and blob.name in photo_to_couple
     ]
-    # 👉 Pagination logic
+
     total_count = len(image_data)
     start = (page - 1) * page_size
     end = start + page_size
-
     paginated_images = image_data[start:end]
 
     return JsonResponse({
@@ -23599,6 +23607,8 @@ def get_success_story_images(request):
         "total_pages": (total_count + page_size - 1) // page_size,
         "images": paginated_images
     })
+
+
 
 
 
