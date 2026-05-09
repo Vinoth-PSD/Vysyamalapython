@@ -2164,7 +2164,7 @@ class SuccessStoryViewSet(viewsets.ModelViewSet):
 
 
 class SuccessStoryListViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = SuccessStory.objects.filter(deleted=False).order_by('-id')
+    queryset = SuccessStory.objects.filter(deleted=False).order_by('-created_at')
     serializer_class = SuccessStoryListSerializer
 
 class SuccessStoryEditView(APIView):

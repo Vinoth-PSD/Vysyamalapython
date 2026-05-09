@@ -2246,6 +2246,8 @@ class SuccessStory(models.Model):
     details = models.TextField()
     status = models.IntegerField(default=1)  
     deleted = models.BooleanField(default=False)  
+    created_at = models.DateTimeField(auto_now_add=True)
+
 
 
     class Meta:

@@ -1557,11 +1557,11 @@ class CallactionSerializer(serializers.ModelSerializer):
         validated_data['req_datetime'] = timezone.now()   # No accept time by default
         return super().create(validated_data)
     
+
 class SuccessStoryListSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.SuccessStory
-        fields = ['couple_name', 'photo','details']
-
+        fields = ['couple_name', 'photo','details','created_at']
 
 class AwardListSerializer(serializers.ModelSerializer):
     class Meta:

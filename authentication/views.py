@@ -13592,36 +13592,34 @@ class SuccessStoryListView(APIView):
         start = (page - 1) * per_page
         end = start + per_page
 
-        # Filter the queryset and apply pagination
-        queryset = models.SuccessStory.objects.filter(deleted=False)[start:end]
+        # Last 10 uploads ordered by latest first
+        base_queryset = models.SuccessStory.objects.filter(deleted=False).order_by('-created_at')[:10]  # ← CHANGED
 
-        # Calculate the total number of records without pagination
-        total_records = models.SuccessStory.objects.filter(deleted=False).count()
+        # Apply pagination on the limited queryset
+        queryset = list(base_queryset)[start:end]  # ← CHANGED
 
-       
+        # Total capped at 10
+        total_records = min(models.SuccessStory.objects.filter(deleted=False).count(), 10)  # ← CHANGED
+
         # Serialize the results
         serializer = serializers.SuccessStoryListSerializer(queryset, many=True)
 
-        #base_url = 'http://103.214.132.20:8000'
         base_url = settings.MEDIA_URL
 
         # Modify the serialized data to include the full image URL
         serialized_data = serializer.data
         for item in serialized_data:
             item['photo'] = f"{item['photo']}"
-        
+
         # Prepare response data
         response_data = {
             'data': serializer.data,
             'page': page,
             'per_page': per_page,
-            'total_pages': (total_records + per_page - 1) // per_page,  # Calculate total pages
+            'total_pages': (total_records + per_page - 1) // per_page,
             'total_records': total_records,
         }
         return JsonResponse(response_data, status=status.HTTP_200_OK)
-
-
-
 
 class AwardListView(APIView):
     def post(self, request):

@@ -946,7 +946,8 @@ class SuccessStory(models.Model):
     date_of_marriage = models.DateField()
     details = models.TextField(blank=True, null=True)
     status = models.IntegerField(default=1)  
-    deleted = models.BooleanField(default=False)  
+    deleted = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
     class Meta:

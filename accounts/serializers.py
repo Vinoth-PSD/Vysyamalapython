@@ -874,7 +874,7 @@ class SuccessStorySerializer(serializers.ModelSerializer):
 class SuccessStoryListSerializer(serializers.ModelSerializer):
     class Meta:
         model = SuccessStory
-        fields = ['id', 'couple_name', 'photo', 'details','date_of_marriage', 'status']
+        fields = ['id', 'couple_name', 'photo', 'details', 'date_of_marriage', 'status', 'created_at'] 
 
 
 class AwardSerializer(serializers.ModelSerializer):
