@@ -12887,12 +12887,16 @@ class FeaturedProfile(APIView):
                     AND pi.is_deleted = 0
                 )
                 ORDER BY pf.boosted_date DESC
-                LIMIT 25
+                LIMIT 20
                 """
             with connection.cursor() as cursor:
                 cursor.execute(query, [normalized_gender])
                 columns = [col[0] for col in cursor.description]
                 profile_details = [dict(zip(columns, row)) for row in cursor.fetchall()]
+            import random
+            if len(profile_details) > 10:
+                profile_details = random.sample(profile_details, 10)
+
 
             # Check if any profiles were found (use len() for lists)
             if not profile_details:  # Replaces .exists()
