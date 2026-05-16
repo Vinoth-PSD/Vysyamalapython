@@ -10575,7 +10575,7 @@ class AdminProfilePDFView(APIView):
                     except Exception:
                         pass
                     return default
-
+        horoscope_content = "empty"      
         if horoscope_data.horoscope_file:
                     horoscope_image_url = horoscope_data.horoscope_file.url
                     if is_valid_file(horoscope_image_url):
@@ -10588,6 +10588,7 @@ class AdminProfilePDFView(APIView):
         else:
             horoscope_content = "empty"
             
+        horoscope_content_admin = "empty" 
         if horoscope_data.horoscope_file_admin:
                     horoscope_image_url = horoscope_data.horoscope_file_admin.url
                     if is_valid_file(horoscope_image_url):
