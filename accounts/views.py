@@ -10580,7 +10580,7 @@ class AdminProfilePDFView(APIView):
                     horoscope_image_url = horoscope_data.horoscope_file.url
                     if is_valid_file(horoscope_image_url):
                         if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                            horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
+                            horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 400px; height: 430px; display: block; margin: 0 auto;">'
                         else:
                             horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                     else:
@@ -10592,7 +10592,7 @@ class AdminProfilePDFView(APIView):
                     horoscope_image_url = horoscope_data.horoscope_file_admin.url
                     if is_valid_file(horoscope_image_url):
                         if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                            horoscope_content_admin = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="max-width: 200%; height: auto;">'
+                            horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 400px; height: 430px; display: block; margin: 0 auto;">'
                         else:
                             horoscope_content_admin = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                     else:
@@ -10814,26 +10814,51 @@ class AdminProfilePDFView(APIView):
 
 
 class AdminMatchProfilePDFView(APIView):
-    def get(self, request, profile_ids=None, pdf_format=None, profile_to=None,action_type=None,username=None):
+    def get(self, request, profile_ids=None, pdf_format=None, profile_to=None, action_type=None, username=None):
         # Prefer path params; fall back to query params for flexibility
         profile_ids = profile_ids or request.query_params.get('profile_ids')
-        format_type = pdf_format or request.query_params.get('pdf_format')  
+        format_type = pdf_format or request.query_params.get('pdf_format')
         profile_to = profile_to or request.query_params.get('profile_to')
         action = action_type or request.query_params.get('action_type')
         username = username or request.query_params.get('username')
+
         if format_type == "whatsapp_link_profile" or format_type == "whatsapp_link_profile_img":
-            
             print('whatapp link profiles')
             whatsapp_profiles = []
-            
+
         if not profile_ids:
             return JsonResponse({"status": "error", "message": "profile_id is required"}, status=400)
         elif not format_type:
             return JsonResponse({"status": "error", "message": "format is required"}, status=400)
+
+        # ── LANG support (same as AdminProfilePDFView) ─────────────────────────
+        LANG = request.GET.get("lang", "english").lower()
+
+        DASA_TEXT_TO_TAMIL = {
+            "Sun/Suriyan":    "சூரியன்",
+            "Sun / Suryan":   "சூரியன்",
+            "Moon/Chandran":  "சந்திரன்",
+            "Rahu/Rahu":      "ராகு",
+            "Raghu/Rahu":     "ராகு",
+            "Kethu/Ketu":     "கேது",
+            "Ketu/Ketu":      "கேது",
+            "Mars/Chevvai":   "செவ்வாய்",
+            "Venus/Sukran":   "சுக்கிரன்",
+            "Jupiter/Guru":   "குரு",
+            "Mercury/Budhan": "புதன்",
+            "Saturn/Sani":    "சனி",
+        }
+
+        planets = Planet.objects.values('code', 'planet_english', 'planet_tamil')
+        planet_mapping = {
+            str(p['code']): p['planet_tamil'] if LANG == 'tamil' else p['planet_english']
+            for p in planets
+        }
+        # ───────────────────────────────────────────────────────────────────────
+
         profile_ids_list = [pid.strip() for pid in profile_ids.split(',') if pid.strip()]
         pdf_merger = PdfMerger()
         errors = []
-        
 
         for profile_id in profile_ids_list:
             try:
@@ -10842,25 +10867,24 @@ class AdminMatchProfilePDFView(APIView):
                 horoscope_data = get_object_or_404(models.ProfileHoroscope, profile_id=profile_id)
                 education_details = get_object_or_404(models.ProfileEduDetails, profile_id=profile_id)
                 family_details = models.ProfileFamilyDetails.objects.filter(profile_id=profile_id)
-                login_my  = get_object_or_404(models.Registration1, ProfileId=profile_to)
+                login_my = get_object_or_404(models.Registration1, ProfileId=profile_to)
                 horoscope_my = get_object_or_404(models.ProfileHoroscope, profile_id=profile_to)
                 education_my = get_object_or_404(models.ProfileEduDetails, profile_id=profile_to)
-                if family_details.exists():
-                        family_detail = family_details.first()  
 
-                        father_name = family_detail.father_name  
-                        father_occupation = family_detail.father_occupation
-                        family_status = family_detail.family_status
-                        mother_name = family_detail.mother_name
-                        mother_occupation = family_detail.mother_occupation
-                        no_of_sis_married = family_detail.no_of_sis_married
-                        no_of_bro_married = family_detail.no_of_bro_married
-                        suya_gothram = family_detail.suya_gothram
-                        madulamn = family_detail.madulamn if family_detail.madulamn != None else "N/A" 
-                        no_of_sister = family_detail.no_of_sister or "No"
-                        no_of_brother = family_detail.no_of_brother or "No"
+                if family_details.exists():
+                    family_detail = family_details.first()
+                    father_name = family_detail.father_name
+                    father_occupation = family_detail.father_occupation
+                    family_status = family_detail.family_status
+                    mother_name = family_detail.mother_name
+                    mother_occupation = family_detail.mother_occupation
+                    no_of_sis_married = family_detail.no_of_sis_married
+                    no_of_bro_married = family_detail.no_of_bro_married
+                    suya_gothram = family_detail.suya_gothram
+                    madulamn = family_detail.madulamn if family_detail.madulamn != None else "N/A"
+                    no_of_sister = family_detail.no_of_sister or "No"
+                    no_of_brother = family_detail.no_of_brother or "No"
                 else:
-                    # Handle case where no family details are found
                     father_name = father_occupation = family_status = ""
                     mother_name = mother_occupation = ""
                     no_of_sis_married = no_of_bro_married = 0
@@ -10868,62 +10892,58 @@ class AdminMatchProfilePDFView(APIView):
                 try:
                     num_sisters_married = int(no_of_sis_married)
                 except ValueError:
-                    num_sisters_married = 0     
-            
+                    num_sisters_married = 0
+
                 try:
                     num_brothers_married = int(no_of_bro_married)
                 except ValueError:
-                    num_brothers_married = 0   
+                    num_brothers_married = 0
+
                 if int(num_sisters_married) == 0:
                     no_of_sis_married = "No"
-
-                if  int(num_brothers_married) == 0:
-                    no_of_bro_married="No"
-                if no_of_sister=="0" or no_of_sister =='':
-                    no_of_sis_married="No"
-                    no_of_sister ='No'
-
-                if no_of_brother=="0" or no_of_brother =='':
-                    no_of_bro_married="No"
-                    no_of_brother ='No'
+                if int(num_brothers_married) == 0:
+                    no_of_bro_married = "No"
+                if no_of_sister == "0" or no_of_sister == '':
+                    no_of_sis_married = "No"
+                    no_of_sister = 'No'
+                if no_of_brother == "0" or no_of_brother == '':
+                    no_of_bro_married = "No"
+                    no_of_brother = 'No'
 
                 try:
-                    degree= get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)
+                    degree = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
                 except Exception:
-                    degree=None
+                    degree = None
+
                 complexion_id = login.Profile_complexion
                 complexion = "Unknown"
                 if complexion_id:
                     complexion = models.Complexion.objects.filter(complexion_id=complexion_id).values_list('complexion_desc', flat=True).first() or "Unknown"
 
-                # Safely handle education level
                 highest_education_id = education_details.highest_education
                 highest_education = "Unknown"
                 if highest_education_id:
                     highest_education = models.EducationLevel.objects.filter(row_id=highest_education_id).values_list('EducationLevel', flat=True).first() or "Unknown"
-                
+
                 field_ofstudy_id = education_details.field_ofstudy
-                fieldof_study=" "
+                fieldof_study = " "
                 if field_ofstudy_id:
                     fieldof_study = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id).values_list('field_of_study', flat=True).first() or "Unknown"
-                
-                about_edu=education_details.about_edu
-                
+
+                about_edu = education_details.about_edu
                 final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
-                
-                
+
                 highest_education_id_my = education_my.highest_education
-                highest_education_my="N/A"
+                highest_education_my = "N/A"
                 if highest_education_id_my:
                     highest_education_my = models.EducationLevel.objects.filter(row_id=highest_education_id_my).values_list('EducationLevel', flat=True).first() or "N/A"
 
                 field_ofstudy_id_my = education_my.field_ofstudy
-                fieldof_study_my=" "
+                fieldof_study_my = " "
                 if field_ofstudy_id_my:
                     fieldof_study_my = models.Profilefieldstudy.objects.filter(id=field_ofstudy_id_my).values_list('field_of_study', flat=True).first() or "N/A"
-                
-                about_edu=education_my.about_edu
-                
+
+                about_edu = education_my.about_edu
                 final_education_my = (highest_education_my + ' ' + fieldof_study_my).strip() or about_edu
 
                 annual_income = "Unknown"
@@ -10936,15 +10956,14 @@ class AdminMatchProfilePDFView(APIView):
                 else:
                     annual_income = actual_income
 
-
                 profession_id = education_details.profession
                 profession = "Unknown"
                 if profession_id:
                     profession = models.Profespref.objects.filter(RowId=profession_id).values_list('profession', flat=True).first() or "Unknown"
 
-                work_place =get_work_address(city=education_details.work_city,state=education_details.work_state,district=education_details.work_district,country=education_details.work_country)
-                occupation_title=''
-                occupation=''
+                work_place = get_work_address(city=education_details.work_city, state=education_details.work_state, district=education_details.work_district, country=education_details.work_country)
+                occupation_title = ''
+                occupation = ''
 
                 try:
                     prof_id_int = int(profession_id)
@@ -10958,10 +10977,7 @@ class AdminMatchProfilePDFView(APIView):
                     occupation_title = 'Other'
                     occupation = ''
 
-                #father_occupation_id = family_detail.father_occupation
                 father_occupation = family_detail.father_occupation or "N/A"
-
-                    #mother_occupation_id = family_detail.mother_occupation
                 mother_occupation = family_detail.mother_occupation or "N/A"
                 father_name = family_detail.father_name or "N/A"
                 mother_name = family_detail.mother_name or "N/A"
@@ -10983,24 +10999,26 @@ class AdminMatchProfilePDFView(APIView):
                     horoscope_image_url = horoscope_data.horoscope_file.url
                     if is_valid_file(horoscope_image_url):
                         if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                            horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 400px; height: 500px; margin: 70px 0 100px 0; display: block;">'
+                            horoscope_content = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 400px; height: 430px; display: block; margin: 0 auto;">'
                         else:
                             horoscope_content = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                     else:
                         horoscope_content = "empty"
                 else:
                     horoscope_content = "empty"
+
                 if horoscope_data.horoscope_file_admin:
                     horoscope_image_url = horoscope_data.horoscope_file_admin.url
                     if is_valid_file(horoscope_image_url):
                         if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                            horoscope_content_admin = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 400px; height: 500px; margin: 70px 0 100px 0; display: block;">'
+                            horoscope_content_admin = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 400px; height: 430px; display: block; margin: 0 auto;">'
                         else:
                             horoscope_content_admin = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
                     else:
                         horoscope_content_admin = "empty"
                 else:
                     horoscope_content_admin = "empty"
+
                 birthstar = safe_get_value(models.BirthStar, 'id', horoscope_data.birthstar_name, 'star')
                 birth_rasi = get_primary_sign(safe_get_value(models.Rasi, 'id', horoscope_data.birth_rasi_name, 'name'))
 
@@ -11019,30 +11037,29 @@ class AdminMatchProfilePDFView(APIView):
                 porutham_data = fetch_porutham_details(profile_id, profile_to)
                 didi = horoscope_data.didi or "Not specified"
                 nalikai = horoscope_data.nalikai or "Not specified"
+
                 def format_time_am_pm(time_str):
-                    if not time_str:  # Handles None or empty strings
+                    if not time_str:
                         return "N/A"
                     try:
                         time_obj = datetime.strptime(str(time_str), "%H:%M:%S")
-                        return time_obj.strftime("%I:%M %p")  # 12-hour format with AM/PM
+                        return time_obj.strftime("%I:%M %p")
                     except ValueError:
                         return str(time_str)
-                    
-                birth_time=format_time_am_pm(horoscope_data.time_of_birth)
-                my_birth_time=format_time_am_pm(horoscope_my.time_of_birth)
+
+                birth_time = format_time_am_pm(horoscope_data.time_of_birth)
+                my_birth_time = format_time_am_pm(horoscope_my.time_of_birth)
                 horo_hint = horoscope_data.horoscope_hints or "N/A"
                 valid_rows = []
-                # Define the HTML content with custom styles
                 porutham_rows = ""
+
                 for porutham in porutham_data['porutham_results']:
                     if 'porutham_name' not in porutham or 'status' not in porutham:
-                        continue  # skip invalid rows
+                        continue
                     valid_rows.append(porutham)
 
-                # Step 2: Use actual count for rowspan
                 rowspan_count = len(valid_rows)
 
-                # Step 3: Build HTML rows
                 for idx, porutham in enumerate(valid_rows):
                     extra_td = ""
                     if idx == 0:
@@ -11054,7 +11071,6 @@ class AdminMatchProfilePDFView(APIView):
                             f"</td>"
                         )
 
-                    # Color logic
                     span_color = 'green' if porutham['status'].startswith('YES') else 'red'
                     if format_type not in ["match_compatability_color", "match_compatability_without_horo"]:
                         span_color = 'black'
@@ -11067,28 +11083,19 @@ class AdminMatchProfilePDFView(APIView):
                         f"</tr>"
                     )
 
-                porutham_show=True
-                if porutham_data['matching_score']=='0/10' or porutham_data['matching_score']=='0' or porutham_data['matching_score']=='0.0' or porutham_data['matching_score']=='10/10' or porutham_data['matching_score']==0.0:
-                    porutham_show= False
-                # print("porutham show:",porutham_show) 
+                porutham_show = True
+                if porutham_data['matching_score'] in ('0/10', '0', '0.0', '10/10', 0.0):
+                    porutham_show = False
+
                 def format_star_names(poruthams):
                     if not poruthams:
                         return "N/A"
                     return ', '.join([item['matching_starname'] for item in poruthams])
+
                 default_placeholder = "-"
-                planet_mapping = {
-                    "1": "Sun",
-                    "2": "Moon",
-                    "3": "Rahu",
-                    "4": "Kethu",
-                    "5": "Mars",
-                    "6": "Venus",
-                    "7": "Jupiter",
-                    "8": "Mercury",
-                    "9": "Saturn",
-                    "10": "Lagnam",
-                }
+
                 empty_grid = '{Grid 1: empty, Grid 2: empty, Grid 3: empty, Grid 4: empty, Grid 5: empty, Grid 6: empty, Grid 7: empty, Grid 8: empty, Grid 9: empty, Grid 10: empty, Grid 11: empty, Grid 12: empty}'
+
                 try:
                     if horoscope_data.rasi_kattam:
                         rasi_kattam_data = parse_data(horoscope_data.rasi_kattam, planet_mapping, default_placeholder)
@@ -11104,66 +11111,67 @@ class AdminMatchProfilePDFView(APIView):
                         amsa_kattam_data = parse_data(empty_grid, planet_mapping, default_placeholder)
                 except Exception:
                     amsa_kattam_data = [default_placeholder] * 12
+
                 if all(not str(val).strip() for val in [
                     login.Profile_address,
                     get_district_name(login.Profile_district),
                     get_city_name(login.Profile_city),
                     login.Profile_pincode
                 ]):
-                    address_content = f"""
-                        <p>Not Specified</p>"""
+                    address_content = "<p>Not Specified</p>"
                 else:
                     address_content = f"""
                         <p>{login.Profile_address}</p>
                         <p>{get_district_name(login.Profile_district)}, {get_city_name(login.Profile_city)}</p>
                         <p>{login.Profile_pincode}.</p>
                     """
+
                 try:
                     rasi = models.Rasi.objects.get(pk=horoscope_data.birth_rasi_name)
-                    rasi_name = rasi.name  # Or use rasi.tamil_series, telugu_series, etc. as per your requirement
+                    rasi_name = rasi.name
                 except Exception:
                     rasi_name = "Unknown"
-                lagnam="Unknown"
+
+                lagnam = "Unknown"
                 try:
                     if horoscope_data.lagnam_didi and str(horoscope_data.lagnam_didi).isdigit() and int(horoscope_data.lagnam_didi) > 0:
                         lagnam = models.Rasi.objects.filter(pk=int(horoscope_data.lagnam_didi)).first()
-                        lagnam= get_primary_sign(lagnam.name) or "N/A"
+                        lagnam = get_primary_sign(lagnam.name) or "N/A"
                 except Exception:
                     lagnam = "Unknown"
-                    
+
                 dob = login.Profile_dob
                 age = calculate_age(dob) if dob else "N/A"
                 image_status = models.Image_Upload.get_image_status(profile_id=profile_id)
                 rasi_kattam_data.extend([default_placeholder] * (12 - len(rasi_kattam_data)))
                 amsa_kattam_data.extend([default_placeholder] * (12 - len(amsa_kattam_data)))
+
                 dasa_day, dasa_month, dasa_year = 0, 0, 0
-                dasa_balance_str=dasa_format_date(horoscope_data.dasa_balance)
-                # match = re.match(r"(\d+)\s+Years,\s+(\d+)\s+Months,\s+(\d+)\s+Days", dasa_balance_str or "")
+                dasa_balance_str = dasa_format_date(horoscope_data.dasa_balance)
                 match = re.match(
-                        r"(?:(\d{2})/(\d{2})/(\d{2}))|(?:(\d+)\s+Year[s]?,\s+(\d+)\s+Month[s]?,\s+(\d+)\s+Day[s]?)",
-                        dasa_balance_str or ""
-                    )
+                    r"(?:(\d{2})/(\d{2})/(\d{2}))|(?:(\d+)\s+Year[s]?,\s+(\d+)\s+Month[s]?,\s+(\d+)\s+Day[s]?)",
+                    dasa_balance_str or ""
+                )
                 if match:
                     if match.group(1):
                         dasa_year, dasa_month, dasa_day = match.group(1), match.group(2), match.group(3)
                     else:
                         dasa_year, dasa_month, dasa_day = match.group(4), match.group(5), match.group(6)
-                # print("porutham",porutham_data)
-                
+
                 if format_type == "whatsapp_link_profile_img":
                     profile_link = f"https://app.vysyamala.com/auth/profile/{signing.dumps(profile_id)}/"
                     profile_data = {
                         "profile_link": profile_link,
                         "profile_id": login.ProfileId,
                         "profile_name": login.Profile_name or "N/A",
-                        "highest_education_my":final_education_my if final_education_my not in [None, ""] else "N/A",
-                        "highest_education":final_education if final_education not in [None, ""] else "N/A",
-                        "annual_income":annual_income if annual_income not in [None, ""] else "N/A",
-                        "occupation":occupation,
-                        "work_place":work_place if work_place not in [None, ""] else "N/A",
+                        "highest_education_my": final_education_my if final_education_my not in [None, ""] else "N/A",
+                        "highest_education": final_education if final_education not in [None, ""] else "N/A",
+                        "annual_income": annual_income if annual_income not in [None, ""] else "N/A",
+                        "occupation": occupation,
+                        "work_place": work_place if work_place not in [None, ""] else "N/A",
                         "age": calculate_age(login.Profile_dob) if login.Profile_dob else "Unknown",
                         "star_name": birthstar if birthstar not in [None, ""] else "N/A",
-                        "padham":horoscope_data.padham if horoscope_data.padham not in [None,""] else None
+                        "padham": horoscope_data.padham if horoscope_data.padham not in [None, ""] else None
                     }
                     whatsapp_profiles.append(profile_data)
 
@@ -11173,54 +11181,55 @@ class AdminMatchProfilePDFView(APIView):
                         "profile_link": profile_link,
                         "profile_id": login.ProfileId,
                         "profile_name": login.Profile_name or "N/A",
-                        "highest_education_my":final_education_my if final_education_my not in [None, ""] else "N/A",
-                        "highest_education":final_education if final_education not in [None, ""] else "N/A",
-                        "annual_income":annual_income if annual_income not in [None, ""] else "N/A",
-                        "occupation":occupation,
-                        "work_place":work_place if work_place not in [None, ""] else "N/A",
+                        "highest_education_my": final_education_my if final_education_my not in [None, ""] else "N/A",
+                        "highest_education": final_education if final_education not in [None, ""] else "N/A",
+                        "annual_income": annual_income if annual_income not in [None, ""] else "N/A",
+                        "occupation": occupation,
+                        "work_place": work_place if work_place not in [None, ""] else "N/A",
                         "age": calculate_age(login.Profile_dob) if login.Profile_dob else "Unknown",
                         "star_name": birthstar if birthstar not in [None, ""] else "N/A",
-                        "padham":horoscope_data.padham if horoscope_data.padham not in [None,""] else None
+                        "padham": horoscope_data.padham if horoscope_data.padham not in [None, ""] else None
                     }
                     whatsapp_profiles.append(profile_data)
-                
-                date =  format_date_of_birth(login.Profile_dob)
-                my_date =  format_date_of_birth(login_my.Profile_dob)
+
+                date = format_date_of_birth(login.Profile_dob)
+                my_date = format_date_of_birth(login_my.Profile_dob)
+
                 context_data = {
                     "profile_id": login.ProfileId,
-                    "my_profile_id":login_my.ProfileId,
+                    "my_profile_id": login_my.ProfileId,
                     "name": login.Profile_name,
-                    "my_name":login_my.Profile_name,
+                    "my_name": login_my.Profile_name,
                     "dob": date,
-                    "my_dob":my_date,
-                    "age":age,
-                    "image_status":image_status,
-                    "height":cm_to_feet_inches(login.Profile_height),
-                    "my_height":cm_to_feet_inches(login_my.Profile_height),
-                    "didi":didi,
-                    "nalikai":nalikai,
-                    "degree":degree if degree not in [None,""] else "N/a",
-                    "father_name": father_name if father_name not in [None, ""] else "N/A" ,
-                    "suya_gothram":suya_gothram if suya_gothram not in [None, ""] else "N/A",
-                    "madulamn":madulamn if madulamn not in [None, ""] else "N/A",
-                    "work_place":work_place if work_place not in [None, ""] else "N/A",
-                    "occupation_title":occupation_title,
-                    "occupation":occupation,
-                    "highest_education":final_education if final_education not in [None, ""] else "N/A",
-                    "highest_education_my":final_education_my if final_education_my not in [None, ""] else "N/A",
-                    "annual_income":annual_income if annual_income not in [None, ""] else "N/A",
-                    "father_occupation":father_occupation if father_occupation not in [None, ""] else "N/A",
-                    "family_status":family_status if family_status not in [None, ""] else "N/A",
-                    "no_of_brother_married":no_of_bro_married if no_of_bro_married not in [None, ""] else "N/A",
-                    "no_of_brother":no_of_brother if no_of_brother not in [None, ""] else "No",
-                    "mother_name":mother_name if mother_name not in [None, ""] else "N/A",
-                    "mother_occupation":mother_occupation if mother_occupation not in [None, ""] else "N/A",
-                    "no_of_sister_married":no_of_sis_married if no_of_sis_married not in [None, ""] else "N/A",
-                    "no_of_sister":no_of_sister if no_of_sister not in [None, ""] else "No",
+                    "my_dob": my_date,
+                    "age": age,
+                    "image_status": image_status,
+                    "height": cm_to_feet_inches(login.Profile_height),
+                    "my_height": cm_to_feet_inches(login_my.Profile_height),
+                    "didi": didi,
+                    "nalikai": nalikai,
+                    "degree": degree if degree not in [None, ""] else "N/a",
+                    "father_name": father_name if father_name not in [None, ""] else "N/A",
+                    "suya_gothram": suya_gothram if suya_gothram not in [None, ""] else "N/A",
+                    "madulamn": madulamn if madulamn not in [None, ""] else "N/A",
+                    "work_place": work_place if work_place not in [None, ""] else "N/A",
+                    "occupation_title": occupation_title,
+                    "occupation": occupation,
+                    "highest_education": final_education if final_education not in [None, ""] else "N/A",
+                    "highest_education_my": final_education_my if final_education_my not in [None, ""] else "N/A",
+                    "annual_income": annual_income if annual_income not in [None, ""] else "N/A",
+                    "father_occupation": father_occupation if father_occupation not in [None, ""] else "N/A",
+                    "family_status": family_status if family_status not in [None, ""] else "N/A",
+                    "no_of_brother_married": no_of_bro_married if no_of_bro_married not in [None, ""] else "N/A",
+                    "no_of_brother": no_of_brother if no_of_brother not in [None, ""] else "No",
+                    "mother_name": mother_name if mother_name not in [None, ""] else "N/A",
+                    "mother_occupation": mother_occupation if mother_occupation not in [None, ""] else "N/A",
+                    "no_of_sister_married": no_of_sis_married if no_of_sis_married not in [None, ""] else "N/A",
+                    "no_of_sister": no_of_sister if no_of_sister not in [None, ""] else "No",
                     "contact": login.Mobile_no if login.Mobile_no not in [None, ""] else "N/A",
                     "whatsapp": login.Profile_whatsapp,
-                    "alternate_number":login.Profile_alternate_mobile if login.Profile_alternate_mobile not in [None, ""] else "N/A",
-                    "email":login.EmailId,
+                    "alternate_number": login.Profile_alternate_mobile if login.Profile_alternate_mobile not in [None, ""] else "N/A",
+                    "email": login.EmailId,
                     "complexion": complexion if complexion not in [None, ""] else "N/A",
                     "birth_star": birthstar if birthstar not in [None, ""] else "N/A",
                     "birth_star_my": birthstar_my if birthstar_my not in [None, ""] else "N/A",
@@ -11229,30 +11238,36 @@ class AdminMatchProfilePDFView(APIView):
                     "birth_place": horoscope_data.place_of_birth if horoscope_data.place_of_birth not in [None, ""] else "N/A",
                     "my_birth_place": horoscope_my.place_of_birth if horoscope_my.place_of_birth not in [None, ""] else "N/A",
                     "address": address_content,
-                    "lagnam":lagnam,
-                    "dasa_year":dasa_year,
-                    "dasa_month":dasa_month,
-                    "dasa_day":dasa_day,
-                    "dasa_name":get_dasa_name(horoscope_data.dasa_name),
-                    "padham":horoscope_data.padham if horoscope_data.padham not in [None,""] else None,
-                    "birth_start":birth_time,
-                    "my_time_of_birth":my_birth_time,
-                    "profession":profession,
+                    "lagnam": lagnam,
+                    "dasa_year": dasa_year,
+                    "dasa_month": dasa_month,
+                    "dasa_day": dasa_day,
+                    "dasa_name": get_dasa_name(horoscope_data.dasa_name),
+                    "dasa_name_tamil": DASA_TEXT_TO_TAMIL.get(
+                        str(horoscope_data.dasa_name).strip(),
+                        get_dasa_name(horoscope_data.dasa_name)
+                    ),
+                    "lang": LANG,
+                    "padham": horoscope_data.padham if horoscope_data.padham not in [None, ""] else None,
+                    "birth_start": birth_time,
+                    "my_time_of_birth": my_birth_time,
+                    "profession": profession,
                     "horoscope_content": horoscope_content,
-                    "horoscope_content_admin":horoscope_content_admin,
-                    "horo_hint":horo_hint,
+                    "horoscope_content_admin": horoscope_content_admin,
+                    "horo_hint": horo_hint,
                     "rasi_kattam_data": rasi_kattam_data,
                     "amsa_kattam_data": amsa_kattam_data,
                     "porutham_stars": OrderedDict([
-                        ("9", format_star_names(porutham_data1.get("9 Poruthams")or [])),
-                        ("8", format_star_names(porutham_data1.get("8 Poruthams")or [])),
-                        ("7", format_star_names(porutham_data1.get("7 Poruthams")or [])),
-                        ("6", format_star_names(porutham_data1.get("6 Poruthams")or [])),
-                        ("5", format_star_names(porutham_data1.get("5 Poruthams")or [])),
+                        ("9", format_star_names(porutham_data1.get("9 Poruthams") or [])),
+                        ("8", format_star_names(porutham_data1.get("8 Poruthams") or [])),
+                        ("7", format_star_names(porutham_data1.get("7 Poruthams") or [])),
+                        ("6", format_star_names(porutham_data1.get("6 Poruthams") or [])),
+                        ("5", format_star_names(porutham_data1.get("5 Poruthams") or [])),
                     ]),
-                    "porutham_rows":porutham_rows ,
-                    "porutham_show":porutham_show,
-                    "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}"
+                    "porutham_rows": porutham_rows,
+                    "porutham_show": porutham_show,
+                    "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}",
+                    "font_path": "file://" + os.path.join(settings.BASE_DIR, "fonts", "NotoSansTamil.ttf")
                 }
 
                 template_map = {
@@ -11269,18 +11284,30 @@ class AdminMatchProfilePDFView(APIView):
                 if format_type not in template_map:
                     return JsonResponse({"status": "error", "message": "Invalid format"}, status=400)
 
+                # ── LAZY IMPORT: weasyprint loaded here only when PDF is needed ──
+                from weasyprint import HTML, CSS
+                # ─────────────────────────────────────────────────────────────────
+                font_path = os.path.join(settings.BASE_DIR, "fonts", "NotoSansTamil.ttf")
+                font_face_css = ""
+                if os.path.exists(font_path):
+                    font_face_css = f"""
+                    @font-face {{
+                        font-family: 'Noto Sans Tamil';
+                        src: url('file://{font_path}');
+                    }}
+                    body, p, td, th, span, div {{
+                        font-family: 'Noto Sans Tamil', Arial, sans-serif !important;
+                    }}
+                    """
                 html_string = render_to_string(template_map[format_type], context_data)
                 pdf_buffer = io.BytesIO()
-                pisa_status = pisa.CreatePDF(html_string, dest=pdf_buffer)
-
-                if pisa_status.err:
-                    print(pisa_status.log)  
-                    errors.append(f"{profile_id} (pisa error: {pisa_status.err})")
-
-                    continue
-
+                HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf(
+                    pdf_buffer,
+                    stylesheets=[CSS(string=font_face_css)] if font_face_css else []
+                )
                 pdf_buffer.seek(0)
                 pdf_merger.append(pdf_buffer)
+
                 try:
                     exitsting_logs = AdminPrintLogs.objects.filter(
                         profile_id=profile_to,
@@ -11290,31 +11317,27 @@ class AdminMatchProfilePDFView(APIView):
                         status=1
                     )
                     if exitsting_logs.exists():
-                        exitsting_logs.update(
-                            updated_at= timezone.now(),
-                        )
+                        exitsting_logs.update(updated_at=timezone.now())
                     else:
                         AdminPrintLogs.objects.create(
                             profile_id=profile_to,
-                            sentprofile_id = profile_id,
-                            action_type = action,
-                            format_type = format_type,
-                            sent_date= timezone.now(),
-                            updated_at= timezone.now(), 
+                            sentprofile_id=profile_id,
+                            action_type=action,
+                            format_type=format_type,
+                            sent_date=timezone.now(),
+                            updated_at=timezone.now(),
                             status=1
                         )
                 except Exception as e:
                     print(f"Error for profile {profile_id}: {str(e)}")
                     pass
-                    
-                    
+
             except Exception as e:
                 import traceback
                 print(f"Error for profile {profile_id}: {str(e)}")
                 traceback.print_exc()
                 errors.append(profile_id)
                 continue
-
 
         merged_pdf = io.BytesIO()
         pdf_merger.write(merged_pdf)
@@ -11331,7 +11354,7 @@ class AdminMatchProfilePDFView(APIView):
                     f"&profile_ids={encoded_ids}"
                     f"&profile_to={urllib.parse.quote(profile_to)}"
                 )
- 
+
                 owner_name = None
                 try:
                     owner_login = models.LoginDetails.objects.filter(ProfileId=profile_to).first()
@@ -11339,40 +11362,23 @@ class AdminMatchProfilePDFView(APIView):
                         owner_name = owner_login.Profile_name
                 except Exception:
                     pass
- 
+
                 PrintDashboard.objects.create(
-                    profile_id  = profile_to,
-                    owner_name  = username,
-                    mode        = 'Manual',
-                    match_count = len(profile_ids_list),
-                    print_url   = generated_url,
-                    pdf_format  = format_type,
-                    profile_ids = profile_ids,          # e.g. "VF56969,VF56875,VF56751"
-                    status      = PrintDashboard.STATUS_PENDING,
+                    profile_id=profile_to,
+                    owner_name=username,
+                    mode='Manual',
+                    match_count=len(profile_ids_list),
+                    print_url=generated_url,
+                    pdf_format=format_type,
+                    profile_ids=profile_ids,
+                    status=PrintDashboard.STATUS_PENDING,
                 )
             except Exception as e:
-                # Non-blocking — dashboard save failure must never break PDF delivery
                 print(f"[PrintDashboard] Failed to save: {str(e)}")
-        # ── End PrintDashboard save ────────────────────────────────
- 
- 
 
-        if format_type == "whatsapp_link_profile" or format_type == "whatsapp_link_profile_img" :
-
+        if format_type == "whatsapp_link_profile" or format_type == "whatsapp_link_profile_img":
             return render(request, "whatsapp_profile.html", {"profiles": whatsapp_profiles})
 
-
-
-            # html_string = render_to_string("whatsapp_profile.html", { "profiles": whatsapp_profiles })
-            # pdf_buffer = io.BytesIO()
-            # pisa_status = pisa.CreatePDF(html_string, dest=pdf_buffer)
-            # if pisa_status.err:
-            #     return JsonResponse({"status": "error", "message": "PDF generation failed."}, status=500)
-            
-            # pdf_buffer.seek(0)
-            # response = HttpResponse(pdf_buffer.read(), content_type='application/pdf')
-            # response['Content-Disposition'] = 'inline; filename="WhatsAppProfiles.pdf"'
-            # return response  
         if not errors:
             if action == 'email':
                 try:
@@ -11384,10 +11390,9 @@ class AdminMatchProfilePDFView(APIView):
                         email = EmailMessage(subject, body, from_email, to_email)
                         email.attach('MatchedProfiles.pdf', merged_pdf.read(), 'application/pdf')
                         # email.send()
-
                         return JsonResponse({"status": "success", "message": "PDF emailed successfully."})
                     else:
-                        return JsonResponse({"status": "Failed", "message": "No email address is associated with this profile. Please add one." })
+                        return JsonResponse({"status": "Failed", "message": "No email address is associated with this profile. Please add one."})
                 except Exception as e:
                     print(f"Email Error :{str(e)}")
                     pass
