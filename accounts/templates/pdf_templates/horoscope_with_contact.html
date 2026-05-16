@@ -50,16 +50,28 @@ td.inner-tabledata {
                 <table class="table-div dasa-table">
                     <tr>
                         <td>
-                            <p><strong>Dasa Name</strong></p>
-                            <p>{{dasa_name}}</p>
+                            {% if lang == "tamil" %}
+                                <p><strong>தசா பெயர்</strong></p>
+                                <p>{{dasa_name_tamil}}</p>
+                            {% else %}
+                                <p><strong>Dasa Name</strong></p>
+                                <p>{{dasa_name}}</p>
+                            {% endif %}
                         </td>
                     </tr>
                     <tr>
                         <td>
-                            <p><strong>Dasa Balance</strong></p>
-                            <p>{{dasa_year|default:"0"}} Years</p>
-                            <p>{{dasa_month|default:"0"}} Months</p>
-                            <p>{{dasa_day|default:"0"}} Days</p>
+                            {% if lang == "tamil" %}
+                                <p><strong>தசா இருப்பு</strong></p>
+                                <p>{{dasa_year|default:"0"}} ஆண்டு</p>
+                                <p>{{dasa_month|default:"0"}} மாதம்</p>
+                                <p>{{dasa_day|default:"0"}} நாள்</p>
+                            {% else %}
+                                <p><strong>Dasa Balance</strong></p>
+                                <p>{{dasa_year|default:"0"}} Years</p>
+                                <p>{{dasa_month|default:"0"}} Months</p>
+                                <p>{{dasa_day|default:"0"}} Days</p>
+                            {% endif %}
                         </td>
                     </tr>
                 </table>

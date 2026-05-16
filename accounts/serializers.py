@@ -251,7 +251,7 @@ class LoginDetailsSerializer(serializers.ModelSerializer):
     
     Notifcation_enabled = serializers.CharField(required=False , allow_blank=True, allow_null=True)
     Addon_package = serializers.CharField(required=False , allow_blank=True, allow_null=True)
-    Otp_verify = serializers.IntegerField(required=False ,allow_null=True) 
+    Otp_verify = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     Plan_id = serializers.CharField(required=False)
     Profile_idproof = serializers.FileField(required=False)  
     Profile_divorceproof = serializers.FileField(required=False)
@@ -265,6 +265,14 @@ class LoginDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = LoginDetails
         fields = '__all__'
+
+    def validate_Otp_verify(self, value):
+        if value == "" or value is None:
+            return None
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return None
 
     def validate(self, data):
         # Initialize a dictionary to collect errors
@@ -313,11 +321,19 @@ class LoginEditSerializer(serializers.ModelSerializer):
     Plan_id = serializers.CharField(required=True)
     Profile_idproof = serializers.FileField(required=False)  
     Profile_divorceproof = serializers.FileField(required=False)  
-    Otp_verify = serializers.IntegerField(required=False ,allow_null=True)  
+    Otp_verify = serializers.CharField(required=False, allow_blank=True, allow_null=True) 
     Profile_mobile_no = serializers.CharField(required=False , allow_blank=True, allow_null=True)
     Profile_emailid = serializers.CharField(required=False , allow_blank=True, allow_null=True)
     facebook = serializers.CharField(required=False , allow_blank=True, allow_null=True)
     linkedin = serializers.CharField(required=False , allow_blank=True, allow_null=True)
+
+    def validate_Otp_verify(self, value):
+        if value == "" or value is None:
+            return None
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return None
 
     class Meta:
         model = LoginDetails
@@ -870,12 +886,11 @@ class SuccessStorySerializer(serializers.ModelSerializer):
     class Meta:
         model = SuccessStory
         fields = '__all__'
-
+        
 class SuccessStoryListSerializer(serializers.ModelSerializer):
     class Meta:
         model = SuccessStory
-        fields = ['id', 'couple_name', 'photo', 'details', 'date_of_marriage', 'status', 'created_at'] 
-
+        fields = ['id', 'couple_name', 'photo', 'details', 'date_of_marriage', 'status', 'created_at']  # ← ADD created_at
 
 class AwardSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(required=False, allow_null=True)  
@@ -1753,5 +1768,3 @@ class VysyamalaGothraSerializer(serializers.ModelSerializer):
     class Meta:
         model = VysyamalaGothra
         fields = '__all__'
-
-

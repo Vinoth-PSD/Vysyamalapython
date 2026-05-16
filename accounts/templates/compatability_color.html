@@ -1,18 +1,14 @@
-
 {% include 'pdf_templates/header.html' %}
 
 {% include 'pdf_templates/without_contact.html' %}
 {% include 'pdf_templates/horoscope_without_contact.html' %}
 
-<div style="page-break-before: always;"></div>
-
 {% if porutham_show %}
+  <div style="page-break-before: always;"></div>
   {% include 'pdf_templates/compatability.html' %}
 {% endif %}
 
-<!-- ✅ Apply condition ONLY here -->
 {% if horoscope_content_admin != "empty" %}
-  <div style="page-break-before: always;"></div>
   {% include 'pdf_templates/horoscope_file.html' %}
 {% endif %}
 
