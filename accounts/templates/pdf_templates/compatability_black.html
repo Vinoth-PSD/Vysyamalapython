@@ -1,9 +1,57 @@
 <style>
-  .compatibility-wrapper {
+  .compatibility-page-wrapper {
+    margin: 0px auto;
+    text-align: center;
     width: 100%;
-    min-height: 250mm;
-    display: flex;
-    flex-direction: column;
+  }
+
+  .compatibility-page-wrapper tr td {
+    background-color: #ffffff;
+    width: 100%;
+    text-align: center;
+    margin: auto;
+  }
+
+  .compatability-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 16px;
+    background-color: #ffffff;
+    font-size: 13px;
+  }
+
+  .compatability-table th {
+    background-color: #ffffff;
+    color: #000000;
+    font-size: 14px;
+    padding: 8px 10px;
+    text-align: center;
+    border: 1px solid #000000;
+  }
+
+  .compatability-table td {
+    padding: 6px 10px;
+    text-align: center;
+    font-weight: 500;
+    border: 1px solid #000000;
+    color: #000000;
+  }
+
+  .compatability-table tr:nth-child(even) {
+    background-color: #ffffff;
+  }
+
+  .matching-score {
+    font-size: 32px;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 8px;
+  }
+
+  .compatability-table td span {
+    font-size: 13px;
+    font-weight: 600;
+    color: #000000 !important;
   }
 
   .compat-info-table {
@@ -11,144 +59,130 @@
     border-collapse: collapse;
     border: 1px solid #000000;
     margin-bottom: 6px;
-    table-layout: fixed;
   }
   .compat-info-table td {
     width: 50%;
-    padding: 10px 12px;
+    padding: 6px 10px;
     text-align: center;
-    vertical-align: middle;
+    vertical-align: top;
     border: 1px solid #000000;
     background-color: #ffffff;
   }
   .compat-info-table p {
-    font-size: 13px;
+    font-size: 12px;
     color: #000000;
-    margin: 3px 0;
+    margin: 2px 0;
   }
   .compat-info-table .sub-header {
     background-color: #f5f5f5;
   }
 
-  .compatability-table {
-    border-collapse: collapse;
-    width: 100%;
-    background-color: #ffffff;
-    font-size: 13px;
-    table-layout: fixed;
-    flex: 1;
-  }
-  .compatability-table th {
-    background-color: #ffffff;
-    color: #000000;
-    font-size: 13px;
-    padding: 15px 12px;
-    text-align: center;
-    border: 1px solid #000000;
-  }
-  .compatability-table td {
-    padding: 15px 12px;
-    text-align: center;
-    font-weight: 500;
-    border: 1px solid #000000;
-    color: #000000;
-    background-color: #ffffff;
-  }
-  .compatability-table td span {
-    font-size: 13px;
-    font-weight: 600;
-    color: #000000 !important;
-  }
-  .matching-score {
-    font-size: 36px;
-    font-weight: bold;
-    color: #000000;
-    margin-bottom: 8px;
-  }
-
-  .compat-footer-table {
+  .report-table {
     width: 100%;
     border-collapse: collapse;
-    border: 1px solid #000000;
-    margin-top: 6px;
-  }
-  .compat-footer-table td {
-    padding: 15px 12px;
-    text-align: center;
-    font-size: 12px;
-    color: #000000;
     background-color: #ffffff;
     border: 1px solid #000000;
+  }
+  .report-table tr {
+    background-color: #ffffff;
+    border: 1px solid #000000;
+  }
+  .report-table tr td {
+    background-color: #ffffff;
+    color: #000000;
+    border: 1px solid #000000;
+    padding: 5px 0px;
+  }
+  .report-table tr td p {
+    background-color: #ffffff;
+    color: #000000;
   }
 </style>
 
-<div class="compatibility-wrapper">
+<table class="compatibility-page-wrapper">
+  <tr>
+    <td style="text-align: center; margin: 0 auto; padding: 0px 20px;">
+      <br />
+      <h2 style="text-align: center; font-size: 18px; margin-bottom: 10px;">
+        Marriage Compatibility Report
+      </h2>
 
-  <h2 style="text-align: center; font-size: 20px; margin: 14px 0;">
-    Marriage Compatibility Report
-  </h2>
+      <table class="compat-info-table report-table">
+        <tr>
+          <td class="border-right">
+            <p style="text-align: center;"><b>{{my_name}} - {{my_profile_id}}</b></p>
+          </td>
+          <td class="border-right">
+            <p style="text-align: center;"><b>{{name}} - {{profile_id}}</b></p>
+          </td>
+        </tr>
+        <tr>
+          <td class="sub-header border-right">
+            <p style="text-align: center;"><b>{{birth_rasi_my}} - {{birth_star_my}}</b></p>
+          </td>
+          <td class="sub-header border-right">
+            <p style="text-align: center;"><b>{{birth_rasi}} - {{birth_star}}</b></p>
+          </td>
+        </tr>
+      </table>
+      <br />
 
-  <table class="compat-info-table">
-    <tr>
-      <td><p><b>{{my_name}} - {{my_profile_id}}</b></p></td>
-      <td><p><b>{{name}} - {{profile_id}}</b></p></td>
-    </tr>
-    <tr>
-      <td class="sub-header"><p><b>{{birth_rasi_my}} - {{birth_star_my}}</b></p></td>
-      <td class="sub-header"><p><b>{{birth_rasi}} - {{birth_star}}</b></p></td>
-    </tr>
-  </table>
+      <table class="compat-info-table report-table">
+        <tr>
+          <td class="data-row border-right">
+            <p style="text-align: center;">Place of Birth : <b>{{my_birth_place}}</b></p>
+            <p style="text-align: center;">Time of Birth : <b>{{my_time_of_birth}}</b></p>
+            <p style="text-align: center;">Date Of Birth : <b>{{my_dob}}</b></p>
+          </td>
+          <td class="data-row border-right">
+            <p style="text-align: center;">Place of Birth : <b>{{birth_place}}</b></p>
+            <p style="text-align: center;">Time of Birth : <b>{{birth_start}}</b></p>
+            <p style="text-align: center;">Date Of Birth : <b>{{dob}}</b></p>
+          </td>
+        </tr>
+      </table>
+      <br />
 
-  <table class="compat-info-table">
-    <tr>
-      <td>
-        <p>Place of Birth : <b>{{my_birth_place}}</b></p>
-        <p>Time of Birth : <b>{{my_time_of_birth}}</b></p>
-        <p>Date Of Birth : <b>{{my_dob}}</b></p>
-      </td>
-      <td>
-        <p>Place of Birth : <b>{{birth_place}}</b></p>
-        <p>Time of Birth : <b>{{birth_start}}</b></p>
-        <p>Date Of Birth : <b>{{dob}}</b></p>
-      </td>
-    </tr>
-  </table>
+      <table class="compat-info-table report-table">
+        <tr>
+          <td class="data-row border-right">
+            <p style="text-align: center;">Height : <b>{{my_height}}</b></p>
+            <p style="text-align: center;">{{highest_education_my}}</p>
+          </td>
+          <td class="data-row border-right">
+            <p style="text-align: center;">Height : <b>{{height}}</b></p>
+            <p style="text-align: center;">{{highest_education}}</p>
+          </td>
+        </tr>
+      </table>
 
-  <table class="compat-info-table">
-    <tr>
-      <td>
-        <p>Height : <b>{{my_height}}</b></p>
-        <p>{{highest_education_my}}</p>
-      </td>
-      <td>
-        <p>Height : <b>{{height}}</b></p>
-        <p>{{highest_education}}</p>
-      </td>
-    </tr>
-  </table>
+      <br />
+      <div class="compatability-page">
+        <h2 style="text-align: center; font-size: 16px; margin-bottom: 8px;">
+          Nakshatra Porutham &amp; Rasi Porutham
+        </h2>
+        <table class="compatability-table">
+          <tr>
+            <th>Porutham Name</th>
+            <th>Status</th>
+            <th>Matching Score</th>
+          </tr>
+          {{porutham_rows | safe}}
+        </table>
+      </div>
 
-  <h2 style="text-align: center; font-size: 17px; margin: 14px 0 10px 0;">
-    Nakshatra Porutham &amp; Rasi Porutham
-  </h2>
-
-  <table class="compatability-table">
-    <tr>
-      <th>Porutham Name</th>
-      <th>Status</th>
-      <th>Matching Score</th>
-    </tr>
-    {{porutham_rows | safe}}
-  </table>
-
-  <table class="compat-footer-table">
-    <tr>
-      <td>
-        Our best wishes for finding your soulmate in Vysamala soon.
-        Please inform Vysamala if your marriage is fixed. Share your
-        engagement photo and receive a surprise gift. No commissions /
-        hidden charges. Jai Vasavi!
-      </td>
-    </tr>
-  </table>
-
-</div>
+      <table class="compatability-table" style="margin-top: 10px;">
+        <tr>
+          <td>
+            Our best wishes for finding your soulmate in Vysamala soon.
+            Please inform Vysamala if your marriage is fixed. Share your
+            engagement photo and receive a surprise gift. No commissions /
+            hidden charges. Jai Vasavi!
+          </td>
+        </tr>
+      </table>
+      <br/><br/>
+    </td>
+  </tr>
+</table>
+  

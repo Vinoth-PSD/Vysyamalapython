@@ -37,7 +37,7 @@
               {{rasi_kattam_data.11|replace_br|safe}}
             </td>
             <td colspan="2" rowspan="2" class="highlight">
-              {% if lang == "tamil" %}ராசி{% else %}RASI{% endif %}
+              RASI
               <p><strong>vysyamala.com</strong></p>
             </td>
             <td class="inner-tabledata text-wrap">
@@ -72,28 +72,16 @@
         <table class="table-div-horo dasa-table">
           <tr>
             <td>
-              {% if lang == "tamil" %}
-                <p><strong>தசா பெயர்</strong></p>
-                <p>{{dasa_name_tamil}}</p>
-              {% else %}
-                <p><strong>Dasa Name</strong></p>
-                <p>{{dasa_name}}</p>
-              {% endif %}
+              <p><strong>Dasa Name</strong></p>
+              <p>{{dasa_name}}</p>
             </td>
           </tr>
           <tr>
             <td>
-              {% if lang == "tamil" %}
-                <p><strong>தசா இருப்பு</strong></p>
-                <p>ஆண்டு:{{dasa_year|default:"0"}}</p>
-                <p>மாதம்:{{dasa_month|default:"0"}}</p>
-                <p>நாள்:{{dasa_day|default:"0"}}</p>
-              {% else %}
-                <p><strong>Dasa Balance</strong></p>
-                <p>Years:{{dasa_year|default:"0"}} </p>
-                <p>Months:{{dasa_month|default:"0"}} </p>
-                <p>Days:{{dasa_day|default:"0"}} </p>
-              {% endif %}
+              <p><strong>Dasa Balance</strong></p>
+              <p>Years:{{dasa_year|default:"0"}} </p>
+              <p>Months:{{dasa_month|default:"0"}} </p>
+              <p>Days:{{dasa_day|default:"0"}} </p>
             </td>
           </tr>
         </table>
@@ -119,7 +107,7 @@
               {{amsa_kattam_data.11|replace_br|safe}}
             </td>
             <td colspan="2" rowspan="2" class="highlight">
-              {% if lang == "tamil" %}அம்சம்{% else %}AMSAM{% endif %}
+              AMSAM
               <p><strong>vysyamala.com</strong></p>
             </td>
             <td class="inner-tabledata text-wrap">

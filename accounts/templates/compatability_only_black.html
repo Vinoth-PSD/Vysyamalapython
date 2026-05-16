@@ -1,22 +1,31 @@
 {% include 'pdf_templates/header2.html' %}
-{% include 'pdf_templates/without_contact.html' %}
-{% include 'pdf_templates/horoscope_without_contact.html' %}
+  {% include 'pdf_templates/without_contact.html' %}
+  {% include 'pdf_templates/horoscope_without_contact.html' %}
+  
+  <div class="compat-page-container" style="page-break-before: always;">
 {% if porutham_show %}
-  <div style="page-break-before: always;"></div>
   {% include 'pdf_templates/compatability_black.html' %}
 {% endif %}
-{% if horoscope_content_admin != "empty" %}
-  {% include 'pdf_templates/horoscope_file_black.html' %}
+   {% if horoscope_content_admin != "empty" %}
+   {% include 'pdf_templates/horoscope_file_black.html' %}
 {% endif %}
-
+  <!-- Footer -->
 <style>
   @page {
     size: A4;
     margin: 12mm 10mm 12mm 10mm;
   }
+  @page compat-page {
+    size: A4;
+    margin: 0;
+  }
+  .compat-page-container {
+    page: compat-page;
+  }
   .mt{
     margin-top: 2rem;
   }
 </style>
+  
 </body>
 </html>
