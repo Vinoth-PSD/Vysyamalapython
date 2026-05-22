@@ -2303,14 +2303,14 @@ class Send_profile_intrests(APIView):
                             print("test1",degree)
                             send_email_notification(profile_from,from_profile_name,to_profile_name,to_profile.EmailId, message_title, to_message,notification_type,age,degree,star_name)
 
-                try:
-                    AdminNotification.objects.create(
-                    notification_type="Interest",
-                    from_profile=profile_from,
-                    message=f"{profile_from} sent an interest request to {profile_to}"
-                )
-                except Exception:
-                    pass
+                # try:
+                #     AdminNotification.objects.create(
+                #     notification_type="Interest",
+                #     from_profile=profile_from,
+                #     message=f"{profile_from} sent an interest request to {profile_to}"
+                # )
+                # except Exception:
+                #     pass
 
                 return JsonResponse({"Status": 1, "message": "Express interests sent successfully"}, status=status.HTTP_200_OK)
             else:
@@ -12875,7 +12875,8 @@ class FeaturedProfile(APIView):
                     ON pf.profile_id = l1.ProfileId
                 WHERE LOWER(l1.Gender) = LOWER(%s)
                 AND l1.Status = 1
-                AND CURDATE() BETWEEN pf.membership_fromdate AND pf.membership_todate
+                # AND CURDATE() BETWEEN pf.membership_fromdate AND pf.membership_todate
+                AND DATE(NOW()) BETWEEN DATE(pf.membership_fromdate) AND DATE(pf.membership_todate)
                 AND CURDATE() BETWEEN pf.boosted_date AND pf.boosted_enddate
                 AND l1.Photo_protection != 1
                 AND pf.featured_profile = 1

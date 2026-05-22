@@ -114,7 +114,7 @@ from .models import PrintDashboard
 from .serializers import UserSerializer,DashboardSerializer
 from django.db.models import F, Value
 from django.db.models.functions import Concat
-from .models import GothramNamesSingle
+from .models import GothramNamesSingle,Photo_request
 import pandas as pd
 import numpy as np
 from django.db.models import OuterRef, Subquery
@@ -162,6 +162,7 @@ def get_height_info(cm_value):
     except Height.DoesNotExist:
         return {"height_value": cm_value, "height_desc": None}
 
+
 from django.utils import timezone
 from django.db.models import Subquery
 class DashboardcountView(APIView):
@@ -174,19 +175,27 @@ class DashboardcountView(APIView):
             approved_profiles = LoginDetails.objects.filter(status=1,secondary_status=5).count()
             pending_profiles = LoginDetails.objects.filter(status=2).count()
             hidden_profiles = LoginDetails.objects.filter(status=3).count()
-            photo_request_count = Image_Upload.objects.filter(image_approved=0,is_deleted=0).count()
+            # photo_request_count = Image_Upload.objects.filter(image_approved=0,is_deleted=0).count()
+            photo_request_count = Photo_request.objects.count() 
             quick_upload_count = LoginDetails.objects.filter(quick_registration=1).count()
             # paidprofiles_count = LoginDetails.objects.filter(~Q(Plan_id__in=[6, 7, 8, 9, 11, 12, 13])).count()
             paidprofiles_count = LoginDetails.objects.filter(status=1,secondary_status=5).count()
-            prospect_profiles = LoginDetails.objects.filter(Plan_id=8).exclude(status__in=[0, 3, 4]).count()
-            featured_profiles = LoginDetails.objects.filter(Plan_id__in=[3, 4]).exclude(status__in=[0, 3, 4]).count()
+            prospect_profiles = LoginDetails.objects.filter(Plan_id=8).exclude(status__in=[0,3,2,4]).count()
+            featured_profiles = LoginDetails.objects.filter(
+                Plan_id__in=[2, 3],
+                ProfileId__in=Profile_PlanFeatureLimit.objects.filter(
+                    boosted_enddate__gte=timezone.now().date()
+                ).values('profile_id')
+            ).exclude(
+                status__in=[0, 3, 4]
+            ).count()
+            # featured_profiles = LoginDetails.objects.filter(Plan_id__in=[3, 4]).exclude(status__in=[0, 3, 4]).count()
             deletedprofiles = LoginDetails.objects.filter(status=4).count()
             tamil_nadu_count = LoginDetails.objects.filter(Profile_state='2',status=1 ).count()
             andhra_count = LoginDetails.objects.filter(Profile_state='1',status=1).count()
             karnataka_count = LoginDetails.objects.filter(Profile_state='4',status=1).count()
             kerala_count = LoginDetails.objects.filter(Profile_state='5',status=1).count()
             pondicherry_count = LoginDetails.objects.filter(Profile_state='7',status=1).count()
-            telangana_count = LoginDetails.objects.filter(Profile_state='3',status=1).count()
             telangana_count = LoginDetails.objects.filter(Profile_state='3',status=1).count()
             foreign_working_count = LoginDetails.objects.filter(
                 Profile_country='1',
@@ -203,7 +212,7 @@ class DashboardcountView(APIView):
             others_count = LoginDetails.objects.filter(
                 status=1
             ).exclude(
-                Profile_state__in=['1', '2', '4', '5', '7']
+                Profile_state__in=['1', '2', '3', '4', '5', '7']
             ).count()
 
             male_count = LoginDetails.objects.filter(status=1, Gender__iexact='Male').count()
@@ -251,6 +260,7 @@ class DashboardcountView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)  
+
 
 
 
@@ -1312,7 +1322,7 @@ class Newprofile_get(generics.ListAPIView):
             sql += " AND ld.Profile_country = '1' AND ped.work_country != '1' And ped.work_country != '' And ped.work_country is not null AND ped.work_country != '0' "
 
         elif page_id == "others_state":
-            sql += " AND ld.Profile_state NOT IN ('1','2','4','5','7')"
+            sql += " AND ld.Profile_state NOT IN ('1','2','3','4','5','7')"
 
         # Gender filters
         elif page_id == "male":
@@ -5375,7 +5385,7 @@ def get_bulk_action_logs(from_profile_id, to_profile_ids):
     logs = AdminPrintLogs.objects.filter(
         profile_id=from_profile_id,
         sentprofile_id__in=to_profile_ids
-    )
+    ).order_by('-updated_at') 
 
     logs_map = {}
     for log in logs:
@@ -5385,7 +5395,8 @@ def get_bulk_action_logs(from_profile_id, to_profile_ids):
 
         short_format = format_short_map.get(log.format_type, log.format_type)
         short_action = action_short_map.get(log.action_type.lower(), log.action_type)
-        updated_at_str = log.updated_at.strftime("%Y-%m-%d")
+        # updated_at_str = log.updated_at.strftime("%Y-%m-%d")
+        updated_at_str = log.updated_at.strftime("%Y-%m-%d %H:%M:%S")
         logs_map[pid].append(f"{short_action}-{short_format}({updated_at_str})")
 
     return {pid: ", ".join(actions) for pid, actions in logs_map.items()}
@@ -5639,6 +5650,16 @@ class Get_prof_list_match(APIView):
 
                 
             })
+        import re
+        def get_latest_log_date(profile):
+            log = profile.get("action_log", "")
+            if not log or log == "No logs":
+                return ""
+            dates = re.findall(r'\((\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\)', log)
+            return max(dates) if dates else ""
+
+        result_profiles.sort(key=get_latest_log_date, reverse=True)
+
 
         return JsonResponse({
             "Status": 1,
@@ -10643,6 +10664,23 @@ class AdminProfilePDFView(APIView):
 
         LANG = request.GET.get("lang", "english").lower()
 
+
+        # Mapping from masterdasaname English text to Tamil (masterdasabalance)
+        DASA_TEXT_TO_TAMIL = {
+            "Sun/Suriyan":    "சூரியன்",
+            "Sun / Suryan":   "சூரியன்",
+            "Moon/Chandran":  "சந்திரன்",
+            "Rahu/Rahu":      "ராகு",
+            "Raghu/Rahu":     "ராகு",
+            "Kethu/Ketu":     "கேது",
+            "Ketu/Ketu":      "கேது",
+            "Mars/Chevvai":   "செவ்வாய்",
+            "Venus/Sukran":   "சுக்கிரன்",
+            "Jupiter/Guru":   "குரு",
+            "Mercury/Budhan": "புதன்",
+            "Saturn/Sani":    "சனி",
+        }
+
         planets = Planet.objects.values('code', 'planet_english', 'planet_tamil')
 
         planet_mapping = {
@@ -10762,6 +10800,10 @@ class AdminProfilePDFView(APIView):
             "dasa_month":dasa_month,
             "dasa_day":dasa_day,
             "dasa_name":get_dasa_name(horoscope_data.dasa_name),
+            "dasa_name_tamil": DASA_TEXT_TO_TAMIL.get(
+                str(horoscope_data.dasa_name).strip(),
+                get_dasa_name(horoscope_data.dasa_name)
+            ),
             "occupation":occupation,
             "birth_start":birth_time,
             "occupation_title":occupation_title,
@@ -10779,7 +10821,8 @@ class AdminProfilePDFView(APIView):
                 ("6", format_star_names(porutham_data.get("6 Poruthams"))),
                 ("5", format_star_names(porutham_data.get("5 Poruthams"))),
             ]),
-            "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}",
+            # "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}",
+            "view_profile_url": f"https://app.vysyamala.com/auth/profile_view/{signing.dumps(login.ProfileId)}/",
             "font_path": "file://" + os.path.join(settings.BASE_DIR, "fonts", "NotoSansTamil.ttf")
         }
 
@@ -11267,7 +11310,8 @@ class AdminMatchProfilePDFView(APIView):
                     ]),
                     "porutham_rows": porutham_rows,
                     "porutham_show": porutham_show,
-                    "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}",
+                    # "view_profile_url": f"https://www.vysyamala.com/ProfileDetails?id={login.ProfileId}",
+                    "view_profile_url": f"https://app.vysyamala.com/auth/profile_view/{signing.dumps(login.ProfileId)}/",
                     "font_path": "file://" + os.path.join(settings.BASE_DIR, "fonts", "NotoSansTamil.ttf")
                 }
 
@@ -17844,15 +17888,24 @@ class ClearSingleAdminNotification(APIView):
 #                 "message": str(e)
 #             })
 
+# class ClearAllAdminNotifications(APIView):
+
+#     def post(self, request):
+#         try:
+#             notification_type = request.data.get("notification_type", "VysAssist")  # ← only change
+#             AdminNotification.objects.filter(
+#                 notification_type=notification_type,
+#                 is_cleared=0
+#             ).update(is_cleared=1)
+#             return Response({"Status": 1, "message": "All notifications cleared successfully"})
+#         except Exception as e:
+#             return Response({"Status": 0, "message": str(e)})
+
 class ClearAllAdminNotifications(APIView):
 
     def post(self, request):
         try:
-            notification_type = request.data.get("notification_type", "VysAssist")  # ← only change
-            AdminNotification.objects.filter(
-                notification_type=notification_type,
-                is_cleared=0
-            ).update(is_cleared=1)
+            AdminNotification.objects.all().update(is_cleared=1)
             return Response({"Status": 1, "message": "All notifications cleared successfully"})
         except Exception as e:
             return Response({"Status": 0, "message": str(e)})
