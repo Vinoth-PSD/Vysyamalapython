@@ -1970,16 +1970,25 @@ class Login_with_mobileno(APIView):
             profile = (
                 models.Registration1.objects
                 .filter(
-                    Q(Mobile_no=normalized_input) | Q(Mobile_no=normalized_input_with_prefix),
+                    Q(Mobile_no=normalized_input) | Q(Mobile_no=normalized_input_with_prefix)
                 )
+                .exclude(Status__in=[2, 3, 4])
                 .order_by('DateOfJoin')
                 .first()
             )
-
             # Mobile number not found
             if not profile:
+                profile = (
+                    models.Registration1.objects
+                    .filter(
+                        Q(Mobile_no=normalized_input) | Q(Mobile_no=normalized_input_with_prefix)
+                    )
+                    .order_by('DateOfJoin')
+                    .first()
+                )
+            if not profile:
                 return JsonResponse({"status": 0, "message": "Profile ID number does not exist."}, status=status.HTTP_200_OK)
-
+            
             # Block login for restricted statuses BEFORE sending OTP
             if profile.Status in [2, 3, 4]:
                 if profile.Status == 2:
