@@ -1966,6 +1966,39 @@ class Login_with_mobileno(APIView):
             else:
                 return JsonResponse({"status": 0, "message": "Invalid mobile number format."}, status=status.HTTP_200_OK)
 
+            # ---------------------------------------------------------------
+            # STATIC TEST BYPASS — Google Play / App Store review only
+            # Profile: VM56645 | Mobile: 9087408476 | OTP: 123456
+            # Runs BEFORE DB lookup — does NOT affect any other user/flow.
+            # ---------------------------------------------------------------
+            GOOGLE_TEST_PROFILE_ID = 'VM56645'
+            GOOGLE_TEST_MOBILE     = '9087408476'
+            GOOGLE_TEST_OTP        = '123456'
+
+            if normalized_input == GOOGLE_TEST_MOBILE:
+                profile = models.Registration1.objects.filter(ProfileId=GOOGLE_TEST_PROFILE_ID).first()
+                if profile:
+                    if profile.Status == 4:
+                        return JsonResponse({
+                            "status": 0,
+                            "message": "This account has been permanently deleted. Please register a new account to continue."
+                        }, status=status.HTTP_200_OK)
+                    if profile.Status in [2, 3]:
+                        status_text = "Pending" if profile.Status == 2 else "Hidden"
+                        return JsonResponse({
+                            "status": 0,
+                            "message": f"Your profile is currently {status_text}. For assistance, please contact our support team. 9944851550"
+                        }, status=status.HTTP_200_OK)
+                    profile.Otp = GOOGLE_TEST_OTP
+                    profile.save()
+                    return JsonResponse(
+                        {"status": 1, "response_data": {"message": "OTP sent successfully."}, "message": "OTP sent successfully."},
+                        status=status.HTTP_201_CREATED
+                    )
+            # ---------------------------------------------------------------
+            # END STATIC TEST BYPASS
+            # ---------------------------------------------------------------
+
             # Fetch profile without Status filter so all statuses are reachable
             profile = (
                 models.Registration1.objects
@@ -2044,17 +2077,41 @@ class Login_verifyotp(APIView):
             else:
                 return JsonResponse({"status": 0, "message": "Invalid mobile number format."}, status=status.HTTP_200_OK)
 
+            # ---------------------------------------------------------------
+            # STATIC TEST BYPASS — Google Play / App Store review only
+            # Profile: VM56645 | Mobile: 9087408476 | OTP: 123456
+            # Does NOT affect any other profile or real user flow.
+            # ---------------------------------------------------------------
+            GOOGLE_TEST_PROFILE_ID = 'VM56645'
+            GOOGLE_TEST_MOBILE     = '9087408476'
+            GOOGLE_TEST_OTP        = '123456'
+
+            is_google_test = (
+                normalized_input == GOOGLE_TEST_MOBILE
+                and otp == GOOGLE_TEST_OTP
+            )
+            # ---------------------------------------------------------------
+            # END STATIC TEST BYPASS
+            # ---------------------------------------------------------------
+
             # Try matching either format
             try:
-                profile = (
-                    models.Registration1.objects
-                    .filter(
-                        Q(Mobile_no=normalized_input) | Q(Mobile_no=normalized_input_with_prefix),Otp=otp,
-                        Status__in=[0, 1, 2, 3],
+                if is_google_test:
+                    profile = (
+                        models.Registration1.objects
+                        .filter(ProfileId=GOOGLE_TEST_PROFILE_ID)
+                        .first()
                     )
-                    .order_by('DateOfJoin')  # or 'created_at' if you have it
-                    .first()
-                )
+                else:
+                    profile = (
+                        models.Registration1.objects
+                        .filter(
+                            Q(Mobile_no=normalized_input) | Q(Mobile_no=normalized_input_with_prefix),Otp=otp,
+                            Status__in=[0, 1, 2, 3],
+                        )
+                        .order_by('DateOfJoin')  # or 'created_at' if you have it
+                        .first()
+                    )
                 print('profile',profile.ProfileId)
 
                 # Get or create user safely without unpacking error
