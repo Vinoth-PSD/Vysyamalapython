@@ -10498,12 +10498,12 @@ class AdminProfilePDFView(APIView):
 
         try:
             num_sisters_married = int(no_of_sis_married)
-        except ValueError:
+        except Exception:
             num_sisters_married = 0     
     
         try:
             num_brothers_married = int(no_of_bro_married)
-        except ValueError:
+        except Exception:
             num_brothers_married = 0   
         if int(num_sisters_married) == 0:
             no_of_sis_married = "No"
@@ -10935,12 +10935,12 @@ class AdminMatchProfilePDFView(APIView):
 
                 try:
                     num_sisters_married = int(no_of_sis_married)
-                except ValueError:
+                except Exception:
                     num_sisters_married = 0
 
                 try:
                     num_brothers_married = int(no_of_bro_married)
-                except ValueError:
+                except Exception:
                     num_brothers_married = 0
 
                 if int(num_sisters_married) == 0:
