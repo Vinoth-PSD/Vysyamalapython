@@ -8,3 +8,9 @@ libcairo2-dev
 pkg-config
 python3-dev
 build-essential
+libpango-1.0-0
+libpangocairo-1.0-0
+libgdk-pixbuf-2.0-0
+shared-mime-info
+fonts-dejavu-core
+fonts-freefont-ttf
