@@ -176,13 +176,16 @@ class DashboardcountView(APIView):
             pending_profiles = LoginDetails.objects.filter(status=2).count()
             hidden_profiles = LoginDetails.objects.filter(status=3).count()
             # photo_request_count = Image_Upload.objects.filter(image_approved=0,is_deleted=0).count()
-            photo_request_count = Photo_request.objects.count() 
+            # photo_request_count = Photo_request.objects.count() 
+            photo_request_count = Photo_request.objects.filter(status=1).count()
             quick_upload_count = LoginDetails.objects.filter(quick_registration=1).count()
             # paidprofiles_count = LoginDetails.objects.filter(~Q(Plan_id__in=[6, 7, 8, 9, 11, 12, 13])).count()
             # paidprofiles_count = LoginDetails.objects.filter(status=1,secondary_status=5).count()
+            from django.utils import timezone
             paidprofiles_count = LoginDetails.objects.filter(
-                status=1,
-                Plan_id__in=[1, 2, 3, 14, 15, 11, 12, 13]
+                status=1,                                        # ✅ Approved
+                Plan_id__in=[1, 2, 3, 14, 15, 11, 12, 13],       # ✅ Paid plans
+                membership_enddate__gte=timezone.now()           # ✅ Membership active (end date >= today)
             ).count()
             prospect_profiles = LoginDetails.objects.filter(Plan_id=8).exclude(status__in=[0,3,2,4]).count()
             featured_profiles = LoginDetails.objects.filter(
@@ -221,8 +224,23 @@ class DashboardcountView(APIView):
 
             male_count = LoginDetails.objects.filter(status=1, Gender__iexact='Male').count()
             female_count = LoginDetails.objects.filter(status=1, Gender__iexact='Female').count()
-            renewal_members_count = LoginDetails.objects.filter(status=1,secondary_status=5,plan_status__in=[14, 15, 17,22]).count()
-            
+            # renewal_members_count = LoginDetails.objects.filter(status=1,secondary_status=5,plan_status__in=[14, 15, 17,22]).count()
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                SELECT COUNT(DISTINCT ps.profile_id)
+                FROM plan_subscription ps
+                JOIN logindetails ld ON ld.ProfileId = ps.profile_id
+                WHERE ld.status = 1
+                AND ld.secondary_status = 5
+                AND ps.plan_id IN (1, 2, 3, 14, 15, 17, 22)
+                AND ps.status = 1
+                AND (
+                    SELECT COUNT(*) FROM plan_subscription ps2
+                    WHERE ps2.profile_id = ps.profile_id
+                    AND ps2.status = 1
+                ) > 1
+            """)
+            renewal_members_count = cursor.fetchone()[0]
             today = timezone.now()
 
             expired_premium_count = LoginDetails.objects.filter(
@@ -1336,12 +1354,36 @@ class Newprofile_get(generics.ListAPIView):
             sql += " AND ld.status = 1 AND LOWER(ld.Gender) = 'female'"
 
         # Renewal
+        # elif page_id == "renewal":
+        #     sql += " AND ld.status = 1 AND ld.secondary_status = 5 AND ld.plan_status IN (14,15,17)"
+
         elif page_id == "renewal":
-            sql += " AND ld.status = 1 AND ld.secondary_status = 5 AND ld.plan_status IN (14,15,17)"
+            sql += """
+                AND ld.status = 1 
+                AND ld.secondary_status = 5 
+                AND ld.ProfileId IN (
+                    SELECT ps.profile_id
+                    FROM plan_subscription ps
+                    WHERE ps.status = 1
+                    AND ps.plan_id IN (1, 2, 3, 14, 15, 17, 22)
+                    AND (
+                        SELECT COUNT(*) FROM plan_subscription ps2
+                        WHERE ps2.profile_id = ps.profile_id
+                        AND ps2.status = 1
+                    ) > 1
+                )
+            """
 
         # Expired premium
         elif page_id == "expired":
             sql += " AND ld.status = 1 AND ld.secondary_status = 5 AND ld.membership_enddate < NOW()"
+        
+        elif page_id == "paid":
+            sql += """
+                AND ld.status = 1 
+                AND ld.Plan_id IN (1, 2, 3, 14, 15, 11, 12, 13)
+                AND ld.membership_enddate >= NOW()
+            """
 
         if plan_ids is not None:
             plan_id_list = [pid.strip() for pid in plan_ids.split(',') if pid.strip()]
@@ -1357,6 +1399,8 @@ class Newprofile_get(generics.ListAPIView):
             sql += " ORDER BY ld.membership_startdate DESC"
         elif numeric_page_id == 0:
             sql += " ORDER BY ld.DateOfJoin DESC"
+        elif page_id == "paid":                               # ✅ ADD THIS
+            sql += " ORDER BY ld.membership_startdate DESC"  # ✅ ADD THIS
         else:
             sql += " ORDER BY ld.ContentId DESC"  
         print_full_sql(sql, params)   
