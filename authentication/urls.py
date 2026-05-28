@@ -175,7 +175,9 @@ urlpatterns = [
     path('Reset_password/', views.ResetPassword.as_view(), name='reset_password_confirm'),
 
     path('Get_featured_profiles/', views.FeaturedProfile.as_view(), name='Get_featured_profiles'),
-    
+
+    path('Get_all_featured_profiles/', views.AllFeaturedProfile.as_view(), name='Get_all_featured_profiles'),
+
     path('Search_byprofile_id/', views.Search_byprofile_id.as_view(), name='Search_byprofile_id'),
 
 

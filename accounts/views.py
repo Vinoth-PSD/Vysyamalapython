@@ -171,15 +171,19 @@ class DashboardcountView(APIView):
         try:
             # Counts based on assumptions
             new_profiles = LoginDetails.objects.filter(status=0).count()
-            # approved_profiles = LoginDetails.objects.filter(status=1).count()
-            approved_profiles = LoginDetails.objects.filter(status=1,secondary_status=5).count()
+            approved_profiles = LoginDetails.objects.filter(status=1).count()
+            # approved_profiles = LoginDetails.objects.filter(status=1,secondary_status=5).count()
             pending_profiles = LoginDetails.objects.filter(status=2).count()
             hidden_profiles = LoginDetails.objects.filter(status=3).count()
             # photo_request_count = Image_Upload.objects.filter(image_approved=0,is_deleted=0).count()
             photo_request_count = Photo_request.objects.count() 
             quick_upload_count = LoginDetails.objects.filter(quick_registration=1).count()
             # paidprofiles_count = LoginDetails.objects.filter(~Q(Plan_id__in=[6, 7, 8, 9, 11, 12, 13])).count()
-            paidprofiles_count = LoginDetails.objects.filter(status=1,secondary_status=5).count()
+            # paidprofiles_count = LoginDetails.objects.filter(status=1,secondary_status=5).count()
+            paidprofiles_count = LoginDetails.objects.filter(
+                status=1,
+                Plan_id__in=[1, 2, 3, 14, 15, 11, 12, 13]
+            ).count()
             prospect_profiles = LoginDetails.objects.filter(Plan_id=8).exclude(status__in=[0,3,2,4]).count()
             featured_profiles = LoginDetails.objects.filter(
                 Plan_id__in=[2, 3],

@@ -23924,3 +23924,98 @@ class RandomBrideProfiles(APIView):
                 {"Status": 0, "message": f"An error occurred: {e}"},
                 status=status.HTTP_200_OK
             )
+
+
+class AllFeaturedProfile(APIView):
+    def post(self, request):
+        gender = request.query_params.get('gender') or request.data.get('gender')
+
+        if not gender:
+            return JsonResponse({"Status": 0, "message": "Gender is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        normalized_gender = gender.strip().lower()
+        photo_gender = 'female' if normalized_gender == 'male' else 'male'
+
+        try:
+            query = """
+                SELECT 
+                    l1.ProfileId, 
+                    l1.Profile_name,  
+                    l1.Gender,  
+                    l1.Profile_dob, 
+                    l1.Profile_height, 
+                    l1.Profile_city, 
+                    l1.Photo_protection 
+                FROM logindetails l1
+                INNER JOIN profile_plan_feature_limits pf 
+                    ON pf.profile_id = l1.ProfileId
+                WHERE LOWER(l1.Gender) = LOWER(%s)
+                AND l1.Status = 1
+                AND DATE(NOW()) BETWEEN DATE(pf.membership_fromdate) AND DATE(pf.membership_todate)
+                AND CURDATE() BETWEEN pf.boosted_date AND pf.boosted_enddate
+                AND l1.Photo_protection != 1
+                AND pf.featured_profile = 1
+                AND EXISTS (
+                    SELECT 1
+                    FROM profile_images pi
+                    WHERE pi.profile_id = l1.ProfileId
+                    AND pi.image_approved = 1
+                    AND pi.is_deleted = 0
+                )
+                ORDER BY pf.boosted_date DESC
+                """
+            with connection.cursor() as cursor:
+                cursor.execute(query, [normalized_gender])
+                columns = [col[0] for col in cursor.description]
+                profile_details = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+            if not profile_details:
+                return JsonResponse({"Status": 0, "message": "No featured profiles found"}, status=status.HTTP_200_OK)
+
+            profile_ids = [profile['ProfileId'] for profile in profile_details]
+
+            edu_details = models.Edudetails.objects.filter(profile_id__in=profile_ids)
+            profession_id_mapping = {edu.profile_id: edu.profession for edu in edu_details}
+            highest_education_mapping = {edu.profile_id: edu.highest_education for edu in edu_details}
+
+            professions = models.Profespref.objects.all()
+            degrees = models.Highesteducation.objects.all()
+            profession_mapping = {str(prof.RowId): prof.profession for prof in professions}
+            degree_mapping = {str(degree.id): degree.degree for degree in degrees}
+
+            restricted_profile_details = []
+            for profile in profile_details:
+                profile_id = profile['ProfileId']
+
+                profile_img = Get_profile_image(
+                    profile_id,
+                    photo_gender,
+                    1,
+                    profile['Photo_protection']
+                )
+
+                restricted_profile_details.append({
+                    "profile_id": profile_id,
+                    "profile_name": profile['Profile_name'],
+                    "profile_img": profile_img,
+                    "profile_age": calculate_age(profile['Profile_dob']),
+                    "profile_gender": profile['Gender'],
+                    "height": get_height_info(profile['Profile_height']),
+                    "degree": degree_mapping.get(
+                        str(highest_education_mapping.get(profile_id, "")), ""
+                    ),
+                    "profession": profession_mapping.get(
+                        str(profession_id_mapping.get(profile_id, "")), ""
+                    ),
+                    "location": profile['Profile_city']
+                })
+
+            return JsonResponse({
+                "Status": 1,
+                "message": "Featured profiles fetched successfully",
+                "profile_count": len(restricted_profile_details),
+                "profiles": restricted_profile_details
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return JsonResponse({"Status": 0, "message": f"An error occurred: {e}"}, status=status.HTTP_200_OK)
