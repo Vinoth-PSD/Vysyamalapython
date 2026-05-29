@@ -184,7 +184,7 @@ class DashboardcountView(APIView):
             from django.utils import timezone
             paidprofiles_count = LoginDetails.objects.filter(
                 status=1,                                        # ✅ Approved
-                Plan_id__in=[1, 2, 3, 14, 15, 11, 12, 13],       # ✅ Paid plans
+                Plan_id__in=[1, 2, 3, 14, 15, 11, 12, 13,16,17],       # ✅ Paid plans
                 membership_enddate__gte=timezone.now()           # ✅ Membership active (end date >= today)
             ).count()
             prospect_profiles = LoginDetails.objects.filter(Plan_id=8).exclude(status__in=[0,3,2,4]).count()
@@ -227,20 +227,23 @@ class DashboardcountView(APIView):
             # renewal_members_count = LoginDetails.objects.filter(status=1,secondary_status=5,plan_status__in=[14, 15, 17,22]).count()
             with connection.cursor() as cursor:
                 cursor.execute("""
-                SELECT COUNT(DISTINCT ps.profile_id)
-                FROM plan_subscription ps
-                JOIN logindetails ld ON ld.ProfileId = ps.profile_id
-                WHERE ld.status = 1
-                AND ld.secondary_status = 5
-                AND ps.plan_id IN (1, 2, 3, 14, 15, 17, 22)
-                AND ps.status = 1
-                AND (
-                    SELECT COUNT(*) FROM plan_subscription ps2
-                    WHERE ps2.profile_id = ps.profile_id
-                    AND ps2.status = 1
-                ) > 1
-            """)
-            renewal_members_count = cursor.fetchone()[0]
+                    SELECT COUNT(DISTINCT dh.profile_id)
+                    FROM datahistory dh
+                    JOIN logindetails ld ON ld.ProfileId = dh.profile_id
+                    WHERE ld.status = 1
+                    AND ld.secondary_status = 5
+                    AND dh.plan_id IN (1, 2, 3, 14, 15, 17, 22)
+                    AND dh.profile_status = 1
+                    AND ld.Profile_name NOT LIKE '%TEST%'
+                    AND (
+                        SELECT COUNT(DISTINCT DATE(dh2.date_time))
+                        FROM datahistory dh2
+                        WHERE dh2.profile_id = dh.profile_id
+                        AND dh2.profile_status = 1
+                        AND dh2.plan_id IN (1, 2, 3, 14, 15, 17, 22)
+                    ) > 1
+                """)
+                renewal_members_count = cursor.fetchone()[0]
             today = timezone.now()
 
             expired_premium_count = LoginDetails.objects.filter(
@@ -1360,20 +1363,22 @@ class Newprofile_get(generics.ListAPIView):
         elif page_id == "renewal":
             sql += """
                 AND ld.status = 1 
-                AND ld.secondary_status = 5 
+                AND ld.secondary_status = 5
+                AND ld.Profile_name NOT LIKE '%%TEST%%'
                 AND ld.ProfileId IN (
-                    SELECT ps.profile_id
-                    FROM plan_subscription ps
-                    WHERE ps.status = 1
-                    AND ps.plan_id IN (1, 2, 3, 14, 15, 17, 22)
+                    SELECT dh.profile_id
+                    FROM datahistory dh
+                    WHERE dh.profile_status = 1
+                    AND dh.plan_id IN (1, 2, 3, 14, 15, 17, 22)
                     AND (
-                        SELECT COUNT(*) FROM plan_subscription ps2
-                        WHERE ps2.profile_id = ps.profile_id
-                        AND ps2.status = 1
+                        SELECT COUNT(DISTINCT DATE(dh2.date_time))
+                        FROM datahistory dh2
+                        WHERE dh2.profile_id = dh.profile_id
+                        AND dh2.profile_status = 1
+                        AND dh2.plan_id IN (1, 2, 3, 14, 15, 17, 22)
                     ) > 1
                 )
             """
-
         # Expired premium
         elif page_id == "expired":
             sql += " AND ld.status = 1 AND ld.secondary_status = 5 AND ld.membership_enddate < NOW()"
