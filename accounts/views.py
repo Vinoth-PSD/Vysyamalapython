@@ -1386,7 +1386,7 @@ class Newprofile_get(generics.ListAPIView):
         elif page_id == "paid":
             sql += """
                 AND ld.status = 1 
-                AND ld.Plan_id IN (1, 2, 3, 14, 15, 11, 12, 13)
+                AND ld.Plan_id IN (1, 2, 3, 14, 15, 11, 12, 13,16,17)
                 AND ld.membership_enddate >= NOW()
             """
 

@@ -11940,14 +11940,14 @@ class CreateOrderView(APIView):
                 status=1,
                 created_at=timezone.now()
             )
-            try:
-                AdminNotification.objects.create(
-                    notification_type="Transaction",
-                    from_profile=profile_id,           # ✅ direct variable
-                    message=f"Payment of ₹{amount / 100} by {profile_id} via Razor pay"  # ✅
-                )
-            except Exception:
-                pass
+            # try:
+            #     AdminNotification.objects.create(
+            #         notification_type="Transaction",
+            #         from_profile=profile_id,           # ✅ direct variable
+            #         message=f"Payment of ₹{amount / 100} by {profile_id} via Razor pay"  # ✅
+            #     )
+            # except Exception:
+            #     pass
 
             # return JsonResponse(order)
             return JsonResponse({"status": "success" , "message": "Order Created Sucessfully", "order": order})
@@ -12372,6 +12372,16 @@ class RazorpayWebhookView(APIView):
             order.status = 2  # Payment Captured
             order.save()
 
+             # ✅ ADD notification HERE — only after verified payment
+            try:
+                AdminNotification.objects.create(
+                    notification_type="Transaction",
+                    from_profile=order.profile_id,
+                    message=f"Payment of ₹{order.amount} by {order.profile_id} via Razor pay"
+                )
+            except Exception:
+                pass
+
             return JsonResponse({"status": "success", "message": "Payment Captured successfully"})
 
         except json.JSONDecodeError:
@@ -12411,14 +12421,15 @@ class UpdatePaymentStatusView(APIView):
             order.status = status
             order.save()
             # ── ADMIN NOTIFICATION (safe – will never break existing flow) ──
-            try:
-                AdminNotification.objects.create(
-                    notification_type="Transaction",
-                    from_profile=order.profile_id,
-                    message=f"Payment of ₹{order.amount} by {order.profile_id} via {order.payment_type}"
-                )
-            except Exception:
-                pass
+            if str(status) == "2":
+                try:
+                    AdminNotification.objects.create(
+                        notification_type="Transaction",
+                        from_profile=order.profile_id,
+                        message=f"Payment of ₹{order.amount} by {order.profile_id} via {order.payment_type}"
+                    )
+                except Exception:
+                    pass
             # ────────────────────────────────────────────────────────────────
             #return JsonResponse({"status": "success", "message": f"Order {order_id} updated to {status}"})
             return JsonResponse({"status": "success", "message": "Order Updated Sucessfully"})
