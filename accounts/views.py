@@ -188,14 +188,32 @@ class DashboardcountView(APIView):
                 membership_enddate__gte=timezone.now()           # ✅ Membership active (end date >= today)
             ).count()
             prospect_profiles = LoginDetails.objects.filter(Plan_id=8).exclude(status__in=[0,3,2,4]).count()
+            # featured_profiles = LoginDetails.objects.filter(
+            #     Plan_id__in=[2, 3],
+            #     ProfileId__in=Profile_PlanFeatureLimit.objects.filter(
+            #         boosted_enddate__gte=timezone.now().date()
+            #     ).values('profile_id')
+            # ).exclude(
+            #     status__in=[0, 3, 4]
+            # ).count()
+
             featured_profiles = LoginDetails.objects.filter(
-                Plan_id__in=[2, 3],
-                ProfileId__in=Profile_PlanFeatureLimit.objects.filter(
-                    boosted_enddate__gte=timezone.now().date()
-                ).values('profile_id')
-            ).exclude(
-                status__in=[0, 3, 4]
-            ).count()
+            status=1,
+            ProfileId__in=Profile_PlanFeatureLimit.objects.filter(
+                featured_profile=1,
+                boosted_date__lte=timezone.now().date(),
+                boosted_enddate__gte=timezone.now().date(),
+                membership_fromdate__lte=timezone.now(),
+                membership_todate__gte=timezone.now(),
+            ).values('profile_id')
+        ).filter(
+            ProfileId__in=Image_Upload.objects.filter(
+                image_approved=True,
+                is_deleted=False
+            ).values('profile_id')
+        ).exclude(
+            Photo_protection=1
+        ).count()
             # featured_profiles = LoginDetails.objects.filter(Plan_id__in=[3, 4]).exclude(status__in=[0, 3, 4]).count()
             deletedprofiles = LoginDetails.objects.filter(status=4).count()
             tamil_nadu_count = LoginDetails.objects.filter(Profile_state='2',status=1 ).count()
@@ -12351,7 +12369,12 @@ class DataHistoryListView(generics.GenericAPIView):
             profile_id = request.query_params.get('profile_id')
             
             sql = f"""
-                SELECT dh.profile_id,dh.date_time,mp.status_name,dh.others,pm.plan_name,u.username
+                SELECT dh.profile_id,dh.date_time,mp.status_name,dh.others,pm.plan_name,
+                CASE
+                    WHEN dh.others LIKE '%%Razor pay%%' THEN 'Online'
+                    WHEN dh.owner_id IS NOT NULL THEN u.username
+                    ELSE 'N/A'
+                END AS username
                 FROM datahistory dh LEFT JOIN masterprofilestatus mp ON mp.status_code = dh.profile_status
                 LEFT JOIN plan_master pm ON pm.id = dh.plan_id
                 LEFT JOIN users u ON u.id = dh.owner_id
@@ -13511,7 +13534,8 @@ class EditProfileWithPermissionAPIView(APIView):
                 return Response({'error': 'You do not have permission to edit this profile.'}, status=status.HTTP_403_FORBIDDEN)
 
             try:
-                owner_id = int(owner) if owner else None
+                # owner_id = int(owner) if owner else None
+                owner_id = int(request.data.get("admin_user_id")) if request.data.get("admin_user_id") else None
 
                 old_status = getattr(login_detail, 'status', None)
                 new_status = profile_common_data.get("status") or old_status

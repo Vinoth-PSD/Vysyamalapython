@@ -4167,7 +4167,6 @@ class Get_profiledata_Matching(models.Model):
                     LEFT JOIN mastereducation g ON f.highest_education = g.RowId
                     LEFT JOIN masterannualincome h ON f.anual_income = h.id
                     LEFT JOIN profile_partner_pref b ON a.ProfileId = b.profile_id
-                    LEFT JOIN profile_images i ON i.profile_id=a.ProfileId
                     LEFT JOIN marriage_settled j ON a.ProfileId = j.profile_id
                     LEFT JOIN mastermode k ON a.Profile_for = k.Mode
                     LEFT JOIN masterstate ms on a.Profile_state = ms.id
@@ -4280,28 +4279,28 @@ class Get_profiledata_Matching(models.Model):
                 except Exception:
                     pass
             
-            if from_last_action_date and to_last_action_date:
-                try:
-                    lad = datetime.strptime(from_last_action_date, '%Y-%m-%d').date()
-                    tad = datetime.strptime(to_last_action_date, '%Y-%m-%d').date()
-                    base_query += " AND a.Last_login_date BETWEEN %s AND %s"
-                    query_params.extend([lad, tad])
-                except Exception:
-                    pass
-            elif from_last_action_date:
-                try:
-                    lad = datetime.strptime(from_last_action_date, '%Y-%m-%d').date()
-                    base_query += " AND a.Last_login_date >= %s"
-                    query_params.append(lad)
-                except Exception:
-                    pass
-            elif to_last_action_date:
-                try:
-                    tad = datetime.strptime(to_last_action_date, '%Y-%m-%d').date()
-                    base_query += " AND a.Last_login_date <= %s"
-                    query_params.append(tad)
-                except Exception:
-                    pass
+            # if from_last_action_date and to_last_action_date:
+            #     try:
+            #         lad = datetime.strptime(from_last_action_date, '%Y-%m-%d').date()
+            #         tad = datetime.strptime(to_last_action_date, '%Y-%m-%d').date()
+            #         base_query += " AND a.Last_login_date BETWEEN %s AND %s"
+            #         query_params.extend([lad, tad])
+            #     except Exception:
+            #         pass
+            # elif from_last_action_date:
+            #     try:
+            #         lad = datetime.strptime(from_last_action_date, '%Y-%m-%d').date()
+            #         base_query += " AND a.Last_login_date >= %s"
+            #         query_params.append(lad)
+            #     except Exception:
+            #         pass
+            # elif to_last_action_date:
+            #     try:
+            #         tad = datetime.strptime(to_last_action_date, '%Y-%m-%d').date()
+            #         base_query += " AND a.Last_login_date <= %s"
+            #         query_params.append(tad)
+            #     except Exception:
+            #         pass
 
 
 
@@ -4507,7 +4506,8 @@ class Get_profiledata_Matching(models.Model):
 
             # Has photos
             if has_photos and has_photos.lower() == "yes":
-                base_query += " AND i.image IS NOT NULL"
+                base_query += " AND EXISTS (SELECT 1 FROM profile_images pi WHERE pi.profile_id = a.ProfileId)"
+
 
             # Membership plan filter
             if membership:
