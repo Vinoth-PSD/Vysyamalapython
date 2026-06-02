@@ -11967,10 +11967,19 @@ def profile_preview(request: HttpRequest, profile_token):
     profile = get_object_or_404(models.Registration1, ProfileId=profile_id)
 
     # Safely fetch profile image
+    # profile_images = models.Image_Upload.objects.filter(
+    #     profile_id=profile, image_approved=1, is_deleted=0
+    # ).first()
+    # profile_image_url = request.build_absolute_uri(profile_images.image.url) if profile_images else "N/A"
+   
     profile_images = models.Image_Upload.objects.filter(
-        profile_id=profile, image_approved=1, is_deleted=0
-    ).first()
-    profile_image_url = request.build_absolute_uri(profile_images.image.url) if profile_images else "N/A"
+    profile_id=profile, image_approved=1
+    ).exclude(is_deleted=1).first()
+
+    if profile_images:
+        profile_image_url = profile_images.image.url
+    else:
+        profile_image_url = "N/A"
 
     # Safely fetch related models
     try:
@@ -12043,7 +12052,8 @@ def profile_preview(request: HttpRequest, profile_token):
         "profile_height": safe_value(profile.Profile_height),
         "profile_education": safe_value(Profile_high_edu),
         "profile_profession": safe_value(Profile_profession),
-        "profile_image_url": final_image_url,
+        # "profile_image_url": final_image_url,
+        "profile_image_url": profile_image_url,
         "looking_for": looking_for,
         "star": safe_value(details.get('star_name')),
         "rasi": safe_value(details.get('rasi_name')),
