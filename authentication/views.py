@@ -4791,7 +4791,9 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
                 # print('no_of_image','1')
 
-                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()           
+                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1).filter(
+    Q(is_deleted=0) | Q(is_deleted__isnull=True)
+).first()
             
                 if get_entry:
                         # Serialize the single instance
@@ -4825,7 +4827,8 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
                         
                     
             else:
-                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0)[:10]
+                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1).filter(
+                Q(is_deleted=0) | Q(is_deleted__isnull=True))[:10]
                 if get_entry.exists():
                     # Serialize the single instance
                     serializer = serializers.ImageGetSerializer(get_entry,many=True)
@@ -4848,7 +4851,9 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
         # print('photo protection is true')
 
         if(no_of_image==1):
-            get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()   
+            get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1).filter(
+    Q(is_deleted=0) | Q(is_deleted__isnull=True)
+).first()
 
                 #print('get_entry',get_entry)        
                     
@@ -4875,7 +4880,9 @@ def Get_profile_image(user_profile_id,gender,no_of_image,photo_protection):
 
         else:
 
-                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()   
+                get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1).filter(
+    Q(is_deleted=0) | Q(is_deleted__isnull=True)
+).first()   
      
                     
                 if get_entry:
@@ -4917,7 +4924,9 @@ def get_default_or_blurred_image(user_profile_id,gender):
             default_img_groom='default_groom.png'
             default_lock='default_photo_protect.png'
 
-            get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()   
+            get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1).filter(
+    Q(is_deleted=0) | Q(is_deleted__isnull=True)
+).first()   
 
                 #print('get_entry',get_entry)        
                     
@@ -4953,14 +4962,18 @@ def Get_image_profile(user_profile_id):
 
     # Default to the appropriate image based on gender
     if not photo_protection:
-        get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()
+        get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1).filter(
+    Q(is_deleted=0) | Q(is_deleted__isnull=True)
+).first()
         if get_entry:
             serializer = serializers.ImageGetSerializer(get_entry)
             return serializer.data['image']
         
         return base_url + (default_img_groom if gender.lower() == 'male' else default_img_bride)
     
-    get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1,is_deleted=0).first()
+    get_entry = models.Image_Upload.objects.filter(profile_id=user_profile_id,image_approved=1).filter(
+    Q(is_deleted=0) | Q(is_deleted__isnull=True)
+).first()
     if get_entry:
         serializer = serializers.ImageGetSerializer(get_entry)
         img_base64 = get_blurred_image(serializer.data['image'])
