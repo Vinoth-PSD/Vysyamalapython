@@ -5279,10 +5279,16 @@ def get_family_status(family_status_id):
     return family_status.status if family_status else "N/A"
 
 def get_annual_income(anual_income_id, actual_income):
-    if actual_income and actual_income not in [None,"0", "N/A","~"]:
-        return actual_income if actual_income else "N/A"
-    income = AnnualIncome.objects.filter(id=anual_income_id).first()
-    return income.income if income else (actual_income if actual_income else "N/A")
+    if actual_income and actual_income not in [None, "0", "N/A", "~", ""]:
+        return actual_income
+    if not anual_income_id or str(anual_income_id).strip() in ["", "0", "N/A", "~"]:
+        return "N/A"
+    try:
+        income_id = int(float(str(anual_income_id).strip()))
+        income = AnnualIncome.objects.filter(id=income_id).first()
+        return income.income if income else "N/A"
+    except (ValueError, TypeError):
+        return "N/A"
 
 def get_location(city,state_id,country_id):
     location=[]
@@ -6010,9 +6016,9 @@ class Get_visibility_list_match(APIView):
             start=0,
             per_page=100000,  # Get all then paginate
             order_by=order_by,
-            profession=request.data.get('profession'),  # ✅ renamed
-            age_from=request.data.get('from_age'),      # ✅ renamed
-            age_to=request.data.get('to_age'),          # ✅ renamed
+            profession=request.data.get('profession') or request.data.get('search_profession'),
+            age_from=request.data.get('age_from') or request.data.get('from_age'),
+            age_to=request.data.get('age_to') or request.data.get('to_age'),
             education=request.data.get('education'),
             foreign_intrest=request.data.get('foreign_intrest'),
             height_from=request.data.get('height_from'),
@@ -6023,7 +6029,7 @@ class Get_visibility_list_match(APIView):
             chev=request.data.get('chev'),
             marital_status=request.data.get('marital_status'),
             family_status=request.data.get('family_status'),
-            field_of_study=request.data.get('pref_fieldof_study'),
+            field_of_study=request.data.get('field_of_study') or request.data.get('pref_fieldof_study'),
             degree=request.data.get('degree')
         )
 
