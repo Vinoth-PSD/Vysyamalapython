@@ -21830,3 +21830,31 @@ class NotificationAction(APIView):
                 "Status": 0,
                 "message": str(e)
             })
+
+from rest_framework.pagination import PageNumberPagination
+
+class AdminAllNotificationsPage(APIView):
+    def get(self, request):
+        notifications = AdminNotification.objects.all().order_by('-created_at')
+        
+        paginator = PageNumberPagination()
+        paginator.page_size = 10
+        paginated = paginator.paginate_queryset(notifications, request)
+        
+        data = [
+            {
+                "id": n.id,
+                "from_profile": n.from_profile,
+                "message": n.message,
+                "created_at": n.created_at,
+                "is_read": n.is_read,
+                "is_cleared": n.is_cleared,
+                "notification_type": n.notification_type
+            }
+            for n in paginated
+        ]
+        return paginator.get_paginated_response({
+            "Status": 1,
+            "message": "All notifications fetched",
+            "data": data
+        })

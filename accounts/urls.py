@@ -363,6 +363,9 @@ path(
         name='admin_hide_profile_notifications'
     ),
 
+    path('get_all_notifications_page/', views.AdminAllNotificationsPage.as_view(), name='admin_all_notifications_page'),
+
+
     path(
     "website-performance-report/",
     views.WebsitePerformanceReport.as_view(),
