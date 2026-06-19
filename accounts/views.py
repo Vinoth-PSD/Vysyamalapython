@@ -10651,7 +10651,11 @@ class AdminProfilePDFView(APIView):
         
         final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
         try:
-            degree= get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)
+            degree_name = get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)
+            about_edu_val = education_details.about_edu or ''
+            degree_clean = strip_degree_expansion(degree_name) if degree_name and degree_name != 'N/A' else ''
+            degree = (degree_clean + '  ' + about_edu_val).strip() or None
+            # degree= get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)
         except Exception:
             degree=None
 
@@ -11068,7 +11072,11 @@ class AdminMatchProfilePDFView(APIView):
                     no_of_brother = 'No'
 
                 try:
-                    degree = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
+                    degree_name = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
+                    about_edu_val = education_details.about_edu or ''
+                    degree_clean = strip_degree_expansion(degree_name) if degree_name and degree_name != 'N/A' else ''
+                    degree = (degree_clean + '  ' + about_edu_val).strip() or None
+                    # degree = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
                 except Exception:
                     degree = None
 
