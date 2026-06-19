@@ -11991,7 +11991,8 @@ def profile_preview(request: HttpRequest, profile_token):
 
     if profile_images:
         # profile_image_url = profile_images.image.url
-        profile_image_url = request.build_absolute_uri(profile_images.image.url)
+        img_url = profile_images.image.url
+        profile_image_url = img_url if img_url.startswith('http') else request.build_absolute_uri(img_url)
     else:
         profile_image_url = settings.MEDIA_URL + ('default_groom.png' if profile.Gender.lower() == 'male' else 'default_bride.png')
 
