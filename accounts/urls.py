@@ -364,7 +364,7 @@ path(
     ),
 
     path('get_all_notifications_page/', views.AdminAllNotificationsPage.as_view(), name='admin_all_notifications_page'),
-
+    path('duplicate_profile_check/', views.DuplicateProfileCheck.as_view(), name='duplicate_profile_check'),
 
     path(
     "website-performance-report/",

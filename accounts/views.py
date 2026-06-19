@@ -3628,8 +3628,8 @@ class GetProfEditDetailsAPIView(APIView):
         mutual_condition = Q(status=2) & (Q(profile_from=profile_id) | Q(profile_to=profile_id))
         # personal_notes_condition={'status': 1,'profile_id':profile_id}
         # wishlist_condition = {'status': 1,'profile_from':profile_id}
-        received_intrests_count = {'status': 1,'profile_to':profile_id}
-        sent_intrest_count = {'status': 1,'profile_from':profile_id}
+        received_intrests_count = {'profile_to':profile_id}
+        sent_intrest_count = {'profile_from':profile_id}
         viewed_profile_count = {'status': 1,'profile_id':profile_id}
         my_vistor_count = {'status': 1,'viewed_profile':profile_id}
         photo_int_count = {'status': 1,'profile_to':profile_id}
@@ -21901,4 +21901,62 @@ class AdminAllNotificationsPage(APIView):
             "Status": 1,
             "message": "All notifications fetched",
             "data": data
+        })
+
+
+class DuplicateProfileCheck(APIView):
+
+    def post(self, request):
+        profile_id = request.data.get('profile_id')
+
+        if not profile_id:
+            return JsonResponse({
+                "Status": 0,
+                "message": "profile_id is required"
+            }, status=400)
+
+        # Get the profile
+        try:
+            profile = Registration1.objects.get(ProfileId=profile_id)
+        except Registration1.DoesNotExist:
+            return JsonResponse({
+                "Status": 0,
+                "message": "Profile not found"
+            }, status=404)
+
+        gender = profile.Gender
+        dob = profile.Profile_dob
+
+        if not dob:
+            return JsonResponse({
+                "Status": 0,
+                "message": "Date of Birth not set for this profile"
+            }, status=400)
+
+        # Find all profiles with same gender and same DOB, excluding current profile
+        duplicates = Registration1.objects.filter(
+            Gender=gender,
+            Profile_dob=dob
+        ).exclude(ProfileId=profile_id).values(
+            'ProfileId', 'Profile_name', 'Gender', 'Profile_dob'
+        )
+
+        result = [
+            {
+                "profile_id": p['ProfileId'],
+                "name": p['Profile_name'],
+                "gender": p['Gender'],
+                "dob": p['Profile_dob']
+            }
+            for p in duplicates
+        ]
+
+        return JsonResponse({
+            "Status": 1,
+            "message": "Duplicate profiles fetched successfully",
+            "profile_id": profile_id,
+            "gender": gender,
+            "dob": str(dob),
+            "duplicate_count": len(result),
+            "duplicates": result
         })

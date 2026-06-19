@@ -11990,9 +11990,10 @@ def profile_preview(request: HttpRequest, profile_token):
     ).exclude(is_deleted=1).first()
 
     if profile_images:
-        profile_image_url = profile_images.image.url
+        # profile_image_url = profile_images.image.url
+        profile_image_url = request.build_absolute_uri(profile_images.image.url)
     else:
-        profile_image_url = "N/A"
+        profile_image_url = settings.MEDIA_URL + ('default_groom.png' if profile.Gender.lower() == 'male' else 'default_bride.png')
 
     # Safely fetch related models
     try:
@@ -12067,7 +12068,7 @@ def profile_preview(request: HttpRequest, profile_token):
         "profile_profession": safe_value(Profile_profession),
         # "profile_image_url": final_image_url,
         "profile_image_url": profile_image_url,
-        "display_image_url": settings.MEDIA_URL + ('default_groom.png' if details.get('Gender', '').lower() == 'male' else 'default_bride.png'),
+        "display_image_url": settings.MEDIA_URL + ('default_groom.png' if profile.Gender.lower() == 'male' else 'default_bride.png'),
         "looking_for": looking_for,
         "star": safe_value(details.get('star_name')),
         "rasi": safe_value(details.get('rasi_name')),
@@ -15228,6 +15229,12 @@ class HomepageListView(APIView):
         else:
             return JsonResponse({'status': 'error', 'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
+def strip_degree_expansion(degree_str):
+    import re
+    if not degree_str:
+        return degree_str
+    return re.sub(r'\s*\(.*?\)', '', degree_str).strip()
+
 def get_degree_name(degree_ids, other_degree,highest_edu,field_ofstudy_id,about_edu):
         if not degree_ids or degree_ids in [None, '', '0',86]:
             # If only other_degree is provided, return it directly
@@ -15332,7 +15339,11 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 """
 
                 try:
-                    degree = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
+                    degree_name = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
+                    about_edu = education_details.about_edu or ''
+                    degree_clean = strip_degree_expansion(degree_name) if degree_name and degree_name != 'N/A' else ''
+                    degree = (degree_clean + '  ' + about_edu).strip() or None
+                    # degree = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
                 except Exception:
                     degree = None
 
@@ -16066,11 +16077,18 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                         <!-- ══════════════ PAGE 1 ══════════════ -->
                         <table class="header">
                             <tr>
+                                <td style="text-align:right; padding:0 0 2px 0;">
+                                    <p style="font-size:11px; font-weight:700; color:#8B0000; margin:0;">Profile ID: {user_profile_id}</p>
+                                </td>
+                            </tr>
+                            <tr>
                                 <td class="header-left">
                                     <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader-bg-white.png" alt="Vysyamala Logo">
                                 </td>
                             </tr>
                         </table>
+
+
 
                         <div class="details-section">
                             <table class="outer2">
@@ -16531,7 +16549,11 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart.pd
                         <p>Email: {login_details.EmailId or 'N/A'}</p>
                 """
                 try:
-                    degree= get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)  
+                    degree_name = get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)
+                    about_edu = education_details.about_edu or ''
+                    degree_clean = strip_degree_expansion(degree_name) if degree_name and degree_name != 'N/A' else ''
+                    degree = (degree_clean + '  ' + about_edu).strip() or None
+                    # degree= get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)  
                 except Exception:
                     degree=None
                     
@@ -17312,11 +17334,18 @@ table.upload-horo-image {{
                         <!-- ══════════════ PAGE 1 ══════════════ -->
                         <table class="header">
                             <tr>
+                                <td style="text-align:right; padding:0 0 2px 0;">
+                                    <p style="font-size:11px; font-weight:700; color:#8B0000; margin:0;">Profile ID: {user_profile_id}</p>
+                                </td>
+                            </tr>
+                            <tr>
                                 <td class="header-left">
                                     <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader-bg-white.png" alt="Vysyamala Logo">
                                 </td>
                             </tr>
                         </table>
+
+
 
                         <div class="details-section">
                             <table class="outer2">
@@ -21452,7 +21481,11 @@ def New_horoscope_color(request, user_profile_id, my_profile_id, filename="Horos
                     mobile_email_content = "<p>Get full access - upgrade your package today</p>"
 
                 try:
-                    degree = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
+                    degree_name = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
+                    about_edu = education_details.about_edu or ''
+                    degree_clean = strip_degree_expansion(degree_name) if degree_name and degree_name != 'N/A' else ''
+                    degree = (degree_clean + '  ' + about_edu).strip() or None
+                    # degree = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
                 except Exception:
                     degree = None
 
@@ -22211,11 +22244,18 @@ def New_horoscope_color(request, user_profile_id, my_profile_id, filename="Horos
                         <!-- ══════════════ PAGE 1 ══════════════ -->
                         <table class="header">
                             <tr>
+                                <td style="text-align:right; padding:0 0 2px 0;">
+                                    <p style="font-size:11px; font-weight:700; color:#8B0000; margin:0;">Profile ID: {user_profile_id}</p>
+                                </td>
+                            </tr>
+                            <tr>
                                 <td class="header-left">
                                     <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader-bg-white.png" alt="Vysyamala Logo">
                                 </td>
                             </tr>
                         </table>
+
+
 
                         <div class="details-section">
                             <table class="outer2">
@@ -22400,7 +22440,11 @@ def New_horoscope_black(request, user_profile_id, my_profile_id, filename="Horos
                     mobile_email_content = "<p>Get full access - upgrade your package today</p>"
 
                 try:
-                    degree = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
+                    degree_name = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
+                    about_edu = education_details.about_edu or ''
+                    degree_clean = strip_degree_expansion(degree_name) if degree_name and degree_name != 'N/A' else ''
+                    degree = (degree_clean + '  ' + about_edu).strip() or None
+                    # degree = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
                 except Exception:
                     degree = None
 
@@ -23156,11 +23200,18 @@ table.compat-note-table {{
                         <!-- ══════════════ PAGE 1 ══════════════ -->
                         <table class="header">
                             <tr>
+                                <td style="text-align:right; padding:0 0 2px 0;">
+                                    <p style="font-size:11px; font-weight:700; color:#8B0000; margin:0;">Profile ID: {user_profile_id}</p>
+                                </td>
+                            </tr>
+                            <tr>
                                 <td class="header-left">
                                     <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/horoHeader-bg-white.png" alt="Vysyamala Logo">
                                 </td>
                             </tr>
                         </table>
+
+
 
                         <div class="details-section">
                             <table class="outer2">
