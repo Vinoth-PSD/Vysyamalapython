@@ -12067,6 +12067,7 @@ def profile_preview(request: HttpRequest, profile_token):
         "profile_profession": safe_value(Profile_profession),
         # "profile_image_url": final_image_url,
         "profile_image_url": profile_image_url,
+        "display_image_url": settings.MEDIA_URL + ('default_groom.png' if details.get('Gender', '').lower() == 'male' else 'default_bride.png'),
         "looking_for": looking_for,
         "star": safe_value(details.get('star_name')),
         "rasi": safe_value(details.get('rasi_name')),
@@ -14926,9 +14927,22 @@ class Profile_other_fields(APIView):
                 education_instance.career_plans = career_plans
                 education_instance.save()
             
-            if anual_income  or anual_income is not None:
-                education_instance.anual_income = anual_income
-                education_instance.save()
+            # if anual_income  or anual_income is not None:
+            #     education_instance.anual_income = anual_income
+            #     education_instance.save()
+            if anual_income is not None:
+                if anual_income == "":         # ← add this
+                    pass                       # ← skip, don't save
+                else:
+                    try:
+                        anual_income_int = int(anual_income)
+                        if models.Annualincome.objects.filter(id=anual_income_int).exists():
+                            education_instance.anual_income = anual_income_int
+                            education_instance.save()
+                        else:
+                            return JsonResponse({"status": "error", "message": "Invalid annual income ID"}, status=400)
+                    except (ValueError, TypeError):
+                        return JsonResponse({"status": "error", "message": "Annual income must be a numeric ID"}, status=400)
             
             if property_worth  or property_worth is not None:
                 family_instance.property_worth = property_worth

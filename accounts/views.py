@@ -1232,6 +1232,7 @@ class Newprofile_get(generics.ListAPIView):
         search_query = self.request.query_params.get('search', None)
         page_id=self.request.query_params.get('page_name', None)
         plan_ids=self.request.query_params.get('plan_ids', None)
+        delete_reason=self.request.query_params.get('delete_reason', None)
         numeric_page_id = int(page_id) if page_id and page_id.isdigit() else None
         plan_id_list_new = [] 
         if plan_ids: 
@@ -1414,6 +1415,10 @@ class Newprofile_get(generics.ListAPIView):
                 placeholders = ','.join(['%s'] * len(plan_id_list))
                 sql += f" AND ld.Plan_id IN ({placeholders})"
                 params.extend(plan_id_list)
+        # Filter by delete reason (secondary_status) — only for deleted profiles (page_name=4)
+        if numeric_page_id == 4 and delete_reason and delete_reason.isdigit():
+            sql += " AND ld.secondary_status = %s"
+            params.append(int(delete_reason))
         if numeric_page_id in [4, 3, 2] or (numeric_page_id == 1 and plan_ids in [None, '']):
             sql += " ORDER BY dh.deleted_date DESC"
         elif numeric_page_id == 1 and 8 in plan_id_list_new:
@@ -3587,6 +3592,7 @@ class GetProfEditDetailsAPIView(APIView):
                 "profile_owner_id":login_detail.Owner_id,
                 "profile_owner":get_owner_name(login_detail.Owner_id),
                 "membership_status":get_mem_status(login_detail.ProfileId),
+                "created_by":get_profile_relation(login_detail.Profile_for),
                 "profile_relation":get_profile_relation(login_detail.Profile_for),
                 "others":get_others(login_detail.ProfileId,login_detail.status)
                 #"myself":myself
@@ -4295,7 +4301,8 @@ class QuickUploadAPIView(generics.ListAPIView):
     pagination_class = StandardResultsPaging
 
     def get_queryset(self):
-        quick_upload_data = LoginDetails.objects.filter(quick_registration='1').order_by('-DateOfJoin')
+        # quick_upload_data = LoginDetails.objects.filter(quick_registration='1').order_by('-DateOfJoin')
+        quick_upload_data = LoginDetails.objects.filter(quick_registration='1', status=0).order_by('-DateOfJoin')
         return quick_upload_data
 
     def list(self, request, *args, **kwargs):
@@ -7407,7 +7414,7 @@ class Exp_intrests_list(APIView):
 
             try:
                 # Base query for Express Interests
-                query = Express_interests.objects.filter(profile_from=profile_id, status=1)
+                query = Express_interests.objects.filter(profile_from=profile_id)
 
                 # # Filter by date if provided
                 # if from_date:
@@ -7460,6 +7467,16 @@ class Exp_intrests_list(APIView):
                             "myint_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "myint_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "myint_profile_wishlist": Get_wishlist(profile_id, detail.get("ProfileId")),
+                            "myint_interest_status": next((
+                            {
+                                0: "Removed",
+                                1: "Pending",
+                                2: "Accepted",
+                                3: "Rejected"
+                            }.get(ei.status, "Pending")
+                            for ei in fetch_data
+                            if ei.profile_to == detail.get("ProfileId")
+                        ), "Pending"),
                         }
                         for detail in profile_details
                     ]
@@ -7494,7 +7511,7 @@ class Exp_intrests_received(APIView):
 
             try:
                 # Base query for Express Interests
-                query = Express_interests.objects.filter(profile_to=profile_id, status=1)
+                query = Express_interests.objects.filter(profile_to=profile_id)
 
                 # Filter by date if provided
                 # if from_date:
@@ -7546,6 +7563,16 @@ class Exp_intrests_received(APIView):
                             "myint_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
                             "myint_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
                             "myint_profile_wishlist": Get_wishlist(profile_id, detail.get("ProfileId")),
+                            "myint_interest_status": next((
+                                {
+                                    0: "Removed",
+                                    1: "Pending",
+                                    2: "Accepted",
+                                    3: "Rejected"
+                                }.get(ei.status, "Pending")
+                                for ei in fetch_data
+                                if ei.profile_from == detail.get("ProfileId")
+                            ), "Pending"),
                         }
                         for detail in profile_details
                     ]
@@ -10068,6 +10095,12 @@ def get_district_name(district_id):
         return district_id  # Return city_id if the city does not exist
     except Exception as e:
         return district_id 
+    
+def strip_degree_expansion(degree_str):
+    import re
+    if not degree_str:
+        return degree_str
+    return re.sub(r'\s*\(.*?\)', '', degree_str).strip()
 
 def get_degree_name(degree_ids, other_degree,highest_edu,field_ofstudy_id,about_edu):
         if not degree_ids:
@@ -10084,7 +10117,9 @@ def get_degree_name(degree_ids, other_degree,highest_edu,field_ofstudy_id,about_
             print(" degree")
             if other_degree:
                 degree_names.append(other_degree)
-            final_names = ", ".join(degree_names) if degree_names else None
+            # final_names = ", ".join(degree_names) if degree_names else None
+            # AFTER
+            final_names = ", ".join([strip_degree_expansion(d) for d in degree_names]) if degree_names else None
             if final_names:
                 return final_names
             else:
@@ -10114,8 +10149,9 @@ def degree(degree_ids,other_degree):
         )
         if other_degree:
             degree_names.append(other_degree)
-        final_names = ", ".join(degree_names) if degree_names else None
-        
+        # final_names = ", ".join(degree_names) if degree_names else None
+        final_names = ", ".join([strip_degree_expansion(d) for d in degree_names]) if degree_names else None
+             
         if final_names==None:
             return "N/A"
         else:
