@@ -1449,6 +1449,7 @@ class NewProfileExportAPI(APIView):
         page_name = request.query_params.get("page_name", "")
         plan_ids = request.query_params.get("plan_ids", "")
         search_query = request.query_params.get("search")
+        delete_reason = request.query_params.get("delete_reason", None)
 
         if export_type not in ("csv", "xlsx"):
             return Response({"error": "Invalid export type"}, status=400)
@@ -1465,14 +1466,16 @@ class NewProfileExportAPI(APIView):
         headers = EXPORT_HEADER_CONFIG.get((page_name, export_key)) \
                   or EXPORT_HEADER_CONFIG.get((page_name, ""))
 
-        rows = self.get_export_queryset(page_name, plan_ids, search_query)
+        # rows = self.get_export_queryset(page_name, plan_ids, search_query)
+        rows = self.get_export_queryset(page_name, plan_ids, search_query, delete_reason)
+
 
         if export_type == "csv":
             return export_csv_from_dict(rows, headers)
 
         return export_xlsx_from_dict(rows, headers)
 
-    def get_export_queryset(self, page_id, plan_ids, search_query):
+    def get_export_queryset(self, page_id, plan_ids, search_query,delete_reason=None):
         status_id = int(page_id or 0)
         params = []
 
@@ -1552,6 +1555,10 @@ class NewProfileExportAPI(APIView):
             placeholders = ",".join(["%s"] * len(plan_list))
             sql += f" AND ld.Plan_id IN ({placeholders})"
             params.extend(plan_list)
+            
+        if page_id == "4" and delete_reason and delete_reason.isdigit():
+            sql += " AND ld.secondary_status = %s"
+            params.append(int(delete_reason))
 
         sql += " ORDER BY ld.DateOfJoin DESC"
 
@@ -21904,40 +21911,107 @@ class AdminAllNotificationsPage(APIView):
         })
 
 
+# class DuplicateProfileCheck(APIView):
+
+#     def post(self, request):
+#         profile_id = request.data.get('profile_id')
+
+#         if not profile_id:
+#             return JsonResponse({
+#                 "Status": 0,
+#                 "message": "profile_id is required"
+#             }, status=400)
+
+#         # Get the profile
+#         try:
+#             profile = Registration1.objects.get(ProfileId=profile_id)
+#         except Registration1.DoesNotExist:
+#             return JsonResponse({
+#                 "Status": 0,
+#                 "message": "Profile not found"
+#             }, status=404)
+
+#         gender = profile.Gender
+#         dob = profile.Profile_dob
+
+#         if not dob:
+#             return JsonResponse({
+#                 "Status": 0,
+#                 "message": "Date of Birth not set for this profile"
+#             }, status=400)
+
+#         # Find all profiles with same gender and same DOB, excluding current profile
+#         duplicates = Registration1.objects.filter(
+#             Gender=gender,
+#             Profile_dob=dob
+#         ).exclude(ProfileId=profile_id).values(
+#             'ProfileId', 'Profile_name', 'Gender', 'Profile_dob'
+#         )
+
+#         result = [
+#             {
+#                 "profile_id": p['ProfileId'],
+#                 "name": p['Profile_name'],
+#                 "gender": p['Gender'],
+#                 "dob": p['Profile_dob']
+#             }
+#             for p in duplicates
+#         ]
+
+#         return JsonResponse({
+#             "Status": 1,
+#             "message": "Duplicate profiles fetched successfully",
+#             "profile_id": profile_id,
+#             "gender": gender,
+#             "dob": str(dob),
+#             "duplicate_count": len(result),
+#             "duplicates": result
+#         })
+
+
+
+
+
+
 class DuplicateProfileCheck(APIView):
 
     def post(self, request):
         profile_id = request.data.get('profile_id')
+        dob = request.data.get('dob')
+        gender = request.data.get('gender')
 
-        if not profile_id:
+        if not dob or not gender:
             return JsonResponse({
                 "Status": 0,
-                "message": "profile_id is required"
+                "message": "dob and gender are required"
             }, status=400)
 
-        # Get the profile
-        try:
-            profile = Registration1.objects.get(ProfileId=profile_id)
-        except Registration1.DoesNotExist:
+        # Profile_dob is stored as a CharField in 'YYYY-MM-DD' format.
+        # Normalize incoming dob (handles '01/01/1997', '1997-01-01', etc.)
+        normalized_dob = None
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%m/%d/%Y"):
+            try:
+                normalized_dob = datetime.strptime(dob, fmt).strftime("%Y-%m-%d")
+                break
+            except ValueError:
+                continue
+
+        if not normalized_dob:
             return JsonResponse({
                 "Status": 0,
-                "message": "Profile not found"
-            }, status=404)
-
-        gender = profile.Gender
-        dob = profile.Profile_dob
-
-        if not dob:
-            return JsonResponse({
-                "Status": 0,
-                "message": "Date of Birth not set for this profile"
+                "message": "Invalid dob format. Use YYYY-MM-DD or DD/MM/YYYY"
             }, status=400)
 
         # Find all profiles with same gender and same DOB, excluding current profile
         duplicates = Registration1.objects.filter(
-            Gender=gender,
-            Profile_dob=dob
-        ).exclude(ProfileId=profile_id).values(
+            Gender__iexact=gender,
+            Profile_dob=normalized_dob
+        )
+
+        if profile_id:
+            duplicates = duplicates.exclude(ProfileId=profile_id)
+
+        duplicates = duplicates.values(
             'ProfileId', 'Profile_name', 'Gender', 'Profile_dob'
         )
 
@@ -21956,7 +22030,7 @@ class DuplicateProfileCheck(APIView):
             "message": "Duplicate profiles fetched successfully",
             "profile_id": profile_id,
             "gender": gender,
-            "dob": str(dob),
+            "dob": normalized_dob,
             "duplicate_count": len(result),
             "duplicates": result
         })
