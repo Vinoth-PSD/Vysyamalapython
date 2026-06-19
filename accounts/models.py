@@ -1787,9 +1787,12 @@ class Get_profiledata_Matching(models.Model):
                 # Foreign interest
                 if pref_foreign and pref_foreign.strip().lower() in ['yes', 'no']:
                     if pref_foreign.lower() == "yes":
-                        base_query += "  AND (f.work_country != '1' OR a.Profile_country!='1')"
+                        # base_query += "  AND (f.work_country != '1' OR a.Profile_country!='1')"
+                        base_query += "  AND (f.work_country != '1' AND f.work_country IS NOT NULL AND f.work_country != '' OR a.Profile_country != '1' AND a.Profile_country IS NOT NULL AND a.Profile_country != '')"
                     elif pref_foreign.lower() == "no":
-                        base_query += "  AND (f.work_country = '1' OR a.Profile_country='1')"
+                        # base_query += "  AND (f.work_country = '1' OR a.Profile_country='1')"
+                        base_query += "  AND (a.Profile_country = '1' AND (f.work_country = '1' OR f.work_country IS NULL OR f.work_country = ''))"
+
                 
                 conditions = []
                 # print('ragu',ragu)
@@ -2133,9 +2136,12 @@ class Get_profiledata_Matching(models.Model):
             pref_foreign =foreign_intrest or partner_pref_foreign_interest
             if pref_foreign and pref_foreign.strip().lower() in ['yes', 'no']:
                 if pref_foreign.lower() == "yes":
-                    base_query += " AND (f.work_country != '1' OR a.Profile_country!='1')"
+                    # base_query += " AND (f.work_country != '1' OR a.Profile_country!='1')"
+                    base_query += " AND ((f.work_country != '1' AND f.work_country IS NOT NULL AND f.work_country != '') OR (a.Profile_country != '1' AND a.Profile_country IS NOT NULL AND a.Profile_country != ''))"
                 elif pref_foreign.lower() == "no":
-                    base_query += " AND (f.work_country = '1' OR a.Profile_country='1')"
+                    # base_query += " AND (f.work_country = '1' OR a.Profile_country='1')"
+                    base_query += " AND ((f.work_country != '1' AND f.work_country IS NOT NULL AND f.work_country != '') OR (a.Profile_country != '1' AND a.Profile_country IS NOT NULL AND a.Profile_country != ''))"
+
 
             # if ragu == 'yes':
             #     base_query += " AND LOWER(e.ragu_dosham) = 'yes'"
