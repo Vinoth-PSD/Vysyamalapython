@@ -24119,3 +24119,27 @@ class AllFeaturedProfile(APIView):
 
         except Exception as e:
             return JsonResponse({"Status": 0, "message": f"An error occurred: {e}"}, status=status.HTTP_200_OK)
+
+class MarriagesCelebratedCount(APIView):
+
+    def get(self, request):
+        BASE_COUNT = 11510
+
+        marriage_settled_count = LoginDetails.objects.filter(
+            status=4, secondary_status=20
+        ).count()
+
+        got_married_count = LoginDetails.objects.filter(
+            status=4, secondary_status=21
+        ).count()
+
+        total_count = BASE_COUNT + marriage_settled_count + got_married_count
+
+        return JsonResponse({
+            "Status": 1,
+            "message": "Marriages celebrated count fetched successfully",
+            "base_count": BASE_COUNT,
+            "marriage_settled_count": marriage_settled_count,
+            "got_married_count": got_married_count,
+            "total_marriages_celebrated": total_count
+        })

@@ -265,6 +265,8 @@ urlpatterns = [
     path('hide-profile/', views.HideProfileView.as_view(), name='hide_profile'),
     path('random-grooms/',views.RandomGroomProfiles.as_view(),      name='random-grooms'),
     path('random-brides/',views.RandomBrideProfiles.as_view(),      name='random-brides'),
+    path('marriages-celebrated-count/', views.MarriagesCelebratedCount.as_view(), name='marriages-celebrated-count'),
+
 
 
     
