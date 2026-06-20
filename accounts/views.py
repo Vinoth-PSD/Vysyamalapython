@@ -8561,6 +8561,9 @@ class ShortProfilePDFView(APIView):
                 return default
             return model.objects.filter(**{lookup_field: id_value}).values_list(return_field, flat=True).first() or default
 
+        def format_cell(value):
+            return str(value).replace('/', '<br>')
+
         complexion = get_safe_value(Complexion, 'complexion_id', login.Profile_complexion, 'complexion_desc')
         birthstar = get_safe_value(BirthStar, 'id', horoscope.birthstar_name, 'star')
 
@@ -8573,8 +8576,24 @@ class ShortProfilePDFView(APIView):
           <style>
             body {{ font-family: Arial, sans-serif; }}
             .details p {{ font-size: 14px; margin: 5px 0; }}
+            .profile-id-highlight {{
+                font-size: 18px;
+                font-weight: bold;
+                padding: 8px 0;
+                margin-bottom: 10px;
+            }}
+            h4.rasi-heading {{
+                font-size: 16px;
+                font-weight: bold;
+                color: #000;
+                text-decoration: none;
+                margin: 15px 0 8px 0;
+            }}
             .rasi-kattam td {{
                 width: 60px; height: 50px; text-align: center; border: 1px solid #000;
+                font-size: 13px;
+                font-weight: bold;
+                line-height: 1.2;
             }}
             table.rasi-kattam {{
                 border-collapse: collapse;
@@ -8582,8 +8601,7 @@ class ShortProfilePDFView(APIView):
           </style>
         </head>
         <body>
-          <h2>Short Profile PDF</h2>
-          <p><strong>Profile ID:</strong> {profile_id}</p>
+          <p class="profile-id-highlight">Profile ID: {profile_id}</p>
           <div class="details">
             <p><strong>Name:</strong> {login.Profile_name}</p>
             <p><strong>DOB:</strong> {login.Profile_dob}</p>
@@ -8591,19 +8609,23 @@ class ShortProfilePDFView(APIView):
             <p><strong>Complexion:</strong> {complexion}</p>
             <p><strong>Birth Star:</strong> {birthstar}</p>
           </div>
-          <h4>Rasi Kattam</h4>
+          <h4 class="rasi-heading">Rasi Kattam</h4>
           <table class="rasi-kattam">
-            <tr><td>{rasi_kattam[0]}</td><td>{rasi_kattam[1]}</td><td>{rasi_kattam[2]}</td><td>{rasi_kattam[3]}</td></tr>
-            <tr><td>{rasi_kattam[11]}</td><td colspan="2" rowspan="2">Rasi</td><td>{rasi_kattam[4]}</td></tr>
-            <tr><td>{rasi_kattam[10]}</td><td>{rasi_kattam[5]}</td></tr>
-            <tr><td>{rasi_kattam[9]}</td><td>{rasi_kattam[8]}</td><td>{rasi_kattam[7]}</td><td>{rasi_kattam[6]}</td></tr>
+            <tr>
+              <td>{format_cell(rasi_kattam[0])}</td>
+              <td>{format_cell(rasi_kattam[1])}</td>
+              <td>{format_cell(rasi_kattam[2])}</td>
+              <td>{format_cell(rasi_kattam[3])}</td>
+            </tr>
+            <tr><td>{format_cell(rasi_kattam[11])}</td><td colspan="2" rowspan="2">Rasi</td><td>{format_cell(rasi_kattam[4])}</td></tr>
+            <tr><td>{format_cell(rasi_kattam[10])}</td><td>{format_cell(rasi_kattam[5])}</td></tr>
+            <tr><td>{format_cell(rasi_kattam[9])}</td><td>{format_cell(rasi_kattam[8])}</td><td>{format_cell(rasi_kattam[7])}</td><td>{format_cell(rasi_kattam[6])}</td></tr>
           </table>
         </body>
         </html>
         """
 
         return self.render_pdf(html_content, f"short_profile_{profile_id}.pdf")
-
     def generate_full_profile_pdf(self, profile_id):
         # Reuse short profile template or add more fields for full profile
         html_content = f"""
@@ -10960,6 +10982,8 @@ class AdminProfilePDFView(APIView):
             "withonlystar":       ("with_star_list.html",         "with_star_list_black.html"),
             "withcontactonly":    ("with_contact_only.html",      "with_contact_only_black.html"),
             "withoutcontactonly": ("without_contact_only.html",   "without_contact_only_black.html"),
+            "withaddressshort":   ("with_address_short.html",     "with_address_short_black.html"),
+
         }
 
         try:
