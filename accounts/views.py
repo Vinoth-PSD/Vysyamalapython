@@ -3634,7 +3634,7 @@ class GetProfEditDetailsAPIView(APIView):
 
         mutual_condition = Q(status=2) & (Q(profile_from=profile_id) | Q(profile_to=profile_id))
         # personal_notes_condition={'status': 1,'profile_id':profile_id}
-        # wishlist_condition = {'status': 1,'profile_from':profile_id}
+        wishlist_condition = {'status': 1,'profile_from':profile_id}
         received_intrests_count = {'profile_to':profile_id}
         sent_intrest_count = {'profile_from':profile_id}
         viewed_profile_count = {'status': 1,'profile_id':profile_id}
@@ -3647,7 +3647,7 @@ class GetProfEditDetailsAPIView(APIView):
 
         mutual_int_count = count_records_forQ(Express_interests, mutual_condition)
         # personal_notes_count = count_records(Profile_personal_notes, personal_notes_condition)
-        # wishlist_count = count_records(Profile_wishlists, wishlist_condition)
+        wishlist_count = count_records(Profile_wishlists, wishlist_condition)
         received_int_count = count_records(Express_interests, received_intrests_count)
         sent_int_count = count_records(Express_interests, sent_intrest_count)
         myvisitor_count = count_records(Profile_visitors, my_vistor_count)
@@ -3672,7 +3672,7 @@ class GetProfEditDetailsAPIView(APIView):
                 "exp_int_sentcount":sent_int_count,
                 "exp_int_reccount": received_int_count,
                 "mutual_int_count":mutual_int_count,
-                "shortlisted_count":0,
+                "shortlisted_count":wishlist_count,
                 "prsent_count":photo_int_count,
                 "varequest_count":vys_prof_count,
                 "visibility_count": visibility_count 
@@ -22034,3 +22034,100 @@ class DuplicateProfileCheck(APIView):
             "duplicate_count": len(result),
             "duplicates": result
         })
+
+
+
+# Wishlist Profiles - Admin List
+class Wishlist_profiles_list(APIView):
+
+    def post(self, request):
+        serializer = Profile_idValidationSerializer(data=request.data)
+
+        if serializer.is_valid():
+            profile_id = serializer.validated_data.get('profile_id')
+            page = int(request.data.get('page_number', 1))
+            per_page = int(request.data.get('per_page', 10))
+
+            try:
+                # Base query for Wishlist
+                query = Profile_wishlists.objects.filter(profile_from=profile_id, status=1)
+
+                all_profile_ids = {str(index + 1): pid for index, pid in enumerate(query.values_list('profile_to', flat=True))}
+
+                total_records = query.count()
+
+                start = (page - 1) * per_page
+                end = start + per_page
+
+                fetch_data = query.order_by('-marked_datetime')[start:end]
+
+                if fetch_data.exists():
+                    profile_ids = fetch_data.values_list('profile_to', flat=True)
+                    profile_details = get_profile_details(profile_ids)
+
+                    profile_data = Registration1.objects.get(ProfileId=profile_id)
+                    horo_data = ProfileHoroscope.objects.get(profile_id=profile_id)
+
+                    my_star_id = horo_data.birthstar_name
+                    my_rasi_id = horo_data.birth_rasi_name
+                    my_gender = profile_data.Gender
+
+                    wishlist_map = {
+                        str(w.profile_to): w.marked_datetime
+                        for w in fetch_data
+                    }
+
+                    restricted_profile_details = [
+                        {
+                            "wishlist_profileid": detail.get("ProfileId"),
+                            "wishlist_profile_name": detail.get("Profile_name"),
+                            "wishlist_Profile_img": Get_profile_image(detail.get("ProfileId"), my_gender, 1, 0),
+                            "wishlist_profile_age": calculate_age(detail.get("Profile_dob")),
+                            "wishlist_verified": detail.get("Profile_verified"),
+                            "wishlist_height": get_height_info(detail.get("Profile_height")),
+                            "wishlist_star": detail.get("star_name"),
+                            "wishlist_profession": getprofession(detail.get("profession")),
+                            "wishlist_city": detail.get("Profile_city"),
+                            "wishlist_degree": get_degree(detail.get("ug_degeree")),
+                            "wishlist_match_score": Get_matching_score(my_star_id, my_rasi_id, detail.get("birthstar_name"), detail.get("birth_rasi_name"), my_gender),
+                            "wishlist_views": count_records(Profile_visitors, {'status': 1, 'viewed_profile': detail.get("ProfileId")}),
+                            "wishlist_lastvisit": get_user_statusandlastvisit(detail.get("Last_login_date"))[0],
+                            "wishlist_userstatus": get_user_statusandlastvisit(detail.get("Last_login_date"))[1],
+                            "wishlist_horoscope": "Horoscope Available" if detail.get("horoscope_file") else "Horoscope Not Available",
+                            "wishlist_marked_date": wishlist_map.get(detail.get("ProfileId")),
+                        }
+                        for detail in profile_details
+                    ]
+
+                    return JsonResponse({
+                        "Status": 1,
+                        "message": "Wishlist profiles fetched successfully",
+                        "data": {
+                            "profiles": restricted_profile_details,
+                            "page": page,
+                            "per_page": per_page,
+                            "total_pages": (total_records + per_page - 1) // per_page,
+                            "total_records": total_records,
+                            "all_profile_ids": all_profile_ids,
+                        },
+                        "wishlist_count": total_records
+                    })
+                else:
+                    return JsonResponse({
+                        "Status": 1,
+                        "message": "No wishlist profiles found",
+                        "data": {
+                            "profiles": [],
+                            "page": page,
+                            "per_page": per_page,
+                            "total_pages": 0,
+                            "total_records": 0,
+                            "all_profile_ids": {},
+                        },
+                        "wishlist_count": 0
+                    })
+
+            except Exception as e:
+                return JsonResponse({"Status": 0, "message": str(e)}, status=500)
+        else:
+            return JsonResponse({"Status": 0, "message": serializer.errors}, status=400)
