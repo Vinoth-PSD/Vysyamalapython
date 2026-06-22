@@ -1,0 +1,19 @@
+{% if horoscope_original_only and horoscope_original_only != "empty" %}
+
+<div class="horo-last-page" style="page-break-before: always;">
+
+    <div class="upload-horo-bg">
+        <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/Horo-header-for-horoattached-format.png"/>
+    </div>
+
+    <div class="horo-image-center">
+        {{horoscope_original_only|safe}}
+    </div>
+
+    <div class="upload-horo-bg">
+        <img src="https://vysyamat.blob.core.windows.net/vysyamala/pdfimages/uploadHoroFooter.png"/>
+    </div>
+
+</div>
+
+{% endif %}

@@ -11381,7 +11381,8 @@ class GetFeaturedList(APIView):
 
         return JsonResponse({
             'status': 'success',
-            'total_count': total_count,
+            # 'total_count': total_count,
+            'total_count': len(final_data),
             'data': final_data,
             'received_per_page': received_per_page,
             'received_page_number': received_page_number,
@@ -11832,7 +11833,8 @@ def transform_data2(original_data,my_gender):
         "profile_name": original_data.get("Profile_name"),
         "profile_age": calculate_age(original_data.get("Profile_dob")),
         "profile_gender": original_data.get("Gender"),
-        "profile_img": Get_profile_image(original_data.get("ProfileId"),my_gender,1,original_data.get("Photo_protection")),
+        "profile_img": Get_profile_image(original_data.get("ProfileId"), 'female' if original_data.get("Gender", "").lower() == 'male' else 'male', 1, original_data.get("Photo_protection")),
+        # "profile_img": Get_profile_image(original_data.get("ProfileId"),my_gender,1,original_data.get("Photo_protection")),
         # "profile_height": original_data.get("Profile_height"),
         "profile_height": get_height_info(original_data.get("Profile_height")),
         "weight": original_data.get("weight"),  # You need to add this if you have this information

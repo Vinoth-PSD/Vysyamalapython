@@ -1426,7 +1426,7 @@ class Newprofile_get(generics.ListAPIView):
         elif numeric_page_id == 1:
             sql += " ORDER BY ld.membership_startdate DESC"
         elif numeric_page_id == 0:
-            sql += " ORDER BY ld.DateOfJoin DESC"
+            sql += " ORDER BY ld.DateOfJoin DESC, ld.ContentId DESC"
         elif page_id == "paid":                               # ✅ ADD THIS
             sql += " ORDER BY ld.membership_startdate DESC"  # ✅ ADD THIS
         else:
@@ -10767,7 +10767,21 @@ class AdminProfilePDFView(APIView):
                         horoscope_content_admin = "empty"
         else:
             horoscope_content_admin = "empty"
+
+        horoscope_original_only = "empty"
+        if horoscope_data.horoscope_file:
+            horoscope_image_url = horoscope_data.horoscope_file.url
+            if is_valid_file(horoscope_image_url):
+                if horoscope_image_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                    horoscope_original_only = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 400px; height: 430px; display: block; margin: 0 auto;">'
+                else:
+                    horoscope_original_only = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
+
+
+
+
                 # Get matching stars data
+
         birthstar = safe_get_value(models.BirthStar, 'id', horoscope_data.birthstar_name, 'star')
         birth_rasi = get_primary_sign(safe_get_value(models.Rasi, 'id', horoscope_data.birth_rasi_name, 'name'))
 
@@ -10956,6 +10970,7 @@ class AdminProfilePDFView(APIView):
             "profession":profession,
             "horoscope_content": horoscope_content,
             "horoscope_content_admin":horoscope_content_admin,
+            "horoscope_original_only": horoscope_original_only,
             "horo_hint":horo_hint,
             "rasi_kattam_data": rasi_kattam_data,
             "amsa_kattam_data": amsa_kattam_data,
