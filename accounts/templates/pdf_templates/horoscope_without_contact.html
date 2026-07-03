@@ -159,7 +159,7 @@
         <table class="add-info2"> 
             <tr>
             <td>
-                <p><b>Horoscope Hints: </b>{{horo_hint}}</p>
+                {% if horo_hint %}<p>{{horo_hint}}</p>{% endif %}
             </td>
             </tr>
         </table>
@@ -169,15 +169,15 @@
 <table class="outer2">
   <tr>
     <td>
-      <table class="add-info" style="">
+      <table class="add-info">
         <tr>
           <td style="border: 0">
             <p><strong>Address: </strong></p>
             <p><strong> {{ address|safe }}</strong></p>
           </td>
           <td>
-            <p>Mobile :<strong>{{ contact }}</strong></p>
-            <p>Alternate Mobile:<strong>{{ alternate_number }}</strong></p>
+            <p style="margin-bottom:5px">Mobile :<strong>{{ contact }}</strong></p>
+            <p >Mobile1:<strong>{{ alternate_number }}</strong></p>
             <p>Whatsapp:<strong>{{ whatsapp }}</strong></p>
             <p>Email:<strong>{{ email }}</strong></p>
           </td>

@@ -480,7 +480,6 @@ class Registrationstep2(APIView):
                 }
 
 
-
                 models.Registration1.objects.filter(ProfileId=profile_id).update(**registration_data)
                 reg = models.Registration1.objects.get(ProfileId=profile_id)
 
@@ -7959,8 +7958,11 @@ class GetMyProfilePersonal(APIView):
             profile_for_name = profile_for_mode.ModeName
 
             try:
-                marital_status = models.ProfileMaritalstatus.objects.get(StatusId=registration.Profile_marital_status)
-                marital_status_name = marital_status.MaritalStatus
+                if registration.Profile_marital_status not in (None, '', 0):
+                    marital_status = models.ProfileMaritalstatus.objects.get(StatusId=registration.Profile_marital_status)
+                    marital_status_name = marital_status.MaritalStatus
+                else:
+                    marital_status_name = None
             except models.ProfileMaritalstatus.DoesNotExist:
                 marital_status_name = None
 
@@ -15330,13 +15332,13 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     address_content = f"""
                         <p><b>Address:</b></p>
                         <p>{login_details.Profile_address}</p>
-                        <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
+                        <p>{get_district_name(login_details.Profile_district)} {get_city_name(login_details.Profile_city)}</p>
                         <p>{login_details.Profile_pincode}.</p>
                     """
 
                 mobile_email_content = f"""
-                        <p>Mobile: {login_details.Mobile_no or 'N/A'}</p>
-                        <p>Alternate Mobile: {login_details.Profile_alternate_mobile or 'N/A'}</p>
+                        <p style="margin-bottom:5px">Mobile: {login_details.Mobile_no or 'N/A'}</p>
+                        <p>Mobile1: {login_details.Profile_alternate_mobile or 'N/A'}</p>
                         <p>WhatsApp: {login_details.Profile_whatsapp or 'N/A'}</p>
                         <p>Email: {login_details.EmailId or 'N/A'}</p>
                 """
@@ -15435,12 +15437,26 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                 work_place = get_work_address(city=education_details.work_city, state=education_details.work_state, district=education_details.work_district, country=education_details.work_country)
                 occupation = ''
 
+                # try:
+                #     prof_id_int = int(profession_id)
+                #     if prof_id_int == 1:
+                #         occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                #     elif prof_id_int == 2:
+                #         occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                # except (ValueError, TypeError):
+                #     occupation = ''
+
+
                 try:
                     prof_id_int = int(profession_id)
                     if prof_id_int == 1:
-                        occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                        company = education_details.company_name or ''
+                        designation = education_details.designation or ''
+                        occupation = f"{company} / {designation}" if company and designation else company or designation
                     elif prof_id_int == 2:
-                        occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                        business_name = education_details.business_name or ''
+                        nature = education_details.nature_of_business or ''
+                        occupation = f"{business_name} / {nature}" if business_name and nature else business_name or nature
                 except (ValueError, TypeError):
                     occupation = ''
 
@@ -15572,7 +15588,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                     horoscope_section = ""
 
                 dasa_name = get_dasa_name(horoscope_data.dasa_name)
-                horo_hint = horoscope_data.horoscope_hints or "N/A"
+                horo_hint = horoscope_data.horoscope_hints or ""
                 image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
                 birth_star_id = horoscope.birthstar_name
                 birth_rasi_id = horoscope.birth_rasi_name
@@ -15680,7 +15696,7 @@ def My_horoscope_generate(request, user_profile_id, filename="Horoscope_withbirt
                                 <table class="add-info2">
                                     <tr>
                                         <td>
-                                            <p><b>Horoscope Hints: </b>{horo_hint}</p>
+                                            <p><b></b>{horo_hint}</p>
                                         </td>
                                     </tr>
                                 </table>
@@ -16541,13 +16557,13 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart.pd
                     address_content = f"""
                         <p><b>Address:</b></p>
                         <p>{login_details.Profile_address}</p>
-                        <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
+                        <p>{get_district_name(login_details.Profile_district)} {get_city_name(login_details.Profile_city)}</p>
                         <p>{login_details.Profile_pincode}.</p>
                     """
                 
                 mobile_email_content = f"""
-                        <p>Mobile: {login_details.Mobile_no or 'N/A'}</p>
-                        <p>Alternate Mobile: {login_details.Profile_alternate_mobile or 'N/A'}</p>
+                        <p style="margin-bottom:5px" >Mobile: {login_details.Mobile_no or 'N/A'}</p>
+                        <p>Mobile1: {login_details.Profile_alternate_mobile or 'N/A'}</p>
                         <p>WhatsApp: {login_details.Profile_whatsapp or 'N/A'}</p>
                         <p>Email: {login_details.EmailId or 'N/A'}</p>
                 """
@@ -16654,16 +16670,29 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart.pd
                 occupation_title = ''
                 occupation = ''
 
+                # try:
+                #     prof_id_int = int(profession_id)
+                #     if prof_id_int == 1:
+                #         occupation_title = 'Employment Details'
+                #         occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                #     elif prof_id_int == 2:
+                #         occupation_title = 'Business Details'
+                #         occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                # except (ValueError, TypeError):
+                #     occupation_title = 'Other'
+                #     occupation = ''
+
                 try:
                     prof_id_int = int(profession_id)
                     if prof_id_int == 1:
-                        occupation_title = 'Employment Details'
-                        occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                        company = education_details.company_name or ''
+                        designation = education_details.designation or ''
+                        occupation = f"{company} / {designation}" if company and designation else company or designation
                     elif prof_id_int == 2:
-                        occupation_title = 'Business Details'
-                        occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                        business_name = education_details.business_name or ''
+                        nature = education_details.nature_of_business or ''
+                        occupation = f"{business_name} / {nature}" if business_name and nature else business_name or nature
                 except (ValueError, TypeError):
-                    occupation_title = 'Other'
                     occupation = ''
 
                 dasa_day = dasa_month = dasa_year = 0
@@ -16809,7 +16838,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart.pd
                     horoscope_section = ""
 
                 dasa_name = get_dasa_name(horoscope_data.dasa_name)
-                horo_hint = horoscope_data.horoscope_hints or "N/A"
+                horo_hint = horoscope_data.horoscope_hints or ""
                 image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
                 birth_star_id = horoscope.birthstar_name
                 birth_rasi_id = horoscope.birth_rasi_name
@@ -16917,7 +16946,7 @@ def My_horoscope(request, user_profile_id, filename="Horoscope_withbirthchart.pd
                                 <table class="add-info2">
                                     <tr>
                                         <td>
-                                            <p><b>Horoscope Hints: </b>{horo_hint}</p>
+                                            <p><b></b>{horo_hint}</p>
                                         </td>
                                     </tr>
                                 </table>
@@ -21468,13 +21497,13 @@ def New_horoscope_color(request, user_profile_id, my_profile_id, filename="Horos
                     address_content = f"""
                         <p><b>Address:</b></p>
                         <p>{login_details.Profile_address}</p>
-                        <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
+                        <p>{get_district_name(login_details.Profile_district)} {get_city_name(login_details.Profile_city)}</p>
                         <p>{login_details.Profile_pincode}.</p>
                     """
 
                 mobile_email_content = f"""
-                        <p>Mobile: {login_details.Mobile_no or 'N/A'}</p>
-                        <p>Alternate Mobile: {login_details.Profile_alternate_mobile or 'N/A'}</p>
+                        <p style="margin-bottom:5px">Mobile: {login_details.Mobile_no or 'N/A'}</p>
+                        <p>Mobile1: {login_details.Profile_alternate_mobile or 'N/A'}</p>
                         <p>WhatsApp: {login_details.Profile_whatsapp or 'N/A'}</p>
                         <p>Email: {login_details.EmailId or 'N/A'}</p>
                 """
@@ -21589,12 +21618,25 @@ def New_horoscope_color(request, user_profile_id, my_profile_id, filename="Horos
 
                 work_place = get_work_address(city=education_details.work_city, state=education_details.work_state, district=education_details.work_district, country=education_details.work_country)
                 occupation = ''
+                # try:
+                #     prof_id_int = int(profession_id)
+                #     if prof_id_int == 1:
+                #         occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                #     elif prof_id_int == 2:
+                #         occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                # except (ValueError, TypeError):
+                #     occupation = ''
+
                 try:
                     prof_id_int = int(profession_id)
                     if prof_id_int == 1:
-                        occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                        company = education_details.company_name or ''
+                        designation = education_details.designation or ''
+                        occupation = f"{company} / {designation}" if company and designation else company or designation
                     elif prof_id_int == 2:
-                        occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                        business_name = education_details.business_name or ''
+                        nature = education_details.nature_of_business or ''
+                        occupation = f"{business_name} / {nature}" if business_name and nature else business_name or nature
                 except (ValueError, TypeError):
                     occupation = ''
 
@@ -21727,7 +21769,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id, filename="Horos
                         dasa_year, dasa_month, dasa_day = match.group(4), match.group(5), match.group(6)
 
                 dasa_name = get_dasa_name(horoscope.dasa_name)
-                horo_hint = horoscope.horoscope_hints or "N/A"
+                horo_hint = horoscope.horoscope_hints or ""
                 image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
 
                 padham_str = f"{horoscope.padham}" if getattr(horoscope, "padham", None) else ""
@@ -21815,7 +21857,7 @@ def New_horoscope_color(request, user_profile_id, my_profile_id, filename="Horos
                     <table class="outer2">
                         <tr><td>
                             <table class="add-info2">
-                                <tr><td><p><b>Horoscope Hints: </b>{horo_hint}</p></td></tr>
+                                <tr><td><p><b></b>{horo_hint}</p></td></tr>
                             </table>
                         </td></tr>
                     </table>
@@ -22427,13 +22469,13 @@ def New_horoscope_black(request, user_profile_id, my_profile_id, filename="Horos
                     address_content = f"""
                         <p><b>Address:</b></p>
                         <p>{login_details.Profile_address}</p>
-                        <p>{get_district_name(login_details.Profile_district)}, {get_city_name(login_details.Profile_city)}</p>
+                        <p>{get_district_name(login_details.Profile_district)} {get_city_name(login_details.Profile_city)}</p>
                         <p>{login_details.Profile_pincode}.</p>
                     """
 
                 mobile_email_content = f"""
-                        <p>Mobile: {login_details.Mobile_no or 'N/A'}</p>
-                        <p>Alternate Mobile: {login_details.Profile_alternate_mobile or 'N/A'}</p>
+                        <p style="margin-bottom:5px" >Mobile: {login_details.Mobile_no or 'N/A'}</p>
+                        <p>Mobile1: {login_details.Profile_alternate_mobile or 'N/A'}</p>
                         <p>WhatsApp: {login_details.Profile_whatsapp or 'N/A'}</p>
                         <p>Email: {login_details.EmailId or 'N/A'}</p>
                 """
@@ -22548,12 +22590,25 @@ def New_horoscope_black(request, user_profile_id, my_profile_id, filename="Horos
 
                 work_place = get_work_address(city=education_details.work_city, state=education_details.work_state, district=education_details.work_district, country=education_details.work_country)
                 occupation = ''
+                # try:
+                #     prof_id_int = int(profession_id)
+                #     if prof_id_int == 1:
+                #         occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                #     elif prof_id_int == 2:
+                #         occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                # except (ValueError, TypeError):
+                #     occupation = ''
+
                 try:
                     prof_id_int = int(profession_id)
                     if prof_id_int == 1:
-                        occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                        company = education_details.company_name or ''
+                        designation = education_details.designation or ''
+                        occupation = f"{company} / {designation}" if company and designation else company or designation
                     elif prof_id_int == 2:
-                        occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                        business_name = education_details.business_name or ''
+                        nature = education_details.nature_of_business or ''
+                        occupation = f"{business_name} / {nature}" if business_name and nature else business_name or nature
                 except (ValueError, TypeError):
                     occupation = ''
 
@@ -22686,7 +22741,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id, filename="Horos
                         dasa_year, dasa_month, dasa_day = match.group(4), match.group(5), match.group(6)
 
                 dasa_name = get_dasa_name(horoscope.dasa_name)
-                horo_hint = horoscope.horoscope_hints or "N/A"
+                horo_hint = horoscope.horoscope_hints or ""
                 image_status = models.Image_Upload.get_image_status(profile_id=user_profile_id)
 
                 padham_str = f"{horoscope.padham}" if getattr(horoscope, "padham", None) else ""
@@ -22774,7 +22829,7 @@ def New_horoscope_black(request, user_profile_id, my_profile_id, filename="Horos
                     <table class="outer2">
                         <tr><td>
                             <table class="add-info2">
-                                <tr><td><p><b>Horoscope Hints: </b>{horo_hint}</p></td></tr>
+                                <tr><td><p><b></b>{horo_hint}</p></td></tr>
                             </table>
                         </td></tr>
                     </table>

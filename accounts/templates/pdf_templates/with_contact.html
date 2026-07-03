@@ -37,7 +37,9 @@
         </tr>
         <tr>
           <td><p>Profession</p></td>
-          <td><p>{{profession}} /{{occupation}}</p></td>
+          <!-- <td><p>{{profession}} /{{occupation}}</p></td> -->
+          <td><p><strong>{{profession}}{% if occupation %} /{{occupation}}{% endif %}</strong></p></td>
+
         </tr>
         <tr>
           <td><p>Place of stay</p></td>

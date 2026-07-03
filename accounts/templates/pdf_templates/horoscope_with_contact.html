@@ -113,7 +113,7 @@ td.inner-tabledata {
     <table class="add-info"> 
     <tr>
         <td>
-            <p><b>Horoscope Hints: </b>{{horo_hint}}</p>
+            {% if horo_hint %}<p>{{horo_hint}}</p>{% endif %}
             <p>Address: </p>
             <p>{{ address|safe }}</p>
         </td>

@@ -178,7 +178,7 @@ class DashboardcountView(APIView):
             # photo_request_count = Image_Upload.objects.filter(image_approved=0,is_deleted=0).count()
             # photo_request_count = Photo_request.objects.count() 
             photo_request_count = Photo_request.objects.filter(status=1).count()
-            quick_upload_count = LoginDetails.objects.filter(quick_registration=1).count()
+            quick_upload_count = LoginDetails.objects.filter(quick_registration=1,status=0).count()
             # paidprofiles_count = LoginDetails.objects.filter(~Q(Plan_id__in=[6, 7, 8, 9, 11, 12, 13])).count()
             # paidprofiles_count = LoginDetails.objects.filter(status=1,secondary_status=5).count()
             from django.utils import timezone
@@ -8523,6 +8523,138 @@ def parse_data(data, planet_mapping=None, default_placeholder="-"):
 
 
 
+# class ShortProfilePDFView(APIView):
+#     def post(self, request):
+#         profile_id = request.data.get('profile_id')
+#         format_type = request.data.get('format') or "shortprofile"
+
+#         if not format_type:
+#             return JsonResponse({"status": "error", "message": "format is required"}, status=400)
+
+#         if not profile_id:
+#             return JsonResponse({"status": "error", "message": "profile_id is required"}, status=400)
+
+#         try:
+#             if format_type == "shortprofile":
+#                 return self.generate_short_profile_pdf(profile_id)
+
+#             elif format_type == "fullprofile":
+#                 return My_horoscope_generate(request, profile_id, filename=f"fullprofile_{profile_id}.pdf")
+
+#             elif format_type == "withoutaddress":
+#                 return generate_pdf_without_address(request, profile_id,filename=f"profile_withoutaddress_{profile_id}.pdf")
+
+#             else:
+#                 return JsonResponse({"status": "error", "message": "Invalid format"}, status=400)
+
+#         except Exception as e:
+#             return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+#     def generate_short_profile_pdf(self, profile_id):
+#         login = get_object_or_404(LoginDetails, ProfileId=profile_id)
+#         family = get_object_or_404(ProfileFamilyDetails, profile_id=profile_id)
+#         edu = get_object_or_404(ProfileEduDetails, profile_id=profile_id)
+#         horoscope = get_object_or_404(ProfileHoroscope, profile_id=profile_id)
+
+#         def get_safe_value(model, lookup_field, id_value, return_field, default="N/A"):
+#             if not id_value:
+#                 return default
+#             return model.objects.filter(**{lookup_field: id_value}).values_list(return_field, flat=True).first() or default
+
+#         def format_cell(value):
+#             return str(value).replace('/', '<br>')
+
+#         complexion = get_safe_value(Complexion, 'complexion_id', login.Profile_complexion, 'complexion_desc')
+#         birthstar = get_safe_value(BirthStar, 'id', horoscope.birthstar_name, 'star')
+
+#         rasi_kattam = parse_data(horoscope.rasi_kattam or '') + ['N/A'] * 12
+#         rasi_kattam = rasi_kattam[:12]  # ensure exactly 12 elements
+
+#         html_content = f"""
+#         <html>
+#         <head>
+#           <style>
+#             body {{ font-family: Arial, sans-serif; }}
+#             .details p {{ font-size: 14px; margin: 5px 0; }}
+#             .profile-id-highlight {{
+#                 font-size: 18px;
+#                 font-weight: bold;
+#                 padding: 8px 0;
+#                 margin-bottom: 10px;
+#             }}
+#             h4.rasi-heading {{
+#                 font-size: 16px;
+#                 font-weight: bold;
+#                 color: #000;
+#                 text-decoration: none;
+#                 margin: 15px 0 8px 0;
+#             }}
+#             .rasi-kattam td {{
+#                 width: 60px; height: 50px; text-align: center; border: 1px solid #000;
+#                 font-size: 13px;
+#                 font-weight: bold;
+#                 line-height: 1.2;
+#             }}
+#             table.rasi-kattam {{
+#                 border-collapse: collapse;
+#             }}
+#           </style>
+#         </head>
+#         <body>
+#           <p class="profile-id-highlight">Profile ID: {profile_id}</p>
+#           <div class="details">
+#             <p><strong>Name:</strong> {login.Profile_name}</p>
+#             <p><strong>DOB:</strong> {login.Profile_dob}</p>
+#             <p><strong>Father's Name:</strong> {family.father_name}</p>
+#             <p><strong>Complexion:</strong> {complexion}</p>
+#             <p><strong>Birth Star:</strong> {birthstar}</p>
+#           </div>
+#           <h4 class="rasi-heading">Rasi Kattam</h4>
+#           <table class="rasi-kattam">
+#             <tr>
+#               <td>{format_cell(rasi_kattam[0])}</td>
+#               <td>{format_cell(rasi_kattam[1])}</td>
+#               <td>{format_cell(rasi_kattam[2])}</td>
+#               <td>{format_cell(rasi_kattam[3])}</td>
+#             </tr>
+#             <tr><td>{format_cell(rasi_kattam[11])}</td><td colspan="2" rowspan="2">Rasi</td><td>{format_cell(rasi_kattam[4])}</td></tr>
+#             <tr><td>{format_cell(rasi_kattam[10])}</td><td>{format_cell(rasi_kattam[5])}</td></tr>
+#             <tr><td>{format_cell(rasi_kattam[9])}</td><td>{format_cell(rasi_kattam[8])}</td><td>{format_cell(rasi_kattam[7])}</td><td>{format_cell(rasi_kattam[6])}</td></tr>
+#           </table>
+#         </body>
+#         </html>
+#         """
+
+#         return self.render_pdf(html_content, f"short_profile_{profile_id}.pdf")
+#     def generate_full_profile_pdf(self, profile_id):
+#         # Reuse short profile template or add more fields for full profile
+#         html_content = f"""
+#         <html><body><h2>Full Profile</h2><p>Profile ID: {profile_id}</p>
+#         <p>This is a placeholder for full profile generation logic.</p></body></html>"""
+#         return self.render_pdf(html_content, f"full_profile_{profile_id}.pdf")
+
+#     def generate_profile_without_address(self, profile_id):
+#         html_content = f"""
+#         <html><body><h2>Profile Without Address</h2><p>Profile ID: {profile_id}</p>
+#         <p>This PDF is generated without sensitive address information.</p></body></html>"""
+#         return self.render_pdf(html_content, f"without_address_profile_{profile_id}.pdf")
+
+#     def render_pdf(self, html, filename):
+#         pdf_file = io.BytesIO()
+#         pisa_status = pisa.CreatePDF(io.StringIO(html), dest=pdf_file)
+
+#         if pisa_status.err:
+#             return JsonResponse({"status": "error", "message": "Error generating PDF."}, status=500)
+
+#         pdf_file.seek(0)
+#         response = HttpResponse(pdf_file, content_type='application/pdf')
+#         response['Content-Disposition'] = 'inline'
+#         return response
+
+
+
+
+
 class ShortProfilePDFView(APIView):
     def post(self, request):
         profile_id = request.data.get('profile_id')
@@ -8536,13 +8668,14 @@ class ShortProfilePDFView(APIView):
 
         try:
             if format_type == "shortprofile":
+                lang = request.data.get('lang', 'english').lower()
                 return self.generate_short_profile_pdf(profile_id)
 
             elif format_type == "fullprofile":
                 return My_horoscope_generate(request, profile_id, filename=f"fullprofile_{profile_id}.pdf")
 
             elif format_type == "withoutaddress":
-                return generate_pdf_without_address(request, profile_id,filename=f"profile_withoutaddress_{profile_id}.pdf")
+                return generate_pdf_without_address(request, profile_id, filename=f"profile_withoutaddress_{profile_id}.pdf")
 
             else:
                 return JsonResponse({"status": "error", "message": "Invalid format"}, status=400)
@@ -8550,84 +8683,221 @@ class ShortProfilePDFView(APIView):
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
-    def generate_short_profile_pdf(self, profile_id):
-        login = get_object_or_404(LoginDetails, ProfileId=profile_id)
-        family = get_object_or_404(ProfileFamilyDetails, profile_id=profile_id)
-        edu = get_object_or_404(ProfileEduDetails, profile_id=profile_id)
+    def generate_short_profile_pdf(self, profile_id,lang="english"):
+        from authentication.models import Planet
+
+        login     = get_object_or_404(LoginDetails, ProfileId=profile_id)
+        family    = get_object_or_404(ProfileFamilyDetails, profile_id=profile_id)
+        edu       = get_object_or_404(ProfileEduDetails, profile_id=profile_id)
         horoscope = get_object_or_404(ProfileHoroscope, profile_id=profile_id)
 
+        # ── helpers ───────────────────────────────────────────────────────────
         def get_safe_value(model, lookup_field, id_value, return_field, default="N/A"):
             if not id_value:
                 return default
             return model.objects.filter(**{lookup_field: id_value}).values_list(return_field, flat=True).first() or default
 
-        def format_cell(value):
-            return str(value).replace('/', '<br>')
+        def fmt(value):
+            return str(value).replace('/', '\n') if value else '-'
 
-        complexion = get_safe_value(Complexion, 'complexion_id', login.Profile_complexion, 'complexion_desc')
-        birthstar = get_safe_value(BirthStar, 'id', horoscope.birthstar_name, 'star')
+        # ── basic fields ──────────────────────────────────────────────────────
+        complexion  = get_safe_value(Complexion, 'complexion_id', login.Profile_complexion, 'complexion_desc')
+        birthstar   = get_safe_value(BirthStar,  'id',           horoscope.birthstar_name,  'star')
+        gothram     = family.suya_gothram or "N/A"
+        height      = login.Profile_height or "N/A"
+        father_name = family.father_name or "N/A"
+        state_name  = get_safe_value(State, 'id', login.Profile_state, 'name')
 
-        rasi_kattam = parse_data(horoscope.rasi_kattam or '') + ['N/A'] * 12
-        rasi_kattam = rasi_kattam[:12]  # ensure exactly 12 elements
+        # ── education ─────────────────────────────────────────────────────────
+        highest_edu = get_safe_value(EducationLevel, 'row_id', edu.highest_education, 'EducationLevel', default="")
+        about_edu   = edu.about_edu or ""
+        education   = (highest_edu + " " + about_edu).strip() or "N/A"
 
+        # ── profession / occupation ───────────────────────────────────────────
+        profession_id = edu.profession
+        profession    = get_safe_value(Profespref, 'RowId', profession_id, 'profession')
+        occupation    = ""
+        try:
+            prof_id_int = int(profession_id)
+            if prof_id_int == 1:
+                occupation = f"{edu.company_name or ''} / {edu.designation or ''}".strip(" /")
+            elif prof_id_int == 2:
+                occupation = f"{edu.business_name or ''} / {edu.nature_of_business or ''}".strip(" /")
+        except (ValueError, TypeError):
+            pass
+
+        # ── annual income ─────────────────────────────────────────────────────
+        actual_income = str(edu.actual_income or "").strip()
+        if actual_income and actual_income not in ["", "~"]:
+            annual_income = actual_income
+        else:
+            annual_income = get_safe_value(AnnualIncome, 'id', edu.anual_income, 'income')
+
+        # ── dasa balance ──────────────────────────────────────────────────────
+        dasa_year = dasa_month = dasa_day = "0"
+        dasa_name_str    = get_dasa_name(horoscope.dasa_name) or "-"
+        dasa_balance_str = dasa_format_date(horoscope.dasa_balance)
+        dasa_match = re.match(
+            r"(?:(\d{2})/(\d{2})/(\d{2}))|(?:(\d+)\s+Year[s]?,\s+(\d+)\s+Month[s]?,\s+(\d+)\s+Day[s]?)",
+            dasa_balance_str or ""
+        )
+        if dasa_match:
+            if dasa_match.group(1):
+                dasa_year, dasa_month, dasa_day = dasa_match.group(1), dasa_match.group(2), dasa_match.group(3)
+            else:
+                dasa_year, dasa_month, dasa_day = dasa_match.group(4), dasa_match.group(5), dasa_match.group(6)
+
+        dob = format_date_of_birth(login.Profile_dob)
+
+        # ── rasi kattam — Tamil planet names ─────────────────────────────────
+        planets = Planet.objects.values('code', 'planet_tamil', 'planet_english')
+        planet_field = 'planet_tamil' if lang == 'tamil' else 'planet_english'
+        planet_mapping = {str(p['code']): p[planet_field] for p in planets}
+        rasi_kattam = parse_data(horoscope.rasi_kattam or '', planet_mapping=planet_mapping) + [''] * 12
+        rasi_kattam = rasi_kattam[:12]
+
+        # ── font path ─────────────────────────────────────────────────────────
+        font_path = os.path.join(settings.BASE_DIR, "fonts", "NotoSansTamil.ttf")
+
+        # ── HTML ──────────────────────────────────────────────────────────────
         html_content = f"""
         <html>
         <head>
           <style>
-            body {{ font-family: Arial, sans-serif; }}
-            .details p {{ font-size: 14px; margin: 5px 0; }}
-            .profile-id-highlight {{
-                font-size: 18px;
-                font-weight: bold;
-                padding: 8px 0;
-                margin-bottom: 10px;
+            @font-face {{
+                font-family: 'Noto Sans Tamil';
+                src: url('file://{font_path}');
             }}
-            h4.rasi-heading {{
-                font-size: 16px;
-                font-weight: bold;
+            body {{
+                font-family: 'Times New Roman', Times, serif;
+                margin: 24px 28px;
+                font-size: 15px;
                 color: #000;
-                text-decoration: none;
-                margin: 15px 0 8px 0;
             }}
-            .rasi-kattam td {{
-                width: 60px; height: 50px; text-align: center; border: 1px solid #000;
-                font-size: 13px;
+            .header {{
+                font-size: 17px;
                 font-weight: bold;
-                line-height: 1.2;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #000;
+                margin-bottom: 14px;
+            }}
+            .main-table {{
+                width: 100%;
+                border-collapse: collapse;
+            }}
+            .main-table td {{
+                vertical-align: top;
+                padding: 0;
+            }}
+            .left-col {{
+                width: 52%;
+                padding-right: 18px;
+            }}
+            .right-col {{
+                width: 48%;
+            }}
+            .profile-line {{
+                margin: 10px 0;
+                line-height: 1.7;
+            }}
+            .lbl {{
+                text-decoration: underline;
             }}
             table.rasi-kattam {{
                 border-collapse: collapse;
+                width: 100%;
+            }}
+            table.rasi-kattam td {{
+                border: 1.5px solid #000;
+                text-align: center;
+                vertical-align: middle;
+                padding: 4px 2px;
+                font-family: 'Noto Sans Tamil', 'Times New Roman', serif;
+                font-size: 11px;
+                height: 58px;
+                width: 25%;
+                white-space: pre-line;
+            }}
+            .rasi-center {{
+                font-size: 17px;
+                font-weight: bold;
+                font-family: 'Noto Sans Tamil', 'Times New Roman', serif;
+                line-height: 1.4;
+            }}
+            .footer-line {{
+                border-top: 1.5px solid #000;
+                margin-top: 18px;
             }}
           </style>
         </head>
         <body>
-          <p class="profile-id-highlight">Profile ID: {profile_id}</p>
-          <div class="details">
-            <p><strong>Name:</strong> {login.Profile_name}</p>
-            <p><strong>DOB:</strong> {login.Profile_dob}</p>
-            <p><strong>Father's Name:</strong> {family.father_name}</p>
-            <p><strong>Complexion:</strong> {complexion}</p>
-            <p><strong>Birth Star:</strong> {birthstar}</p>
+          <div class="header">
+            Vysyamala &nbsp;&nbsp;&nbsp; www.vysyamala.com &nbsp;&nbsp;&nbsp; 9944851550 &nbsp;&nbsp;&nbsp; UserId : {profile_id}
           </div>
-          <h4 class="rasi-heading">Rasi Kattam</h4>
-          <table class="rasi-kattam">
+
+          <table class="main-table">
             <tr>
-              <td>{format_cell(rasi_kattam[0])}</td>
-              <td>{format_cell(rasi_kattam[1])}</td>
-              <td>{format_cell(rasi_kattam[2])}</td>
-              <td>{format_cell(rasi_kattam[3])}</td>
+              <td class="left-col">
+                <p class="profile-line" style="font-size: 15px">
+                  {login.Profile_name} S/o. {father_name} &nbsp; DOB: {dob}
+                </p>
+                <p class="profile-line "style="font-size: 15px">
+                  <span class="lbl">Height:</span> {height} cm &nbsp;|&nbsp; {complexion} &nbsp;|&nbsp;
+                  <span class="lbl">Birth Star:</span> {birthstar} &nbsp;|&nbsp;
+                  <span class="lbl">Gothram:</span> {gothram}
+                </p>
+                <p class="profile-line"style="font-size: 15px">
+                  <span class="lbl">Edu:</span> {education} &nbsp;|&nbsp;
+                  <span class="lbl">State:</span> {state_name}
+                </p>
+                <p class="profile-line"style="font-size: 15px">
+                  <span class="lbl">Prof:</span> {profession}{(', ' + occupation) if occupation else ''}
+                </p>
+                <p class="profile-line"style="font-size: 15px">
+                  <span class="lbl">Annual Income:</span> Rs.{annual_income}
+                </p>
+                <p class="profile-line"style="font-size: 15px">
+                  <span class="lbl">Dasa Balance:</span> {dasa_name_str} | {dasa_year} | {dasa_month} | {dasa_day}
+                </p>
+              </td>
+
+              <td class="right-col">
+                <table class="rasi-kattam">
+                  <tr>
+                    <td>{fmt(rasi_kattam[0])}</td>
+                    <td>{fmt(rasi_kattam[1])}</td>
+                    <td>{fmt(rasi_kattam[2])}</td>
+                    <td>{fmt(rasi_kattam[3])}</td>
+                  </tr>
+                  <tr>
+                    <td>{fmt(rasi_kattam[11])}</td>
+<td colspan="2" rowspan="2" class="rasi-center" style="font-size: 17px;">
+    இராசி<br/>RASI
+</td>                    <td>{fmt(rasi_kattam[4])}</td>
+                  </tr>
+                  <tr>
+                    <td>{fmt(rasi_kattam[10])}</td>
+                    <td>{fmt(rasi_kattam[5])}</td>
+                  </tr>
+                  <tr>
+                    <td>{fmt(rasi_kattam[9])}</td>
+                    <td>{fmt(rasi_kattam[8])}</td>
+                    <td>{fmt(rasi_kattam[7])}</td>
+                    <td>{fmt(rasi_kattam[6])}</td>
+                  </tr>
+                </table>
+              </td>
             </tr>
-            <tr><td>{format_cell(rasi_kattam[11])}</td><td colspan="2" rowspan="2">Rasi</td><td>{format_cell(rasi_kattam[4])}</td></tr>
-            <tr><td>{format_cell(rasi_kattam[10])}</td><td>{format_cell(rasi_kattam[5])}</td></tr>
-            <tr><td>{format_cell(rasi_kattam[9])}</td><td>{format_cell(rasi_kattam[8])}</td><td>{format_cell(rasi_kattam[7])}</td><td>{format_cell(rasi_kattam[6])}</td></tr>
           </table>
+
+          <div class="footer-line"></div>
         </body>
         </html>
         """
 
         return self.render_pdf(html_content, f"short_profile_{profile_id}.pdf")
+
     def generate_full_profile_pdf(self, profile_id):
-        # Reuse short profile template or add more fields for full profile
         html_content = f"""
         <html><body><h2>Full Profile</h2><p>Profile ID: {profile_id}</p>
         <p>This is a placeholder for full profile generation logic.</p></body></html>"""
@@ -8640,16 +8910,30 @@ class ShortProfilePDFView(APIView):
         return self.render_pdf(html_content, f"without_address_profile_{profile_id}.pdf")
 
     def render_pdf(self, html, filename):
-        pdf_file = io.BytesIO()
-        pisa_status = pisa.CreatePDF(io.StringIO(html), dest=pdf_file)
+        from weasyprint import HTML as WeasyHTML, CSS
+        font_path = os.path.join(settings.BASE_DIR, "fonts", "NotoSansTamil.ttf")
+        font_css = ""
+        if os.path.exists(font_path):
+            font_css = f"""
+            @font-face {{
+                font-family: 'Noto Sans Tamil';
+                src: url('file://{font_path}');
+            }}
+            """
+        try:
+            pdf_bytes = WeasyHTML(string=html).write_pdf(
+                stylesheets=[CSS(string=font_css)] if font_css else []
+            )
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": f"PDF generation error: {str(e)}"}, status=500)
 
-        if pisa_status.err:
-            return JsonResponse({"status": "error", "message": "Error generating PDF."}, status=500)
-
-        pdf_file.seek(0)
-        response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = 'inline'
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
+
+
+
+
 
 class SendShortProfilePDFEmail(APIView):
     def post(self, request):
@@ -10708,14 +10992,44 @@ class AdminProfilePDFView(APIView):
         occupation_title=''
         occupation=''
 
+        # try:
+        #     prof_id_int = int(profession_id)
+        #     if prof_id_int == 1:
+        #         occupation_title = 'Employment Details'
+        #         occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+        #     elif prof_id_int == 2:
+        #         occupation_title = 'Business Details'
+        #         occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+        # except (ValueError, TypeError):
+        #     occupation_title = 'Other'
+        #     occupation = ''
+
         try:
             prof_id_int = int(profession_id)
             if prof_id_int == 1:
                 occupation_title = 'Employment Details'
-                occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                company = education_details.company_name or ''
+                designation = education_details.designation or ''
+                if company and designation:
+                    occupation = f"{company} / {designation}"
+                elif company:
+                    occupation = company
+                elif designation:
+                    occupation = designation
+                else:
+                    occupation = ''
             elif prof_id_int == 2:
                 occupation_title = 'Business Details'
-                occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                business_name = education_details.business_name or ''
+                nature = education_details.nature_of_business or ''
+                if business_name and nature:
+                    occupation = f"{business_name} / {nature}"
+                elif business_name:
+                    occupation = business_name
+                elif nature:
+                    occupation = nature
+                else:
+                    occupation = ''
         except (ValueError, TypeError):
             occupation_title = 'Other'
             occupation = ''
@@ -10874,7 +11188,7 @@ class AdminProfilePDFView(APIView):
                     return parsed_items
 
         image_status = models.Image_Upload.get_image_status(profile_id=profile_id)
-        horo_hint = horoscope_data.horoscope_hints or "N/A"
+        horo_hint = horoscope_data.horoscope_hints or ""
         # Prepare the Porutham sections for the PDF
         def format_star_names(poruthams):
             return ', '.join([item['matching_starname'] for item in poruthams])
@@ -10897,7 +11211,7 @@ class AdminProfilePDFView(APIView):
         else:
             address_content = f"""
                 <p>{login.Profile_address}</p>
-                <p>{get_district_name(login.Profile_district)}, {get_city_name(login.Profile_city)}</p>
+                <p>{get_district_name(login.Profile_district)} {get_city_name(login.Profile_city)}</p>
                 <p>{login.Profile_pincode}.</p>
             """
         mobile_email_content = f"""
@@ -11176,14 +11490,45 @@ class AdminMatchProfilePDFView(APIView):
                 occupation_title = ''
                 occupation = ''
 
+                # try:
+                #     prof_id_int = int(profession_id)
+                #     if prof_id_int == 1:
+                #         occupation_title = 'Employment Details'
+                #         occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                #     elif prof_id_int == 2:
+                #         occupation_title = 'Business Details'
+                #         occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                # except (ValueError, TypeError):
+                #     occupation_title = 'Other'
+                #     occupation = ''
+
+
                 try:
                     prof_id_int = int(profession_id)
                     if prof_id_int == 1:
                         occupation_title = 'Employment Details'
-                        occupation = f"{education_details.company_name or ''} / {education_details.designation or ''}"
+                        company = education_details.company_name or ''
+                        designation = education_details.designation or ''
+                        if company and designation:
+                            occupation = f"{company} / {designation}"
+                        elif company:
+                            occupation = company
+                        elif designation:
+                            occupation = designation
+                        else:
+                            occupation = ''
                     elif prof_id_int == 2:
                         occupation_title = 'Business Details'
-                        occupation = f"{education_details.business_name or ''} / {education_details.nature_of_business or ''}"
+                        business_name = education_details.business_name or ''
+                        nature = education_details.nature_of_business or ''
+                        if business_name and nature:
+                            occupation = f"{business_name} / {nature}"
+                        elif business_name:
+                            occupation = business_name
+                        elif nature:
+                            occupation = nature
+                        else:
+                            occupation = ''
                 except (ValueError, TypeError):
                     occupation_title = 'Other'
                     occupation = ''
@@ -11260,7 +11605,7 @@ class AdminMatchProfilePDFView(APIView):
 
                 birth_time = format_time_am_pm(horoscope_data.time_of_birth)
                 my_birth_time = format_time_am_pm(horoscope_my.time_of_birth)
-                horo_hint = horoscope_data.horoscope_hints or "N/A"
+                horo_hint = horoscope_data.horoscope_hints or ""
                 valid_rows = []
                 porutham_rows = ""
 
@@ -11333,7 +11678,7 @@ class AdminMatchProfilePDFView(APIView):
                 else:
                     address_content = f"""
                         <p>{login.Profile_address}</p>
-                        <p>{get_district_name(login.Profile_district)}, {get_city_name(login.Profile_city)}</p>
+                        <p>{get_district_name(login.Profile_district)} {get_city_name(login.Profile_city)}</p>
                         <p>{login.Profile_pincode}.</p>
                     """
 
@@ -22011,7 +22356,6 @@ class AdminAllNotificationsPage(APIView):
 
 
 
-
 class DuplicateProfileCheck(APIView):
 
     def post(self, request):
@@ -22025,8 +22369,6 @@ class DuplicateProfileCheck(APIView):
                 "message": "dob and gender are required"
             }, status=400)
 
-        # Profile_dob is stored as a CharField in 'YYYY-MM-DD' format.
-        # Normalize incoming dob (handles '01/01/1997', '1997-01-01', etc.)
         normalized_dob = None
         for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%m/%d/%Y"):
             try:
@@ -22041,28 +22383,102 @@ class DuplicateProfileCheck(APIView):
                 "message": "Invalid dob format. Use YYYY-MM-DD or DD/MM/YYYY"
             }, status=400)
 
-        # Find all profiles with same gender and same DOB, excluding current profile
-        duplicates = Registration1.objects.filter(
+        # Get matching profile IDs first
+        dup_qs = Registration1.objects.filter(
             Gender__iexact=gender,
             Profile_dob=normalized_dob
         )
-
         if profile_id:
-            duplicates = duplicates.exclude(ProfileId=profile_id)
+            dup_qs = dup_qs.exclude(ProfileId=profile_id)
 
-        duplicates = duplicates.values(
-            'ProfileId', 'Profile_name', 'Gender', 'Profile_dob'
-        )
+        dup_ids = list(dup_qs.values_list('ProfileId', flat=True))
 
-        result = [
-            {
-                "profile_id": p['ProfileId'],
-                "name": p['Profile_name'],
-                "gender": p['Gender'],
-                "dob": p['Profile_dob']
-            }
-            for p in duplicates
-        ]
+        if not dup_ids:
+            return JsonResponse({
+                "Status": 1,
+                "message": "Duplicate profiles fetched successfully",
+                "profile_id": profile_id,
+                "gender": gender,
+                "dob": normalized_dob,
+                "duplicate_count": 0,
+                "duplicates": []
+            })
+
+        placeholders = ','.join(['%s'] * len(dup_ids))
+        sql = f"""
+            SELECT
+                ld.ProfileId,
+                ld.Profile_name,
+                ld.Gender,
+                ld.Profile_dob,
+                ld.Profile_height,
+                ld.Photo_protection,
+                ld.Profile_verified,
+                ld.Profile_city,
+                ld.Plan_id,
+                s.name AS state_name,
+                pl.plan_name,
+                mph.ModeName,
+                mfs.status AS family_status_name,
+                mps.status_name AS status_name,
+                ph.birthstar_name,
+                ped.degree,
+                ped.other_degree,
+                ped.profession
+            FROM logindetails ld
+            LEFT JOIN masterstate s ON ld.Profile_state = s.id
+            LEFT JOIN plan_master pl ON ld.Plan_id = pl.id
+            LEFT JOIN mastermode mph ON ld.Profile_for = mph.Mode
+            LEFT JOIN masterprofilestatus mps ON ld.status = mps.status_code
+            LEFT JOIN profile_familydetails pfd ON ld.ProfileId = pfd.profile_id
+            LEFT JOIN masterfamilystatus mfs ON pfd.family_status = mfs.id
+            LEFT JOIN profile_horoscope ph ON ld.ProfileId = ph.profile_id
+            LEFT JOIN profile_edudetails ped ON ld.ProfileId = ped.profile_id
+            WHERE ld.ProfileId IN ({placeholders})
+        """
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, dup_ids)
+            cols = [col[0] for col in cursor.description]
+            rows = [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+        today = date.today()
+        star_lookup = get_star_lookup()
+
+        result = []
+        for row in rows:
+            star_id = str(row.get("birthstar_name") or "").strip()
+            star_name = star_lookup.get(star_id, "")
+
+            dob_val = row.get("Profile_dob")
+            age = None
+            if dob_val:
+                try:
+                    if isinstance(dob_val, str):
+                        dob_val = datetime.strptime(dob_val, "%Y-%m-%d").date()
+                    age = today.year - dob_val.year - ((today.month, today.day) < (dob_val.month, dob_val.day))
+                except:
+                    age = None
+
+            result.append({
+                "profile_id": row["ProfileId"],
+                "profile_name": row["Profile_name"],
+                "profile_img": Get_profile_image(row["ProfileId"], row["Gender"], 1, 0, is_admin=True),
+                "profile_age": age,
+                "profile_gender": row["Gender"],
+                "height": get_height_info(row["Profile_height"]),
+                "degree": degree(row.get("degree"), row.get("other_degree")),
+                "profession": getprofession(row.get("profession")),
+                "location": row.get("Profile_city"),
+                "photo_protection": row.get("Photo_protection"),
+                "verified": row.get("Profile_verified"),
+                "star": star_name,
+                "Created_by": row.get("ModeName"),
+                "state": row.get("state_name"),
+                "mode": row.get("plan_name"),
+                "status": row.get("status_name"),
+                "family_status": row.get("family_status_name"),
+            })
 
         return JsonResponse({
             "Status": 1,
