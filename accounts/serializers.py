@@ -478,12 +478,16 @@ class Getnewprofiledata_new(serializers.Serializer):
     membership_startdate = serializers.SerializerMethodField()
     membership_enddate = serializers.SerializerMethodField()
     delete_date = serializers.SerializerMethodField()
+    approval_date = serializers.SerializerMethodField()
     # Method to calculate age from Profile_dob
     
     def get_membership_startdate(self,obj):
         return obj['membership_startdate'].date() if obj.get('membership_startdate') else None
     
     def get_delete_date(self,obj):
+        return obj['deleted_date'].date() if obj.get('deleted_date') else None
+
+    def get_approval_date(self, obj):
         return obj['deleted_date'].date() if obj.get('deleted_date') else None
     
     def get_membership_enddate(self,obj):
@@ -1753,5 +1757,3 @@ class VysyamalaGothraSerializer(serializers.ModelSerializer):
     class Meta:
         model = VysyamalaGothra
         fields = '__all__'
-
-

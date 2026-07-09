@@ -1292,15 +1292,23 @@ class Newprofile_get(generics.ListAPIView):
             ON hi.profile_id = ld.ProfileId
             """
         # if int(page_id) == 4 or int(page_id) == 3 or int(page_id) == 2 or (int(page_id) == 1 and plan_ids in [None,'']):
-        if numeric_page_id in [4, 3, 2] or (numeric_page_id == 1 and plan_ids in [None, '']):
-            print("Inside page_id 4 block")
+        if numeric_page_id in [4, 3, 2]:
+            sql += """
+        LEFT JOIN (
+            SELECT profile_id, MAX(date_time) AS deleted_date
+            FROM datahistory
+            GROUP BY profile_id
+        ) dh ON dh.profile_id = ld.ProfileId
+        """
+        elif numeric_page_id == 1:
             sql += """
             LEFT JOIN (
-                SELECT profile_id, MAX(date_time) AS deleted_date
+                SELECT profile_id, Min(date_time) AS deleted_date
                 FROM datahistory
+                WHERE profile_status = 1
                 GROUP BY profile_id
             ) dh ON dh.profile_id = ld.ProfileId
-            """
+        """
         else:
             sql += """
             LEFT JOIN (
@@ -22268,14 +22276,61 @@ class NotificationAction(APIView):
 
 from rest_framework.pagination import PageNumberPagination
 
+# class AdminAllNotificationsPage(APIView):
+#     def get(self, request):
+#         notifications = AdminNotification.objects.all().order_by('-created_at')
+        
+#         paginator = PageNumberPagination()
+#         paginator.page_size = 10
+#         paginated = paginator.paginate_queryset(notifications, request)
+        
+#         data = [
+#             {
+#                 "id": n.id,
+#                 "from_profile": n.from_profile,
+#                 "message": n.message,
+#                 "created_at": n.created_at,
+#                 "is_read": n.is_read,
+#                 "is_cleared": n.is_cleared,
+#                 "notification_type": n.notification_type
+#             }
+#             for n in paginated
+#         ]
+#         return paginator.get_paginated_response({
+#             "Status": 1,
+#             "message": "All notifications fetched",
+#             "data": data
+#         })
+
+
+
 class AdminAllNotificationsPage(APIView):
     def get(self, request):
-        notifications = AdminNotification.objects.all().order_by('-created_at')
-        
+        from_date = request.GET.get("from_date", "")
+        to_date = request.GET.get("to_date", "")
+        today = date.today()
+
+        if from_date and to_date:
+            try:
+                from_dt = datetime.strptime(from_date, "%Y-%m-%d")
+                to_dt = datetime.strptime(to_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+                notifications = AdminNotification.objects.filter(
+                    created_at__gte=from_dt,
+                    created_at__lte=to_dt
+                ).order_by('-created_at')
+            except ValueError:
+                return JsonResponse({"Status": 0, "message": "Invalid date format. Use YYYY-MM-DD"}, status=400)
+        else:
+            # Default: last 15 days
+            from_dt = datetime.combine(today - timedelta(days=15), datetime.min.time())
+            notifications = AdminNotification.objects.filter(
+                created_at__gte=from_dt
+            ).order_by('-created_at')
+
         paginator = PageNumberPagination()
         paginator.page_size = 10
         paginated = paginator.paginate_queryset(notifications, request)
-        
+
         data = [
             {
                 "id": n.id,
@@ -22291,8 +22346,13 @@ class AdminAllNotificationsPage(APIView):
         return paginator.get_paginated_response({
             "Status": 1,
             "message": "All notifications fetched",
+            "date_range": {
+                "from_date": from_dt.strftime("%Y-%m-%d"),
+                "to_date": to_date or today.strftime("%Y-%m-%d")
+            },
             "data": data
         })
+
 
 
 # class DuplicateProfileCheck(APIView):
