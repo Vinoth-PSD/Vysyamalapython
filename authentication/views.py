@@ -6653,7 +6653,7 @@ class Send_photo_request(APIView):
                         subject=subject,
                         body='',
                         from_email=from_email,
-                        to=to_profile_obj.EmailId,
+                        to=[to_profile_obj.EmailId],
                         cc=['']  # ✅ ADD CC HERE
                     )
 
@@ -12065,6 +12065,7 @@ def profile_preview(request: HttpRequest, profile_token):
     # Build context with safe fallbacks
     context = {
         "profile_id": safe_value(profile.ProfileId),
+        "profile_token": profile_token,
         "profile_name": safe_value(profile.Profile_name),
         "profile_age": calculate_age(profile.Profile_dob) if profile.Profile_dob else "N/A",
         "profile_dob": safe_value(profile.Profile_dob),
@@ -12185,6 +12186,7 @@ def profile_preview_withouphoto(request: HttpRequest, profile_token):
     # Final context
     context = {
         "profile_id": safe_value(profile.ProfileId),
+        "profile_token": profile_token,
         "profile_name": safe_value(profile.Profile_name),
         "profile_age": calculate_age(profile.Profile_dob) if profile.Profile_dob else "N/A",
         "profile_dob": safe_value(profile.Profile_dob),
