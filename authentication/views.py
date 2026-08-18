@@ -209,14 +209,27 @@ class LoginView(APIView):
                 #get first image for the profile icon
                 profile_images=models.Image_Upload.objects.filter(profile_id=username).first()  
 
+                # plan_id = logindetails.Plan_id
+                # plan_limits_json=''
+                # if plan_id:
+                #     plan_limits=models.PlanFeatureLimit.objects.filter(plan_id=plan_id)
+                
+                #     serializer = serializers.PlanFeatureLimitSerializer(plan_limits, many=True)
+                #     plan_limits_json = serializer.data
+                
                 plan_id = logindetails.Plan_id
                 plan_limits_json=''
+                plan_name = None
                 if plan_id:
                     plan_limits=models.PlanFeatureLimit.objects.filter(plan_id=plan_id)
                 
                     serializer = serializers.PlanFeatureLimitSerializer(plan_limits, many=True)
                     plan_limits_json = serializer.data
 
+                    try:
+                        plan_name = models.PlanDetails.objects.get(id=plan_id).plan_name
+                    except models.PlanDetails.DoesNotExist:
+                        plan_name = None
 
                 gender = logindetails.Gender
                 height = logindetails.Profile_height
@@ -279,8 +292,30 @@ class LoginView(APIView):
                     age = calculate_age(dob)
                 except Exception as e:
                     age = 0
-                return JsonResponse({'status': 1,'token':token.key ,'profile_id':logindetails_exists.ProfileId ,'age':age,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till}, status=200)
-
+                # return JsonResponse({'status': 1,'token':token.key ,'profile_id':logindetails_exists.Profile_name ,'age':age,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till}, status=200)
+                return JsonResponse({
+                'status': 1,
+                'token': token.key,
+                'profile_id': logindetails_exists.ProfileId,
+                'login_username': logindetails_exists.Profile_name,
+                'age': age,
+                'message': 'Login Successful',
+                'notification_count': notify_count,
+                'cur_plan_id': plan_id,
+                'plan_name': plan_name,
+                'profile_image': profile_image,
+                'profile_completion': profile_completion,
+                'gender': gender,
+                'height': height,
+                'marital_status': marital_status,
+                'custom_message': 1,
+                'birth_star_id': birth_star_id,
+                'birth_rasi_id': birth_rasi_id,
+                'profile_owner': Profile_owner,
+                'quick_reg': quick_reg,
+                'plan_limits': plan_limits_json,
+                'valid_till': valid_till
+            }, status=200)
             else:
             # Password is incorrect
              return JsonResponse({'status': 0, 'message': 'Invalid credentials'})
@@ -2223,7 +2258,28 @@ class Login_verifyotp(APIView):
                 
                 
                 # return JsonResponse({'status': 1, 'token': token.key, 'message': 'Login Successful'}, status=status.HTTP_200_OK)
-                return JsonResponse({'status': 1,'token':token.key ,'profile_id':profile_id ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till}, status=200)
+                return JsonResponse({
+                'status': 1,
+                'token': token.key,
+                'profile_id': profile_id,
+                'login_username': logindetails.Profile_name,
+                'message': 'Login Successful',
+                "notification_count": notify_count,
+                "cur_plan_id": plan_id,
+                "profile_image": profile_image,
+                "profile_completion": profile_completion,
+                "gender": gender,
+                "height": height,
+                "marital_status": marital_status,
+                "custom_message": 1,
+                "birth_star_id": birth_star_id,
+                "birth_rasi_id": birth_rasi_id,
+                "profile_owner": Profile_owner,
+                "quick_reg": quick_reg,
+                "plan_limits": plan_limits_json,
+                "valid_till": valid_till
+            }, status=200)
+                    # return JsonResponse({'status': 1,'token':token.key ,'profile_id':profile_id ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till}, status=200)
             except models.Registration1.DoesNotExist:
                 return JsonResponse({"status": 0, "message": "Invalid OTP or mobile number."}, status=status.HTTP_200_OK)
         
