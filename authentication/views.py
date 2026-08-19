@@ -2194,11 +2194,17 @@ class Login_verifyotp(APIView):
                 profile_images=models.Image_Upload.objects.filter(profile_id=profile_id).first()          
                 plan_id = logindetails.Plan_id
                 plan_limits_json=''
+                plan_name = None
                 if plan_id:
                     plan_limits=models.PlanFeatureLimit.objects.filter(plan_id=plan_id)
                 
                     serializer = serializers.PlanFeatureLimitSerializer(plan_limits, many=True)
                     plan_limits_json = serializer.data
+
+                    try:
+                        plan_name = models.PlanDetails.objects.get(id=plan_id).plan_name
+                    except models.PlanDetails.DoesNotExist:
+                        plan_name = None
 
 
                 gender = logindetails.Gender
@@ -2266,6 +2272,7 @@ class Login_verifyotp(APIView):
                 'message': 'Login Successful',
                 "notification_count": notify_count,
                 "cur_plan_id": plan_id,
+                "plan_name": plan_name,
                 "profile_image": profile_image,
                 "profile_completion": profile_completion,
                 "gender": gender,
@@ -2574,9 +2581,13 @@ def Get_image(user_profile_id,gender):
     default_img_groom='default_groom.png'
     default_img='default_img.png'
     
+    # if user_profile_id:
+    #     get_image = models.Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0).first()           
     if user_profile_id:
-        get_image = models.Image_Upload.objects.filter(profile_id=user_profile_id,is_deleted=0).first()           
-    
+        get_image = models.Image_Upload.objects.filter(profile_id=user_profile_id).filter(
+            Q(is_deleted=False) | Q(is_deleted__isnull=True)
+        ).first()   
+
         if get_image:
             serializer = serializers.ImageGetSerializer(get_image)
             image_url = serializer.data['image']
@@ -2857,7 +2868,8 @@ class Get_dashboard_details(APIView):
                             "completion_per":int(result_percen['completion_percentage']),
                             "empty_fields":result_percen['empty_fields'],
                             #"profile_image":"http://matrimonyapp.rainyseasun.com/assets/Groom-Cdjk7JZo.png"
-                            "profile_image": Get_image(profile_details[0]['ProfileId'],my_oposit_gender)
+                            # "profile_image": Get_image(profile_details[0]['ProfileId'],my_oposit_gender)
+                            "profile_image": Get_image(profile_details[0]['ProfileId'],gender)
                            
                         }
 
@@ -9154,7 +9166,7 @@ class Save_plan_package(APIView):
                         "payment_type":"Razor pay Online",
                         "message": "Plans and packages updated successfully",
                         "data_message": f"Thank you for registering in Vysyamala. Your profile has been successfully submitted.Your Profile Id is  {profile_id} . We truly appreciate you taking the time to join Vysyamala—it means a lot to us! Our customer support team will review your details and get in touch with you shortly to complete the approval process. Welcome to the Vysyamala family!",
-                        'token':token.key ,'profile_id':profile_id ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till }, status=status.HTTP_200_OK)
+                        'token':token.key ,'profile_id':profile_id ,'login_username': logindetails.Profile_name, 'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"plan_name":plan_name,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till }, status=status.HTTP_200_OK)
             
             except models.Registration1.DoesNotExist:
                 return JsonResponse({"status": "error", "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -10858,9 +10870,17 @@ class GetSearchResults(APIView):
             #         query_params.extend([min_income, max_income])
 
             # Add star filter
+            # if star:
+            #     base_query += " AND e.birthstar_name = %s"
+            #     query_params.append(star)
+
+            # Add star filter (multi-select, comma-separated star ids)
             if star:
-                base_query += " AND e.birthstar_name = %s"
-                query_params.append(star)
+                star_list = [s.strip() for s in str(star).split(',') if s.strip()]
+                if star_list:
+                    placeholders = ','.join(['%s'] * len(star_list))
+                    base_query += f" AND e.birthstar_name IN ({placeholders})"
+                    query_params.extend(star_list)
 
             # if chevvai_dhosam:
             #     base_query += " AND e.chevvai_dosaham = %s"
@@ -23561,7 +23581,7 @@ class Free_packages(APIView):
                     "message": "Plans and packages updated successfully",
                     "payment_type":"Gpay Online",
                     "data_message": f"Thank you for registering in Vysyamala. Your profile has been successfully submitted.Your Profile Id is  {profile_id} . We truly appreciate you taking the time to join Vysyamala—it means a lot to us! Our customer support team will review your details and get in touch with you shortly to complete the approval process. Welcome to the Vysyamala family!",
-                    'token':token.key ,'profile_id':profile_id ,'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till }, status=status.HTTP_200_OK)
+                    'token':token.key ,'profile_id':profile_id ,'login_username': logindetails.Profile_name, 'message': 'Login Successful',"notification_count":notify_count,"cur_plan_id":plan_id,"plan_name":plan_name,"profile_image":profile_image,"profile_completion":profile_completion,"gender":gender,"height":height,"marital_status":marital_status,"custom_message":1,"birth_star_id":birth_star_id,"birth_rasi_id":birth_rasi_id,"profile_owner":Profile_owner,"quick_reg":quick_reg,"plan_limits":plan_limits_json,"valid_till":valid_till }, status=status.HTTP_200_OK)
 
 def generate_table_html(grid_dict, title):
     return f"""
