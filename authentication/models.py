@@ -13,7 +13,24 @@ from dateutil.relativedelta import relativedelta
 from django.db.models import Q
 
 
+def expand_grouped_state_pref(pref_state):
+    """
+    pref_state stores masterstatepref ids (a grouped/simplified state list used
+    only for the partner-preference dropdown), but profiles' actual state
+    (logindetails.Profile_state) uses the full masterstate ids, where Tamil Nadu
+    and Pondicherry are two separate ids ('2' and '7').
 
+    masterstatepref id '2' = "TamilNadu and Pondhicherry" (combined option), so
+    whenever it's present we must also match masterstate id '7' (Pondicherry),
+    otherwise FIND_IN_SET(a.Profile_state, pref_state) only ever matches Tamil
+    Nadu profiles and silently excludes Pondicherry ones.
+    """
+    if not pref_state:
+        return pref_state
+    ids = [s.strip() for s in pref_state.split(',') if s.strip()]
+    if '2' in ids and '7' not in ids:
+        ids.append('7')
+    return ','.join(ids)
 
 
 class AuthUser(models.Model):
@@ -146,6 +163,8 @@ class Registration1(models.Model):
     
     Owner_id = models.CharField(max_length=50, blank=True, null=True)
     Status = models.IntegerField(null=True, blank=True) 
+    is_mobile_login = models.BooleanField(default=False)
+  
 
 
     class Meta:
@@ -1046,7 +1065,7 @@ class Get_profiledata(models.Model):
             partner_pref_chevvai = partner_pref.pref_chevvai
             
             partner_pref_familysts = partner_pref.pref_family_status
-            partner_pref_state = partner_pref.pref_state
+            partner_pref_state = expand_grouped_state_pref(partner_pref.pref_state)
 
             field_of_study = partner_pref.pref_fieldof_study
             degree = partner_pref.degree
@@ -1466,7 +1485,7 @@ class Get_profiledata(models.Model):
             my_suya_gothram_admin=my_family.suya_gothram_admin
 
             partner_pref_familysts = partner_pref.pref_family_status
-            partner_pref_state = partner_pref.pref_state
+            partner_pref_state = expand_grouped_state_pref(partner_pref.pref_state)
             
             field_of_study = partner_pref.pref_fieldof_study
             degree = partner_pref.degree
@@ -1781,7 +1800,7 @@ class Get_profiledata(models.Model):
             partner_pref_chevvai= partner_pref.pref_chevvai
 
             partner_pref_familysts = partner_pref.pref_family_status
-            partner_pref_state = partner_pref.pref_state
+            partner_pref_state = expand_grouped_state_pref(partner_pref.pref_state)
             field_of_study = partner_pref.pref_fieldof_study
             degree = partner_pref.degree
 

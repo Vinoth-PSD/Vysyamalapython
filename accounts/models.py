@@ -4481,7 +4481,7 @@ class Get_profiledata_Matching(models.Model):
             
             # City
             if city and city != "":
-                base_query += "AND LOWER(TRIM(a.Profile_city)) LIKE LOWER(%s)"
+                base_query += " AND LOWER(TRIM(a.Profile_city)) LIKE LOWER(%s)"
                 query_params.append(f"%{city}%")
 
             # State

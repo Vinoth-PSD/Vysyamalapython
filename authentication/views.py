@@ -184,10 +184,16 @@ class LoginView(APIView):
                 
                 logindetails.Last_login_date=timezone.now()
                 
+      
+
 
                 if(fcm_token):
 
                     logindetails.fcm_token=fcm_token
+                    logindetails.is_mobile_login = True
+                    
+                    
+
 
                 logindetails.save()
 
@@ -2102,6 +2108,7 @@ class Login_verifyotp(APIView):
         if serializer.is_valid():
             mobile_number = serializer.validated_data.get('Mobile_no')
             otp = serializer.validated_data.get('Otp')
+            fcm_token = request.data.get('fcm_token')  
             normalized_input = mobile_number.strip()
             if len(normalized_input) == 10:
                 normalized_input_with_prefix = '91' + normalized_input
@@ -2183,8 +2190,14 @@ class Login_verifyotp(APIView):
                 if not quick_reg:
                     quick_reg=0
 
-                logindetails.Last_login_date=timezone.now()
+                logindetails.Last_login_date = timezone.now()
+
+                if fcm_token:
+                    logindetails.fcm_token = fcm_token
+                    logindetails.is_mobile_login = True
+
                 logindetails.save()
+
 
 
 
