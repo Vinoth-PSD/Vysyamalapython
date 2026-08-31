@@ -5889,7 +5889,7 @@ class Get_profile_det_match(APIView):
                 my_profile['Gender'],
                 permissions['photo_viewing'],
                 user_profile['Photo_protection']
-            ) if permissions['photo_viewing'] else {},
+            ),
             "personal_details": self._prepare_personal_details_full(user_profile),
             "education_details": self._prepare_education_details_full(user_profile),
             "family_details": self._prepare_family_details_full(user_profile),
