@@ -234,10 +234,19 @@ class DashboardcountView(APIView):
             ).count()
 
             # Others (exclude above states)
+            # others_count = LoginDetails.objects.filter(
+            #     status=1
+            # ).exclude(
+            #     Profile_state__in=['1', '2', '3', '4', '5', '7']
+            # ).count()
             others_count = LoginDetails.objects.filter(
                 status=1
             ).exclude(
                 Profile_state__in=['1', '2', '3', '4', '5', '7']
+            ).exclude(
+                Profile_state__in=['', '0', 'N/A', '~', 'n/a']
+            ).exclude(
+                Profile_state__isnull=True
             ).count()
 
             male_count = LoginDetails.objects.filter(status=1, Gender__iexact='Male').count()
@@ -1373,8 +1382,10 @@ class Newprofile_get(generics.ListAPIView):
         elif page_id == "foreign_working":
             sql += " AND ld.Profile_country = '1' AND ped.work_country != '1' And ped.work_country != '' And ped.work_country is not null AND ped.work_country != '0' "
 
+        # elif page_id == "others_state":
+        #     sql += " AND ld.Profile_state NOT IN ('1','2','3','4','5','7')"
         elif page_id == "others_state":
-            sql += " AND ld.Profile_state NOT IN ('1','2','3','4','5','7')"
+            sql += " AND ld.Profile_state NOT IN ('1','2','3','4','5','7') AND ld.Profile_state IS NOT NULL AND ld.Profile_state NOT IN ('', '0', 'N/A', '~', 'n/a')"
 
         # Gender filters
         elif page_id == "male":
@@ -1423,7 +1434,7 @@ class Newprofile_get(generics.ListAPIView):
                 placeholders = ','.join(['%s'] * len(plan_id_list))
                 sql += f" AND ld.Plan_id IN ({placeholders})"
                 params.extend(plan_id_list)
-        # Filter by delete reason (secondary_status) — only for deleted profiles (page_name=4)
+            # Filter by delete reason (secondary_status) — only for deleted profiles (page_name=4)
         if numeric_page_id == 4 and delete_reason and delete_reason.isdigit():
             sql += " AND ld.secondary_status = %s"
             params.append(int(delete_reason))
@@ -1563,7 +1574,7 @@ class NewProfileExportAPI(APIView):
             placeholders = ",".join(["%s"] * len(plan_list))
             sql += f" AND ld.Plan_id IN ({placeholders})"
             params.extend(plan_list)
-            
+
         if page_id == "4" and delete_reason and delete_reason.isdigit():
             sql += " AND ld.secondary_status = %s"
             params.append(int(delete_reason))
@@ -3680,7 +3691,7 @@ class GetProfEditDetailsAPIView(APIView):
                 "exp_int_sentcount":sent_int_count,
                 "exp_int_reccount": received_int_count,
                 "mutual_int_count":mutual_int_count,
-                "shortlisted_count":wishlist_count,
+                "shortlisted_count": wishlist_count,
                 "prsent_count":photo_int_count,
                 "varequest_count":vys_prof_count,
                 "visibility_count": visibility_count 
@@ -7588,6 +7599,7 @@ class Exp_intrests_received(APIView):
                                 for ei in fetch_data
                                 if ei.profile_from == detail.get("ProfileId")
                             ), "Pending"),
+                                                        
                         }
                         for detail in profile_details
                     ]
@@ -7836,7 +7848,8 @@ def fetch_login_details_profile(request):
 
 
 class ProfileSendTo(APIView):
-    def post(self, request, profile_from_id):
+    def post(self, request, profile_id):
+        profile_from_id = profile_id
         try:
             # Fetch all records from ProfileSendFromAdmin for profile_from_id
             send_from_admin_list = ProfileSendFromAdmin.objects.filter(profile_from=profile_from_id)
@@ -8557,7 +8570,7 @@ def parse_data(data, planet_mapping=None, default_placeholder="-"):
 
 #         except Exception as e:
 #             return JsonResponse({"status": "error", "message": str(e)}, status=500)
-
+        
 #     def generate_short_profile_pdf(self, profile_id):
 #         login = get_object_or_404(LoginDetails, ProfileId=profile_id)
 #         family = get_object_or_404(ProfileFamilyDetails, profile_id=profile_id)
@@ -8634,6 +8647,9 @@ def parse_data(data, planet_mapping=None, default_placeholder="-"):
 #         """
 
 #         return self.render_pdf(html_content, f"short_profile_{profile_id}.pdf")
+    
+    
+    
 #     def generate_full_profile_pdf(self, profile_id):
 #         # Reuse short profile template or add more fields for full profile
 #         html_content = f"""
@@ -8658,8 +8674,6 @@ def parse_data(data, planet_mapping=None, default_placeholder="-"):
 #         response = HttpResponse(pdf_file, content_type='application/pdf')
 #         response['Content-Disposition'] = 'inline'
 #         return response
-
-
 
 
 
@@ -8938,8 +8952,6 @@ class ShortProfilePDFView(APIView):
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
-
-
 
 
 
@@ -10472,7 +10484,6 @@ def degree(degree_ids,other_degree):
             degree_names.append(other_degree)
         # final_names = ", ".join(degree_names) if degree_names else None
         final_names = ", ".join([strip_degree_expansion(d) for d in degree_names]) if degree_names else None
-             
         if final_names==None:
             return "N/A"
         else:
@@ -10972,11 +10983,9 @@ class AdminProfilePDFView(APIView):
         
         final_education = (highest_education + ' ' + fieldof_study).strip() or about_edu
         try:
-            degree_name = get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)
-            about_edu_val = education_details.about_edu or ''
-            degree_clean = strip_degree_expansion(degree_name) if degree_name and degree_name != 'N/A' else ''
-            degree = (degree_clean + '  ' + about_edu_val).strip() or None
             # degree= get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)
+            degree_name = get_degree_name(education_details.degree,education_details.other_degree,education_details.highest_education,education_details.field_ofstudy,education_details.about_edu)
+            degree = (degree_name + '  ' + about_edu).strip() if about_edu else degree_name
         except Exception:
             degree=None
 
@@ -11098,12 +11107,11 @@ class AdminProfilePDFView(APIView):
                     horoscope_original_only = f'<img src="{horoscope_image_url}" alt="Horoscope Image" style="width: 400px; height: 430px; display: block; margin: 0 auto;">'
                 else:
                     horoscope_original_only = f'<a href="{horoscope_image_url}" download>Download Horoscope File</a>'
-
-
-
-
                 # Get matching stars data
 
+
+
+        
         birthstar = safe_get_value(models.BirthStar, 'id', horoscope_data.birthstar_name, 'star')
         birth_rasi = get_primary_sign(safe_get_value(models.Rasi, 'id', horoscope_data.birth_rasi_name, 'name'))
 
@@ -11320,7 +11328,6 @@ class AdminProfilePDFView(APIView):
             "withcontactonly":    ("with_contact_only.html",      "with_contact_only_black.html"),
             "withoutcontactonly": ("without_contact_only.html",   "without_contact_only_black.html"),
             "withaddressshort":   ("with_address_short.html",     "with_address_short_black.html"),
-
         }
 
         try:
@@ -11439,12 +11446,15 @@ class AdminMatchProfilePDFView(APIView):
                     no_of_bro_married = "No"
                     no_of_brother = 'No'
 
+                # try:
+                #     degree = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
+                # except Exception:
+                #     degree = None
+
                 try:
+                    about_edu = education_details.about_edu
                     degree_name = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
-                    about_edu_val = education_details.about_edu or ''
-                    degree_clean = strip_degree_expansion(degree_name) if degree_name and degree_name != 'N/A' else ''
-                    degree = (degree_clean + '  ' + about_edu_val).strip() or None
-                    # degree = get_degree_name(education_details.degree, education_details.other_degree, education_details.highest_education, education_details.field_ofstudy, education_details.about_edu)
+                    degree = (degree_name + '  ' + about_edu).strip() if about_edu else degree_name
                 except Exception:
                     degree = None
 
@@ -11509,7 +11519,6 @@ class AdminMatchProfilePDFView(APIView):
                 # except (ValueError, TypeError):
                 #     occupation_title = 'Other'
                 #     occupation = ''
-
 
                 try:
                     prof_id_int = int(profession_id)
@@ -15549,6 +15558,8 @@ class ExpiredMembersReport(APIView):
         action_filter     = request.GET.get("actionFilter", "")
         photo_filter      = request.GET.get("photoFilter", "")   
         horo_filter       = request.GET.get("horoFilter", "") 
+        birthday_filter   = request.GET.get("birthdayFilter", "").lower()   # today | month
+        status_group_filter = request.GET.get("statusGroupFilter", "").lower()   # called
         from_date         = request.GET.get("from_date", "")
         to_date           = request.GET.get("to_date", "")
         age_from          = request.GET.get("age_from", "")
@@ -15568,6 +15579,21 @@ class ExpiredMembersReport(APIView):
                 return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
             except:
                 return None
+
+        def birthday_match(dob, mode):
+            if not dob:
+                return False
+            if isinstance(dob, datetime):
+                dob = dob.date()
+            elif not isinstance(dob, date):
+                dob = safe_date(str(dob)[:10])
+                if not dob:
+                    return False
+            if mode == "today":
+                return dob.month == today.month and dob.day == today.day
+            if mode == "month":
+                return dob.month == today.month
+            return False
 
         def safe_date(d):
             try:
@@ -15661,6 +15687,18 @@ class ExpiredMembersReport(APIView):
                 elif photo_filter == "no_photo" and has_photo:
                     include = False
 
+            if include and birthday_filter in ("today", "month"):
+                if not birthday_match(row.get("Profile_dob"), birthday_filter):
+                    include = False
+
+            if include and status_group_filter == "called":
+                try:
+                    _st = int(row.get("last_call_status"))
+                except (TypeError, ValueError):
+                    _st = None
+                if _st not in (1, 2, 3, 4):
+                    include = False
+
             if include and horo_filter:
                 has_horo = bool(row.get("has_horo"))
 
@@ -15680,6 +15718,37 @@ class ExpiredMembersReport(APIView):
                 
         if export_type in ["csv", "excel"]:
 
+            from django.db.models import Count
+
+            def _d(val):
+                return val.date() if isinstance(val, datetime) else val
+
+            profile_ids = [r.get("ProfileId") for r in final_filtered if r.get("ProfileId")]
+            call_ids = [r.get("last_call_id") for r in final_filtered if r.get("last_call_id")]
+            action_ids = [r.get("last_action_id") for r in final_filtered if r.get("last_action_id")]
+
+            # Call & Service Logs popup data (Call Particulars, LAP, LAP Comments)
+            call_particulars = {
+                c["id"]: c["particulars__particulars"]
+                for c in CallLog.objects.filter(id__in=call_ids, is_deleted=0)
+                                .values("id", "particulars__particulars")
+            }
+            action_info = {
+                a["id"]: a
+                for a in ActionLog.objects.filter(id__in=action_ids, is_deleted=0)
+                                .values("id", "comments", "action_point__action_point")
+            }
+
+            # Customer Log popup data (same logic as get_action_summary, in bulk)
+            def _count_map(qs, key):
+                return {r[key]: r["c"] for r in qs.values(key).annotate(c=Count("id"))}
+
+            viewed_map = _count_map(Profile_visitors.objects.filter(profile_id__in=profile_ids, status=1), "profile_id")
+            visitors_map = _count_map(Profile_visitors.objects.filter(viewed_profile__in=profile_ids, status=1), "viewed_profile")
+            bookmark_map = _count_map(Profile_wishlists.objects.filter(profile_from__in=profile_ids, status=1), "profile_from")
+            int_sent_map = _count_map(Express_interests.objects.filter(profile_from__in=profile_ids, status=1), "profile_from")
+            int_recv_map = _count_map(Express_interests.objects.filter(profile_to__in=profile_ids, status=1), "profile_to")
+
             export_data = []
             for row in final_filtered:
                 education = ""
@@ -15687,6 +15756,9 @@ class ExpiredMembersReport(APIView):
                     education = f"{row.get('degree_name')} / {row.get('other_degree')}"
                 else:
                     education = row.get("degree_name") or row.get("other_degree") or ""
+
+                pid = row.get("ProfileId")
+                act = action_info.get(row.get("last_action_id")) or {}
 
                 export_row = {
                     "Profile ID": row.get("ProfileId"),
@@ -15703,6 +15775,21 @@ class ExpiredMembersReport(APIView):
                     "Last Login": row.get("Last_login_date"),
                     "Idle Days": row.get("idle_days"),
                     "Status": row.get("call_status"),
+                    # ---- Call & Service Logs ----
+                    "LCD": _d(row.get("last_call_date")),
+                    "LCD Comments": row.get("last_call_comments"),
+                    "NCD": _d(row.get("next_call_date")),
+                    "Call Particulars": call_particulars.get(row.get("last_call_id")),
+                    "LAD": _d(row.get("last_action_date")),
+                    "LAP": act.get("action_point__action_point"),
+                    "LAP Comments": act.get("comments"),
+                    "NAD": _d(row.get("next_action_date")),
+                    # ---- Customer Log ----
+                    "Profiles Viewed": visitors_map.get(pid, 0),
+                    "Profile Visitors": viewed_map.get(pid, 0),
+                    "Bookmarks": bookmark_map.get(pid, 0),
+                    "Exp. Int Sent": int_sent_map.get(pid, 0),
+                    "Interest Received": int_recv_map.get(pid, 0),
                 }
 
                 export_data.append(export_row)
@@ -15739,6 +15826,8 @@ class ExpiredMembersReport(APIView):
         no_horo_count = 0
         has_photo_count = 0
         has_horo_count = 0
+        today_birthday_count = 0
+        present_month_birthday_count = 0
 
 
         family_status_counts = {3: 0, 4: 0, 6: 0}
@@ -15752,6 +15841,11 @@ class ExpiredMembersReport(APIView):
                     under_30 += 1
                 else:
                     above_30 += 1
+
+            if birthday_match(item.get("Profile_dob"), "month"):
+                present_month_birthday_count += 1
+                if birthday_match(item.get("Profile_dob"), "today"):
+                    today_birthday_count += 1
 
             gender = str(item.get("Gender", "")).lower()
             if gender in ["male", "m", "1"]:
@@ -15857,6 +15951,9 @@ class ExpiredMembersReport(APIView):
             },
             "no_photo": no_photo_count,
             "no_horo": no_horo_count,
+            "called_profiles_count": hot + warm + cold + not_interested,
+            "today_birthday_count": today_birthday_count,
+            "present_month_birthday_count": present_month_birthday_count,
             "data": final_filtered
         })
 
@@ -22274,6 +22371,7 @@ class NotificationAction(APIView):
                 "message": str(e)
             })
 
+
 from rest_framework.pagination import PageNumberPagination
 
 # class AdminAllNotificationsPage(APIView):
@@ -22354,41 +22452,45 @@ class AdminAllNotificationsPage(APIView):
         })
 
 
-
 # class DuplicateProfileCheck(APIView):
 
 #     def post(self, request):
 #         profile_id = request.data.get('profile_id')
+#         dob = request.data.get('dob')
+#         gender = request.data.get('gender')
 
-#         if not profile_id:
+#         if not dob or not gender:
 #             return JsonResponse({
 #                 "Status": 0,
-#                 "message": "profile_id is required"
+#                 "message": "dob and gender are required"
 #             }, status=400)
 
-#         # Get the profile
-#         try:
-#             profile = Registration1.objects.get(ProfileId=profile_id)
-#         except Registration1.DoesNotExist:
+#         # Profile_dob is stored as a CharField in 'YYYY-MM-DD' format.
+#         # Normalize incoming dob (handles '01/01/1997', '1997-01-01', etc.)
+#         normalized_dob = None
+#         for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%m/%d/%Y"):
+#             try:
+#                 normalized_dob = datetime.strptime(dob, fmt).strftime("%Y-%m-%d")
+#                 break
+#             except ValueError:
+#                 continue
+
+#         if not normalized_dob:
 #             return JsonResponse({
 #                 "Status": 0,
-#                 "message": "Profile not found"
-#             }, status=404)
-
-#         gender = profile.Gender
-#         dob = profile.Profile_dob
-
-#         if not dob:
-#             return JsonResponse({
-#                 "Status": 0,
-#                 "message": "Date of Birth not set for this profile"
+#                 "message": "Invalid dob format. Use YYYY-MM-DD or DD/MM/YYYY"
 #             }, status=400)
 
 #         # Find all profiles with same gender and same DOB, excluding current profile
 #         duplicates = Registration1.objects.filter(
-#             Gender=gender,
-#             Profile_dob=dob
-#         ).exclude(ProfileId=profile_id).values(
+#             Gender__iexact=gender,
+#             Profile_dob=normalized_dob
+#         )
+
+#         if profile_id:
+#             duplicates = duplicates.exclude(ProfileId=profile_id)
+
+#         duplicates = duplicates.values(
 #             'ProfileId', 'Profile_name', 'Gender', 'Profile_dob'
 #         )
 
@@ -22407,14 +22509,10 @@ class AdminAllNotificationsPage(APIView):
 #             "message": "Duplicate profiles fetched successfully",
 #             "profile_id": profile_id,
 #             "gender": gender,
-#             "dob": str(dob),
+#             "dob": normalized_dob,
 #             "duplicate_count": len(result),
 #             "duplicates": result
 #         })
-
-
-
-
 
 class DuplicateProfileCheck(APIView):
 
@@ -22551,8 +22649,6 @@ class DuplicateProfileCheck(APIView):
         })
 
 
-
-# Wishlist Profiles - Admin List
 class Wishlist_profiles_list(APIView):
 
     def post(self, request):
@@ -22646,3 +22742,422 @@ class Wishlist_profiles_list(APIView):
                 return JsonResponse({"Status": 0, "message": str(e)}, status=500)
         else:
             return JsonResponse({"Status": 0, "message": serializer.errors}, status=400)
+
+
+
+
+class ExpiredMembersReportV2(APIView):
+
+    def get(self, request, *args, **kwargs):
+        status_param       = request.GET.get("status", "1")
+        owner_param        = request.GET.get("owner", "26")
+        age_filter         = request.GET.get("ageFilter", "")
+        gender_filter      = request.GET.get("genderFilter", "")
+        family_filter      = request.GET.get("familyFilter", "")
+        login_filter       = request.GET.get("loginFilter", "")
+        expiring_filter    = request.GET.get("expiringFilter", "")
+        call_status_filter = request.GET.get("callStatusFilter", "")
+        idle_days_filter   = request.GET.get("idleDaysFilter", "")
+        action_filter      = request.GET.get("actionFilter", "")
+        photo_filter       = request.GET.get("photoFilter", "")
+        horo_filter        = request.GET.get("horoFilter", "")
+        from_date          = request.GET.get("from_date", "")
+        to_date            = request.GET.get("to_date", "")
+        age_from           = request.GET.get("age_from", "")
+        age_to             = request.GET.get("age_to", "")
+        plan_id            = request.GET.get("plan_id", "")
+        search             = request.GET.get("search", "").strip().lower()
+        export_type        = request.GET.get("export", "").lower()
+        today = date.today()
+
+        def calculate_age(dob):
+            if not dob:
+                return None
+            try:
+                if isinstance(dob, datetime):
+                    dob = dob.date()
+                return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+            except:
+                return None
+
+        # Check owner role
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT role_id FROM users WHERE id = %s LIMIT 1", [owner_param])
+            row = cursor.fetchone()
+            role_id = row[0] if row else 0
+
+        # Build main SQL
+        sql = """
+            SELECT
+                ld.ProfileId, ld.Profile_name, ld.Profile_dob, ld.Gender,
+                ld.Profile_city, ld.Plan_id, ld.owner_id, ld.Last_login_date,
+                ld.membership_startdate, ld.membership_enddate,
+                mo.username AS owner_name,
+                mai.income,
+                ms.MaritalStatus,
+                mfs.status AS family_status_name,
+                cmx.complexion_desc,
+                st.name AS state_name,
+                cn.name AS country_name,
+                ds.name AS district_name,
+                pl.plan_name,
+                pfd.family_status,
+                ped.highest_education,
+                ped.degree,
+                md.degeree_name AS degree_name,
+                ped.other_degree,
+                ped.anual_income,
+                ph.birthstar_name,
+                mp.profession,
+                cm.id AS call_management_id,
+                cl_latest.id AS last_call_id,
+                cl_latest.call_date AS last_call_date,
+                cl_latest.call_type_id AS last_call_type,
+                cl_latest.call_status_id AS last_call_status,
+                cl_latest.next_call_date AS next_call_date,
+                cl_latest.comments AS last_call_comments,
+                al_latest.id AS last_action_id,
+                al_latest.action_date AS last_action_date,
+                al_latest.next_action_date AS next_action_date,
+                cs.status AS call_status,
+                EXISTS (
+                    SELECT 1 FROM profile_images pi
+                    WHERE pi.profile_id = ld.ProfileId
+                    AND (pi.is_deleted = 0 OR pi.is_deleted IS NULL)
+                    AND pi.image IS NOT NULL AND pi.image <> ''
+                ) AS has_photo,
+                EXISTS (
+                    SELECT 1 FROM profile_horoscope ph2
+                    WHERE ph2.profile_id = ld.ProfileId
+                    AND (
+                        (ph2.horoscope_file IS NOT NULL AND ph2.horoscope_file <> '')
+                        OR (ph2.horoscope_file_admin IS NOT NULL AND ph2.horoscope_file_admin <> '')
+                    )
+                ) AS has_horo
+            FROM logindetails ld
+            LEFT JOIN maritalstatusmaster ms ON ld.Profile_marital_status = ms.StatusId
+            LEFT JOIN complexionmaster cmx ON ld.Profile_complexion = cmx.complexion_id
+            LEFT JOIN masterstate st ON ld.Profile_state = st.id
+            LEFT JOIN mastercountry cn ON ld.Profile_country = cn.id
+            LEFT JOIN masterdistrict ds ON ld.Profile_district = ds.name
+            LEFT JOIN plan_master pl ON ld.Plan_id = pl.id
+            LEFT JOIN profile_familydetails pfd ON ld.ProfileId = pfd.profile_id
+            LEFT JOIN profile_edudetails ped ON ld.ProfileId = ped.profile_id
+            LEFT JOIN profile_horoscope ph ON ld.ProfileId = ph.profile_id
+            LEFT JOIN masterprofession mp ON ped.profession = mp.RowId
+            LEFT JOIN masterfamilystatus mfs ON pfd.family_status = mfs.id
+            LEFT JOIN masterannualincome mai ON ped.anual_income = mai.id
+            LEFT JOIN masteredu_degeree md
+                ON FIND_IN_SET(md.id, ped.degree) AND NOT FIND_IN_SET('86', ped.degree)
+            LEFT JOIN users mo ON ld.owner_id = mo.id
+            LEFT JOIN (
+                SELECT c1.*
+                FROM call_management c1
+                JOIN (
+                    SELECT profile_id, MAX(id) AS max_id
+                    FROM call_management GROUP BY profile_id
+                ) c2 ON c1.profile_id = c2.profile_id AND c1.id = c2.max_id
+            ) cm ON cm.profile_id = ld.ProfileId
+            LEFT JOIN (
+                SELECT cl1.*, cm1.profile_id
+                FROM call_logs cl1
+                JOIN call_management cm1 ON cl1.call_management_id = cm1.id
+                JOIN (
+                    SELECT cm2.profile_id, MAX(cl2.id) AS max_id
+                    FROM call_logs cl2
+                    JOIN call_management cm2 ON cl2.call_management_id = cm2.id
+                    WHERE cl2.is_deleted = 0
+                    GROUP BY cm2.profile_id
+                ) latest ON latest.profile_id = cm1.profile_id AND latest.max_id = cl1.id
+                WHERE cl1.is_deleted = 0
+            ) cl_latest ON cl_latest.profile_id = ld.ProfileId
+            LEFT JOIN master_call_status cs ON cs.id = cl_latest.call_status_id
+            LEFT JOIN (
+                SELECT al1.*, cm1.profile_id
+                FROM action_logs al1
+                JOIN call_management cm1 ON al1.call_management_id = cm1.id
+                JOIN (
+                    SELECT cm2.profile_id, MAX(al2.id) AS max_id
+                    FROM action_logs al2
+                    JOIN call_management cm2 ON al2.call_management_id = cm2.id
+                    WHERE al2.is_deleted = 0
+                    GROUP BY cm2.profile_id
+                ) latest ON latest.profile_id = cm1.profile_id AND latest.max_id = al1.id
+                WHERE al1.is_deleted = 0
+            ) al_latest ON al_latest.profile_id = ld.ProfileId
+            WHERE ld.status = %s
+            AND ld.Plan_id NOT IN (4,6,7,8,9)
+            AND (
+                ld.membership_enddate < CURDATE()
+                OR (
+                    MONTH(ld.membership_enddate) = MONTH(CURDATE())
+                    AND YEAR(ld.membership_enddate) = YEAR(CURDATE())
+                )
+            )
+        """
+        params = [status_param]
+
+        # Owner filter
+        if role_id != 7:
+            sql += " AND ld.owner_id = %s"
+            params.append(owner_param)
+
+        # Date filters
+        if from_date:
+            sql += " AND ld.membership_enddate >= %s"
+            params.append(from_date)
+        if to_date:
+            sql += " AND ld.membership_enddate <= %s"
+            params.append(to_date)
+
+        # Age filters
+        if age_from:
+            sql += " AND TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) >= %s"
+            params.append(age_from)
+        if age_to:
+            sql += " AND TIMESTAMPDIFF(YEAR, ld.Profile_dob, CURDATE()) <= %s"
+            params.append(age_to)
+
+        # Plan filter
+        if plan_id:
+            sql += " AND ld.Plan_id = %s"
+            params.append(plan_id)
+
+        sql += " ORDER BY ld.membership_enddate DESC"
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            columns = [col[0] for col in cursor.description]
+            base_data = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+        overall_count = len(base_data)
+
+        # Python-side filtering
+        final_filtered = []
+        for row in base_data:
+            row["age"] = calculate_age(row.get("Profile_dob"))
+
+            next_action_raw = row.get("next_action_date")
+            next_action = next_action_raw.date() if isinstance(next_action_raw, datetime) else next_action_raw
+            next_call_raw = row.get("next_call_date")
+            next_call = next_call_raw.date() if isinstance(next_call_raw, datetime) else next_call_raw
+            last_login_raw = row.get("Last_login_date")
+            last_login = last_login_raw.date() if isinstance(last_login_raw, datetime) else last_login_raw
+
+            if next_action:
+                diff = (today - next_action).days
+                row["idle_days"] = diff if diff > 0 else None
+            else:
+                row["idle_days"] = None
+
+            include = True
+
+            # Age filter
+            if age_filter and row["age"] is not None:
+                if age_filter == "under_30" and row["age"] >= 30:
+                    include = False
+                elif age_filter == "above_30" and row["age"] < 30:
+                    include = False
+
+            # Gender filter
+            if include and gender_filter:
+                g = str(row.get("Gender", "")).lower()
+                if gender_filter == "male" and g not in ("male", "m", "1"):
+                    include = False
+                elif gender_filter == "female" and g not in ("female", "f", "2"):
+                    include = False
+
+            # Family filter
+            if include and family_filter:
+                if str(row.get("family_status", "")) != family_filter:
+                    include = False
+
+            # Login filter
+            if include and login_filter:
+                if login_filter == "today" and last_login != today:
+                    include = False
+                elif login_filter == "yesterday" and last_login != (today - timedelta(days=1)):
+                    include = False
+
+            # Expiring filter
+            if include and expiring_filter:
+                end = row.get("membership_enddate")
+                if isinstance(end, datetime):
+                    end = end.date()
+                if expiring_filter == "expiring_this_month":
+                    if not end or not (end.month == today.month and end.year == today.year):
+                        include = False
+                elif expiring_filter == "expired":
+                    if not end or end >= today:
+                        include = False
+
+            # Call status filter
+            if include and call_status_filter:
+                status_map = {"hot": 1, "warm": 2, "cold": 3, "not_interested": 4}
+                if row.get("last_call_status") != status_map.get(call_status_filter):
+                    include = False
+
+            # Idle days filter
+            if include and idle_days_filter:
+                idle = row.get("idle_days")
+                if idle_days_filter == "45" and (not idle or idle <= 45):
+                    include = False
+                elif idle_days_filter == "90" and (not idle or idle <= 90):
+                    include = False
+
+            # Action filter
+            if include and action_filter:
+                if action_filter == "today_work":
+                    if not next_call or next_call != today:
+                        include = False
+                elif action_filter == "pending_work":
+                    if not next_call or next_call >= today:
+                        include = False
+                elif action_filter == "today_task":
+                    if not next_action or next_action != today:
+                        include = False
+                elif action_filter == "pending_task":
+                    if not next_action or next_action >= today:
+                        include = False
+
+            # Photo filter
+            if include and photo_filter:
+                has_photo = bool(row.get("has_photo"))
+                if photo_filter == "has_photo" and not has_photo:
+                    include = False
+                elif photo_filter == "no_photo" and has_photo:
+                    include = False
+
+            # Horo filter
+            if include and horo_filter:
+                has_horo = bool(row.get("has_horo"))
+                if horo_filter == "has_horo" and not has_horo:
+                    include = False
+                elif horo_filter == "no_horo" and has_horo:
+                    include = False
+
+            # Search filter
+            if include and search:
+                if search not in str(row.get("ProfileId", "")).lower() and \
+                   search not in str(row.get("Profile_name", "")).lower():
+                    include = False
+
+            if include:
+                final_filtered.append(row)
+
+        # Export
+        if export_type in ["csv", "excel"]:
+            export_data = []
+            for row in final_filtered:
+                education = ""
+                if row.get("degree_name") and row.get("other_degree"):
+                    education = f"{row.get('degree_name')} / {row.get('other_degree')}"
+                else:
+                    education = row.get("degree_name") or row.get("other_degree") or ""
+                export_row = {
+                    "Profile ID": row.get("ProfileId"),
+                    "Name": row.get("Profile_name"),
+                    "Age": row.get("age"),
+                    "Family Status": row.get("family_status_name"),
+                    "Education Details": education,
+                    "Annual Income": row.get("income"),
+                    "City": row.get("Profile_city"),
+                    "Mode": row.get("plan_name"),
+                    "Owner": row.get("owner_name"),
+                    "From Date": row.get("membership_startdate"),
+                    "To Date": row.get("membership_enddate"),
+                    "Last Login": row.get("Last_login_date"),
+                    "Idle Days": row.get("idle_days"),
+                    "Status": row.get("call_status"),
+                }
+                export_data.append(export_row)
+
+            df = pd.DataFrame(export_data)
+            if export_type == "csv":
+                output = StringIO()
+                df.to_csv(output, index=False)
+                response = HttpResponse(output.getvalue(), content_type="text/csv")
+                response["Content-Disposition"] = 'attachment; filename="expired_members_report.csv"'
+                return response
+            elif export_type == "excel":
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                    df.to_excel(writer, index=False, sheet_name="Report")
+                response = HttpResponse(
+                    output.getvalue(),
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+                response["Content-Disposition"] = 'attachment; filename="expired_members_report.xlsx"'
+                return response
+        # Summary counts
+        under_30 = sum(1 for r in final_filtered if r.get("age") is not None and r["age"] < 30)
+        above_30 = sum(1 for r in final_filtered if r.get("age") is not None and r["age"] >= 30)
+        male_count = sum(1 for r in final_filtered if str(r.get("Gender", "")).lower() in ("male", "m", "1"))
+        female_count = sum(1 for r in final_filtered if str(r.get("Gender", "")).lower() in ("female", "f", "2"))
+        today_login = sum(1 for r in final_filtered if (r.get("Last_login_date").date() if isinstance(r.get("Last_login_date"), datetime) else r.get("Last_login_date")) == today)
+        yesterday_login = sum(1 for r in final_filtered if (r.get("Last_login_date").date() if isinstance(r.get("Last_login_date"), datetime) else r.get("Last_login_date")) == today - timedelta(days=1))
+        expired_this_month = sum(1 for r in final_filtered if r.get("membership_enddate") and (r["membership_enddate"].date() if isinstance(r["membership_enddate"], datetime) else r["membership_enddate"]) and (r["membership_enddate"].date() if isinstance(r["membership_enddate"], datetime) else r["membership_enddate"]).month == today.month and (r["membership_enddate"].date() if isinstance(r["membership_enddate"], datetime) else r["membership_enddate"]).year == today.year)
+
+        family_status_counts = {}
+        for r in final_filtered:
+            fs = r.get("family_status_name")
+            if fs:
+                family_status_counts[fs] = family_status_counts.get(fs, 0) + 1
+
+        call_status_counts = {"hot": 0, "warm": 0, "cold": 0, "not_interested": 0}
+        status_map_rev = {1: "hot", 2: "warm", 3: "cold", 4: "not_interested"}
+        for r in final_filtered:
+            cs = status_map_rev.get(r.get("last_call_status"))
+            if cs:
+                call_status_counts[cs] += 1
+
+        over_45 = sum(1 for r in final_filtered if r.get("last_action_date") and (today - (r["last_action_date"].date() if isinstance(r["last_action_date"], datetime) else r["last_action_date"])).days > 45)
+        over_90 = sum(1 for r in final_filtered if r.get("last_action_date") and (today - (r["last_action_date"].date() if isinstance(r["last_action_date"], datetime) else r["last_action_date"])).days > 90)
+
+        today_work = sum(1 for r in final_filtered if r.get("next_call_date") and (r["next_call_date"].date() if isinstance(r["next_call_date"], datetime) else r["next_call_date"]) == today)
+        pending_work = sum(1 for r in final_filtered if r.get("next_call_date") and (r["next_call_date"].date() if isinstance(r["next_call_date"], datetime) else r["next_call_date"]) < today)
+        today_task = sum(1 for r in final_filtered if r.get("next_action_date") and (r["next_action_date"].date() if isinstance(r["next_action_date"], datetime) else r["next_action_date"]) == today)
+        pending_task = sum(1 for r in final_filtered if r.get("next_action_date") and (r["next_action_date"].date() if isinstance(r["next_action_date"], datetime) else r["next_action_date"]) < today)
+
+        no_photo = sum(1 for r in final_filtered if not bool(r.get("has_photo")))
+        no_horo = sum(1 for r in final_filtered if not bool(r.get("has_horo")))
+
+        # Serialize dates
+        def serialize(val):
+            if isinstance(val, (date, datetime)):
+                return val.isoformat()
+            return val
+
+        result = [{k: serialize(v) for k, v in row.items()} for row in final_filtered]
+
+        return JsonResponse({
+            "status": 1,
+            "overall_count": overall_count,
+            "filtered_count": len(final_filtered),
+            "status": True,
+            "overall_count": overall_count,
+            "filtered_count": len(final_filtered),
+            "under_30": under_30,
+            "above_30": above_30,
+            "male_count": male_count,
+            "female_count": female_count,
+            "family_status_counts": family_status_counts,
+            "today_login_count": today_login,
+            "yesterday_login_count": yesterday_login,
+            "expired_this_month_count": expired_this_month,
+            "call_status_counts": call_status_counts,
+            "last_action_counts": {
+                "over_45_days": over_45,
+                "over_90_days": over_90,
+            },
+            "action_counts": {
+                "today_work": today_work,
+                "pending_work": pending_work,
+                "today_task": today_task,
+                "pending_task": pending_task,
+            },
+            "no_photo": no_photo,
+            "no_horo": no_horo,
+            "data": result
+            
+        })
