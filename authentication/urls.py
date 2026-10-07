@@ -75,6 +75,7 @@ urlpatterns = [
     # path('Get_profile_det_match_1/', views.Get_profile_det_match_1.as_view(), name='Get_profile_det_match_1'),
     path('Get_profile_det_match_old/', views.Get_profile_det_match_old.as_view(), name='Get_profile_det_match_old'),
     path('Get_profile_det_match/', views.Get_profile_det_match.as_view(), name='Get_profile_det_match'),
+    path('Get_profile_det_matchv2/', views.Get_profile_det_matchv2.as_view(), name='Get_profile_det_matchv2'),
     path('Send_profile_intrests/', views.Send_profile_intrests.as_view(), name='Send_profile_intrests'),
     path('Get_profile_intrests_list/', views.Get_profile_intrests_list.as_view(), name='Get_profile_intrests_list'),
     path('Update_profile_intrests/', views.Update_profile_intrests.as_view(), name='Update_profile_intrests'),
