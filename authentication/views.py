@@ -237,7 +237,8 @@ class LoginView(APIView):
                     except models.PlanDetails.DoesNotExist:
                         plan_name = None
 
-                gender = logindetails.Gender
+                # gender = logindetails.Gender
+                gender = (logindetails.Gender or "").lower()
                 height = logindetails.Profile_height
                 marital_status=logindetails.Profile_marital_status
                 quick_reg=logindetails.quick_registration
@@ -2220,7 +2221,8 @@ class Login_verifyotp(APIView):
                         plan_name = None
 
 
-                gender = logindetails.Gender
+                # gender = logindetails.Gender
+                gender = (logindetails.Gender or "").lower()
                 height = logindetails.Profile_height
                 marital_status=logindetails.Profile_marital_status
 
@@ -2882,7 +2884,7 @@ class Get_dashboard_details(APIView):
                             "empty_fields":result_percen['empty_fields'],
                             #"profile_image":"http://matrimonyapp.rainyseasun.com/assets/Groom-Cdjk7JZo.png"
                             # "profile_image": Get_image(profile_details[0]['ProfileId'],my_oposit_gender)
-                            "profile_image": Get_image(profile_details[0]['ProfileId'],gender)
+                            "profile_image": Get_image(profile_details[0]['ProfileId'],my_oposit_gender)
                            
                         }
 
